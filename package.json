@@ -1,0 +1,36 @@
+{
+  "name": "minard-backend",
+  "version": "0.1.0",
+  "description": "Minard backend",
+  "main": "server.js",
+  "dependencies": {
+    "@types/hapi": "^13.0.27-alpha",
+    "hapi": "^13.5.0"
+  },
+  "devDependencies": {
+    "typescript": "^2.0.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "tsc -w & node-dev dist/server.js"
+  },
+  "contributors": [
+    {
+      "name": "Juho Ojala",
+      "email": "juho@lucify.com"
+    },
+    {
+      "name": "Ville Saarinen",
+      "email": "ville.saarinen@lucify.com"
+    },
+    {
+      "name": "Ville Väänänen",
+      "email": "ville@lucify.com"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lucified/minard-backend.git"
+  },
+  "license": ""
+}

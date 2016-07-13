@@ -9,6 +9,10 @@
     "hapi": "^13.5.0"
   },
   "devDependencies": {
+    "@types/mocha": "^2.2.26-alpha",
+    "mocha": "^2.5.3",
+    "chai": "^3.5.0",
+    "mocha-typescript": "^1.0.4",
     "typescript": "^2.0.0"
   },
   "scripts": {

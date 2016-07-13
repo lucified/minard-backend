@@ -4,6 +4,7 @@
   "description": "Minard backend",
   "main": "server.js",
   "dependencies": {
+    "@reactivex/rxjs": "^5.0.0-beta.10",
     "@types/hapi": "^13.0.27-alpha",
     "hapi": "^13.5.0"
   },

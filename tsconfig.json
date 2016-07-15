@@ -2,7 +2,12 @@
   "compilerOptions": {
     "outDir": "./dist/",
     "sourceMap": false,
-    "noImplicitAny": true,
-    "target": "es5"
+    "noImplicitAny": false,
+    "target": "es6",
+    "module": "commonjs",
+    "typeRoots": [
+     "src/types",
+     "node_modules/@types"
+    ]
   }
 }

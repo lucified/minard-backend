@@ -1,5 +1,6 @@
 
 import * as Hapi from 'hapi';
+require('isomorphic-fetch');
 
 const server = new Hapi.Server();
 
@@ -24,7 +25,40 @@ server.route({
   }
 });
 
-server.start((err) => {
-  if (err) { throw err; }
-  console.log('Server running at:', server.info.uri);
+async function fetchSomething() {
+  const response = await fetch('http://localhost:8001/something.json');
+  const json = response.json();
+  return json;
+}
+
+async function fetchSomethingHandler(request, reply) {
+  const something = await fetchSomething();
+  return reply(something);
+}
+
+server.register([
+  require('hapi-async-handler'),
+], (error) => {
+  if (error) {
+    throw error;
+  }
+  server.route({
+    method: 'GET',
+    path: '/fetch-test',
+    handler: {
+      async: fetchSomethingHandler,
+    }
+  } as Hapi.IRouteConfiguration);
+
+  server.start((err) => {
+    if (err) { throw err; }
+    console.log('Server running at:', server.info.uri);
+  });
 });
+
+
+
+
+
+
+

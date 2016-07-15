@@ -6,11 +6,15 @@
   "dependencies": {
     "@reactivex/rxjs": "^5.0.0-beta.10",
     "@types/hapi": "^13.0.27-alpha",
-    "hapi": "^13.5.0"
+    "hapi": "^13.5.0",
+    "hapi-async-handler": "^1.0.3",
+    "isomorphic-fetch": "^2.2.1"
   },
   "devDependencies": {
     "@types/chai": "^3.4.28",
     "@types/es6-shim": "0.0.28",
+    "@types/hapi": "^13.0.28",
+    "@types/isomorphic-fetch": "0.0.27",
     "@types/mocha": "^2.2.26-alpha",
     "chai": "^3.5.0",
     "mocha": "^2.5.3",

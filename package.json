@@ -19,7 +19,8 @@
   },
   "scripts": {
     "test": "tsc && mocha dist/test",
-    "start": "tsc -w & node-dev dist/server.js"
+    "start": "tsc -w & node-dev dist/src/server.js",
+    "plain-start": "node-dev dist/src/server.js"
   },
   "contributors": [
     {

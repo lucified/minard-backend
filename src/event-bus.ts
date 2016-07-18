@@ -1,7 +1,7 @@
 
 import { Subject, Observer } from '@reactivex/rxjs';
 
-interface Event {
+export interface Event {
   type: string
 }
 
@@ -14,5 +14,5 @@ export default class EventBus extends Subject<Event> {
   post(event : Event) {
     this.next(event);
   }
-  
+
 }

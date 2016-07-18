@@ -2,7 +2,6 @@
 /// <reference path="../../node_modules/inversify-dts/inversify/inversify.d.ts" />
 import { injectable, inject, Kernel } from 'inversify';
 import "reflect-metadata";
-//import { Jepa, name } from '../Jepa';
 
 let TYPES = {
   Jepa: Symbol(),

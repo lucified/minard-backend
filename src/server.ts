@@ -1,4 +1,6 @@
 
+/* tslint:disable:object-literal-sort-keys */
+
 import * as Hapi from 'hapi';
 require('isomorphic-fetch');
 
@@ -23,19 +25,19 @@ server.connection({
 });
 
 server.route({
+  method: 'GET',
+  path: '/',
   handler: (request, reply) => {
     return reply('jepa joo');
   },
-  method: 'GET',
-  path: '/',
 });
 
 server.route({
-  handler: (request, reply) => {
-    return reply('hello ' + request.params.name);
-  };
   method: 'GET',
   path: '/hello/{name}',
+  handler: (request, reply) => {
+    return reply('hello ' + request.params.name);
+  },
 });
 
 async function fetchSomething() {
@@ -56,11 +58,11 @@ server.register([
     throw error;
   }
   server.route({
-    handler: {
-      async: fetchSomethingHandler,
-    }
     method: 'GET',
     path: '/fetch-test',
+    handler: {
+      async: fetchSomethingHandler,
+    },
   });
 
   server.start((err) => {

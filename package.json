@@ -12,7 +12,6 @@
   },
   "devDependencies": {
     "@types/chai": "^3.4.28",
-    "@types/es6-shim": "0.0.28",
     "@types/hapi": "^13.0.28",
     "@types/isomorphic-fetch": "0.0.27",
     "@types/mocha": "^2.2.26-alpha",
@@ -22,9 +21,10 @@
     "typescript": "^2.0.0"
   },
   "scripts": {
-    "test": "tsc && mocha dist/test",
-    "start": "tsc -w & node-dev dist/src/server.js",
-    "plain-start": "node-dev dist/src/server.js"
+    "test": "mocha dist/test",
+    "dev": "npm run transpile && node-dev --debug=5858 dist/src/server.js",
+    "start": "node dist/src/server.js",
+    "transpile": "tsc"
   },
   "contributors": [
     {

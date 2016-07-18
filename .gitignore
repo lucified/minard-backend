@@ -1,2 +1,9 @@
 node_modules
 dist
+gitlab-data/gitlab/*
+!gitlab-data/gitlab/README.md
+gitlab-data/redis/*
+!gitlab-data/redis/README.md
+gitlab-data/postgresql/*
+!gitlab-data/postgresql/README.md
+

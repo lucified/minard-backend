@@ -1,0 +1,17 @@
+concurrent = 4
+check_interval = 0
+
+
+[[runners]]
+  name = "test"
+  url = "http://gitlab/ci/"
+  token = "83826ca776c97274a5fbfae20aa366"
+  executor = "docker"
+  [runners.docker]
+    tls_verify = false
+    privileged = false
+    disable_cache = false
+    volumes = ["/cache"]
+    network_mode = "minardbackend_default"
+  [runners.cache]
+    Insecure = false

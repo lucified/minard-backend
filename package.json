@@ -12,7 +12,6 @@
   },
   "devDependencies": {
     "@types/chai": "^3.4.28",
-    "@types/es6-shim": "0.0.28",
     "@types/hapi": "^13.0.28",
     "@types/isomorphic-fetch": "0.0.27",
     "@types/mocha": "^2.2.26-alpha",

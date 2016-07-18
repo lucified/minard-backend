@@ -7,7 +7,7 @@ async function fetchTest() {
   return json;
 }
 
-fetchTest().then((json : Object) => {
-  console.log(json);
+fetchTest().then((json: Object) => {
+  console.log(json); // tslint:disable-line
 });
 

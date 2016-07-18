@@ -4,7 +4,7 @@ require('isomorphic-fetch');
 
 const server = new Hapi.Server();
 
-declare module "hapi" {
+declare module 'hapi' {
 
     interface AsyncRouteConfiguration extends IRouteConfiguration {
       handler: { async: any };
@@ -23,19 +23,19 @@ server.connection({
 });
 
 server.route({
-  method: 'GET',
-  path: '/',
   handler: (request, reply) => {
     return reply('jepa joo');
   },
-})
+  method: 'GET',
+  path: '/',
+});
 
 server.route({
+  handler: (request, reply) => {
+    return reply('hello ' + request.params.name);
+  };
   method: 'GET',
   path: '/hello/{name}',
-  handler: (request, reply) => {
-    return reply('hello ' + request.params['name']);
-  }
 });
 
 async function fetchSomething() {
@@ -56,16 +56,16 @@ server.register([
     throw error;
   }
   server.route({
-    method: 'GET',
-    path: '/fetch-test',
     handler: {
       async: fetchSomethingHandler,
     }
+    method: 'GET',
+    path: '/fetch-test',
   });
 
   server.start((err) => {
     if (err) { throw err; }
-    console.log('Server running at:', server.info.uri);
+    console.log('Server running at:', server.info.uri); // tslint:disable-line
   });
 });
 

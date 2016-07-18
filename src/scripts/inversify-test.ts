@@ -1,52 +1,54 @@
 
 /// <reference path="../../node_modules/inversify-dts/inversify/inversify.d.ts" />
-import { injectable, inject, Kernel } from 'inversify';
-import "reflect-metadata";
+
+import 'reflect-metadata';
+
+import { Kernel, inject, injectable } from 'inversify';
 
 let TYPES = {
+  Hepo: Symbol(),
   Jepa: Symbol(),
-  Hepo: Symbol()
-}
+};
 
 abstract class Jepa {
-  static injectName = Symbol();
-  abstract hello();
+  public static injectName = Symbol();
+  public abstract hello();
 }
 
 abstract class Bepa {
-  static injectName = Symbol();
-  abstract whoa();
+  public static injectName = Symbol();
+  public abstract whoa();
 }
 
 @injectable()
 class JepaA implements Jepa, Bepa {
-  hello() {
-    console.log('JepaA');
+  public hello() {
+    console.log('JepaA'); // tslint:disable-line
   }
-  whoa() {
-    console.log('whoaA');
+  public whoa() {
+    console.log('whoaA'); // tslint:disable-line
   }
 }
 
 @injectable()
 class JepaB implements Jepa {
-  hello() {
-    console.log('JepaB');
+  public hello() {
+    console.log('JepaB'); // tslint:disable-line
   }
 }
 
 @injectable()
 class Hepo {
-  jepa: Jepa;
-  constructor(@inject(Jepa.injectName) jepa : Jepa) {
+  private jepa: Jepa;
+  constructor(@inject(Jepa.injectName) jepa: Jepa) {
     this.jepa = jepa;
   }
 }
 
 
-var kernel1 = new Kernel();
+const kernel1 = new Kernel();
 kernel1.bind(Jepa.injectName).to(JepaA);
-var kernel2 = new Kernel();
+const kernel2 = new Kernel();
 kernel2.bind(Jepa.injectName).to(JepaB);
 
 kernel1.bind(TYPES.Hepo).to(Hepo);

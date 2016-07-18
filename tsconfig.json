@@ -4,10 +4,6 @@
     "sourceMap": true,
     "noImplicitAny": false,
     "target": "es6",
-    "module": "commonjs",
-    "typeRoots": [
-     "src/types",
-     "node_modules/@types"
-    ]
+    "module": "commonjs"
   }
 }

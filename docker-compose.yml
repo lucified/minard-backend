@@ -166,7 +166,7 @@ services:
     build: .
     depends_on:
       - gitlab
-    command: "npm run dev"
+    command: "npm run dev 0.0.0.0 8000"
     ports:
       - "8000:8000"
       - "5858:5858"

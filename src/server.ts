@@ -15,9 +15,11 @@ declare module "hapi" {
     }
 }
 
+const args = process.argv.slice(2); // drop binary and filename
+
 server.connection({
-    host: '0.0.0.0',
-    port: 8000
+    host: args[0] || '0.0.0.0',
+    port: args[1] ? parseInt(args[1], 10) : 8000,
 });
 
 server.route({

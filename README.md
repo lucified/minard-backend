@@ -54,10 +54,3 @@ in the project root (in another tab).
 A launch configuration for remote debugging in Visual Studio Code is included
 under `.vscode`. See https://blog.docker.com/2016/07/live-debugging-docker/ for
 instructions.
-
-
-
-
-
-
-

@@ -22,9 +22,10 @@
     "typescript": "^2.0.0"
   },
   "scripts": {
-    "test": "tsc && mocha dist/test",
-    "start": "tsc -w & node-dev dist/src/server.js",
-    "plain-start": "node-dev dist/src/server.js"
+    "test": "mocha dist/test",
+    "dev": "npm run transpile && node-dev --debug=5858 dist/src/server.js",
+    "start": "node dist/src/server.js",
+    "transpile": "tsc"
   },
   "contributors": [
     {

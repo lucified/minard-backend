@@ -7,7 +7,10 @@
     "jsx-no-lambda": true,
     "jsx-no-string-ref": true,
     "jsx-self-close": true,
-    "interface-name": []
+    "interface-name": [],
+    "object-literal-sort-keys": false,
+    "no-console": [],
+    "variable-name": [true, "allow-leading-underscore"]
   },
   "rulesDirectory": []
 }

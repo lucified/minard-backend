@@ -2,13 +2,26 @@
   "compilerOptions": {
     "outDir": "./dist/",
     "sourceMap": true,
-    "noImplicitAny": false,
+    "noImplicitAny": true,
     "target": "es6",
     "module": "commonjs",
     "typeRoots": [
-     "node_modules/@types"
+      "node_modules/@types"
     ],
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+    "strictNullChecks": true,
+    "forceConsistentCasingInFileNames": true,
+    "allowSyntheticDefaultImports": false,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true, // unused params starting with _ are still allowed
+    "pretty": true,
+    "noImplicitReturns": true,
+    "noEmitOnError": false, // still transpiles with type errors
+    "baseUrl": ".",
+    "paths": {
+      "inversify": ["node_modules/inversify-dts/inversify/inversify.d.ts"]
+    }
   }
 }

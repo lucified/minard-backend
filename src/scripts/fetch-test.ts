@@ -8,6 +8,6 @@ async function fetchTest() {
 }
 
 fetchTest().then((json: Object) => {
-  console.log(json); // tslint:disable-line
+  console.log(json);
 });
 

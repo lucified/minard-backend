@@ -176,6 +176,7 @@ services:
       - ./dist:/code/dist
       - ./tsconfig.json:/code/tsconfig.json
       - ./package.json:/code/package.json
+      - ./node_modules:/code/node_modules
     environment:
       - GITLAB_HOST=gitlab
       - GITLAB_PORT=80

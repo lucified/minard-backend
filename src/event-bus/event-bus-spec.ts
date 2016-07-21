@@ -1,5 +1,5 @@
 
-import EventBus from '../src/event-bus';
+import EventBus from './event-bus';
 import { expect } from 'chai';
 
 describe('event-bus', () => {
@@ -18,4 +18,3 @@ describe('event-bus', () => {
   });
 
 });
-

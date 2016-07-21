@@ -110,9 +110,6 @@ describe('deployment-module', () => {
     const converted = gitlabResponseToJsonApi(gitLabBuildsResponse) as any;
 
     const data = converted.data;
-
-    console.log(data.length);
-
     expect(data).to.have.length(2);
 
     // id and type

@@ -20,7 +20,6 @@ export function gitlabResponseToJsonApi(gitlabResponse: any) {
     },
   };
   const serialized = new Serializer('deployment', opts).serialize(normalized);
-  console.log(JSON.stringify(serialized, null, 3));
   return serialized;
 };
 

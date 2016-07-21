@@ -4,16 +4,6 @@ require('isomorphic-fetch');
 
 const server = new Hapi.Server();
 
-declare module "hapi" {
-
-    interface AsyncRouteConfiguration extends IRouteConfiguration {
-      handler: { async: any };
-    }
-
-    interface Server {
-      route(options: AsyncRouteConfiguration): void;
-    }
-}
 
 const args = process.argv.slice(2); // drop binary and filename
 
@@ -25,17 +15,19 @@ server.connection({
 server.route({
   method: 'GET',
   path: '/',
-  handler: (request, reply) => {
+  handler: (_request, reply) => {
     return reply('jepa joo');
   },
-})
+});
 
 server.route({
   method: 'GET',
   path: '/hello/{name}',
   handler: (request, reply) => {
-    return reply('hello ' + request.params['name']);
-  }
+    // http://stackoverflow.com/questions/33387090/how-to-rewrite-code-to-avoid-tslint-object-access-via-string-literals
+    const nameKey = 'name';
+    return reply('hello ' + request.params[nameKey]);
+  },
 });
 
 async function fetchSomething() {
@@ -44,7 +36,7 @@ async function fetchSomething() {
   return json;
 }
 
-async function fetchSomethingHandler(request, reply) {
+async function fetchSomethingHandler(_request: any, reply: any) {
   const something = await fetchSomething();
   return reply(something);
 }
@@ -60,7 +52,7 @@ server.register([
     path: '/fetch-test',
     handler: {
       async: fetchSomethingHandler,
-    }
+    },
   });
 
   server.start((err) => {
@@ -68,10 +60,3 @@ server.register([
     console.log('Server running at:', server.info.uri);
   });
 });
-
-
-
-
-
-
-

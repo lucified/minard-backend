@@ -4,7 +4,7 @@ const Serializer = require('jsonapi-serializer').Serializer; // tslint:disable-l
 
 export async function fetchDeploymentsFromGitLab(projectId: number) {
   const privateToken = 'GG3TDoKuXXJVFw8nmQ7G';
-  const url = `http://gitlab/api/v3/projects/` +
+  const url = `http://localhost:10080/api/v3/projects/` +
       `${projectId}/builds?private_token=${privateToken}`;
   const response = await fetch(url);
   return response.json();

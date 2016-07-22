@@ -2,6 +2,7 @@
 import * as Hapi from 'hapi';
 const hapiAsyncHandler = require('hapi-async-handler');
 
+import DeploymentPlugin from '../deployment/deployment-hapi-plugin';
 import HelloPlugin from '../hello/hello-hapi-plugin';
 
 async function loadBasePlugins(server: Hapi.Server) {
@@ -9,7 +10,7 @@ async function loadBasePlugins(server: Hapi.Server) {
 };
 
 async function loadAppPlugins(server: Hapi.Server) {
-  await server.register([HelloPlugin]);
+  await server.register([HelloPlugin, DeploymentPlugin]);
 }
 
 export async function start(): Promise<Hapi.Server> {

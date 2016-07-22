@@ -151,16 +151,30 @@ services:
     - OAUTH_AZURE_API_SECRET=
     - OAUTH_AZURE_TENANT_ID=
 
+# The commented lines below are useful for developing the runner
+# so don't hate them
   runner:
     restart: always
-    image: gitlab/gitlab-runner:alpine
+    image: lucify/gitlab-runner
+    # build:
+    #   context: ../gitlab-ci-multi-runner
+    #   dockerfile: Dockerfile-lucify
     depends_on:
       - gitlab
     volumes:
         - ./gitlab-data/runner:/etc/gitlab-runner
+        # - ../gitlab-ci-multi-runner/docker-entrypoint.sh:/docker-entrypoint.sh
         - /var/run/docker.sock:/var/run/docker.sock
-#    entrypoint: ["gitlab-ci-multi-runner", "--debug"]
-#    command: ["--debug", "run"]
+    environment:
+      - DEBUG=false
+      - CI_SERVER_URL=http://gitlab/ci/
+      - RUNNER_EXECUTOR=docker
+      - DOCKER_IMAGE=node
+      - DOCKER_TLS_VERIFY=false
+      - DOCKER_PRIVILEGED=false
+      - DOCKER_DISABLE_CACHE=false
+      - DOCKER_VOLUMES=/cache
+      - DOCKER_NETWORK_MODE=minardbackend_default
 
   minard-monolith:
     build: .

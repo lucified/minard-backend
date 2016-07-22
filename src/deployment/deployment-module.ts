@@ -2,6 +2,19 @@
 const Serializer = require('jsonapi-serializer').Serializer; // tslint:disable-line
 
 
+export async function fetchDeploymentsFromGitLab(projectId: number) {
+  const privateToken = 'GG3TDoKuXXJVFw8nmQ7G';
+  const url = `http://gitlab/api/v3/projects/` +
+      `${projectId}/builds?private_token=${privateToken}`;
+  const response = await fetch(url);
+  return response.json();
+};
+
+export async function handleGetDeployments(projectId: number) {
+  const gitlabData = await fetchDeploymentsFromGitLab(projectId);
+  return gitlabResponseToJsonApi(gitlabData);
+}
+
 export function gitlabResponseToJsonApi(gitlabResponse: any) {
   const normalized = normalizeGitLabResponse(gitlabResponse);
   const opts = {

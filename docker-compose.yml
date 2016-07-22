@@ -22,6 +22,8 @@ services:
     - "5432:5432"
     volumes:
     - ./gitlab-data/postgresql:/var/lib/postgresql:Z
+    ports:
+    - "5432:5432"
     environment:
     - DB_USER=gitlab
     - DB_PASS=password

@@ -26,6 +26,11 @@ export async function start(): Promise<Hapi.Server> {
   server.connection({
     host: args[0] || '0.0.0.0',
     port: args[1] ? parseInt(args[1], 10) : 8000,
+    routes: {
+        json: {
+          space: 4,
+        },
+    },
   });
 
   await loadBasePlugins(server);

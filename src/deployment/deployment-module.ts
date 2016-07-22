@@ -1,11 +1,11 @@
 
 const Serializer = require('jsonapi-serializer').Serializer; // tslint:disable-line
 
+import { getPrivateAuthenticationToken } from '../user/user-module';
 
 export async function fetchDeploymentsFromGitLab(projectId: number) {
-  const privateToken = 'GG3TDoKuXXJVFw8nmQ7G';
-  const url = `http://localhost:10080/api/v3/projects/` +
-      `${projectId}/builds?private_token=${privateToken}`;
+  const privateToken = getPrivateAuthenticationToken(1);
+  const url = `http://localhost:10080/api/v3/projects/` + `${projectId}/builds?private_token=${privateToken}`;
   const response = await fetch(url);
   return response.json();
 };

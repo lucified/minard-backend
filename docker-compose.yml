@@ -180,21 +180,21 @@ services:
       - DOCKER_VOLUMES=/cache
       - DOCKER_NETWORK_MODE=minardbackend_default
 
-  minard-monolith:
-    build: .
-    depends_on:
-      - gitlab
-    command: "npm run dev 0.0.0.0 8000"
-    ports:
-      - "8000:8000"
-      - "5858:5858"
-    volumes:
-      - ./src:/code/src
-      - ./test:/code/test
-      - ./dist:/code/dist
-      - ./tsconfig.json:/code/tsconfig.json
-      - ./package.json:/code/package.json
-      - ./node_modules:/code/node_modules
-    environment:
-      - GITLAB_HOST=gitlab
-      - GITLAB_PORT=80
+  # minard-monolith:
+  #   build: .
+  #   depends_on:
+  #     - gitlab
+  #   command: "npm run dev 0.0.0.0 8000"
+  #   ports:
+  #     - "8000:8000"
+  #     - "5858:5858"
+  #   volumes:
+  #     - ./src:/code/src
+  #     - ./test:/code/test
+  #     - ./dist:/code/dist
+  #     - ./tsconfig.json:/code/tsconfig.json
+  #     - ./package.json:/code/package.json
+  #     - ./node_modules:/code/node_modules
+  #   environment:
+  #     - GITLAB_HOST=gitlab
+  #     - GITLAB_PORT=80

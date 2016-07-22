@@ -13,7 +13,15 @@ async function loadAppPlugins(server: Hapi.Server) {
 }
 
 export async function start(): Promise<Hapi.Server> {
-  const server = new Hapi.Server();
+
+  const options = {
+    debug: {
+      log: ['error'],
+      request: ['error']
+    },
+  };
+
+  const server = new Hapi.Server(options);
   const args = process.argv.slice(2); // drop binary and filename
   server.connection({
     host: args[0] || '0.0.0.0',

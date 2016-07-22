@@ -151,13 +151,19 @@ services:
     - OAUTH_AZURE_API_SECRET=
     - OAUTH_AZURE_TENANT_ID=
 
+# The commented lines below are useful for developing the runner
+# so don't hate them
   runner:
     restart: always
     image: lucify/gitlab-runner
+    # build:
+    #   context: ../gitlab-ci-multi-runner
+    #   dockerfile: Dockerfile-lucify
     depends_on:
       - gitlab
     volumes:
         - ./gitlab-data/runner:/etc/gitlab-runner
+        # - ../gitlab-ci-multi-runner/docker-entrypoint.sh:/docker-entrypoint.sh
         - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - DEBUG=false

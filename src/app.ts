@@ -1,6 +1,7 @@
 
 // polyfill
 require('isomorphic-fetch');
+import 'reflect-metadata';
 
 // TODO: find out why we cannot find use from ./server
 import { start as startServer } from './server/server';

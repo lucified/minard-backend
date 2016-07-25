@@ -6,8 +6,6 @@ import { expect } from 'chai';
 
 import * as Knex from 'knex';
 
-// TODO: use mocked db for this unit test
-
 describe('user-module', () => {
   it('getGitlabPrivateToken', async (done) => {
     try {

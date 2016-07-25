@@ -1,4 +1,6 @@
 
+import 'reflect-metadata';
+
 import EventBus from './local-event-bus';
 import { expect } from 'chai';
 

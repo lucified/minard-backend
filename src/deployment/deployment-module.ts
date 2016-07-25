@@ -1,56 +1,84 @@
 
+import { inject, injectable } from 'inversify';
+
 const Serializer = require('jsonapi-serializer').Serializer; // tslint:disable-line
 
-import { getPrivateAuthenticationToken } from '../user/user-module';
+import UserModule from '../user/user-module'; // only for types
 
-export async function fetchDeploymentsFromGitLab(projectId: number) {
-  const privateToken = getPrivateAuthenticationToken(1);
-  const url = `http://localhost:10080/api/v3/projects/` + `${projectId}/builds?private_token=${privateToken}`;
-  const response = await fetch(url);
-  return response.json();
-};
 
-export async function handleGetDeployments(projectId: number) {
-  const gitlabData = await fetchDeploymentsFromGitLab(projectId);
-  return gitlabResponseToJsonApi(gitlabData);
-}
+@injectable()
+export default class DeploymentModule {
 
-export function gitlabResponseToJsonApi(gitlabResponse: any) {
-  const normalized = normalizeGitLabResponse(gitlabResponse);
-  const opts = {
-    attributes: ['finished_at', 'status', 'commit', 'user'],
-    commit: {
-       attributes: ['message'],
-       ref: function (_: any, commit: any) {
-          return String(commit.id);
-       },
-    },
-    user: {
-       attributes: ['username'],
-       ref: function (_: any, user: any) {
-          return String(user.id);
-       },
-    },
-  };
-  const serialized = new Serializer('deployment', opts).serialize(normalized);
-  return serialized;
-};
+  public static injectSymbol = Symbol('deployment-module');
 
-export function normalizeGitLabResponse(gitlabResponse: any) {
-  return gitlabResponse.map((item: any) => {
-    return {
-      id: item.id,
-      user: {
-        id: item.user.id,
-        username: item.user.username,
-      },
+  public static gitlabResponseToJsonApi(gitlabResponse: any) {
+    const normalized = this.normalizeGitLabResponse(gitlabResponse);
+    const opts = {
+      attributes: ['finished_at', 'status', 'commit', 'user'],
       commit: {
-        id: item.commit.id,
-        message: item.commit.message,
+        attributes: ['message'],
+        ref: function (_: any, commit: any) {
+            return String(commit.id);
+        },
       },
-      finished_at: item.finished_at,
-      status: item.status,
+      user: {
+        attributes: ['username'],
+        ref: function (_: any, user: any) {
+            return String(user.id);
+        },
+      },
     };
-  });
+    const serialized = new Serializer('deployment', opts).serialize(normalized);
+    return serialized;
+  };
+
+  public static normalizeGitLabResponse(gitlabResponse: any) {
+    return gitlabResponse.map((item: any) => {
+      return {
+        id: item.id,
+        user: {
+          id: item.user.id,
+          username: item.user.username,
+        },
+        commit: {
+          id: item.commit.id,
+          message: item.commit.message,
+        },
+        finished_at: item.finished_at,
+        status: item.status,
+      };
+    });
+  };
+
+  private gitlabBaseUrl: string;
+  private userModule: UserModule;
+
+  public constructor(
+    @inject('gitlab-base-url') gitlabBaseUrl: string,
+    @inject(UserModule.injectSymbol) userModule: UserModule) {
+    this.gitlabBaseUrl = gitlabBaseUrl;
+    this.userModule = userModule;
+  }
+
+  public async fetchDeploymentsFromGitLab(projectId: number) {
+    const privateToken = await this.userModule.getPrivateAuthenticationToken(1);
+    const url = `${this.gitlabBaseUrl}/api/v3/projects/` +
+      `${projectId}/builds?private_token=${privateToken}`;
+    const response = await fetch(url);
+    if (response.status !== 200) {
+      // TODO: handle errors correctly
+      console.log(`Gitlab status code was ${response.status}`);
+      return { };
+    }
+    return response.json();
+  };
+
+  public async handleGetDeployments(projectId: number) {
+    const gitlabData = await this.fetchDeploymentsFromGitLab(projectId);
+    return DeploymentModule.gitlabResponseToJsonApi(gitlabData);
+  }
+
 };
+
+
 

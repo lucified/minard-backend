@@ -33,7 +33,7 @@ docker-compose up
 
 Start Minard monolith
 ````
-npm run-script dev
+npm run dev
 ```
 
 This will start the Minard monolith application with
@@ -48,6 +48,6 @@ in the project root (in another tab).
 
 ## Debugging
 
-A launch configuration for remote debugging in Visual Studio Code is included
-under `.vscode`. See https://blog.docker.com/2016/07/live-debugging-docker/ for
-instructions.
+A launch configuration for debugging in Visual Studio Code is included
+under `.vscode`. If the server has was started with `npm run dev`, the debugger should
+be able to attach to the process.

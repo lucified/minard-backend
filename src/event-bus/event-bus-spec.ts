@@ -1,5 +1,5 @@
 
-import EventBus from './event-bus';
+import EventBus from './local-event-bus';
 import { expect } from 'chai';
 
 describe('event-bus', () => {

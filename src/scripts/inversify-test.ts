@@ -1,6 +1,5 @@
 
 
-import 'reflect-metadata';
 
 import { Kernel, inject, injectable } from 'inversify';
 

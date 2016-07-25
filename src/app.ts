@@ -1,13 +1,22 @@
 
+
 // polyfills
 require('isomorphic-fetch');
 import 'reflect-metadata';
 
 import { Kernel } from 'inversify';
+import * as Knex from 'knex';
+
+import DeploymentPlugin from './deployment/deployment-hapi-plugin';
+import DeploymentModule from './deployment/deployment-module';
+
+import HelloPlugin from './hello/hello-hapi-plugin';
+
+import UserModule from './user/user-module';
 
 import { EventBus } from './event-bus/event-bus';
 import LocalEventBus from './event-bus/local-event-bus';
-import HelloPlugin from './hello/hello-hapi-plugin';
+
 import MinardServer from './server/server';
 
 const kernel = new Kernel();
@@ -22,9 +31,25 @@ const kernel = new Kernel();
 //
 //  -- JO 25.6.2016
 kernel.bind(EventBus.injectSymbol).toConstantValue(new LocalEventBus());
-
-kernel.bind(HelloPlugin.injectSymbol).to(HelloPlugin).inSingletonScope();
+kernel.bind(DeploymentPlugin.injectSymbol).to(DeploymentPlugin);
+kernel.bind(DeploymentModule.injectSymbol).to(DeploymentModule);
+kernel.bind(HelloPlugin.injectSymbol).to(HelloPlugin);
 kernel.bind(MinardServer.injectSymbol).to(MinardServer).inSingletonScope();
+kernel.bind(UserModule.injectSymbol).to(UserModule);
+
+kernel.bind('gitlab-base-url').toConstantValue('http://localhost:10080');
+
+const knex = Knex({
+  client: 'postgresql',
+  connection: {
+    host     : 'localhost',
+    user     : 'gitlab',
+    password : 'password',
+    database : 'gitlabhq_production',
+    port: '5432',
+  },
+});
+kernel.bind('gitlab-knex').toConstantValue(knex);
 
 const server = kernel.get<MinardServer>(MinardServer.injectSymbol);
 

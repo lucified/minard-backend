@@ -14,10 +14,13 @@ export default class MinardServer {
   public static injectSymbol = Symbol('minard-server');
 
   private helloPlugin: HelloPlugin;
+  private deploymentPlugin: DeploymentPlugin;
 
   constructor(
-    @inject(HelloPlugin.injectSymbol) helloPlugin: HelloPlugin) {
+    @inject(HelloPlugin.injectSymbol) helloPlugin: HelloPlugin,
+    @inject(DeploymentPlugin.injectSymbol) deploymentPlugin: DeploymentPlugin) {
     this.helloPlugin = helloPlugin;
+    this.deploymentPlugin = deploymentPlugin;
   }
 
   public async start(): Promise<Hapi.Server> {
@@ -53,7 +56,9 @@ export default class MinardServer {
   };
 
   private async loadAppPlugins(server: Hapi.Server) {
-    await server.register([this.helloPlugin.register, DeploymentPlugin]);
+    await server.register([
+      this.helloPlugin.register,
+      this.deploymentPlugin.register]);
   }
 
 }

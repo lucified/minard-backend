@@ -1,40 +1,44 @@
 
 import * as Hapi from 'hapi';
+import { inject, injectable } from 'inversify';
 
 import { HapiRegister } from '../server/hapi-register';
-import { handleGetDeployments } from './deployment-module';
+import DeploymentModule from './deployment-module';
 
 
-async function getDeploymentsHandler(request: Hapi.Request, reply: Hapi.IReply) {
-  const params = <any>request.params;
-  const projectId = params.projectId;
-  return reply(handleGetDeployments(projectId));
+@injectable()
+class DeploymentHapiPlugin {
+
+  public static injectSymbol = Symbol('deployment-hapi-plugin');
+
+  private deploymentModule: DeploymentModule;
+
+  constructor(@inject(DeploymentModule.injectSymbol) deploymentModule: DeploymentModule) {
+    this.deploymentModule = deploymentModule;
+    this.register.attributes = {
+      name: 'deployment-plugin',
+      version: '1.0.0',
+    };
+  }
+
+  public register: HapiRegister = (server, _options, next) => {
+    server.route({
+      method: 'GET',
+      path: '/deployments/{projectId}',
+      handler: {
+        async: this.getDeploymentsHandler.bind(this),
+      },
+    });
+    next();
+  };
+
+  public async getDeploymentsHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    const params = <any>request.params;
+    const projectId = params.projectId;
+    return reply(this.deploymentModule.handleGetDeployments(projectId));
+  }
+
 }
 
-const register: HapiRegister = (server, _options, next) => {
-
-  server.route({
-    method: 'GET',
-    path: '/aaa',
-    handler: (_request, reply) => {
-      return reply('jepa jooaaaa');
-    },
-  });
-
-  server.route({
-    method: 'GET',
-    path: '/deployments/{projectId}',
-    handler: {
-      async: getDeploymentsHandler,
-    },
-  });
-  next();
-};
-
-register.attributes = {
-  name: 'deployment-plugin',
-  version: '1.0.0',
-};
-
-export default register;
+export default DeploymentHapiPlugin;
 

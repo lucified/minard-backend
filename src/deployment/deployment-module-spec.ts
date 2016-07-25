@@ -1,5 +1,7 @@
 
-import { gitlabResponseToJsonApi, normalizeGitLabResponse } from './deployment-module';
+import 'reflect-metadata';
+
+import DeploymentModule from './deployment-module';
 import { expect } from 'chai';
 
 
@@ -88,7 +90,7 @@ const gitLabBuildsResponse = [
 
 describe('deployment-module', () => {
   it('normalizeGitLabResponse', () => {
-    const converted = normalizeGitLabResponse(gitLabBuildsResponse) as any;
+    const converted = DeploymentModule.normalizeGitLabResponse(gitLabBuildsResponse) as any;
     expect(converted).to.have.length(2);
 
     // test first
@@ -107,7 +109,7 @@ describe('deployment-module', () => {
 
 
   it('gitlabResponseToJsonApi', () => {
-    const converted = gitlabResponseToJsonApi(gitLabBuildsResponse) as any;
+    const converted = DeploymentModule.gitlabResponseToJsonApi(gitLabBuildsResponse) as any;
 
     const data = converted.data;
     expect(data).to.have.length(2);

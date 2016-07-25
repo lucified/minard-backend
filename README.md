@@ -26,31 +26,28 @@ npm link typescript
 
 ## Development
 
-
-To bring up the whole system
-
+Start GitLab, Redis, Postgresql and one `gitlab-runner` with:
 ```bash
 docker-compose up
 ```
 
-To only start Minard monolith:
-```
-docker-compose run --no-deps --service-ports minard-monolith
+Start Minard monolith
+````
+npm run dev
 ```
 
-The `src`, `test` and `dist` folders are mounted inside the container and
-[`node-dev`](https://github.com/fgnass/node-dev) is used to restart the
-server whenever the sources under `dist` change. To get continous transpilation,
-also run
+This will start the Minard monolith application with
+[`node-dev`](https://github.com/fgnass/node-dev), which restarts
+the server whenever the files under `dist` change.
 
+To get continous transpilation, run
 ```bash
 tsc -w
 ```
-
 in the project root (in another tab).
 
 ## Debugging
 
-A launch configuration for remote debugging in Visual Studio Code is included
-under `.vscode`. See https://blog.docker.com/2016/07/live-debugging-docker/ for
-instructions.
+A launch configuration for debugging in Visual Studio Code is included
+under `.vscode`. If the server has was started with `npm run dev`, the debugger should
+be able to attach to the process.

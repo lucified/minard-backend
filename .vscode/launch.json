@@ -11,7 +11,7 @@
       "sourceMaps": true,
       "outDir": "${workspaceRoot}/dist",
       "localRoot": "${workspaceRoot}",
-      "remoteRoot": "/code"
+      "remoteRoot": null
     }
   ]
 }

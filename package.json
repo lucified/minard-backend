@@ -6,11 +6,14 @@
   "dependencies": {
     "@reactivex/rxjs": "^5.0.0-beta.10",
     "@types/hapi": "^13.0.27-alpha",
+    "@types/knex": "0.0.28",
     "hapi": "^13.5.0",
     "hapi-async-handler": "^1.0.3",
     "inversify": "^2.0.0-rc.1",
     "isomorphic-fetch": "^2.2.1",
     "jsonapi-serializer": "^3.2.1",
+    "knex": "^0.11.9",
+    "pg": "^6.0.3",
     "reflect-metadata": "^0.1.3"
   },
   "devDependencies": {

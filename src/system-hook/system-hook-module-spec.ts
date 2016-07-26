@@ -69,11 +69,6 @@ describe('system-hooks-module', () => {
   });
 
   it('registerSystemHook', async () => {
-    class MockUserModule {
-      public async getRootAuthenticationToken() {
-        return 'the-token';
-      }
-    }
     const authenticationModule = new MockAuthModule() as AuthenticationModule;
     const systemHooksModule = new SystemHooksModule(authenticationModule, fetch);
 

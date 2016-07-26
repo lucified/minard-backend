@@ -5,6 +5,9 @@ import { inject, injectable } from 'inversify';
 export const fetchInjectSymbol = Symbol('fetch');
 export const gitlabHostInjectSymbol = Symbol('gitlab-host');
 
+const urljoin = require('url-join');
+
+
 @injectable()
 export class GitlabClient {
   public readonly host: string;
@@ -25,9 +28,8 @@ export class GitlabClient {
     this._logging = logging;
   }
 
-  // TODO: check that dashes match
   public url(path: string) {
-    return `${this.host}${this.apiPrefix}/${path}`
+    return urljoin(this.host, this.apiPrefix, path);
   }
 
   public get rawFetch() : IFetchStatic {

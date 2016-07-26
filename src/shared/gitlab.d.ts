@@ -49,3 +49,10 @@ export interface User {
   web_url: string;
   website_url: string;
 }
+
+interface SystemHook
+{
+  id: number;
+  url: string;
+  created_at: string;
+}

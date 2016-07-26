@@ -3,7 +3,10 @@ import 'reflect-metadata';
 
 import DeploymentModule from './deployment-module';
 import { expect } from 'chai';
+import { IFetchStatic } from '../shared/fetch.d.ts';
+import { GitlabClient } from '../shared/gitlab-client'
 
+const fetchMock = require('fetch-mock');
 
 const gitLabBuildsResponse = [
   {
@@ -144,6 +147,20 @@ describe('deployment-module', () => {
     expect(includedCommit).to.exist;
     expect(includedCommit.id).to.equal('0ff3ae198f8601a285adcf5c0fff204ee6fba5fd');
     expect(includedCommit.attributes.message).to.equal('Test the CI integration.');
+  });
+
+  it('can fetch deployments given project id', async () => {
+    // Arrange
+    const host = 'gitlab';
+    const gitlabClient = new GitlabClient(host, fetchMock.fetchMock as IFetchStatic);
+    fetchMock.mock(`^${host}${gitlabClient.apiPrefix}/`, gitLabBuildsResponse);
+    const deploymentModule = new DeploymentModule(gitlabClient);
+
+    // Act
+    const deployments = await deploymentModule.fetchDeploymentsFromGitLab(1);
+
+    // Assert
+    expect(deployments.length).equals(2)
   });
 });
 

@@ -19,6 +19,8 @@ import LocalEventBus from './event-bus/local-event-bus';
 
 import MinardServer from './server/server';
 
+import { GitlabClient, fetchInjectSymbol, gitlabHostInjectSymbol } from './shared/gitlab-client'
+
 const kernel = new Kernel();
 
 // We are injecting the eventBus here as a constantValue as the
@@ -36,8 +38,10 @@ kernel.bind(DeploymentModule.injectSymbol).to(DeploymentModule);
 kernel.bind(HelloPlugin.injectSymbol).to(HelloPlugin);
 kernel.bind(MinardServer.injectSymbol).to(MinardServer).inSingletonScope();
 kernel.bind(UserModule.injectSymbol).to(UserModule);
+kernel.bind(gitlabHostInjectSymbol).toConstantValue('http://localhost:10080');
+kernel.bind(fetchInjectSymbol).toConstantValue(fetch);
+kernel.bind(GitlabClient.injectSymbol).to(GitlabClient);
 
-kernel.bind('gitlab-base-url').toConstantValue('http://localhost:10080');
 
 const knex = Knex({
   client: 'postgresql',

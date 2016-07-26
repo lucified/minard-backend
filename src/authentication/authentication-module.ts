@@ -6,21 +6,15 @@ import * as Knex from 'knex';
 
 
 @injectable()
-export default class UserModule {
+export default class AuthenticationModule {
 
-  public static injectSymbol = Symbol('user-module');
+  public static injectSymbol = Symbol('auth-module');
 
   private gitlabKnex: Knex;
-  private gitlabBaseUrl: string;
-  private internalServerUrl: string;
 
   constructor(
-    @inject('gitlab-knex') gitlabKnex: Knex,
-    @inject('gitlab-base-url') gitlabBaseUrl: string,
-    @inject('internal-server-url') internalServerUrl: string) {
+    @inject('gitlab-knex') gitlabKnex: Knex) {
     this.gitlabKnex = gitlabKnex;
-    this.gitlabBaseUrl = gitlabBaseUrl;
-    this.internalServerUrl = internalServerUrl;
   }
 
   public async getPrivateAuthenticationToken(userId: number): Promise<string> {

@@ -18,7 +18,7 @@ export default class DeploymentModule {
   }
 
   public fetchDeploymentsFromGitLab(projectId: number): Promise<Deployment[] | void> {
-    return this.gitlab.fetch<Deployment[]>(`projects/${projectId}/builds`)
+    return this.gitlab.fetchJson<Deployment[]>(`projects/${projectId}/builds`)
   };
 
   public async handleGetDeployments(projectId: number) {

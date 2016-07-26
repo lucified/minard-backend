@@ -4,6 +4,8 @@ import { inject, injectable } from 'inversify';
 
 import DeploymentPlugin from '../deployment/deployment-hapi-plugin';
 import HelloPlugin from '../hello/hello-hapi-plugin';
+import ProjectPlugin from '../project/project-hapi-plugin';
+
 
 
 const hapiAsyncHandler = require('hapi-async-handler');
@@ -14,13 +16,16 @@ export default class MinardServer {
   public static injectSymbol = Symbol('minard-server');
 
   private helloPlugin: HelloPlugin;
+  private projectPlugin: ProjectPlugin;
   private deploymentPlugin: DeploymentPlugin;
 
   constructor(
     @inject(HelloPlugin.injectSymbol) helloPlugin: HelloPlugin,
-    @inject(DeploymentPlugin.injectSymbol) deploymentPlugin: DeploymentPlugin) {
+    @inject(DeploymentPlugin.injectSymbol) deploymentPlugin: DeploymentPlugin,
+    @inject(ProjectPlugin.injectSymbol) projectPlugin: ProjectPlugin) {
     this.helloPlugin = helloPlugin;
     this.deploymentPlugin = deploymentPlugin;
+    this.projectPlugin = projectPlugin;
   }
 
   public async start(): Promise<Hapi.Server> {
@@ -58,7 +63,9 @@ export default class MinardServer {
   private async loadAppPlugins(server: Hapi.Server) {
     await server.register([
       this.helloPlugin.register,
-      this.deploymentPlugin.register]);
+      this.deploymentPlugin.register,
+      this.projectPlugin.register,
+      ]);
   }
 
 }

@@ -38,13 +38,7 @@ export default class SystemHookModule {
     if (!(await this.hasSystemHookRegistered(url))) {
       return await this.registerSystemHook(url);
     }
-    try {
-      return true;
-    } catch (err) {
-      console.log('Could not register system hook for project-module. Trying again in 3 seconds');
-      console.log(err);
-      return false;
-    }
+    return true;
   }
 
   public async getSystemHooks() {

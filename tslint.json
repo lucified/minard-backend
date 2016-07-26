@@ -1,5 +1,5 @@
 {
-  "extends": ["tslint:latest", "tslint-react"],
+  "extends": ["tslint:latest"],
   "rules": {
     "quotemark": [true, "single", "avoid-escape", "jsx-double"],
     "no-var-requires": false,

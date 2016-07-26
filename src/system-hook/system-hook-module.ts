@@ -48,7 +48,7 @@ export default class SystemHookModule {
   }
 
   public async getSystemHooks() {
-    return await this.gitlabClient.fetch<SystemHook[]>('/hooks');;
+    return await this.gitlabClient.fetchJson<SystemHook[]>('/hooks');;
   }
 
   public async hasSystemHookRegistered(url: string) {
@@ -61,7 +61,7 @@ export default class SystemHookModule {
 
   public async registerSystemHook(hookUrl: string) {
     const url = `hooks?url=${encodeURIComponent(hookUrl)}`;
-    const res = await this.gitlabClient.fetch(url, { method: 'POST' }) as any;
+    const res = await this.gitlabClient.fetch(url, { method: 'POST' });
     return res.status === 200;
   }
 

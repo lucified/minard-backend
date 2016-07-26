@@ -39,13 +39,34 @@ export class GitlabClient {
       console.log(msg);
   }
 
-  public async fetch<T>(path:string, options?: RequestInit): Promise<T> {
 
+  public fetch(path:string, options?: RequestInit): Promise<IResponse> {
+    const url = this.url(path);
+    this.log(`GitlabClient: sending request to ${url}`);
+    return this._fetch(url, options);
+  }
+
+  public async fetchJson<T>(path:string, options?: RequestInit): Promise<T> {
     const url = this.url(path);
     this.log(`GitlabClient: sending request to ${url}`);
     const r = await this._fetch(url, options);
+    if(r.status !== 200) {
+      throw new HttpError(r);
+    }
     this.log(`GitlabClient: received response ${r.status} from ${url}`);
     return await r.json<T>();
-
   }
+
+}
+
+export class HttpError extends Error {
+    response: IResponse;
+    message: string;
+
+    constructor(response: IResponse, msg?:string) {
+      super();
+      this.response = response;
+      this.stack = new Error().stack;
+      this.message = msg ? msg : `Received ${response.status}: ${response.statusText}`;
+    }
 }

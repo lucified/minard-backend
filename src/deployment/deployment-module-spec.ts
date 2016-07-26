@@ -8,6 +8,15 @@ import { GitlabClient } from '../shared/gitlab-client'
 
 const fetchMock = require('fetch-mock');
 
+
+[
+   {
+      "id" : 1,
+      "url" : "https://gitlab.example.com/hook",
+      "created_at" : "2015-11-04T20:07:35.874Z"
+   }
+]
+
 const gitLabBuildsResponse = [
   {
     'commit': {

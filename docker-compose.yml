@@ -17,18 +17,18 @@ services:
 
   postgresql:
     restart: always
-    image: sameersbn/postgresql:latest
+    image: postgres:9.5
     ports:
     - "5432:5432"
     volumes:
-    - ./gitlab-data/postgresql:/var/lib/postgresql:Z
+    - ./gitlab-data/postgresql/pgdata:/var/lib/postgresql/data/pgdata:Z
     ports:
     - "5432:5432"
     environment:
-    - DB_USER=gitlab
-    - DB_PASS=password
-    - DB_NAME=gitlabhq_production
-    - DB_EXTENSION=pg_trgm
+    - POSTGRES_USER=gitlab
+    - POSTGRES_PASSWORD=password
+    - POSTGRES_DB=gitlabhq_production
+    - PGDATA=/var/lib/postgresql/data/pgdata
 
   gitlab:
     restart: always

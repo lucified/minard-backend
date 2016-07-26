@@ -160,7 +160,9 @@ describe('deployment-module', () => {
     const deployments = await deploymentModule.fetchDeploymentsFromGitLab(1);
 
     // Assert
-    expect(deployments.length).equals(2)
+    expect(deployments.length).equals(2);
+    expect(deployments[0].id).equals(7);
+
   });
 });
 

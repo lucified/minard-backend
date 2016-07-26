@@ -9,7 +9,6 @@ export default class LocalEventBus extends Subject<Event> {
 
   constructor() {
     super();
-    console.log('created local event bus');
   }
 
   public post(event: Event) {

@@ -11,16 +11,20 @@ import { expect } from 'chai';
 
 describe('system-hooks-module', () => {
 
-  function getSystemHooksModule() {
-    const gitlabClient = new GitlabClient(
+  function getGitlabClient() {
+    return new GitlabClient(
       'http://fake-gitlab.com:1000',
       fetchMock.fetchMock as IFetchStatic);
+  }
+
+  function getSystemHooksModule(gitlabClient: GitlabClient) {
     return new SystemHookModule(gitlabClient);
   }
 
   it('getSystemHooks', async () => {
     // arrange
-    const systemHookModule = getSystemHooksModule();
+    const gitlabClient = getGitlabClient();
+    const systemHookModule = getSystemHooksModule(gitlabClient);
     const listHooksResponse = [
       {
         'id' : 1,
@@ -28,7 +32,7 @@ describe('system-hooks-module', () => {
         'created_at' : '2015-11-04T20:07:35.874Z',
       },
     ];
-    fetchMock.restore().mock('http://fake-gitlab.com:1000/api/v3/hooks',
+    fetchMock.restore().mock(`http://fake-gitlab.com:1000${gitlabClient.apiPrefix}/hooks`,
       listHooksResponse, { method: 'GET' });
 
     // act
@@ -42,8 +46,9 @@ describe('system-hooks-module', () => {
 
   it('hasSystemHookPositiveCase', async () => {
     // arrange
-    const systemHookModule = getSystemHooksModule();
-    fetchMock.restore().mock('http://fake-gitlab.com:1000/api/v3/hooks',
+    const gitlabClient = getGitlabClient();
+    const systemHookModule = getSystemHooksModule(gitlabClient);
+    fetchMock.restore().mock(`http://fake-gitlab.com:1000${gitlabClient.apiPrefix}/hooks`,
       [{
         'id' : 1,
         'url' : 'http://fake-internal-url.com/project/hook',
@@ -62,9 +67,9 @@ describe('system-hooks-module', () => {
   });
 
   it('hasSystemHookPositiveCase', async () => {
-    // arrange
-    const systemHookModule = getSystemHooksModule();
-    fetchMock.restore().mock('http://fake-gitlab.com:1000/api/v3/hooks',
+    const gitlabClient = getGitlabClient();
+    const systemHookModule = getSystemHooksModule(gitlabClient);
+    fetchMock.restore().mock(`http://fake-gitlab.com:1000${gitlabClient.apiPrefix}/hooks`,
       [{
         'id' : 1,
         'url' : 'https://wrong-internal-url.com/project/hook',
@@ -84,8 +89,9 @@ describe('system-hooks-module', () => {
 
   it('registerSystemHook', async () => {
     // arrange
-    const systemHookModule = getSystemHooksModule();
-    const mockUrl = 'http://fake-gitlab.com:1000/api/v3/hooks' +
+    const gitlabClient = getGitlabClient();
+    const systemHookModule = getSystemHooksModule(gitlabClient);
+    const mockUrl = `http://fake-gitlab.com:1000${gitlabClient.apiPrefix}/hooks` +
         '?url=http%3A%2F%2Ffake-internal-url.com%2Fproject%2Fhook';
     fetchMock.restore().mock(mockUrl, {
       'status': 200,

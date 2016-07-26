@@ -7,8 +7,15 @@ import 'reflect-metadata';
 import { Kernel } from 'inversify';
 import * as Knex from 'knex';
 
+import AuthenticationModule from './authentication/authentication-module';
+
 import DeploymentPlugin from './deployment/deployment-hapi-plugin';
 import DeploymentModule from './deployment/deployment-module';
+
+import ProjectPlugin from './project/project-hapi-plugin';
+import ProjectModule from './project/project-module';
+
+import SystemHookModule from './system-hook/system-hook-module';
 
 import HelloPlugin from './hello/hello-hapi-plugin';
 
@@ -38,10 +45,15 @@ kernel.bind(DeploymentModule.injectSymbol).to(DeploymentModule);
 kernel.bind(HelloPlugin.injectSymbol).to(HelloPlugin);
 kernel.bind(MinardServer.injectSymbol).to(MinardServer).inSingletonScope();
 kernel.bind(UserModule.injectSymbol).to(UserModule);
+kernel.bind(GitlabClient.injectSymbol).to(GitlabClient);
+kernel.bind(ProjectModule.injectSymbol).to(ProjectModule);
+kernel.bind(ProjectPlugin.injectSymbol).to(ProjectPlugin);
+kernel.bind(SystemHookModule.injectSymbol).to(SystemHookModule);
+kernel.bind(AuthenticationModule.injectSymbol).to(AuthenticationModule);
+
 kernel.bind(gitlabHostInjectSymbol).toConstantValue('http://localhost:10080');
 kernel.bind(fetchInjectSymbol).toConstantValue(fetch);
-kernel.bind(GitlabClient.injectSymbol).to(GitlabClient);
-
+kernel.bind('internal-server-url').toConstantValue('http://localhost:8000');
 
 const knex = Knex({
   client: 'postgresql',

@@ -28,7 +28,6 @@ export class GitlabClient {
     this._logging = logging;
   }
 
-  // TODO: check that dashes match
   public url(path: string) {
     return urljoin(this.host, this.apiPrefix, path);
   }

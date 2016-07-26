@@ -15,7 +15,7 @@ describe('project-module', () => {
     const projectModule = new ProjectModule(
       {} as AuthenticationModule,
       {} as SystemHookModule,
-      eventBus, '');
+      eventBus);
 
     eventBus.subscribe((item: any) => {
       expect(item.type).to.equal('project-created');

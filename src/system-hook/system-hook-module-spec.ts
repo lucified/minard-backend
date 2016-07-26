@@ -18,7 +18,7 @@ describe('system-hooks-module', () => {
   }
 
   function getSystemHooksModule(gitlabClient: GitlabClient) {
-    return new SystemHookModule(gitlabClient);
+    return new SystemHookModule(gitlabClient, 'http://fake-internal-url.com/');
   }
 
   it('getSystemHooks', async () => {
@@ -59,8 +59,7 @@ describe('system-hooks-module', () => {
       });
 
     // act
-    const hasHook = await systemHookModule.hasSystemHookRegistered(
-      'http://fake-internal-url.com/project/hook');
+    const hasHook = await systemHookModule.hasSystemHookRegistered('/project/hook');
 
     // assert
     expect(hasHook).to.equal(true);
@@ -80,8 +79,7 @@ describe('system-hooks-module', () => {
     });
 
     // act
-    const hasHook = await systemHookModule.hasSystemHookRegistered(
-      'http://fake-internal-url.com/project/hook');
+    const hasHook = await systemHookModule.hasSystemHookRegistered('/project/hook');
 
     // assert
     expect(hasHook).to.equal(false);
@@ -101,8 +99,7 @@ describe('system-hooks-module', () => {
     });
 
     // act
-    const success = await systemHookModule.registerSystemHook(
-      'http://fake-internal-url.com/project/hook');
+    const success = await systemHookModule.registerSystemHook('/project/hook');
 
     // assert
     expect(success).to.equal(true);

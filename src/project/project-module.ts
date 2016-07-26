@@ -12,7 +12,6 @@ export default class ProjectModule {
 
   public static injectSymbol = Symbol('user-module');
 
-  private internalServerUrl: string;
   private authenticationModule: AuthenticationModule;
   private systemHookModule: SystemHookModule;
   private eventBus: EventBus;
@@ -20,17 +19,15 @@ export default class ProjectModule {
   constructor(
     @inject(AuthenticationModule.injectSymbol) authenticationModule: AuthenticationModule,
     @inject(SystemHookModule.injectSymbol) systemHookModule: SystemHookModule,
-    @inject(EventBus.injectSymbol) eventBus: EventBus,
-    @inject('internal-server-url') internalServerUrl: string) {
+    @inject(EventBus.injectSymbol) eventBus: EventBus) {
     this.authenticationModule = authenticationModule;
     this.systemHookModule = systemHookModule;
-    this.internalServerUrl = internalServerUrl;
     this.eventBus = eventBus;
   }
 
   public async assureSystemHookRegistered() {
     return await this.systemHookModule
-      .assureSystemHookRegistered(this.getSystemHookUrl());
+      .assureSystemHookRegistered(this.getSystemHookPath());
   }
 
   public receiveHook(payload: any) {
@@ -44,8 +41,8 @@ export default class ProjectModule {
     }
   }
 
-  private getSystemHookUrl() {
-    return `${this.internalServerUrl}/project/hook`;
+  private getSystemHookPath() {
+    return `/project/hook`;
   }
 
 }

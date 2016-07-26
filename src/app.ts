@@ -1,5 +1,4 @@
 
-
 // polyfills
 require('isomorphic-fetch');
 import 'reflect-metadata';
@@ -15,7 +14,7 @@ import DeploymentModule from './deployment/deployment-module';
 import ProjectPlugin from './project/project-hapi-plugin';
 import ProjectModule from './project/project-module';
 
-import SystemHookModule from './system-hook/system-hook-module';
+import { default as SystemHookModule, systemHookBaseUrlSymbol } from './system-hook/system-hook-module';
 
 import HelloPlugin from './hello/hello-hapi-plugin';
 
@@ -53,7 +52,7 @@ kernel.bind(AuthenticationModule.injectSymbol).to(AuthenticationModule);
 
 kernel.bind(gitlabHostInjectSymbol).toConstantValue('http://localhost:10080');
 kernel.bind(fetchInjectSymbol).toConstantValue(fetch);
-kernel.bind('internal-server-url').toConstantValue('http://localhost:8000');
+kernel.bind(systemHookBaseUrlSymbol).toConstantValue('http://localhost:8000'); // TODO
 
 const knex = Knex({
   client: 'postgresql',

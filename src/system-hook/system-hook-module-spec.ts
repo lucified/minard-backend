@@ -1,8 +1,9 @@
 
 require('isomorphic-fetch');
 
-import AuthenticationModule from '../authentication/authentication-module';
-import SystemHooksModule from './system-hook-module';
+import SystemHookModule from './system-hook-module';
+import { GitlabClient } from '../shared/gitlab-client'
+import { IFetchStatic } from '../shared/fetch.d.ts';
 
 const fetchMock = require('fetch-mock');
 import { expect } from 'chai';
@@ -10,16 +11,16 @@ import { expect } from 'chai';
 
 describe('system-hooks-module', () => {
 
-  class MockAuthModule {
-    public async getRootAuthenticationToken() {
-      return 'the-token';
-    }
+  function getSystemHooksModule() {
+    const gitlabClient = new GitlabClient(
+      'http://fake-gitlab.com:1000',
+      fetchMock.fetchMock as IFetchStatic);
+    return new SystemHookModule(gitlabClient);
   }
 
   it('getSystemHooks', async () => {
-    const authenticationModule = new MockAuthModule() as AuthenticationModule;
-    const systemHooksModule = new SystemHooksModule(authenticationModule, fetch);
-
+    // arrange
+    const systemHookModule = getSystemHooksModule();
     const listHooksResponse = [
       {
         'id' : 1,
@@ -27,22 +28,22 @@ describe('system-hooks-module', () => {
         'created_at' : '2015-11-04T20:07:35.874Z',
       },
     ];
-    fetchMock.restore().mock('http://fake-gitlab.com:1000/api/v3/hooks?private_token=the-token',
+    fetchMock.restore().mock('http://fake-gitlab.com:1000/api/v3/hooks',
       listHooksResponse, { method: 'GET' });
 
-    const hooks = await systemHooksModule.getSystemHooks();
+    // act
+    const hooks = await systemHookModule.getSystemHooks();
+
+    // assert
     expect(hooks).to.have.length(1);
     expect(hooks[0].id).to.equal(1);
     expect(hooks[0].url).to.equal('https://gitlab.example.com/hook');
   });
 
-
-  it('hasSystemHook', async () => {
-    const authenticationModule = new MockAuthModule() as AuthenticationModule;
-    const systemHooksModule = new SystemHooksModule(authenticationModule, fetch);
-
-    // positive case
-    fetchMock.restore().mock('http://fake-gitlab.com:1000/api/v3/hooks?private_token=the-token',
+  it('hasSystemHookPositiveCase', async () => {
+    // arrange
+    const systemHookModule = getSystemHooksModule();
+    fetchMock.restore().mock('http://fake-gitlab.com:1000/api/v3/hooks',
       [{
         'id' : 1,
         'url' : 'http://fake-internal-url.com/project/hook',
@@ -51,11 +52,19 @@ describe('system-hooks-module', () => {
       {
         method: 'GET',
       });
-    expect(await systemHooksModule.hasSystemHookRegistered(
-      'http://fake-internal-url.com/project/hook')).to.equal(true);
 
-    // negative case
-    fetchMock.restore().mock('http://fake-gitlab.com:1000/api/v3/hooks?private_token=the-token',
+    // act
+    const hasHook = await systemHookModule.hasSystemHookRegistered(
+      'http://fake-internal-url.com/project/hook');
+
+    // assert
+    expect(hasHook).to.equal(true);
+  });
+
+  it('hasSystemHookPositiveCase', async () => {
+    // arrange
+    const systemHookModule = getSystemHooksModule();
+    fetchMock.restore().mock('http://fake-gitlab.com:1000/api/v3/hooks',
       [{
         'id' : 1,
         'url' : 'https://wrong-internal-url.com/project/hook',
@@ -63,28 +72,35 @@ describe('system-hooks-module', () => {
       }],
       {
         method: 'GET',
-      });
-    expect(await systemHooksModule.hasSystemHookRegistered(
-      'http://fake-internal-url.com/project/hook')).to.equal(false);
+    });
+
+    // act
+    const hasHook = await systemHookModule.hasSystemHookRegistered(
+      'http://fake-internal-url.com/project/hook');
+
+    // assert
+    expect(hasHook).to.equal(false);
   });
 
   it('registerSystemHook', async () => {
-    const authenticationModule = new MockAuthModule() as AuthenticationModule;
-    const systemHooksModule = new SystemHooksModule(authenticationModule, fetch);
+    // arrange
+    const systemHookModule = getSystemHooksModule();
+    const mockUrl = 'http://fake-gitlab.com:1000/api/v3/hooks' +
+        '?url=http%3A%2F%2Ffake-internal-url.com%2Fproject%2Fhook';
+    fetchMock.restore().mock(mockUrl, {
+      'status': 200,
+    },
+    {
+      method: 'POST',
+    });
 
-    fetchMock.restore().mock(
-        'http://fake-gitlab.com:1000/api/v3/hooks?private_token=the-token' +
-        '&url=http%3A%2F%2Ffake-internal-url.com%2Fproject%2Fhook',
-      {
-        'status': 200,
-      },
-      {
-        method: 'POST',
-      });
-    expect(await systemHooksModule.registerSystemHook(
-      'http://fake-internal-url.com/project/hook')).to.equal(true);
+    // act
+    const success = await systemHookModule.registerSystemHook(
+      'http://fake-internal-url.com/project/hook');
+
+    // assert
+    expect(success).to.equal(true);
     expect(fetchMock.called()).to.equal(true);
   });
-
 
 });

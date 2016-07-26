@@ -2,21 +2,20 @@
 import { inject, injectable } from 'inversify';
 
 // only for types
-import AuthenticationModule from '../authentication/authentication-module';
+import { GitlabClient } from '../shared/gitlab-client'
+import { SystemHook } from '../shared/gitlab.d.ts';
+
 
 @injectable()
 export default class SystemHookModule {
 
   public static injectSymbol = Symbol('system-hook-module');
 
-  private authenticationModule: AuthenticationModule;
-  private fetch: typeof fetch;
+  private gitlabClient: GitlabClient;
 
   public constructor(
-    @inject(AuthenticationModule.injectSymbol) authenticationModule: AuthenticationModule,
-    @inject('fetch') fetchArg: typeof fetch) {
-    this.authenticationModule = authenticationModule;
-    this.fetch = fetchArg;
+    @inject(GitlabClient.injectSymbol) gitlabClient: GitlabClient) {
+    this.gitlabClient = gitlabClient;
   }
 
   public async assureSystemHookRegistered(url: string) {
@@ -25,16 +24,21 @@ export default class SystemHookModule {
     }
     let registered = false;
     while (!registered) {
-      registered = await this.tryAssureSystemHookRegistered(url);
-      await sleep(3000);
+      try {
+        registered = await this.tryAssureSystemHookRegistered(url);
+      } catch (err) {
+        console.log('Could not register system hook for project-module. Trying again in 3 seconds');
+        console.log(err);
+        await sleep(3000);
+      }
     }
   };
 
   public async tryAssureSystemHookRegistered(url: string) {
+    if (!(await this.hasSystemHookRegistered(url))) {
+      return await this.registerSystemHook(url);
+    }
     try {
-      if (!(await this.hasSystemHookRegistered(url))) {
-        return await this.registerSystemHook(url);
-      }
       return true;
     } catch (err) {
       console.log('Could not register system hook for project-module. Trying again in 3 seconds');
@@ -44,10 +48,7 @@ export default class SystemHookModule {
   }
 
   public async getSystemHooks() {
-    const token = await this.authenticationModule.getRootAuthenticationToken();
-    const url = `/hooks?private_token=${token}`;
-    const hooks = (await this.fetch(url)).json();
-    return hooks;
+    return await this.gitlabClient.fetch<SystemHook[]>('/hooks');;
   }
 
   public async hasSystemHookRegistered(url: string) {
@@ -59,9 +60,8 @@ export default class SystemHookModule {
   }
 
   public async registerSystemHook(hookUrl: string) {
-    const token = await this.authenticationModule.getRootAuthenticationToken();
-    const url = `hooks?private_token=${token}&url=${encodeURIComponent(hookUrl)}`;
-    const res = await this.fetch(url, { method: 'POST' });
+    const url = `hooks?url=${encodeURIComponent(hookUrl)}`;
+    const res = await this.gitlabClient.fetch(url, { method: 'POST' }) as any;
     return res.status === 200;
   }
 

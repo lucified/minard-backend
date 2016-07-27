@@ -1,5 +1,3 @@
-
-
 export interface RequestInit {
     method?: string;
     headers?: HeaderInit | { [index: string]: string };
@@ -15,7 +13,6 @@ interface IHeaders {
     has(name: string): boolean;
 }
 
-
 interface IBody {
     bodyUsed: boolean;
     arrayBuffer(): Promise<ArrayBuffer>;
@@ -25,7 +22,6 @@ interface IBody {
     json<T>(): Promise<T>;
     text(): Promise<string>;
 }
-
 
 interface IRequest extends IBody {
     method: string;
@@ -37,8 +33,6 @@ interface IRequest extends IBody {
     credentials: string | RequestCredentials;
     cache: string | RequestCache;
 }
-
-
 
 interface IResponse extends IBody {
     url: string;
@@ -56,7 +50,7 @@ interface IResponse extends IBody {
 
 export interface IFetchStatic {
     Promise: any;
-    Headers: IHeaders
+    Headers: IHeaders;
     Request: IRequest;
     Response: IResponse;
     (url: string | IRequest, init?: RequestInit): Promise<IResponse>;

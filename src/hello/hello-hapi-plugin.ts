@@ -56,4 +56,3 @@ class HelloHapiPlugin {
 }
 
 export default HelloHapiPlugin;
-

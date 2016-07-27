@@ -1,21 +1,20 @@
 
 require('isomorphic-fetch');
 
-import SystemHookModule from './system-hook-module';
-import { GitlabClient } from '../shared/gitlab-client'
-import { IFetchStatic } from '../shared/fetch.d.ts';
 import Authentication from '../authentication/authentication-module';
+import { IFetchStatic } from '../shared/fetch.d.ts';
+import { GitlabClient } from '../shared/gitlab-client';
+import SystemHookModule from './system-hook-module';
 
 const fetchMock = require('fetch-mock');
 import { expect } from 'chai';
-
 
 describe('system-hooks-module', () => {
 
   function getGitlabClient() {
 
     class MockAuthModule {
-      async getRootAuthenticationToken() {
+      public async getRootAuthenticationToken() {
         return 'dfgdfdfg';
       }
     }

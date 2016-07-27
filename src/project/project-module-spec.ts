@@ -7,7 +7,6 @@ import SystemHookModule from '../system-hook/system-hook-module';
 import ProjectModule from './project-module';
 import { expect } from 'chai';
 
-
 describe('project-module', () => {
   it('receiveHook', (done) => {
 

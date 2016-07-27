@@ -7,4 +7,3 @@ export interface HapiRegister {
   next: any): void;
   attributes?: any;
 }
-

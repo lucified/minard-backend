@@ -1,27 +1,26 @@
 
 import 'reflect-metadata';
 
-import DeploymentModule from './deployment-module';
 import { expect } from 'chai';
-import { IFetchStatic } from '../shared/fetch.d.ts';
-import { GitlabClient } from '../shared/gitlab-client'
+
+import DeploymentModule from './deployment-module';
+
 import Authentication from '../authentication/authentication-module';
+import { IFetchStatic } from '../shared/fetch.d.ts';
+import { GitlabClient } from '../shared/gitlab-client';
 
 const fetchMock = require('fetch-mock');
-
-
-
 const host = 'gitlab';
 const token = 'the-sercret';
 
 const getClient = () => {
   class MockAuthModule {
-    async getRootAuthenticationToken() {
+    public async getRootAuthenticationToken() {
       return token;
     }
   }
-  return new GitlabClient(host, fetchMock.fetchMock as IFetchStatic, new MockAuthModule() as Authentication, false);
-}
+  return new GitlabClient(host, fetchMock.fetchMock as IFetchStatic, new MockAuthModule() as Authentication);
+};
 
 const gitLabBuildsResponse = [
   {
@@ -105,7 +104,6 @@ const gitLabBuildsResponse = [
   },
 ];
 
-
 describe('deployment-module', () => {
   it('normalizeGitLabResponse', () => {
     const converted = DeploymentModule.normalizeGitLabResponse(gitLabBuildsResponse) as any;
@@ -124,7 +122,6 @@ describe('deployment-module', () => {
     // test second
     expect(converted[1].id).to.equal(6);
   });
-
 
   it('gitlabResponseToJsonApi', () => {
     const converted = DeploymentModule.gitlabResponseToJsonApi(gitLabBuildsResponse) as any;
@@ -166,7 +163,6 @@ describe('deployment-module', () => {
 
   it('can fetch deployments given project id', async () => {
     // Arrange
-    const host = 'gitlab';
     const gitlabClient = getClient();
     fetchMock.restore().mock(`^${host}${gitlabClient.apiPrefix}/`, gitLabBuildsResponse);
     const deploymentModule = new DeploymentModule(gitlabClient);
@@ -180,4 +176,3 @@ describe('deployment-module', () => {
 
   });
 });
-

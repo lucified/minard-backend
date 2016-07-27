@@ -1,5 +1,4 @@
 
-//import { IFetchStatic, RequestInit,  } from './fetch.d.ts';
 import Authentication from '../authentication/authentication-module';
 
 import { inject, injectable } from 'inversify';
@@ -9,13 +8,14 @@ export const gitlabHostInjectSymbol = Symbol('gitlab-host');
 
 const urljoin = require('url-join');
 
-
 @injectable()
 export class GitlabClient {
+
+  public static injectSymbol = Symbol('gitlab-client');
+
   public readonly host: string;
   public readonly apiPrefix: string = '/api/v3';
   public readonly authenticationHeader = 'PRIVATE-TOKEN';
-  public static injectSymbol = Symbol('gitlab-client');
 
   private _fetch: IFetchStatic;
   private _logging: boolean;
@@ -37,30 +37,31 @@ export class GitlabClient {
     return urljoin(this.host, this.apiPrefix, path);
   }
 
-  public get rawFetch() : IFetchStatic {
+  public get rawFetch(): IFetchStatic {
     return this._fetch;
   }
 
-  private log(msg: string):void {
-    if(this._logging)
+  private log(msg: string): void {
+    if (this._logging) {
       console.log(msg);
+    }
   }
 
   public async authenticate(options?: RequestInit) {
 
     // Is set already, no modifications
     const key = this.authenticationHeader;
-    if(options
+    if (options
       && options.headers
       && options.headers instanceof Headers
       && options.headers.get(key) ) {
         return options;
     }
 
-    if(options && options.headers) {
+    if (options && options.headers) {
       // Is set already, no modifications
-      const h = <any>options.headers;
-      if(typeof h === "object" && h[key]) {
+      const h = <any> options.headers;
+      if (typeof h === 'object' && h[key]) {
         return options;
       }
     }
@@ -69,7 +70,7 @@ export class GitlabClient {
     // Make a shallow copy
     const _options = Object.assign({}, options || {});
 
-    if(_options.headers instanceof Headers) {
+    if (_options.headers instanceof Headers) {
       _options.headers.set(key, token);
       return _options;
     }
@@ -78,19 +79,19 @@ export class GitlabClient {
     return _options;
   }
 
-  public async fetch(path:string, options?: RequestInit): Promise<IResponse> {
+  public async fetch(path: string, options?: RequestInit): Promise<IResponse> {
     const url = this.url(path);
     const _options = await this.authenticate(options);
     this.log(`GitlabClient: sending request to ${url}`);
     return this._fetch(url, _options);
   }
 
-  public async fetchJson<T>(path:string, options?: RequestInit): Promise<T> {
+  public async fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
     const url = this.url(path);
     const _options = await this.authenticate(options);
     this.log(`GitlabClient: sending request to ${url}`);
     const r = await this._fetch(url, _options);
-    if(r.status !== 200) {
+    if (r.status !== 200) {
       throw new HttpError(r);
     }
     this.log(`GitlabClient: received response ${r.status} from ${url}`);
@@ -100,10 +101,10 @@ export class GitlabClient {
 }
 
 export class HttpError extends Error {
-    response: IResponse;
-    message: string;
+    public readonly response: IResponse;
+    public readonly message: string;
 
-    constructor(response: IResponse, msg?:string) {
+    constructor(response: IResponse, msg?: string) {
       super();
       this.response = response;
       this.stack = new Error().stack;

@@ -25,7 +25,7 @@ import LocalEventBus from './event-bus/local-event-bus';
 
 import MinardServer from './server/server';
 
-import { GitlabClient, fetchInjectSymbol, gitlabHostInjectSymbol } from './shared/gitlab-client'
+import { GitlabClient, fetchInjectSymbol, gitlabHostInjectSymbol } from './shared/gitlab-client';
 
 const kernel = new Kernel();
 

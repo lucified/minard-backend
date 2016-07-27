@@ -6,10 +6,4 @@ export default class UserModule {
 
   public static injectSymbol = Symbol('user-module');
 
-  constructor() {
-
-  }
-
 }
-
-

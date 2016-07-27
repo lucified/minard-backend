@@ -1,9 +1,10 @@
 
 import { inject, injectable } from 'inversify';
-import { GitlabClient } from '../shared/gitlab-client'
-import { Deployment } from  '../shared/gitlab.d.ts'
-const Serializer = require('jsonapi-serializer').Serializer; // tslint:disable-line
 
+import { GitlabClient } from '../shared/gitlab-client';
+import { Deployment } from  '../shared/gitlab.d.ts';
+
+const Serializer = require('jsonapi-serializer').Serializer; // tslint:disable-line
 
 @injectable()
 export default class DeploymentModule {
@@ -18,14 +19,13 @@ export default class DeploymentModule {
   }
 
   public fetchDeploymentsFromGitLab(projectId: number): Promise<Deployment[] | void> {
-    return this.gitlab.fetchJson<Deployment[]>(`projects/${projectId}/builds`)
+    return this.gitlab.fetchJson<Deployment[]>(`projects/${projectId}/builds`);
   };
 
   public async handleGetDeployments(projectId: number) {
     const gitlabData = await this.fetchDeploymentsFromGitLab(projectId);
     return DeploymentModule.gitlabResponseToJsonApi(gitlabData);
   }
-
 
   public static gitlabResponseToJsonApi(gitlabResponse: any) {
     const normalized = this.normalizeGitLabResponse(gitlabResponse);
@@ -65,6 +65,4 @@ export default class DeploymentModule {
       };
     });
   };
-
-
 };

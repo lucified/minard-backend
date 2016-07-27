@@ -5,7 +5,6 @@ import { inject, injectable } from 'inversify';
 import { HapiRegister } from '../server/hapi-register';
 import DeploymentModule from './deployment-module';
 
-
 @injectable()
 class DeploymentHapiPlugin {
 
@@ -33,7 +32,7 @@ class DeploymentHapiPlugin {
   };
 
   public async getDeploymentsHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const params = <any>request.params;
+    const params = <any> request.params;
     const projectId = params.projectId;
     return reply(this.deploymentModule.handleGetDeployments(projectId));
   }
@@ -41,4 +40,3 @@ class DeploymentHapiPlugin {
 }
 
 export default DeploymentHapiPlugin;
-

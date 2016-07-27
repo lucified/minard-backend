@@ -6,7 +6,6 @@ import AuthenticationModule from '../authentication/authentication-module';
 import { EventBus } from '../event-bus/event-bus';
 import SystemHookModule from '../system-hook/system-hook-module';
 
-
 @injectable()
 export default class ProjectModule {
 

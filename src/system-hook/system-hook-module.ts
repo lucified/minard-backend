@@ -2,7 +2,7 @@
 import { inject, injectable } from 'inversify';
 
 // only for types
-import { GitlabClient } from '../shared/gitlab-client'
+import { GitlabClient } from '../shared/gitlab-client';
 import { SystemHook } from '../shared/gitlab.d.ts';
 
 const urljoin = require('url-join');
@@ -52,7 +52,7 @@ export default class SystemHookModule {
   }
 
   public async getSystemHooks() {
-    return await this.gitlabClient.fetchJson<SystemHook[]>('/hooks');;
+    return await this.gitlabClient.fetchJson<SystemHook[]>('/hooks');
   }
 
   public async hasSystemHookRegistered(path: string) {

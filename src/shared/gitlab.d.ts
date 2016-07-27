@@ -50,8 +50,7 @@ export interface User {
   website_url: string;
 }
 
-interface SystemHook
-{
+interface SystemHook {
   id: number;
   url: string;
   created_at: string;

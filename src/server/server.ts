@@ -6,10 +6,7 @@ import DeploymentPlugin from '../deployment/deployment-hapi-plugin';
 import HelloPlugin from '../hello/hello-hapi-plugin';
 import ProjectPlugin from '../project/project-hapi-plugin';
 
-
-
 const hapiAsyncHandler = require('hapi-async-handler');
-
 
 @injectable()
 export default class MinardServer {
@@ -32,7 +29,7 @@ export default class MinardServer {
     const options = {
       debug: {
         log: ['error'],
-        request: ['error']
+        request: ['error'],
       },
     };
 
@@ -69,4 +66,3 @@ export default class MinardServer {
   }
 
 }
-

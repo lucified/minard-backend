@@ -4,7 +4,6 @@ import { inject, injectable } from 'inversify';
 // only for types
 import * as Knex from 'knex';
 
-
 @injectable()
 export default class AuthenticationModule {
 
@@ -29,5 +28,3 @@ export default class AuthenticationModule {
   }
 
 }
-
-

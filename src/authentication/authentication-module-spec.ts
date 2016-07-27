@@ -6,7 +6,6 @@ import { expect } from 'chai';
 
 import * as Knex from 'knex';
 
-
 describe('authentication-module', () => {
   it('getGitlabPrivateToken', async () => {
     const knex = Knex({

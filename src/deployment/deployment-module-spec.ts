@@ -1,6 +1,9 @@
 
 import 'reflect-metadata';
 
+import * as fs from 'fs';
+import * as path from 'path';
+
 import { expect } from 'chai';
 
 import DeploymentModule from './deployment-module';
@@ -10,8 +13,14 @@ import { IFetchStatic } from '../shared/fetch.d.ts';
 import { GitlabClient } from '../shared/gitlab-client';
 
 const fetchMock = require('fetch-mock');
+const rimraf = require('rimraf');
+
 const host = 'gitlab';
 const token = 'the-sercret';
+
+
+declare var Response: any;
+
 
 const getClient = () => {
   class MockAuthModule {
@@ -173,6 +182,32 @@ describe('deployment-module', () => {
     // Assert
     expect(deployments.length).equals(2);
     expect(deployments[0].id).equals(7);
-
   });
+
+  it('can fetch and extract zip', async () => {
+    // Example URL for manual testing
+    // http://localhost:10080/api/v3/projects/1/builds/3/artifacts\?private_token=BSKaHunLUSyxp_X-MK1a
+
+    // Arrange
+    rimraf.sync('temp');
+    const thePath = path.join(__dirname, '../../src/deployment/test-artifact.zip');
+    const stream = fs.createReadStream(thePath);
+    const opts = {
+      status: 200,
+      statusText: 'ok',
+    };
+    const response = new Response(stream, opts);
+    const gitlabClient = getClient();
+    const mockUrl = `${host}${gitlabClient.apiPrefix}/projects/1/builds/2/artifacts`;
+    fetchMock.restore().mock(mockUrl, response);
+    const deploymentModule = new DeploymentModule(gitlabClient, 'temp/deploys');
+
+    // Act
+    await deploymentModule.downloadAndExtractDeployment(1, 2);
+
+    // Assert
+    expect(fs.existsSync('temp/deploys/1/2/dist/index.html')).to.equal(true);
+  });
+
+
 });

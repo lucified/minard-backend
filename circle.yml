@@ -2,9 +2,9 @@
 dependencies:
   pre:
     - nvm install && nvm use && nvm alias default $(nvm current)
-    - npm install typescript@beta
+    - npm install typescript@beta tslint
 
 test:
   override:
-    - npm run-script clean-test
+    - npm run lint && npm run clean-test
 

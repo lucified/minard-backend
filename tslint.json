@@ -6,7 +6,8 @@
     "interface-name": [],
     "object-literal-sort-keys": false,
     "no-console": [],
-    "variable-name": [true, "allow-leading-underscore"]
+    "variable-name": [true, "allow-leading-underscore"],
+    "member-ordering": [false]
   },
   "rulesDirectory": []
 }

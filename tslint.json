@@ -3,10 +3,6 @@
   "rules": {
     "quotemark": [true, "single", "avoid-escape", "jsx-double"],
     "no-var-requires": false,
-    "jsx-alignment": true,
-    "jsx-no-lambda": true,
-    "jsx-no-string-ref": true,
-    "jsx-self-close": true,
     "interface-name": [],
     "object-literal-sort-keys": false,
     "no-console": [],

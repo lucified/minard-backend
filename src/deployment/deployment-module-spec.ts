@@ -164,7 +164,7 @@ describe('deployment-module', () => {
   it('can fetch deployments given project id', async () => {
     // Arrange
     const gitlabClient = getClient();
-    fetchMock.restore().mock(`^${host}${gitlabClient.apiPrefix}/`, gitLabBuildsResponse);
+    fetchMock.restore().mock(`${host}${gitlabClient.apiPrefix}/projects/1/builds`, gitLabBuildsResponse);
     const deploymentModule = new DeploymentModule(gitlabClient);
 
     // Act

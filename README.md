@@ -27,8 +27,14 @@ npm link typescript
 ## Development
 
 Start GitLab, Redis, Postgresql and one `gitlab-runner` with:
-```bash
+```shell
+source ./get-monolith-ip
 docker-compose up
+```
+
+There is also a separate script for that
+```shell
+./compose
 ```
 
 Start Minard monolith
@@ -45,6 +51,11 @@ To get continous transpilation, run
 tsc -w
 ```
 in the project root (in another tab).
+
+## Caveats
+
+Currently you need to be connected to a network for the communication between
+docker containers and the host machine to work correctly.
 
 ## Debugging
 

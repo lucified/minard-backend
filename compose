@@ -1,0 +1,5 @@
+#!/bin/bash
+
+source ./get-monolith-ip
+echo $MONOLITH_IP
+docker-compose up

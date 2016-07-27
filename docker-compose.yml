@@ -41,6 +41,8 @@ services:
     - "10022:22"
     volumes:
     - ./gitlab-data/gitlab:/home/git/data:Z
+    extra_hosts:
+    - "monolith:${MONOLITH_IP}"
     environment:
     - DEBUG=false
 

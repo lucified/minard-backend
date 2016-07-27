@@ -18,9 +18,7 @@ const rimraf = require('rimraf');
 const host = 'gitlab';
 const token = 'the-sercret';
 
-
 declare var Response: any;
-
 
 const getClient = () => {
   class MockAuthModule {
@@ -174,7 +172,7 @@ describe('deployment-module', () => {
     // Arrange
     const gitlabClient = getClient();
     fetchMock.restore().mock(`${host}${gitlabClient.apiPrefix}/projects/1/builds`, gitLabBuildsResponse);
-    const deploymentModule = new DeploymentModule(gitlabClient);
+    const deploymentModule = new DeploymentModule(gitlabClient, '');
 
     // Act
     const deployments = await deploymentModule.fetchDeploymentsFromGitLab(1);
@@ -208,6 +206,5 @@ describe('deployment-module', () => {
     // Assert
     expect(fs.existsSync('temp/deploys/1/2/dist/index.html')).to.equal(true);
   });
-
 
 });

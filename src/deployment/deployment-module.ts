@@ -90,7 +90,7 @@ export default class DeploymentModule {
     const response = await this.gitlab.fetch(url);
 
     mkpath.sync('temp');
-    let readableStream = (<any>response).body;
+    let readableStream = (<any> response).body;
     const tempFileName = `temp/minard-${projectId}-${buildId}.zip`;
     const writeStream = fs.createWriteStream(tempFileName);
 

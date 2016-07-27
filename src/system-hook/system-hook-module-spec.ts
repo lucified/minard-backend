@@ -1,13 +1,10 @@
 
 require('isomorphic-fetch');
 
-import { IFetchStatic } from '../shared/fetch.d.ts';
-<<<<<<< 78611881b9e4282ef1dd4fcd01942324a3f88b2f
 import Authentication from '../authentication/authentication-module';
-=======
+import { IFetchStatic } from '../shared/fetch.d.ts';
 import { GitlabClient } from '../shared/gitlab-client';
 import SystemHookModule from './system-hook-module';
->>>>>>> Fix linting inssues
 
 const fetchMock = require('fetch-mock');
 import { expect } from 'chai';
@@ -17,7 +14,7 @@ describe('system-hooks-module', () => {
   function getGitlabClient() {
 
     class MockAuthModule {
-      async getRootAuthenticationToken() {
+      public async getRootAuthenticationToken() {
         return 'dfgdfdfg';
       }
     }

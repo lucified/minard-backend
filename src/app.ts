@@ -44,7 +44,8 @@ kernel.bind(DeploymentModule.injectSymbol).to(DeploymentModule);
 kernel.bind(HelloPlugin.injectSymbol).to(HelloPlugin);
 kernel.bind(MinardServer.injectSymbol).to(MinardServer).inSingletonScope();
 kernel.bind(UserModule.injectSymbol).to(UserModule);
-kernel.bind(GitlabClient.injectSymbol).to(GitlabClient);
+
+kernel.bind(GitlabClient.injectSymbol).to(GitlabClient).inSingletonScope();
 kernel.bind(ProjectModule.injectSymbol).to(ProjectModule);
 kernel.bind(ProjectPlugin.injectSymbol).to(ProjectPlugin);
 kernel.bind(SystemHookModule.injectSymbol).to(SystemHookModule);

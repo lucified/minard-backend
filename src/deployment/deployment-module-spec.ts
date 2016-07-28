@@ -183,7 +183,7 @@ describe('deployment-module', () => {
     expect(deployments[0].id).equals(7);
   });
 
-  it('can fetch and extract zip', async () => {
+  it('downloadAndExtractDeployment()', async () => {
     // Example URL for manual testing
     // http://localhost:10080/api/v3/projects/1/builds/3/artifacts\?private_token=BSKaHunLUSyxp_X-MK1a
 
@@ -203,10 +203,19 @@ describe('deployment-module', () => {
     const deploymentModule = new DeploymentModule(gitlabClient, deploymentsDir);
 
     // Act
-    await deploymentModule.downloadAndExtractDeployment(1, 2);
+    const deploymentPath = await deploymentModule.downloadAndExtractDeployment(1, 2);
 
     // Assert
-    expect(fs.existsSync(path.join(deploymentsDir, '1/2/dist/index.html'))).to.equal(true);
+    const indexFilePath = path.join(deploymentPath, 'dist', 'index.html');
+    console.log(indexFilePath);
+    expect(fs.existsSync(indexFilePath)).to.equal(true);
+    expect(deploymentPath).to.equal(deploymentModule.getDeploymentPath(1, 2));
+  });
+
+  it('getDeploymentPath()', () => {
+    const deploymentModule = new DeploymentModule({ } as GitlabClient, 'example');
+    const deploymentPath = deploymentModule.getDeploymentPath(1, 4);
+    expect(deploymentPath).to.equal('example/1/4');
   });
 
 });

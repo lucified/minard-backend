@@ -78,7 +78,7 @@ export default class DeploymentModule {
     });
   };
 
-  private getDeploymentPath(projectId: number, buildId: number) {
+  public getDeploymentPath(projectId: number, buildId: number) {
     return path.join(this.deploymentFolder, String(projectId), String(buildId));
   }
 
@@ -106,6 +106,7 @@ export default class DeploymentModule {
     mkpath.sync(this.getDeploymentPath(projectId, buildId));
     const zip = new AdmZip(tempFileName);
     zip.extractAllTo(this.getDeploymentPath(projectId, buildId));
+    return this.getDeploymentPath(projectId, buildId);
   }
 
 };

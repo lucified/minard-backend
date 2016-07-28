@@ -3,7 +3,10 @@ import * as Hapi from 'hapi';
 import { inject, injectable } from 'inversify';
 
 import { HapiRegister } from '../server/hapi-register';
-import DeploymentModule from './deployment-module';
+import { DeploymentKey, default as DeploymentModule, getDeploymentKey,
+  isRawDeploymentHostname} from './deployment-module';
+
+const directoryHandler = require('inert/lib/directory').handler;
 
 @injectable()
 class DeploymentHapiPlugin {
@@ -21,6 +24,17 @@ class DeploymentHapiPlugin {
   }
 
   public register: HapiRegister = (server, _options, next) => {
+
+    server.ext('onRequest', function (request, reply) {
+      if (isRawDeploymentHostname(request.info.hostname)) {
+        // prefix the url with /raw-deployment-handler
+        // to allow hapi to internally route the request to
+        // the correct handler
+        request.setUrl('/raw-deployment-handler' + request.url.href);
+      }
+      return reply.continue();
+    });
+
     server.route({
       method: 'GET',
       path: '/deployments/{projectId}',
@@ -28,13 +42,44 @@ class DeploymentHapiPlugin {
         async: this.getDeploymentsHandler.bind(this),
       },
     });
+
+    server.route({
+      method: 'GET',
+      path: '/raw-deployment-handler/{param*}',
+      handler: {
+        async: this.rawDeploymentHandler.bind(this),
+      },
+    });
+
     next();
   };
+
+  public async rawDeploymentHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    const key = getDeploymentKey(request.info.hostname) as DeploymentKey;
+    const projectId = key.projectId;
+    const deploymentId = key.buildId;
+    const isReady = this.deploymentModule.isDeploymentReadyToServe(projectId, deploymentId);
+    console.log('isReady is' + isReady);
+    if (!isReady) {
+      try {
+        await this.deploymentModule.prepareDeploymentForServing(projectId, deploymentId);
+        console.log(`Prepared deployment for serving (projectId: ${projectId}, deploymentId: ${deploymentId})`);
+    } catch (err) {
+        return reply(err.message);
+      }
+    }
+    const dirHandlerOptions = {
+      path: `gitlab-data/monolith/${key.projectId}/${key.buildId}/dist`,
+      listing: true,
+    };
+    const dirHandler = directoryHandler(request.route, dirHandlerOptions);
+    return dirHandler(request, reply);
+  }
 
   public async getDeploymentsHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const params = <any> request.params;
     const projectId = params.projectId;
-    return reply(this.deploymentModule.handleGetDeployments(projectId));
+    return reply(this.deploymentModule.jsonApiGetDeployments(projectId));
   }
 
 }

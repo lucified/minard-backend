@@ -54,7 +54,7 @@ kernel.bind(AuthenticationModule.injectSymbol).to(AuthenticationModule);
 kernel.bind(gitlabHostInjectSymbol).toConstantValue('http://localhost:10080');
 kernel.bind(fetchInjectSymbol).toConstantValue(fetch);
 kernel.bind(systemHookBaseUrlSymbol).toConstantValue('http://localhost:8000');
-kernel.bind(deploymentFolderInjectSymbol).toConstantValue('http://localhost:10080');
+kernel.bind(deploymentFolderInjectSymbol).toConstantValue('gitlab-data/monolith/');
 
 const knex = Knex({
   client: 'postgresql',

@@ -1,6 +1,7 @@
 
 import * as Hapi from 'hapi';
 import { inject, injectable } from 'inversify';
+import * as path from 'path';
 
 import { HapiRegister } from '../server/hapi-register';
 import { DeploymentKey, default as DeploymentModule, getDeploymentKey,

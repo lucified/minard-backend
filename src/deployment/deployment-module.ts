@@ -17,7 +17,7 @@ export const deploymentFolderInjectSymbol = Symbol('deployment-folder');
 
 export interface DeploymentKey {
   projectId: number;
-  buildId: number;
+  deploymentId: number;
 }
 
 export function isRawDeploymentHostname(hostname: string) {
@@ -31,7 +31,7 @@ export function getDeploymentKey(hostname: string) {
   }
   return {
     projectId: Number(match[1]),
-    buildId: Number(match[2]),
+    deploymentId: Number(match[2]),
   };
 }
 
@@ -145,14 +145,14 @@ export default class DeploymentModule {
    * Download artifact zip for a deployment from
    * GitLab and extract it into a local folder
    */
-  public async downloadAndExtractDeployment(projectId: number, buildId: number) {
-    const url = `/projects/${projectId}/builds/${buildId}/artifacts`;
+  public async downloadAndExtractDeployment(projectId: number, deploymentId: number) {
+    const url = `/projects/${projectId}/builds/${deploymentId}/artifacts`;
     const response = await this.gitlab.fetch(url);
 
     const tempDir = path.join(os.tmpdir(), 'minard');
     mkpath.sync(tempDir);
     let readableStream = (<any> response).body;
-    const tempFileName =  path.join(tempDir, `minard-${projectId}-${buildId}.zip`);
+    const tempFileName =  path.join(tempDir, `minard-${projectId}-${deploymentId}.zip`);
     const writeStream = fs.createWriteStream(tempFileName);
 
     await new Promise<void>((resolve, reject) => {
@@ -162,10 +162,10 @@ export default class DeploymentModule {
       readableStream.resume();
     });
 
-    mkpath.sync(this.getDeploymentPath(projectId, buildId));
+    mkpath.sync(this.getDeploymentPath(projectId, deploymentId));
     const zip = new AdmZip(tempFileName);
-    zip.extractAllTo(this.getDeploymentPath(projectId, buildId));
-    return this.getDeploymentPath(projectId, buildId);
+    zip.extractAllTo(this.getDeploymentPath(projectId, deploymentId));
+    return this.getDeploymentPath(projectId, deploymentId);
   }
 
 };

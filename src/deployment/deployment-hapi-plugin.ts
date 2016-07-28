@@ -57,7 +57,7 @@ class DeploymentHapiPlugin {
   public async rawDeploymentHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const key = getDeploymentKey(request.info.hostname) as DeploymentKey;
     const projectId = key.projectId;
-    const deploymentId = key.buildId;
+    const deploymentId = key.deploymentId;
     const isReady = this.deploymentModule.isDeploymentReadyToServe(projectId, deploymentId);
     console.log('isReady is' + isReady);
     if (!isReady) {
@@ -69,7 +69,7 @@ class DeploymentHapiPlugin {
       }
     }
     const dirHandlerOptions = {
-      path: `gitlab-data/monolith/${key.projectId}/${key.buildId}/dist`,
+      path: `gitlab-data/monolith/${key.projectId}/${key.deploymentId}/dist`,
       listing: true,
     };
     const dirHandler = directoryHandler(request.route, dirHandlerOptions);

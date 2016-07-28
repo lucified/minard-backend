@@ -183,7 +183,6 @@ describe('deployment-module', () => {
     expect(deployments[0].id).equals(7);
   });
 
-
   it('downloadAndExtractDeployment()', async () => {
     // Example URL for manual testing
     // http://localhost:10080/api/v3/projects/1/builds/3/artifacts\?private_token=BSKaHunLUSyxp_X-MK1a
@@ -217,7 +216,6 @@ describe('deployment-module', () => {
     const deploymentPath = deploymentModule.getDeploymentPath(1, 4);
     expect(deploymentPath).to.equal('example/1/4');
   });
-
 
   describe('prepareDeploymentForServing()', () => {
 
@@ -288,7 +286,6 @@ describe('deployment-module', () => {
 
   });
 
-
   describe('getDeploymentKey()', () => {
 
     let ret: (DeploymentKey | null) = null;
@@ -296,19 +293,19 @@ describe('deployment-module', () => {
     it('should match localhost hostname with single-digit ids', () => {
       ret = getDeploymentKey('fdlkasjs-4-1.localhost') as DeploymentKey;
       expect(ret.projectId).to.equal(4);
-      expect(ret.buildId).to.equal(1);
+      expect(ret.deploymentId).to.equal(1);
     });
 
     it('should match localhost hostname with multi-digit ids', () => {
       ret = getDeploymentKey('fdlkasjs-523-2667.localhost') as DeploymentKey;
       expect(ret.projectId).to.equal(523);
-      expect(ret.buildId).to.equal(2667);
+      expect(ret.deploymentId).to.equal(2667);
     });
 
     it('should match minard.io hostname with multi-digit ids', () => {
       ret = getDeploymentKey('fdlkasjs-145-3.minard.io') as DeploymentKey;
       expect(ret.projectId).to.equal(145);
-      expect(ret.buildId).to.equal(3);
+      expect(ret.deploymentId).to.equal(3);
     });
 
     it('should not match non-matching hostnames', () => {

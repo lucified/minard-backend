@@ -207,7 +207,6 @@ describe('deployment-module', () => {
 
     // Assert
     const indexFilePath = path.join(deploymentPath, 'dist', 'index.html');
-    console.log(indexFilePath);
     expect(fs.existsSync(indexFilePath)).to.equal(true);
     expect(deploymentPath).to.equal(deploymentModule.getDeploymentPath(1, 2));
   });

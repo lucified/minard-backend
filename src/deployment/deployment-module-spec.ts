@@ -1,6 +1,10 @@
 
 import 'reflect-metadata';
 
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+
 import { expect } from 'chai';
 
 import DeploymentModule from './deployment-module';
@@ -10,8 +14,12 @@ import { IFetchStatic } from '../shared/fetch.d.ts';
 import { GitlabClient } from '../shared/gitlab-client';
 
 const fetchMock = require('fetch-mock');
+const rimraf = require('rimraf');
+
 const host = 'gitlab';
 const token = 'the-sercret';
+
+declare var Response: any;
 
 const getClient = () => {
   class MockAuthModule {
@@ -165,7 +173,7 @@ describe('deployment-module', () => {
     // Arrange
     const gitlabClient = getClient();
     fetchMock.restore().mock(`${host}${gitlabClient.apiPrefix}/projects/1/builds`, gitLabBuildsResponse);
-    const deploymentModule = new DeploymentModule(gitlabClient);
+    const deploymentModule = new DeploymentModule(gitlabClient, '');
 
     // Act
     const deployments = await deploymentModule.fetchDeploymentsFromGitLab(1);
@@ -173,6 +181,40 @@ describe('deployment-module', () => {
     // Assert
     expect(deployments.length).equals(2);
     expect(deployments[0].id).equals(7);
-
   });
+
+  it('downloadAndExtractDeployment()', async () => {
+    // Example URL for manual testing
+    // http://localhost:10080/api/v3/projects/1/builds/3/artifacts\?private_token=BSKaHunLUSyxp_X-MK1a
+
+    // Arrange
+    rimraf.sync(path.join(os.tmpdir(), 'minard'));
+    const thePath = path.join(__dirname, '../../src/deployment/test-artifact.zip');
+    const stream = fs.createReadStream(thePath);
+    const opts = {
+      status: 200,
+      statusText: 'ok',
+    };
+    const response = new Response(stream, opts);
+    const gitlabClient = getClient();
+    const mockUrl = `${host}${gitlabClient.apiPrefix}/projects/1/builds/2/artifacts`;
+    fetchMock.restore().mock(mockUrl, response);
+    const deploymentsDir = path.join(os.tmpdir(), 'minard', 'deploys');
+    const deploymentModule = new DeploymentModule(gitlabClient, deploymentsDir);
+
+    // Act
+    const deploymentPath = await deploymentModule.downloadAndExtractDeployment(1, 2);
+
+    // Assert
+    const indexFilePath = path.join(deploymentPath, 'dist', 'index.html');
+    expect(fs.existsSync(indexFilePath)).to.equal(true);
+    expect(deploymentPath).to.equal(deploymentModule.getDeploymentPath(1, 2));
+  });
+
+  it('getDeploymentPath()', () => {
+    const deploymentModule = new DeploymentModule({ } as GitlabClient, 'example');
+    const deploymentPath = deploymentModule.getDeploymentPath(1, 4);
+    expect(deploymentPath).to.equal('example/1/4');
+  });
+
 });

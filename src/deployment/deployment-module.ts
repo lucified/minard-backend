@@ -4,7 +4,16 @@ import { inject, injectable } from 'inversify';
 import { GitlabClient } from '../shared/gitlab-client';
 import { Deployment } from  '../shared/gitlab.d.ts';
 
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+
+const mkpath = require('mkpath');
+const AdmZip = require('adm-zip'); // tslint:disable-line
+
 const Serializer = require('jsonapi-serializer').Serializer; // tslint:disable-line
+
+export const deploymentFolderInjectSymbol = Symbol('deployment-folder');
 
 @injectable()
 export default class DeploymentModule {
@@ -12,10 +21,13 @@ export default class DeploymentModule {
   public static injectSymbol = Symbol('deployment-module');
 
   private gitlab: GitlabClient;
+  private deploymentFolder: string;
 
   public constructor(
-    @inject(GitlabClient.injectSymbol) gitlab: GitlabClient) {
+    @inject(GitlabClient.injectSymbol) gitlab: GitlabClient,
+    @inject(deploymentFolderInjectSymbol) deploymentFolder: string) {
     this.gitlab = gitlab;
+    this.deploymentFolder = deploymentFolder;
   }
 
   public fetchDeploymentsFromGitLab(projectId: number): Promise<Deployment[] | void> {
@@ -65,4 +77,36 @@ export default class DeploymentModule {
       };
     });
   };
+
+  public getDeploymentPath(projectId: number, buildId: number) {
+    return path.join(this.deploymentFolder, String(projectId), String(buildId));
+  }
+
+  /*
+   * Download artifact zip for a deployment from
+   * GitLab and extract it into a local folder
+   */
+  public async downloadAndExtractDeployment(projectId: number, buildId: number) {
+    const url = `/projects/${projectId}/builds/${buildId}/artifacts`;
+    const response = await this.gitlab.fetch(url);
+
+    const tempDir = path.join(os.tmpdir(), 'minard');
+    mkpath.sync(tempDir);
+    let readableStream = (<any> response).body;
+    const tempFileName =  path.join(tempDir, `minard-${projectId}-${buildId}.zip`);
+    const writeStream = fs.createWriteStream(tempFileName);
+
+    await new Promise<string>((resolve, reject) => {
+      readableStream.pipe(writeStream);
+      readableStream.on('end', resolve);
+      readableStream.on('error', reject);
+      readableStream.resume();
+    });
+
+    mkpath.sync(this.getDeploymentPath(projectId, buildId));
+    const zip = new AdmZip(tempFileName);
+    zip.extractAllTo(this.getDeploymentPath(projectId, buildId));
+    return this.getDeploymentPath(projectId, buildId);
+  }
+
 };

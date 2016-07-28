@@ -9,7 +9,7 @@ import * as Knex from 'knex';
 import AuthenticationModule from './authentication/authentication-module';
 
 import DeploymentPlugin from './deployment/deployment-hapi-plugin';
-import DeploymentModule from './deployment/deployment-module';
+import { default as DeploymentModule, deploymentFolderInjectSymbol } from './deployment/deployment-module';
 
 import ProjectPlugin from './project/project-hapi-plugin';
 import ProjectModule from './project/project-module';
@@ -54,6 +54,7 @@ kernel.bind(AuthenticationModule.injectSymbol).to(AuthenticationModule);
 kernel.bind(gitlabHostInjectSymbol).toConstantValue('http://localhost:10080');
 kernel.bind(fetchInjectSymbol).toConstantValue(fetch);
 kernel.bind(systemHookBaseUrlSymbol).toConstantValue('http://localhost:8000');
+kernel.bind(deploymentFolderInjectSymbol).toConstantValue('gitlab-data/monolith/');
 
 const knex = Knex({
   client: 'postgresql',

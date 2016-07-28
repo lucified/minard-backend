@@ -7,3 +7,4 @@ gitlab-data/redis/*
 gitlab-data/postgresql/*
 !gitlab-data/postgresql/README.md
 gitlab-data/runner/config.toml
+temp

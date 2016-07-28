@@ -40,7 +40,7 @@ class DeploymentHapiPlugin {
       method: 'GET',
       path: '/deployments/{projectId}',
       handler: {
-        async: this.getDeploymentsHandler.bind(this),
+        async: this.deploymentsHandler.bind(this),
       },
     });
 
@@ -79,7 +79,7 @@ class DeploymentHapiPlugin {
     return dirHandler(request, reply);
   }
 
-  public async getDeploymentsHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  public async deploymentsHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const params = <any> request.params;
     const projectId = params.projectId;
     return reply(this.deploymentModule.jsonApiGetDeployments(projectId));

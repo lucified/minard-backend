@@ -5,6 +5,7 @@ import { GitlabClient } from '../shared/gitlab-client';
 import { Deployment } from  '../shared/gitlab.d.ts';
 
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 
 const mkpath = require('mkpath');
@@ -89,9 +90,10 @@ export default class DeploymentModule {
     const url = `/projects/${projectId}/builds/${buildId}/artifacts`;
     const response = await this.gitlab.fetch(url);
 
-    mkpath.sync('temp');
+    const tempDir = path.join(os.tmpdir(), 'minard');
+    mkpath.sync(tempDir);
     let readableStream = (<any> response).body;
-    const tempFileName = `temp/minard-${projectId}-${buildId}.zip`;
+    const tempFileName =  path.join(tempDir, `minard-${projectId}-${buildId}.zip`);
     const writeStream = fs.createWriteStream(tempFileName);
 
     await new Promise<string>((resolve, reject) => {

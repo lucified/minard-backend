@@ -2,6 +2,7 @@
 import 'reflect-metadata';
 
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 
 import { expect } from 'chai';
@@ -187,7 +188,7 @@ describe('deployment-module', () => {
     // http://localhost:10080/api/v3/projects/1/builds/3/artifacts\?private_token=BSKaHunLUSyxp_X-MK1a
 
     // Arrange
-    rimraf.sync('temp');
+    rimraf.sync(path.join(os.tmpdir(), 'minard'));
     const thePath = path.join(__dirname, '../../src/deployment/test-artifact.zip');
     const stream = fs.createReadStream(thePath);
     const opts = {
@@ -198,13 +199,14 @@ describe('deployment-module', () => {
     const gitlabClient = getClient();
     const mockUrl = `${host}${gitlabClient.apiPrefix}/projects/1/builds/2/artifacts`;
     fetchMock.restore().mock(mockUrl, response);
-    const deploymentModule = new DeploymentModule(gitlabClient, 'temp/deploys');
+    const deploymentsDir = path.join(os.tmpdir(), 'minard', 'deploys');
+    const deploymentModule = new DeploymentModule(gitlabClient, deploymentsDir);
 
     // Act
     await deploymentModule.downloadAndExtractDeployment(1, 2);
 
     // Assert
-    expect(fs.existsSync('temp/deploys/1/2/dist/index.html')).to.equal(true);
+    expect(fs.existsSync(path.join(deploymentsDir, '1/2/dist/index.html'))).to.equal(true);
   });
 
 });

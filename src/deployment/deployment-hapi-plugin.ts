@@ -67,8 +67,11 @@ class DeploymentHapiPlugin {
         return reply(err.message);
       }
     }
+    // for now we only support projects that create the artifact in 'dist' folder
+    const distPath = path.join(this.deploymentModule
+      .getDeploymentPath(projectId, deploymentId), 'dist');
     const dirHandlerOptions = {
-      path: `gitlab-data/monolith/${key.projectId}/${key.deploymentId}/dist`,
+      path: distPath,
       listing: true,
     };
     const dirHandler = directoryHandler(request.route, dirHandlerOptions);

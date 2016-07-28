@@ -13,6 +13,8 @@ import Authentication from '../authentication/authentication-module';
 import { IFetchStatic } from '../shared/fetch.d.ts';
 import { GitlabClient } from '../shared/gitlab-client';
 
+import { Deployment } from '../shared/gitlab.d.ts';
+
 const fetchMock = require('fetch-mock');
 const rimraf = require('rimraf');
 
@@ -112,6 +114,45 @@ const gitLabBuildsResponse = [
   },
 ];
 
+const gitlabBuildResponse = {
+  'commit': {
+    'author_email': 'admin@example.com',
+    'author_name': 'Administrator',
+    'created_at': '2015-12-24T16:51:14.000+01:00',
+    'id': '0ff3ae198f8601a285adcf5c0fff204ee6fba5fd',
+    'message': 'Test the CI integration.',
+    'short_id': '0ff3ae19',
+    'title': 'Test the CI integration.',
+  },
+  'coverage': null,
+  'created_at': '2015-12-24T15:51:21.880Z',
+  'artifacts_file': null,
+  'finished_at': '2015-12-24T17:54:31.198Z',
+  'id': 8,
+  'name': 'rubocop',
+  'ref': 'master',
+  'runner': null,
+  'stage': 'test',
+  'started_at': '2015-12-24T17:54:30.733Z',
+  'status': 'failed',
+  'tag': false,
+  'user': {
+    'avatar_url': 'http://www.gravatar.com/avatar/e64c7d89f26bd1972efa854d13d7dd61?s=80&d=identicon',
+    'bio': null,
+    'created_at': '2015-12-21T13:14:24.077Z',
+    'id': 1,
+    'is_admin': true,
+    'linkedin': '',
+    'name': 'Administrator',
+    'skype': '',
+    'state': 'active',
+    'twitter': '',
+    'username': 'root',
+    'web_url': 'http://gitlab.dev/u/root',
+    'website_url': '',
+  },
+};
+
 describe('deployment-module', () => {
   it('normalizeGitLabResponse', () => {
     const converted = DeploymentModule.normalizeGitLabResponse(gitLabBuildsResponse) as any;
@@ -169,15 +210,47 @@ describe('deployment-module', () => {
     expect(includedCommit.attributes.message).to.equal('Test the CI integration.');
   });
 
+  describe('getDeployment()', () => {
+    it('should work when deployment can be found', async () => {
+      // Arrange
+      const gitlabClient = getClient();
+      const response = {
+        status: 200,
+        body: gitlabBuildResponse,
+      };
+      fetchMock.restore().mock(`${host}${gitlabClient.apiPrefix}/projects/1/builds/4`, response);
+      const deploymentModule = new DeploymentModule(gitlabClient, '');
+      // Act
+      const deployment = await deploymentModule.getDeployment(1, 4) as Deployment;
+      // Assert
+      expect(deployment).to.not.equal(null);
+      expect(deployment.id).to.equal(8);
+    });
+
+    it('should return null when deployment can not be found', async () => {
+      // Arrange
+      const gitlabClient = getClient();
+      // (this is how gitlab actually responds)
+      const responseObject = {
+        status: 404,
+        body: { message: '404 Not Found' },
+      };
+      fetchMock.restore().mock(`${host}${gitlabClient.apiPrefix}/projects/1/builds/4`, responseObject);
+      const deploymentModule = new DeploymentModule(gitlabClient, '');
+      // Act
+      const deployment = await deploymentModule.getDeployment(1, 4) as Deployment;
+      // Assert
+      expect(deployment).to.equal(null);
+    });
+  });
+
   it('getDeployments()', async () => {
     // Arrange
     const gitlabClient = getClient();
     fetchMock.restore().mock(`${host}${gitlabClient.apiPrefix}/projects/1/builds`, gitLabBuildsResponse);
     const deploymentModule = new DeploymentModule(gitlabClient, '');
-
     // Act
     const deployments = await deploymentModule.getDeployments(1);
-
     // Assert
     expect(deployments.length).equals(2);
     expect(deployments[0].id).equals(7);

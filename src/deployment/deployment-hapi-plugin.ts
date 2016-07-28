@@ -59,7 +59,6 @@ class DeploymentHapiPlugin {
     const projectId = key.projectId;
     const deploymentId = key.deploymentId;
     const isReady = this.deploymentModule.isDeploymentReadyToServe(projectId, deploymentId);
-    console.log('isReady is' + isReady);
     if (!isReady) {
       try {
         await this.deploymentModule.prepareDeploymentForServing(projectId, deploymentId);

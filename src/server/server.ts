@@ -7,6 +7,7 @@ import HelloPlugin from '../hello/hello-hapi-plugin';
 import ProjectPlugin from '../project/project-hapi-plugin';
 
 const hapiAsyncHandler = require('hapi-async-handler');
+const inert = require('inert');
 
 @injectable()
 export default class MinardServer {
@@ -54,7 +55,7 @@ export default class MinardServer {
   };
 
   private async loadBasePlugins(server: Hapi.Server) {
-    await server.register(hapiAsyncHandler);
+    await server.register([hapiAsyncHandler, inert]);
   };
 
   private async loadAppPlugins(server: Hapi.Server) {

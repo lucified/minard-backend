@@ -10,6 +10,7 @@
     "adm-zip": "^0.4.7",
     "hapi": "^13.5.0",
     "hapi-async-handler": "^1.0.3",
+    "inert": "^4.0.1",
     "inversify": "^2.0.0-rc.1",
     "isomorphic-fetch": "^2.2.1",
     "jsonapi-serializer": "^3.2.1",

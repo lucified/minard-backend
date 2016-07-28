@@ -59,13 +59,14 @@ class DeploymentHapiPlugin {
     const key = getDeploymentKey(request.info.hostname) as DeploymentKey;
     const projectId = key.projectId;
     const deploymentId = key.deploymentId;
+
     const isReady = this.deploymentModule.isDeploymentReadyToServe(projectId, deploymentId);
     if (!isReady) {
       try {
         await this.deploymentModule.prepareDeploymentForServing(projectId, deploymentId);
         console.log(`Prepared deployment for serving (projectId: ${projectId}, deploymentId: ${deploymentId})`);
     } catch (err) {
-        return reply(err.message);
+       return reply({ status: 404, message: err.message }).code(404);
       }
     }
     // for now we only support projects that create the artifact in 'dist' folder

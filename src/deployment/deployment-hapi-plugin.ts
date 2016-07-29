@@ -1,9 +1,13 @@
 
 import * as Hapi from 'hapi';
 import { inject, injectable } from 'inversify';
+import * as path from 'path';
 
 import { HapiRegister } from '../server/hapi-register';
-import DeploymentModule from './deployment-module';
+import { DeploymentKey, default as DeploymentModule, getDeploymentKey,
+  isRawDeploymentHostname} from './deployment-module';
+
+const directoryHandler = require('inert/lib/directory').handler;
 
 @injectable()
 class DeploymentHapiPlugin {
@@ -21,20 +25,71 @@ class DeploymentHapiPlugin {
   }
 
   public register: HapiRegister = (server, _options, next) => {
+
+    server.ext('onRequest', function (request, reply) {
+      if (isRawDeploymentHostname(request.info.hostname)) {
+        // prefix the url with /raw-deployment-handler
+        // to allow hapi to internally route the request to
+        // the correct handler
+        request.setUrl('/raw-deployment-handler' + request.url.href);
+      }
+      return reply.continue();
+    });
+
     server.route({
       method: 'GET',
       path: '/deployments/{projectId}',
       handler: {
-        async: this.getDeploymentsHandler.bind(this),
+        async: this.deploymentsHandler.bind(this),
       },
     });
+
+    server.route({
+      method: 'GET',
+      path: '/raw-deployment-handler/{param*}',
+      handler: {
+        async: this.rawDeploymentHandler.bind(this),
+      },
+    });
+
     next();
   };
 
-  public async getDeploymentsHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  public async rawDeploymentHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    const key = getDeploymentKey(request.info.hostname) as DeploymentKey;
+    const projectId = key.projectId;
+    const deploymentId = key.deploymentId;
+
+    if (!key) {
+      return reply({
+        status: 403,
+        message: `Could not parse deployment URL from hostname '${request.info.hostname}'`});
+    }
+
+    const isReady = this.deploymentModule.isDeploymentReadyToServe(projectId, deploymentId);
+    if (!isReady) {
+      try {
+        await this.deploymentModule.prepareDeploymentForServing(projectId, deploymentId);
+        console.log(`Prepared deployment for serving (projectId: ${projectId}, deploymentId: ${deploymentId})`);
+    } catch (err) {
+       return reply({ status: 404, message: err.message }).code(404);
+      }
+    }
+    // for now we only support projects that create the artifact in 'dist' folder
+    const distPath = path.join(this.deploymentModule
+      .getDeploymentPath(projectId, deploymentId), 'dist');
+    const dirHandlerOptions = {
+      path: distPath,
+      listing: true,
+    };
+    const dirHandler = directoryHandler(request.route, dirHandlerOptions);
+    return dirHandler(request, reply);
+  }
+
+  public async deploymentsHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const params = <any> request.params;
     const projectId = params.projectId;
-    return reply(this.deploymentModule.handleGetDeployments(projectId));
+    return reply(this.deploymentModule.jsonApiGetDeployments(projectId));
   }
 
 }

@@ -7,11 +7,13 @@ import * as path from 'path';
 
 import { expect } from 'chai';
 
-import DeploymentModule from './deployment-module';
+import { DeploymentKey, default as DeploymentModule, getDeploymentKey } from './deployment-module';
 
 import Authentication from '../authentication/authentication-module';
 import { IFetchStatic } from '../shared/fetch.d.ts';
 import { GitlabClient } from '../shared/gitlab-client';
+
+import { Deployment } from '../shared/gitlab.d.ts';
 
 const fetchMock = require('fetch-mock');
 const rimraf = require('rimraf');
@@ -112,6 +114,45 @@ const gitLabBuildsResponse = [
   },
 ];
 
+const gitlabBuildResponse = {
+  'commit': {
+    'author_email': 'admin@example.com',
+    'author_name': 'Administrator',
+    'created_at': '2015-12-24T16:51:14.000+01:00',
+    'id': '0ff3ae198f8601a285adcf5c0fff204ee6fba5fd',
+    'message': 'Test the CI integration.',
+    'short_id': '0ff3ae19',
+    'title': 'Test the CI integration.',
+  },
+  'coverage': null,
+  'created_at': '2015-12-24T15:51:21.880Z',
+  'artifacts_file': null,
+  'finished_at': '2015-12-24T17:54:31.198Z',
+  'id': 8,
+  'name': 'rubocop',
+  'ref': 'master',
+  'runner': null,
+  'stage': 'test',
+  'started_at': '2015-12-24T17:54:30.733Z',
+  'status': 'failed',
+  'tag': false,
+  'user': {
+    'avatar_url': 'http://www.gravatar.com/avatar/e64c7d89f26bd1972efa854d13d7dd61?s=80&d=identicon',
+    'bio': null,
+    'created_at': '2015-12-21T13:14:24.077Z',
+    'id': 1,
+    'is_admin': true,
+    'linkedin': '',
+    'name': 'Administrator',
+    'skype': '',
+    'state': 'active',
+    'twitter': '',
+    'username': 'root',
+    'web_url': 'http://gitlab.dev/u/root',
+    'website_url': '',
+  },
+};
+
 describe('deployment-module', () => {
   it('normalizeGitLabResponse', () => {
     const converted = DeploymentModule.normalizeGitLabResponse(gitLabBuildsResponse) as any;
@@ -169,15 +210,47 @@ describe('deployment-module', () => {
     expect(includedCommit.attributes.message).to.equal('Test the CI integration.');
   });
 
-  it('can fetch deployments given project id', async () => {
+  describe('getDeployment()', () => {
+    it('should work when deployment can be found', async () => {
+      // Arrange
+      const gitlabClient = getClient();
+      const response = {
+        status: 200,
+        body: gitlabBuildResponse,
+      };
+      fetchMock.restore().mock(`${host}${gitlabClient.apiPrefix}/projects/1/builds/4`, response);
+      const deploymentModule = new DeploymentModule(gitlabClient, '');
+      // Act
+      const deployment = await deploymentModule.getDeployment(1, 4) as Deployment;
+      // Assert
+      expect(deployment).to.not.equal(null);
+      expect(deployment.id).to.equal(8);
+    });
+
+    it('should return null when deployment can not be found', async () => {
+      // Arrange
+      const gitlabClient = getClient();
+      // (this is how gitlab actually responds)
+      const responseObject = {
+        status: 404,
+        body: { message: '404 Not Found' },
+      };
+      fetchMock.restore().mock(`${host}${gitlabClient.apiPrefix}/projects/1/builds/4`, responseObject);
+      const deploymentModule = new DeploymentModule(gitlabClient, '');
+      // Act
+      const deployment = await deploymentModule.getDeployment(1, 4) as Deployment;
+      // Assert
+      expect(deployment).to.equal(null);
+    });
+  });
+
+  it('getDeployments()', async () => {
     // Arrange
     const gitlabClient = getClient();
     fetchMock.restore().mock(`${host}${gitlabClient.apiPrefix}/projects/1/builds`, gitLabBuildsResponse);
     const deploymentModule = new DeploymentModule(gitlabClient, '');
-
     // Act
-    const deployments = await deploymentModule.fetchDeploymentsFromGitLab(1);
-
+    const deployments = await deploymentModule.getDeployments(1) as Deployment[];
     // Assert
     expect(deployments.length).equals(2);
     expect(deployments[0].id).equals(7);
@@ -215,6 +288,110 @@ describe('deployment-module', () => {
     const deploymentModule = new DeploymentModule({ } as GitlabClient, 'example');
     const deploymentPath = deploymentModule.getDeploymentPath(1, 4);
     expect(deploymentPath).to.equal('example/1/4');
+  });
+
+  describe('prepareDeploymentForServing()', () => {
+
+    it('should throw error when deployment not found', async () => {
+      const deploymentModule = new DeploymentModule({} as GitlabClient, '');
+      deploymentModule.getDeployment = async (projectId, deploymentId) => {
+        expect(projectId).to.equal(2);
+        expect(deploymentId).to.equal(4);
+        return null;
+      };
+      try {
+        await deploymentModule.prepareDeploymentForServing(2, 4);
+        expect.fail('should throw exception');
+      } catch (err) {
+        expect(err.message).to.equal('No deployment found for: projectId 2, deploymentId 4');
+      }
+    });
+
+    it('should throw error when deployment status is not success', async () => {
+      const deploymentModule = new DeploymentModule({} as GitlabClient, '');
+      deploymentModule.getDeployment = async (_projectId, _deploymentId) => {
+        return {
+          status: 'failed',
+        };
+      };
+      try {
+        await deploymentModule.prepareDeploymentForServing(2, 4);
+        expect.fail('should throw exception');
+      } catch (err) {
+        expect(err.message).to.equal('Deployment status is "failed" for: projectId 2, deploymentId 4');
+      }
+    });
+
+    it('should call downloadAndExtractDeployment when deployment is successful', async () => {
+      const deploymentModule = new DeploymentModule({} as GitlabClient, '');
+      deploymentModule.getDeployment = async (_projectId, _deploymentId) => {
+        return {
+          status: 'success',
+        };
+      };
+      let called = false;
+      deploymentModule.downloadAndExtractDeployment = async (projectId, deploymentId) => {
+        expect(projectId).to.equal(2);
+        expect(deploymentId).to.equal(4);
+        called = true;
+      };
+      await deploymentModule.prepareDeploymentForServing(2, 4);
+      expect(called).to.equal(true);
+    });
+
+    it('should report internal error', async () => {
+      const deploymentModule = new DeploymentModule({} as GitlabClient, '');
+      deploymentModule.getDeployment = async (_projectId, _deploymentId) => {
+        return {
+          status: 'success',
+        };
+      };
+      deploymentModule.downloadAndExtractDeployment = async (_projectId, _deploymentId) => {
+        throw Error('some error');
+      };
+      try {
+        await deploymentModule.prepareDeploymentForServing(2, 4);
+        expect.fail('should throw exception');
+      } catch (err) {
+        expect(err.message).to.equal('Could not prepare deployment for serving (projectId 2, deploymentId 4)');
+      }
+    });
+
+  });
+
+  describe('getDeploymentKey()', () => {
+
+    let ret: (DeploymentKey | null) = null;
+
+    it('should match localhost hostname with single-digit ids', () => {
+      ret = getDeploymentKey('fdlkasjs-4-1.localhost') as DeploymentKey;
+      expect(ret.projectId).to.equal(4);
+      expect(ret.deploymentId).to.equal(1);
+    });
+
+    it('should match localhost hostname with multi-digit ids', () => {
+      ret = getDeploymentKey('fdlkasjs-523-2667.localhost') as DeploymentKey;
+      expect(ret.projectId).to.equal(523);
+      expect(ret.deploymentId).to.equal(2667);
+    });
+
+    it('should match minard.io hostname with multi-digit ids', () => {
+      ret = getDeploymentKey('fdlkasjs-145-3.minard.io') as DeploymentKey;
+      expect(ret.projectId).to.equal(145);
+      expect(ret.deploymentId).to.equal(3);
+    });
+
+    it('should not match non-matching hostnames', () => {
+      ret = getDeploymentKey('fdlkasjs-523-2667');
+      expect(ret).to.equal(null);
+      ret = getDeploymentKey('fdlkasjs-525.localhost');
+      expect(ret).to.equal(null);
+      ret = getDeploymentKey('fdlkasjs525-52.localhost');
+      expect(ret).to.equal(null);
+      ret = getDeploymentKey('fdlkasjs525-52.minard.io');
+      expect(ret).to.equal(null);
+    });
+
   });
 
 });

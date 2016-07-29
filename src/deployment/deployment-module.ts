@@ -76,13 +76,20 @@ export default class DeploymentModule {
 
   public async jsonApiGetDeployments(projectId: number) {
     const gitlabData = await this.getDeployments(projectId);
+    if (gitlabData != null) {
+      gitlabData.forEach(item => {
+        if (item.status === 'success') {
+          (<any> item).url = `http://${item.ref}-${item.commit.short_id}-${projectId}-${item.id}.localhost:8000`;
+        }
+      });
+    }
     return DeploymentModule.gitlabResponseToJsonApi(gitlabData);
   }
 
   public static gitlabResponseToJsonApi(gitlabResponse: any) {
     const normalized = this.normalizeGitLabResponse(gitlabResponse);
     const opts = {
-      attributes: ['finished_at', 'status', 'commit', 'user'],
+      attributes: ['finished_at', 'status', 'commit', 'user', 'url'],
       commit: {
         attributes: ['message'],
         ref: function (_: any, commit: any) {
@@ -114,6 +121,7 @@ export default class DeploymentModule {
         },
         finished_at: item.finished_at,
         status: item.status,
+        url: item.url,
       };
     });
   };

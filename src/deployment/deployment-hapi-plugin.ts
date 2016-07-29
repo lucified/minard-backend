@@ -60,6 +60,12 @@ class DeploymentHapiPlugin {
     const projectId = key.projectId;
     const deploymentId = key.deploymentId;
 
+    if (!key) {
+      return reply({
+        status: 403,
+        message: `Could not parse deployment URL from hostname '${request.info.hostname}'`});
+    }
+
     const isReady = this.deploymentModule.isDeploymentReadyToServe(projectId, deploymentId);
     if (!isReady) {
       try {

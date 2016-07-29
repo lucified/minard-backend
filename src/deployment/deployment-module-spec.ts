@@ -250,7 +250,7 @@ describe('deployment-module', () => {
     fetchMock.restore().mock(`${host}${gitlabClient.apiPrefix}/projects/1/builds`, gitLabBuildsResponse);
     const deploymentModule = new DeploymentModule(gitlabClient, '');
     // Act
-    const deployments = await deploymentModule.getDeployments(1);
+    const deployments = await deploymentModule.getDeployments(1) as Deployment[];
     // Assert
     expect(deployments.length).equals(2);
     expect(deployments[0].id).equals(7);

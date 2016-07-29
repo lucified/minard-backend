@@ -66,8 +66,6 @@ const DB_NAME = process.env.DB_NAME ? process.env.DB_NAME : 'gitlabhq_production
 
 kernel.bind(hostInjectSymbol).toConstantValue(HOST);
 kernel.bind(portInjectSymbol).toConstantValue(PORT);
-console.log(kernel.get(hostInjectSymbol));
-console.log(kernel.get(portInjectSymbol));
 
 kernel.bind(gitlabHostInjectSymbol).toConstantValue(`http://${GITLAB_HOST}:${GITLAB_PORT}`);
 kernel.bind(fetchInjectSymbol).toConstantValue(fetch);

@@ -35,8 +35,6 @@ export default class MinardServer {
     this.projectPlugin = projectPlugin;
     this.host = host;
     this.port = port;
-    console.log(this.host);
-    console.log(this.port);
   }
 
   public async start(): Promise<Hapi.Server> {

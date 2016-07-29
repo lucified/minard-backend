@@ -8,6 +8,11 @@ import ProjectPlugin from '../project/project-hapi-plugin';
 
 const hapiAsyncHandler = require('hapi-async-handler');
 const inert = require('inert');
+const h2o2 = require('h2o2');
+const good = require('good');
+
+export const hostInjectSymbol = Symbol();
+export const portInjectSymbol = Symbol();
 
 @injectable()
 export default class MinardServer {
@@ -16,14 +21,22 @@ export default class MinardServer {
   private helloPlugin: HelloPlugin;
   private projectPlugin: ProjectPlugin;
   private deploymentPlugin: DeploymentPlugin;
+  private port: number;
+  private host: string;
 
   constructor(
     @inject(HelloPlugin.injectSymbol) helloPlugin: HelloPlugin,
     @inject(DeploymentPlugin.injectSymbol) deploymentPlugin: DeploymentPlugin,
-    @inject(ProjectPlugin.injectSymbol) projectPlugin: ProjectPlugin) {
+    @inject(ProjectPlugin.injectSymbol) projectPlugin: ProjectPlugin,
+    @inject(hostInjectSymbol) host: string,
+    @inject(portInjectSymbol) port: number) {
     this.helloPlugin = helloPlugin;
     this.deploymentPlugin = deploymentPlugin;
     this.projectPlugin = projectPlugin;
+    this.host = host;
+    this.port = port;
+    console.log(this.host);
+    console.log(this.port);
   }
 
   public async start(): Promise<Hapi.Server> {
@@ -35,14 +48,13 @@ export default class MinardServer {
     };
 
     const server = new Hapi.Server(options);
-    const args = process.argv.slice(2); // drop binary and filename
     server.connection({
-      host: args[0] || '0.0.0.0',
-      port: args[1] ? parseInt(args[1], 10) : 8000,
+      host: this.host,
+      port: this.port,
       routes: {
-          json: {
-            space: 4,
-          },
+        json: {
+          space: 4,
+        },
       },
     });
 
@@ -55,7 +67,30 @@ export default class MinardServer {
   };
 
   private async loadBasePlugins(server: Hapi.Server) {
-    await server.register([hapiAsyncHandler, inert]);
+
+    await server.register([
+      { register: hapiAsyncHandler },
+      { register: h2o2 },
+      { register: inert },
+      {
+        register: good,
+        options: {
+          reporters: {
+            console: [{
+              module: 'good-squeeze',
+              name: 'Squeeze',
+              args: [{
+                log: '*',
+                response: '*',
+              }],
+            }, {
+              module: 'good-console',
+            }, 'stdout'],
+          },
+        },
+      },
+    ]);
+
   };
 
   private async loadAppPlugins(server: Hapi.Server) {
@@ -63,7 +98,7 @@ export default class MinardServer {
       this.helloPlugin.register,
       this.deploymentPlugin.register,
       this.projectPlugin.register,
-      ]);
+    ]);
   }
 
 }

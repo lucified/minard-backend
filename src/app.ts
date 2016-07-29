@@ -23,7 +23,7 @@ import UserModule from './user/user-module';
 import { EventBus } from './event-bus/event-bus';
 import LocalEventBus from './event-bus/local-event-bus';
 
-import MinardServer from './server/server';
+import MinardServer, {hostInjectSymbol, portInjectSymbol} from './server/server';
 
 import { GitlabClient, fetchInjectSymbol, gitlabHostInjectSymbol } from './shared/gitlab-client';
 
@@ -51,30 +51,46 @@ kernel.bind(ProjectPlugin.injectSymbol).to(ProjectPlugin);
 kernel.bind(SystemHookModule.injectSymbol).to(SystemHookModule);
 kernel.bind(AuthenticationModule.injectSymbol).to(AuthenticationModule);
 
-kernel.bind(gitlabHostInjectSymbol).toConstantValue('http://localhost:10080');
+const HOST = process.env.HOST ? process.env.HOST : '0.0.0.0';
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 8000;
+const GITLAB_HOST = process.env.GITLAB_HOST ? process.env.GITLAB_HOST : 'localhost';
+const GITLAB_PORT = process.env.GITLAB_PORT ? parseInt(process.env.GITLAB_PORT, 10) : 10080;
+const DEPLOYMENT_FOLDER = process.env.DEPLOYMENT_FOLDER ? process.env.DEPLOYMENT_FOLDER : 'gitlab-data/monolith/';
+const SYSTEMHOOK_BASEURL = process.env.SYSTEMHOOK_BASEURL ? process.env.SYSTEMHOOK_BASEURL : `http://monolith:${PORT}`;
+const DB_ADAPTER = process.env.DB_ADAPTER ? process.env.DB_ADAPTER : 'postgresql';
+const DB_HOST = process.env.DB_HOST ? process.env.DB_HOST : 'localhost';
+const DB_PORT = process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : 5432;
+const DB_USER = process.env.DB_USER ? process.env.DB_USER : 'gitlab';
+const DB_PASS = process.env.DB_PASS ? process.env.DB_PASS : 'password';
+const DB_NAME = process.env.DB_NAME ? process.env.DB_NAME : 'gitlabhq_production';
+
+
+
+kernel.bind(hostInjectSymbol).toConstantValue(HOST);
+kernel.bind(portInjectSymbol).toConstantValue(PORT);
+console.log(kernel.get(hostInjectSymbol));
+console.log(kernel.get(portInjectSymbol));
+
+kernel.bind(gitlabHostInjectSymbol).toConstantValue(`http://${GITLAB_HOST}:${GITLAB_PORT}`);
 kernel.bind(fetchInjectSymbol).toConstantValue(fetch);
-kernel.bind(systemHookBaseUrlSymbol).toConstantValue('http://localhost:8000');
-kernel.bind(deploymentFolderInjectSymbol).toConstantValue('gitlab-data/monolith/');
+kernel.bind(systemHookBaseUrlSymbol).toConstantValue(SYSTEMHOOK_BASEURL);
+kernel.bind(deploymentFolderInjectSymbol).toConstantValue(DEPLOYMENT_FOLDER);
 
 const knex = Knex({
-  client: 'postgresql',
+  client: DB_ADAPTER,
   connection: {
-    host     : 'localhost',
-    user     : 'gitlab',
-    password : 'password',
-    database : 'gitlabhq_production',
-    port: '5432',
+    host     : DB_HOST,
+    user     : DB_USER,
+    password : DB_PASS,
+    database : DB_NAME,
+    port: DB_PORT,
   },
 });
 kernel.bind('gitlab-knex').toConstantValue(knex);
 
 const server = kernel.get<MinardServer>(MinardServer.injectSymbol);
 
-async function startApp() {
-  await server.start();
-}
-
-startApp().then(() => {
+server.start().then(() => {
   console.log('App started');
 }).catch((err) => {
   console.log('Error starting application');

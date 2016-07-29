@@ -2,4 +2,4 @@
 
 source ./get-monolith-ip
 echo $MONOLITH_IP
-docker-compose up
+docker-compose --file=docker-compose-infra.yml up

@@ -64,8 +64,6 @@ const DB_USER = process.env.DB_USER ? process.env.DB_USER : 'gitlab';
 const DB_PASS = process.env.DB_PASS ? process.env.DB_PASS : 'password';
 const DB_NAME = process.env.DB_NAME ? process.env.DB_NAME : 'gitlabhq_production';
 
-
-
 kernel.bind(hostInjectSymbol).toConstantValue(HOST);
 kernel.bind(portInjectSymbol).toConstantValue(PORT);
 console.log(kernel.get(hostInjectSymbol));

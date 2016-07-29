@@ -43,6 +43,8 @@ export default class DeploymentModule {
   private gitlab: GitlabClient;
   private deploymentFolder: string;
 
+  private buildToProject = new Map<number, number>();
+
   public constructor(
     @inject(GitlabClient.injectSymbol) gitlab: GitlabClient,
     @inject(deploymentFolderInjectSymbol) deploymentFolder: string) {
@@ -148,6 +150,23 @@ export default class DeploymentModule {
     } catch (err) {
       throw Error(`Could not prepare deployment for serving (projectId ${projectId}, ` +
         `deploymentId ${deploymentId})`);
+    }
+  }
+
+  public setDeploymentState(buildId: number, state: string, projectId?: number) {
+    if (projectId) {
+      this.buildToProject.set(buildId, projectId);
+    }
+    const _projectId = this.buildToProject.get(buildId);
+    if (!_projectId) {
+      throw new Error(`Couldn't find projectId for build ${buildId}`);
+    }
+    console.log(`Build ${_projectId}/${buildId}: ${state}`);
+    if (state === 'success') {
+      this.downloadAndExtractDeployment(_projectId, buildId)
+        .then(path => {
+          console.log(`Extracted the artifacts to path ${path}`);
+        });
     }
   }
 

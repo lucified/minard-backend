@@ -50,15 +50,25 @@ export default class DeploymentModule {
     this.deploymentFolder = deploymentFolder;
   }
 
-  public getDeployments(projectId: number): Promise<Deployment[] | void> {
-    return this.gitlab.fetchJson<Deployment[]>(`projects/${projectId}/builds`);
+  public async getDeployments(projectId: number): Promise<Deployment[] | null> {
+    try {
+      return await this.gitlab.fetchJson<Deployment[]>(`projects/${projectId}/builds`);
+    } catch (err) {
+      if (err.response && err.response.status === 404) {
+        return null;
+      }
+      throw err;
+    }
   };
 
   public async getDeployment(projectId: number, deploymentId: number) {
     try {
       return await this.gitlab.fetchJson<Deployment>(`projects/${projectId}/builds/${deploymentId}`);
     } catch (err) {
-      return null;
+      if (err.response && err.response.status === 404) {
+        return null;
+      }
+      throw err;
     }
   }
 

@@ -37,7 +37,9 @@ export default class SystemHookModule {
       try {
         registered = await this.tryAssureSystemHookRegistered(path);
       } catch (err) {
-        console.log(`Could not register system hook for '${path}'. Trying again in 3 seconds`);
+        console.log(`Could not register system hook for '${path}'. ` +
+          `Error message was: '${err.message}'. ` +
+          `Trying again in 3 seconds`);
         await sleep(3000);
       }
     }

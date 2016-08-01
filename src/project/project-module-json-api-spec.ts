@@ -96,9 +96,6 @@ import { expect } from 'chai';
 //   },
 // };
 
-
-
-
 describe('project-module-json-api', () => {
   it('toJsonApi', () => {
 
@@ -185,13 +182,11 @@ describe('project-module-json-api', () => {
       };
 
       const converted = toJsonApi(obj);
-
-      //console.log(JSON.stringify(converted, null, 2));
-
       const data = converted.data;
 
       // id and type
       expect(data.id).to.equal('7');
-      expect(data.name).to.equal('Cool project');
+
+      // this is work-in-progress
   });
 });

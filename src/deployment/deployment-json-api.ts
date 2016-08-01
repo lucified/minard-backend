@@ -25,7 +25,6 @@ export const deploymentSerialization = {
   },
 };
 
-
 export function toJsonApi(deployments: any) {
   const serialized = new Serializer('deployment', deploymentSerialization)
     .serialize(deployments);

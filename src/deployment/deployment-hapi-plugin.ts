@@ -11,7 +11,6 @@ import { gitlabHostInjectSymbol } from '../shared/gitlab-client';
 import { proxyCI } from './proxy-ci';
 import * as path from 'path';
 
-
 const directoryHandler = require('inert/lib/directory').handler;
 
 @injectable()

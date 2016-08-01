@@ -8,7 +8,9 @@ function isJson(headers: Hapi.IDictionary<string>) {
   return headers && headers['content-type'] && headers['content-type'].indexOf('json') >= 0;
 }
 
-export function proxyCI(gitlabHost: string, setStateCallback: () => void, request: Hapi.Request, reply: Hapi.IReply) {
+export function proxyCI(
+  gitlabHost: string, setStateCallback: (id: number, state: string, projectId?: number) => void,
+  request: Hapi.Request, reply: Hapi.IReply) {
   const gitlab = url.parse(gitlabHost);
   const upstream = {
     host: gitlab.hostname,
@@ -21,11 +23,12 @@ export function proxyCI(gitlabHost: string, setStateCallback: () => void, reques
     port: upstream.port,
     protocol: upstream.protocol,
     passThrough: true,
-    onResponse: onResponse as any,
+    onResponse: onResponse.bind(null, setStateCallback),
   });
 }
 
 function onResponse(
+  setStateCallback: (id: number, state: string, projectId?: number) => void,
   err: any,
   response: http.IncomingMessage,  // note that this is incorrect in the hapi type def
   request: Hapi.Request,
@@ -44,7 +47,7 @@ function onResponse(
         .then((payload: any) => {
           const p = JSON.parse(payload);
           const r = reply(payload).charset('');
-          this.deploymentModule.setDeploymentState(parseInt(p.id, 10), p.status, parseInt(p.project_id, 10));
+          setStateCallback(parseInt(p.id, 10), p.status, parseInt(p.project_id, 10));
           r.headers = response.headers;
           r.statusCode = response.statusCode ? response.statusCode : 200;
         });

@@ -12,6 +12,7 @@ import DeploymentModule, { DeploymentKey, MinardDeployment, getDeploymentKey } f
 import Authentication from '../authentication/authentication-module';
 import { IFetchStatic } from '../shared/fetch.d.ts';
 import { GitlabClient } from '../shared/gitlab-client';
+import Logger from  '../shared/logger';
 
 import { Deployment } from '../shared/gitlab.d.ts';
 
@@ -31,6 +32,10 @@ const getClient = () => {
   }
   return new GitlabClient(host, fetchMock.fetchMock as IFetchStatic, new MockAuthModule() as Authentication);
 };
+
+const logger = Logger(undefined, true);
+
+const getDeploymentModule = (client: GitlabClient, path: string) => new DeploymentModule(client, path, logger);
 
 const gitLabBuildsResponse = [
   {
@@ -164,7 +169,7 @@ describe('deployment-module', () => {
         body: gitlabBuildResponse,
       };
       fetchMock.restore().mock(`${host}${gitlabClient.apiPrefix}/projects/1/builds/4`, response);
-      const deploymentModule = new DeploymentModule(gitlabClient, '');
+      const deploymentModule = getDeploymentModule(gitlabClient, '');
       // Act
       const deployment = await deploymentModule.getDeployment(1, 4) as MinardDeployment;
       // Assert
@@ -182,7 +187,7 @@ describe('deployment-module', () => {
         body: { message: '404 Not Found' },
       };
       fetchMock.restore().mock(`${host}${gitlabClient.apiPrefix}/projects/1/builds/4`, responseObject);
-      const deploymentModule = new DeploymentModule(gitlabClient, '');
+      const deploymentModule = getDeploymentModule(gitlabClient, '');
       // Act
       const deployment = await deploymentModule.getDeployment(1, 4) as Deployment;
       // Assert
@@ -195,7 +200,7 @@ describe('deployment-module', () => {
         // Arrange
         const gitlabClient = getClient();
         fetchMock.restore().mock(`${host}${gitlabClient.apiPrefix}/projects/1/builds`, gitLabBuildsResponse);
-        const deploymentModule = new DeploymentModule(gitlabClient, '');
+        const deploymentModule = getDeploymentModule(gitlabClient, '');
         // Act
         const deployments = await deploymentModule.getProjectDeployments(1) as Deployment[];
         // Assert
@@ -221,7 +226,7 @@ describe('deployment-module', () => {
     const mockUrl = `${host}${gitlabClient.apiPrefix}/projects/1/builds/2/artifacts`;
     fetchMock.restore().mock(mockUrl, response);
     const deploymentsDir = path.join(os.tmpdir(), 'minard', 'deploys');
-    const deploymentModule = new DeploymentModule(gitlabClient, deploymentsDir);
+    const deploymentModule = getDeploymentModule(gitlabClient, deploymentsDir);
 
     // Act
     const deploymentPath = await deploymentModule.downloadAndExtractDeployment(1, 2);
@@ -233,7 +238,7 @@ describe('deployment-module', () => {
   });
 
   it('getDeploymentPath()', () => {
-    const deploymentModule = new DeploymentModule({ } as GitlabClient, 'example');
+    const deploymentModule = getDeploymentModule({ } as GitlabClient, 'example');
     const deploymentPath = deploymentModule.getDeploymentPath(1, 4);
     expect(deploymentPath).to.equal('example/1/4');
   });
@@ -241,7 +246,7 @@ describe('deployment-module', () => {
   describe('prepareDeploymentForServing()', () => {
 
     it('should throw error when deployment not found', async () => {
-      const deploymentModule = new DeploymentModule({} as GitlabClient, '');
+      const deploymentModule = getDeploymentModule({} as GitlabClient, '');
       deploymentModule.getDeployment = async (projectId, deploymentId) => {
         expect(projectId).to.equal(2);
         expect(deploymentId).to.equal(4);
@@ -256,7 +261,7 @@ describe('deployment-module', () => {
     });
 
     it('should throw error when deployment status is not success', async () => {
-      const deploymentModule = new DeploymentModule({} as GitlabClient, '');
+      const deploymentModule = getDeploymentModule({} as GitlabClient, '');
       deploymentModule.getDeployment = async (_projectId, _deploymentId) => {
         return {
           status: 'failed',
@@ -271,7 +276,7 @@ describe('deployment-module', () => {
     });
 
     it('should call downloadAndExtractDeployment when deployment is successful', async () => {
-      const deploymentModule = new DeploymentModule({} as GitlabClient, '');
+      const deploymentModule = getDeploymentModule({} as GitlabClient, '');
       deploymentModule.getDeployment = async (_projectId, _deploymentId) => {
         return {
           status: 'success',
@@ -288,7 +293,7 @@ describe('deployment-module', () => {
     });
 
     it('should report internal error', async () => {
-      const deploymentModule = new DeploymentModule({} as GitlabClient, '');
+      const deploymentModule = getDeploymentModule({} as GitlabClient, '');
       deploymentModule.getDeployment = async (_projectId, _deploymentId) => {
         return {
           status: 'success',

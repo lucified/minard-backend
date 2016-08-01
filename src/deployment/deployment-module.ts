@@ -3,6 +3,7 @@ import { inject, injectable } from 'inversify';
 
 import { GitlabClient } from '../shared/gitlab-client';
 import { Deployment } from  '../shared/gitlab.d.ts';
+import * as logger from  '../shared/logger';
 
 import MinardError, { MINARD_ERROR_CODE } from '../shared/minard-error';
 
@@ -45,22 +46,26 @@ export default class DeploymentModule {
 
   public static injectSymbol = Symbol('deployment-module');
 
-  private gitlab: GitlabClient;
-  private deploymentFolder: string;
+  private readonly gitlab: GitlabClient;
+  private readonly deploymentFolder: string;
+  private readonly logger: logger.Logger;
 
   private buildToProject = new Map<number, number>();
 
   public constructor(
     @inject(GitlabClient.injectSymbol) gitlab: GitlabClient,
-    @inject(deploymentFolderInjectSymbol) deploymentFolder: string) {
+    @inject(deploymentFolderInjectSymbol) deploymentFolder: string,
+    @inject(logger.loggerInjectSymbol) logger: logger.Logger) {
     this.gitlab = gitlab;
     this.deploymentFolder = deploymentFolder;
+    this.logger = logger;
   }
 
   public async getProjectDeployments(projectId: number): Promise<MinardDeployment[] | null> {
     try {
-      return (await this.gitlab.fetchJson<Deployment[]>(`projects/${projectId}/builds`))
-        .map(this.toMinardModelDeployment);
+      const deployments = await this.gitlab.fetchJson<Deployment[]>(`projects/${projectId}/builds`);
+      this.logger.debug('getProjectDeployments: found %d for project %s', deployments.length, projectId);
+      return deployments.map(this.toMinardModelDeployment);
     } catch (err) {
       if (err.response && err.response.status === 404) {
         return null;

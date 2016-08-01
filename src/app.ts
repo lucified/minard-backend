@@ -28,6 +28,8 @@ import MinardServer, {hostInjectSymbol, portInjectSymbol} from './server/server'
 
 import { GitlabClient, fetchInjectSymbol, gitlabHostInjectSymbol } from './shared/gitlab-client';
 
+import Logger, { loggerInjectSymbol } from './shared/logger';
+
 const kernel = new Kernel();
 
 // We are injecting the eventBus here as a constantValue as the
@@ -40,6 +42,7 @@ const kernel = new Kernel();
 //
 //  -- JO 25.6.2016
 kernel.bind(EventBus.injectSymbol).toConstantValue(new LocalEventBus());
+kernel.bind(loggerInjectSymbol).toConstantValue(Logger(undefined, false, process.env.DEBUG ? true : false));
 kernel.bind(DeploymentPlugin.injectSymbol).to(DeploymentPlugin);
 kernel.bind(DeploymentModule.injectSymbol).to(DeploymentModule);
 kernel.bind(DeploymentJsonApi.injectSymbol).to(DeploymentJsonApi);

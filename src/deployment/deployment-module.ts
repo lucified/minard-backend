@@ -4,20 +4,25 @@ import { inject, injectable } from 'inversify';
 import { GitlabClient } from '../shared/gitlab-client';
 import { Deployment } from  '../shared/gitlab.d.ts';
 
+import MinardError, { MINARD_ERROR_CODE } from '../shared/minard-error';
+
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
 const mkpath = require('mkpath');
 const AdmZip = require('adm-zip'); // tslint:disable-line
-
-const Serializer = require('jsonapi-serializer').Serializer; // tslint:disable-line
+const deepcopy = require('deepcopy');
 
 export const deploymentFolderInjectSymbol = Symbol('deployment-folder');
 
 export interface DeploymentKey {
   projectId: number;
   deploymentId: number;
+}
+
+export interface MinardDeployment extends Deployment {
+  url: string;
 }
 
 export function isRawDeploymentHostname(hostname: string) {
@@ -52,79 +57,42 @@ export default class DeploymentModule {
     this.deploymentFolder = deploymentFolder;
   }
 
-  public async getDeployments(projectId: number): Promise<Deployment[] | null> {
+  public async getProjectDeployments(projectId: number): Promise<MinardDeployment[] | null> {
     try {
-      return await this.gitlab.fetchJson<Deployment[]>(`projects/${projectId}/builds`);
+      return (await this.gitlab.fetchJson<Deployment[]>(`projects/${projectId}/builds`))
+        .map(this.toMinardModelDeployment);
     } catch (err) {
       if (err.response && err.response.status === 404) {
         return null;
       }
-      throw err;
-    }
+      throw new MinardError(
+        MINARD_ERROR_CODE.INTERNAL_SERVER_ERROR,
+        err.message);
+      }
   };
 
   public async getDeployment(projectId: number, deploymentId: number) {
     try {
-      return await this.gitlab.fetchJson<Deployment>(`projects/${projectId}/builds/${deploymentId}`);
+      return this.toMinardModelDeployment(
+        await this.gitlab.fetchJson<Deployment>(`projects/${projectId}/builds/${deploymentId}`), projectId);
     } catch (err) {
       if (err.response && err.response.status === 404) {
         return null;
       }
-      throw err;
+      throw new MinardError(
+        MINARD_ERROR_CODE.INTERNAL_SERVER_ERROR,
+        err.message);
     }
   }
 
-  public async jsonApiGetDeployments(projectId: number) {
-    const gitlabData = await this.getDeployments(projectId);
-    if (gitlabData != null) {
-      gitlabData.forEach(item => {
-        if (item.status === 'success') {
-          (<any> item).url = `http://${item.ref}-${item.commit.short_id}-${projectId}-${item.id}.localhost:8000`;
-        }
-      });
+  private toMinardModelDeployment(deployment: Deployment, projectId: number): MinardDeployment {
+    let ret = deepcopy(deployment);
+    if (ret.status === 'success') {
+      (<any> deployment).url = `http://${deployment.ref}-` +
+        `${deployment.commit.short_id}-${projectId}-${deployment.id}.localhost:8000`;
     }
-    return DeploymentModule.gitlabResponseToJsonApi(gitlabData);
+    return ret;
   }
-
-  public static gitlabResponseToJsonApi(gitlabResponse: any) {
-    const normalized = this.normalizeGitLabResponse(gitlabResponse);
-    const opts = {
-      attributes: ['finished_at', 'status', 'commit', 'user', 'url'],
-      commit: {
-        attributes: ['message'],
-        ref: function (_: any, commit: any) {
-            return String(commit.id);
-        },
-      },
-      user: {
-        attributes: ['username'],
-        ref: function (_: any, user: any) {
-            return String(user.id);
-        },
-      },
-    };
-    const serialized = new Serializer('deployment', opts).serialize(normalized);
-    return serialized;
-  };
-
-  public static normalizeGitLabResponse(gitlabResponse: any) {
-    return gitlabResponse.map((item: any) => {
-      return {
-        id: item.id,
-        user: {
-          id: item.user.id,
-          username: item.user.username,
-        },
-        commit: {
-          id: item.commit.id,
-          message: item.commit.message,
-        },
-        finished_at: item.finished_at,
-        status: item.status,
-        url: item.url,
-      };
-    });
-  };
 
   public getDeploymentPath(projectId: number, deploymentId: number) {
     return path.join(this.deploymentFolder, String(projectId), String(deploymentId));
@@ -146,17 +114,20 @@ export default class DeploymentModule {
   public async prepareDeploymentForServing(projectId: number, deploymentId: number) {
     const deployment = await this.getDeployment(projectId, deploymentId);
     if (!deployment) {
-      throw Error(`No deployment found for: projectId ${projectId}, ` +
-        `deploymentId ${deploymentId}`);
+      throw new MinardError(MINARD_ERROR_CODE.NOT_FOUND,
+        `No deployment found for: projectId ${projectId}, deploymentId ${deploymentId}`);
     }
     if (deployment.status !== 'success') {
-      throw Error(`Deployment status is "${deployment.status}" for: projectId ${projectId}, ` +
+      throw new MinardError(MINARD_ERROR_CODE.NOT_FOUND,
+        `Deployment status is "${deployment.status}" for: projectId ${projectId}, ` +
         `deploymentId ${deploymentId}`);
     }
     try {
       await this.downloadAndExtractDeployment(projectId, deploymentId);
     } catch (err) {
-      throw Error(`Could not prepare deployment for serving (projectId ${projectId}, ` +
+      throw new MinardError(
+        MINARD_ERROR_CODE.INTERNAL_SERVER_ERROR,
+        `Could not prepare deployment for serving (projectId ${projectId}, ` +
         `deploymentId ${deploymentId})`);
     }
   }

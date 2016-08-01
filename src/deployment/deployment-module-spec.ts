@@ -7,7 +7,7 @@ import * as path from 'path';
 
 import { expect } from 'chai';
 
-import { DeploymentKey, default as DeploymentModule, getDeploymentKey } from './deployment-module';
+import DeploymentModule, { DeploymentKey, MinardDeployment, getDeploymentKey } from './deployment-module';
 
 import Authentication from '../authentication/authentication-module';
 import { IFetchStatic } from '../shared/fetch.d.ts';
@@ -134,8 +134,9 @@ const gitlabBuildResponse = {
   'runner': null,
   'stage': 'test',
   'started_at': '2015-12-24T17:54:30.733Z',
-  'status': 'failed',
+  'status': 'success',
   'tag': false,
+  'url': 'http://dfa-4-5.localhost',
   'user': {
     'avatar_url': 'http://www.gravatar.com/avatar/e64c7d89f26bd1972efa854d13d7dd61?s=80&d=identicon',
     'bio': null,
@@ -154,62 +155,6 @@ const gitlabBuildResponse = {
 };
 
 describe('deployment-module', () => {
-  it('normalizeGitLabResponse', () => {
-    const converted = DeploymentModule.normalizeGitLabResponse(gitLabBuildsResponse) as any;
-    expect(converted).to.have.length(2);
-
-    // test first
-    expect(converted[0].id).to.equal(7);
-    expect(converted[0].commit).to.exist;
-    expect(converted[0].commit.id).to.equal('0ff3ae198f8601a285adcf5c0fff204ee6fba5fd');
-    expect(converted[0].commit.message).to.equal('Test the CI integration.');
-    expect(converted[0].finished_at).to.equal('2015-12-24T17:54:27.895Z');
-    expect(converted[0].status).to.equal('failed');
-    expect(converted[0].user.id).to.equal(1);
-    expect(converted[0].user.username).to.equal('root');
-
-    // test second
-    expect(converted[1].id).to.equal(6);
-  });
-
-  it('gitlabResponseToJsonApi', () => {
-    const converted = DeploymentModule.gitlabResponseToJsonApi(gitLabBuildsResponse) as any;
-
-    const data = converted.data;
-    expect(data).to.have.length(2);
-
-    // id and type
-    expect(data[0].id).to.equal('7');
-    expect(data[0].type).to.equal('deployments');
-
-    // attributes
-    expect(data[0].attributes['finished-at']).to.equal('2015-12-24T17:54:27.895Z');
-    expect(data[0].attributes.status).to.equal('failed');
-
-    // commit relationship
-    expect(data[0].relationships.commit).to.exist;
-    expect(data[0].relationships.commit.data.type).to.equal('commits');
-    expect(data[0].relationships.commit.data.id).to.equal('0ff3ae198f8601a285adcf5c0fff204ee6fba5fd');
-
-    // user relationship
-    expect(data[0].relationships.user).to.exist;
-    expect(data[0].relationships.user.data.type).to.equal('users');
-    expect(data[0].relationships.user.data.id).to.equal('1');
-
-    // included user
-    const includedUser = converted.included.find((item: any) => item.id === '1' && item.type === 'users');
-    expect(includedUser).to.exist;
-    expect(includedUser.id).to.equal('1');
-    expect(includedUser.attributes.username).to.equal('root');
-
-    // included commit
-    const includedCommit = converted.included.find((item: any) =>
-      item.id === '0ff3ae198f8601a285adcf5c0fff204ee6fba5fd' && item.type === 'commits');
-    expect(includedCommit).to.exist;
-    expect(includedCommit.id).to.equal('0ff3ae198f8601a285adcf5c0fff204ee6fba5fd');
-    expect(includedCommit.attributes.message).to.equal('Test the CI integration.');
-  });
-
   describe('getDeployment()', () => {
     it('should work when deployment can be found', async () => {
       // Arrange
@@ -221,10 +166,11 @@ describe('deployment-module', () => {
       fetchMock.restore().mock(`${host}${gitlabClient.apiPrefix}/projects/1/builds/4`, response);
       const deploymentModule = new DeploymentModule(gitlabClient, '');
       // Act
-      const deployment = await deploymentModule.getDeployment(1, 4) as Deployment;
+      const deployment = await deploymentModule.getDeployment(1, 4) as MinardDeployment;
       // Assert
       expect(deployment).to.not.equal(null);
       expect(deployment.id).to.equal(8);
+      expect(deployment.url).to.equal('http://dfa-4-5.localhost');
     });
 
     it('should return null when deployment can not be found', async () => {
@@ -244,16 +190,18 @@ describe('deployment-module', () => {
     });
   });
 
-  it('getDeployments()', async () => {
-    // Arrange
-    const gitlabClient = getClient();
-    fetchMock.restore().mock(`${host}${gitlabClient.apiPrefix}/projects/1/builds`, gitLabBuildsResponse);
-    const deploymentModule = new DeploymentModule(gitlabClient, '');
-    // Act
-    const deployments = await deploymentModule.getDeployments(1) as Deployment[];
-    // Assert
-    expect(deployments.length).equals(2);
-    expect(deployments[0].id).equals(7);
+  describe('getDeployments()', () => {
+    it('it should work with response returning two deployments', async () => {
+        // Arrange
+        const gitlabClient = getClient();
+        fetchMock.restore().mock(`${host}${gitlabClient.apiPrefix}/projects/1/builds`, gitLabBuildsResponse);
+        const deploymentModule = new DeploymentModule(gitlabClient, '');
+        // Act
+        const deployments = await deploymentModule.getProjectDeployments(1) as Deployment[];
+        // Assert
+        expect(deployments.length).equals(2);
+        expect(deployments[0].id).equals(7);
+     });
   });
 
   it('downloadAndExtractDeployment()', async () => {

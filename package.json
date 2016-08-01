@@ -8,6 +8,7 @@
     "@types/hapi": "^13.0.27-alpha",
     "@types/knex": "0.0.28",
     "adm-zip": "^0.4.7",
+    "deepcopy": "^0.6.3",
     "good": "^7.0.1",
     "good-console": "^6.1.2",
     "good-squeeze": "^4.0.0",

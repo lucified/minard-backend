@@ -3,14 +3,13 @@ import * as Hapi from 'hapi';
 import { inject, injectable } from 'inversify';
 
 import { HapiRegister } from '../server/hapi-register';
+import DeploymentJsonApi from './deployment-json-api';
 import DeploymentModule, { DeploymentKey, getDeploymentKey, isRawDeploymentHostname} from './deployment-module';
 
 import { gitlabHostInjectSymbol } from '../shared/gitlab-client';
 
-import * as events from 'events';
-import * as http from 'http';
+import { proxyCI } from './proxy-ci';
 import * as path from 'path';
-import * as url from 'url';
 
 const directoryHandler = require('inert/lib/directory').handler;
 
@@ -20,13 +19,16 @@ class DeploymentHapiPlugin {
   public static injectSymbol = Symbol('deployment-hapi-plugin');
 
   private deploymentModule: DeploymentModule;
+  private deploymentJsonApi: DeploymentJsonApi;
   private gitlabHost: string;
 
   constructor(
     @inject(DeploymentModule.injectSymbol) deploymentModule: DeploymentModule,
+    @inject(DeploymentJsonApi.injectSymbol) deploymentJsonApi: DeploymentJsonApi,
     @inject(gitlabHostInjectSymbol) gitlabHost: string ) {
 
     this.deploymentModule = deploymentModule;
+    this.deploymentJsonApi = deploymentJsonApi;
     this.gitlabHost = gitlabHost;
 
     this.register.attributes = {
@@ -49,9 +51,17 @@ class DeploymentHapiPlugin {
 
     server.route({
       method: 'GET',
-      path: '/deployments/{projectId}',
+      path: '/project/{projectId}/deployments',
       handler: {
-        async: this.deploymentsHandler.bind(this),
+        async: this.getProjectDeploymentsHandler.bind(this),
+      },
+    });
+
+    server.route({
+      method: 'GET',
+      path: '/project/{projectId}/deployments/{deploymentId}',
+      handler: {
+        async: this.getDeploymentHandler.bind(this),
       },
     });
 
@@ -66,7 +76,8 @@ class DeploymentHapiPlugin {
     server.route({
       method: '*',
       path: '/ci/api/v1/{what}/{id}/{action?}',
-      handler: this.proxyCI.bind(this),
+      handler: proxyCI.bind(null, this.gitlabHost,
+        this.deploymentModule.setDeploymentState.bind(this.deploymentModule)),
       config: {
         payload: {
           output: 'stream',
@@ -109,101 +120,18 @@ class DeploymentHapiPlugin {
     return dirHandler(request, reply);
   }
 
-  public async deploymentsHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const params = <any> request.params;
-    const projectId = params.projectId;
-    return reply(this.deploymentModule.jsonApiGetDeployments(projectId));
+  private async getProjectDeploymentsHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    // TODO: validation
+    const projectId = (<any> request.params).projectId;
+    return reply(this.deploymentJsonApi.getProjectDeployments(projectId));
   }
 
-  public isJson(headers: Hapi.IDictionary<string>) {
-    return headers
-      && headers['content-type']
-      && headers['content-type'].indexOf('json') >= 0;
+  private async getDeploymentHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    const projectId = (<any> request.params).projectId;
+    const deploymentId = (<any> request.params).deploymentId;
+    return reply(this.deploymentJsonApi.getDeployment(projectId, deploymentId));
   }
 
-  public interceptRunnerRequest(request: Hapi.Request, _response?: http.IncomingMessage): void {
-
-    if (request.method !== 'put' || !this.isJson(request.headers)) {
-      return;
-    }
-    this.collectStream(request.payload)
-      .then((payload) => {
-        const p = JSON.parse(payload);
-        const idKey = 'id';
-        if (p && p.state && request.params[idKey]) {
-          const id = parseInt(request.params[idKey], 10);
-          this.deploymentModule.setDeploymentState(id, p.state);
-        }
-      });
-  }
-
-  public proxyCI(request: Hapi.Request, reply: Hapi.IReply) {
-
-    const gitlab = url.parse(this.gitlabHost);
-    const upstream = {
-      host: gitlab.hostname,
-      port: gitlab.port ? parseInt(gitlab.port, 10) : 80,
-      protocol: gitlab.protocol,
-    };
-
-    this.interceptRunnerRequest(request);
-
-    return reply.proxy({
-      host: upstream.host,
-      port: upstream.port,
-      protocol: upstream.protocol,
-      passThrough: true,
-      onResponse: this.onResponse.bind(this),
-    });
-  }
-
-  public onResponse(
-    err: any,
-    response: http.IncomingMessage,
-    request: Hapi.Request,
-    reply: Hapi.IReply,
-    _settings: Hapi.IProxyHandlerConfig,
-    _ttl: any) {
-    if (err) {
-      console.error(err);
-      reply(response);
-      return;
-    }
-    if (this.isJson(response.headers as Hapi.IDictionary<string>)) {
-      const whatKey = 'what';
-      if (response.statusCode === 201 && request.params[whatKey] === 'builds') {
-        this.collectStream(response)
-          .then(payload => {
-            const p = JSON.parse(payload);
-            // console.log(p);
-            const r = reply(payload).charset('');
-            this.deploymentModule.setDeploymentState(parseInt(p.id, 10), p.status, parseInt(p.project_id, 10));
-            r.headers = response.headers;
-            r.statusCode = response.statusCode ? response.statusCode : 200;
-          });
-
-      } else {
-        reply(response).charset('');
-      }
-    } else {
-      reply(response);
-    }
-  }
-
-  public collectStream(s: events.EventEmitter): Promise<string> {
-
-    const body: Buffer[] = [];
-    return new Promise((resolve, reject) => {
-        s.on('error', (err: any) => {
-          reject(err);
-        }).on('data', (chunk: Buffer) => {
-          body.push(chunk);
-        }).on('end', () => {
-          resolve(Buffer.concat(body).toString());
-        });
-    });
-
-  }
 }
 
 export default DeploymentHapiPlugin;

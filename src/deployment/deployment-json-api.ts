@@ -1,26 +1,34 @@
 
 import { inject, injectable } from 'inversify';
 
+import { standardIdRef } from '../shared/json-api-serialisation';
 import DeploymentModule from './deployment-module';
+
 const Serializer = require('jsonapi-serializer').Serializer; // tslint:disable-line
 
+export const commitSerialization = {
+  commits: {
+    attributes: ['message', 'author', 'branch'],
+    ref: standardIdRef,
+  },
+};
+
+export const deploymentSerialization = {
+  attributes: ['finished_at', 'status', 'commit', 'user', 'url'],
+  commit: {
+    attributes: ['message'],
+    ref: standardIdRef,
+  },
+  user: {
+    attributes: ['username'],
+    ref: standardIdRef,
+  },
+};
+
+
 export function toJsonApi(deployments: any) {
-  const opts = {
-    attributes: ['finished_at', 'status', 'commit', 'user', 'url'],
-    commit: {
-      attributes: ['message'],
-      ref: function (_: any, commit: any) {
-          return String(commit.id);
-      },
-    },
-    user: {
-      attributes: ['username'],
-      ref: function (_: any, user: any) {
-          return String(user.id);
-      },
-    },
-  };
-  const serialized = new Serializer('deployment', opts).serialize(deployments);
+  const serialized = new Serializer('deployment', deploymentSerialization)
+    .serialize(deployments);
   return serialized;
 };
 

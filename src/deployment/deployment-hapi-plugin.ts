@@ -3,6 +3,7 @@ import * as Hapi from 'hapi';
 import { inject, injectable } from 'inversify';
 
 import { HapiRegister } from '../server/hapi-register';
+import DeploymentJsonApi from './deployment-json-api';
 import DeploymentModule, { DeploymentKey, getDeploymentKey, isRawDeploymentHostname} from './deployment-module';
 
 import { gitlabHostInjectSymbol } from '../shared/gitlab-client';
@@ -20,13 +21,16 @@ class DeploymentHapiPlugin {
   public static injectSymbol = Symbol('deployment-hapi-plugin');
 
   private deploymentModule: DeploymentModule;
+  private deploymentJsonApi: DeploymentJsonApi;
   private gitlabHost: string;
 
   constructor(
     @inject(DeploymentModule.injectSymbol) deploymentModule: DeploymentModule,
+    @inject(DeploymentJsonApi.injectSymbol) deploymentJsonApi: DeploymentJsonApi,
     @inject(gitlabHostInjectSymbol) gitlabHost: string ) {
 
     this.deploymentModule = deploymentModule;
+    this.deploymentJsonApi = deploymentJsonApi;
     this.gitlabHost = gitlabHost;
 
     this.register.attributes = {
@@ -49,9 +53,17 @@ class DeploymentHapiPlugin {
 
     server.route({
       method: 'GET',
-      path: '/deployments/{projectId}',
+      path: '/project/{projectId}/deployments',
       handler: {
-        async: this.deploymentsHandler.bind(this),
+        async: this.getProjectDeploymentsHandler.bind(this),
+      },
+    });
+
+    server.route({
+      method: 'GET',
+      path: '/project/{projectId}/deployments/{deploymentId}',
+      handler: {
+        async: this.getDeploymentHandler.bind(this),
       },
     });
 
@@ -109,11 +121,6 @@ class DeploymentHapiPlugin {
     return dirHandler(request, reply);
   }
 
-  public async deploymentsHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const params = <any> request.params;
-    const projectId = params.projectId;
-    return reply(this.deploymentModule.jsonApiGetDeployments(projectId));
-  }
 
   public isJson(headers: Hapi.IDictionary<string>) {
     return headers
@@ -155,6 +162,10 @@ class DeploymentHapiPlugin {
       passThrough: true,
       onResponse: this.onResponse.bind(this),
     });
+  private async getProjectDeploymentsHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    // TODO: validation
+    const projectId = (<any> request.params).projectId;
+    return reply(this.deploymentJsonApi.getProjectDeployments(projectId));
   }
 
   public onResponse(
@@ -188,6 +199,10 @@ class DeploymentHapiPlugin {
     } else {
       reply(response);
     }
+  private async getDeploymentHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    const projectId = (<any> request.params).projectId;
+    const deploymentId = (<any> request.params).deploymentId;
+    return reply(this.deploymentJsonApi.getDeployment(projectId, deploymentId));
   }
 
   public collectStream(s: events.EventEmitter): Promise<string> {

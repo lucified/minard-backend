@@ -4,7 +4,6 @@ import * as Hapi from 'hapi';
 import * as http from 'http';
 import * as url from 'url';
 
-
 function isJson(headers: Hapi.IDictionary<string>) {
   return headers && headers['content-type'] && headers['content-type'].indexOf('json') >= 0;
 }
@@ -87,4 +86,3 @@ function interceptRunnerRequest(
       }
     });
 }
-

@@ -1,7 +1,10 @@
 
 import 'reflect-metadata';
 
-import { ApiDeployment, ApiProject, deploymentToJsonApi, projectToJsonApi } from './json-api-module';
+import DeploymentModule, { MinardDeployment } from '../deployment/deployment-module';
+import ProjectModule, { MinardProject } from '../project/project-module';
+
+import JsonApiModule, { ApiDeployment, ApiProject, deploymentToJsonApi, projectToJsonApi } from './json-api-module';
 import { expect } from 'chai';
 
 interface JsonApiResource {
@@ -230,6 +233,70 @@ describe('json-api-module', () => {
       expect(includedCommit).to.exist;
       expect(includedCommit.id).to.equal('0ff3ae198f8601a285adcf5c0fff204ee6fba5fd');
       expect(includedCommit.attributes.message).to.equal('Test the CI integration.');
+    });
+  });
+
+  describe('getProject()', () => {
+    it('should work in typical case', async () => {
+      // Arrange
+      class MockDeploymentModule {
+        public async getBranchDeployments(_projectId: number, _branchName: string) {
+          return [
+            {
+              id: '8ds7f8asfasd',
+            },
+            {
+              id: '98df789as897',
+            },
+          ] as {} as MinardDeployment[];
+        }
+      }
+      class MockProjectsModule {
+        public async getProject(projectId: number): Promise<MinardProject> {
+          return {
+            id: projectId,
+            name: 'project-name',
+            branches: [
+              {
+                id: `${projectId}-master`,
+                name: 'master',
+              },
+              {
+                id: `${projectId}-new-feature`,
+                name: 'new-feature',
+              },
+            ],
+          } as MinardProject;
+        }
+      }
+      const jsonApiModule = new JsonApiModule(
+        new MockDeploymentModule() as DeploymentModule,
+        new MockProjectsModule() as ProjectModule);
+
+      // Act
+      const response = await jsonApiModule.getProject(1);
+
+      // Assert
+
+      const data = response.data;
+      expect(data).to.exist;
+
+      expect(data.id).to.equal('1');
+      expect(data.type).to.equal('projects');
+      expect(data.attributes.name).to.equal('project-name');
+
+      expect(data.relationships.branches).to.exist;
+      expect(data.relationships.branches.data).to.exist;
+      expect(data.relationships.branches.data[0].id).to.equal('1-master');
+      expect(data.relationships.branches.data[1].id).to.equal('1-new-feature');
+
+      expect(response.included).to.exist;
+      const master = response.included.find((item: any) => item.id === '1-master');
+      expect(master).to.exist;
+      expect(master.relationships.deployments.data).to.exist;
+      expect(master.relationships.deployments.data[0]).to.exist;
+      expect(master.relationships.deployments.data[0].id).to.equal('8ds7f8asfasd');
+      expect(master.relationships.deployments.data[1].id).to.equal('98df789as897');
     });
   });
 

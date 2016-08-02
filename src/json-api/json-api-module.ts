@@ -101,22 +101,28 @@ export default class JsonApiModule {
     return deploymentToJsonApi(deployment) as ApiDeployment;
   }
 
+  public async getProject(projectId: number) {
+    const project = await this.projectModule.getProject(projectId) as ApiProject;
+    if (!project) {
+      throw new MinardError(MINARD_ERROR_CODE.NOT_FOUND);
+    }
+    const augmentedProject = await this.augmentProject(project);
+    return projectToJsonApi(augmentedProject);
+  }
+
   private async augmentBranch(projectId: number, branch: MinardBranch): Promise<ApiBranch> {
     const ret = deepcopy(branch) as ApiBranch;
     ret.deployments = await this.deploymentModule.getBranchDeployments(projectId, branch.name);
     return ret;
   }
 
-  public async getProject(projectId: number): Promise<ApiProject> {
-    const project = await this.projectModule.getProject(projectId) as ApiProject;
-    if (!project) {
-      throw new MinardError(MINARD_ERROR_CODE.NOT_FOUND);
-    }
+  private async augmentProject(project: MinardProject): Promise<ApiProject> {
     const promises = project.branches.map(branch => {
-      return this.augmentBranch(projectId, branch);
+      return this.augmentBranch(project.id, branch);
     });
-    project.branches = await Promise.all<ApiBranch>(promises);
-    return projectToJsonApi(project);
+    const ret = deepcopy(project) as ApiProject;
+    ret.branches = await Promise.all<ApiBranch>(promises);
+    return ret;
   }
 
 }

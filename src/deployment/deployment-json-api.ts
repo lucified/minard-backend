@@ -4,21 +4,14 @@ import { inject, injectable } from 'inversify';
 import { standardIdRef } from '../shared/json-api-serialisation';
 import DeploymentModule from './deployment-module';
 
-const Serializer = require('jsonapi-serializer').Serializer; // tslint:disable-line
+import { commitSerialization } from '../project/project-json-api';
 
-export const commitSerialization = {
-  commits: {
-    attributes: ['message', 'author', 'branch'],
-    ref: standardIdRef,
-  },
-};
+
+const Serializer = require('jsonapi-serializer').Serializer; // tslint:disable-line
 
 export const deploymentSerialization = {
   attributes: ['finished_at', 'status', 'commit', 'user', 'url'],
-  commit: {
-    attributes: ['message'],
-    ref: standardIdRef,
-  },
+  commit: commitSerialization,
   user: {
     attributes: ['username'],
     ref: standardIdRef,

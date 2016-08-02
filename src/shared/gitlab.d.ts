@@ -15,6 +15,12 @@ interface Commit {
   message: string;
   short_id: string;
   title: string;
+  committed_date?: string;
+  authored_date?: string;
+  // these exists in the example at
+  // http://docs.gitlab.com/ce/api/branches.html
+  committer_email?: string,
+  committer_name?: string,
 }
 
 export interface Deployment {

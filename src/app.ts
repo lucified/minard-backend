@@ -6,8 +6,8 @@ import 'reflect-metadata';
 import { Kernel } from 'inversify';
 import * as Knex from 'knex';
 
-import JsonApiModule from './json-api/json-api-module';
 import JsonApiHapiPlugin from './json-api/json-api-hapi-plugin';
+import JsonApiModule from './json-api/json-api-module';
 
 import AuthenticationModule from './authentication/authentication-module';
 import DeploymentPlugin from './deployment/deployment-hapi-plugin';

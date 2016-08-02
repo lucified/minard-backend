@@ -23,7 +23,7 @@ export interface DeploymentKey {
 }
 
 export interface MinardDeployment extends Deployment {
-  url: string;
+  url?: string;
 }
 
 export function isRawDeploymentHostname(hostname: string) {
@@ -61,19 +61,27 @@ export default class DeploymentModule {
     this.logger = logger;
   }
 
-  public async getProjectDeployments(projectId: number): Promise<MinardDeployment[] | null> {
+  private async getDeployments(url: string): Promise<MinardDeployment[]> {
     try {
-      const deployments = await this.gitlab.fetchJson<Deployment[]>(`projects/${projectId}/builds`);
-      this.logger.debug('getProjectDeployments: found %d for project %s', deployments.length, projectId);
-      return deployments.map(this.toMinardModelDeployment);
+      const res = await this.gitlab.fetchJson<Deployment[]>(url);
+      return res.map(this.toMinardModelDeployment);
     } catch (err) {
       if (err.response && err.response.status === 404) {
-        return null;
+        return [];
       }
       throw new MinardError(
         MINARD_ERROR_CODE.INTERNAL_SERVER_ERROR,
         err.message);
       }
+  }
+
+  public async getProjectDeployments(projectId: number): Promise<MinardDeployment[]> {
+    return this.getDeployments(`projects/${projectId}/builds`);
+  };
+
+  public async getBranchDeployments(projectId: number, branchName: string): Promise<MinardDeployment[]> {
+    const projectDeployments = await this.getProjectDeployments(projectId);
+    return projectDeployments.filter(item => item.ref === branchName);
   };
 
   public async getDeployment(projectId: number, deploymentId: number) {

@@ -43,7 +43,7 @@ function onResponse(
   if (isJson(response.headers as Hapi.IDictionary<string>)) {
     const whatKey = 'what';
     if (response.statusCode === 201 && request.params[whatKey] === 'builds') {
-      this.collectStream(response)
+      collectStream(response)
         .then((payload: any) => {
           const p = JSON.parse(payload);
           const r = reply(payload).charset('');

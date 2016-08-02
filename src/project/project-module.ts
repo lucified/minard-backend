@@ -81,8 +81,11 @@ export default class ProjectModule {
   public async getBranch(projectId: number, branchName: string): Promise<MinardBranch | null> {
     try {
       const commitsPromise = await this.gitlab.fetchJson<any>(
-        `projects/${projectId}/repository/commits/${branchName}`);
-      const commits = await commitsPromise;
+        `projects/${projectId}/repository/commits/?per_page=1000ref_name=${encodeURIComponent(branchName)}`);
+      let commits = await commitsPromise;
+      if (!(commits instanceof Array)) {
+        commits = [commits];
+      }
       return {
         id: `${projectId}-${branchName}`,
         name: branchName,

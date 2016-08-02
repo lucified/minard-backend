@@ -132,7 +132,7 @@ describe('project-module', () => {
         gitlabClient);
 
       fetchMock.restore().mock(
-        `${host}${gitlabClient.apiPrefix}/projects/3/repository/commits/master`,
+        `${host}${gitlabClient.apiPrefix}/projects/3/repository/commits?per_page=1000&ref_name=master`,
         gitlabCommitsResponse);
 
       // Act

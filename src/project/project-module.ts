@@ -1,15 +1,15 @@
 
 import { inject, injectable } from 'inversify';
 
-// only for types
-import AuthenticationModule from '../authentication/authentication-module';
-import { EventBus } from '../event-bus/event-bus';
-import SystemHookModule from '../system-hook/system-hook-module';
-
 import MinardError, { MINARD_ERROR_CODE } from '../shared/minard-error';
 
 import { GitlabClient } from '../shared/gitlab-client';
 import { Commit } from '../shared/gitlab.d.ts';
+
+// only for types
+import AuthenticationModule from '../authentication/authentication-module';
+import { EventBus } from '../event-bus/event-bus';
+import SystemHookModule from '../system-hook/system-hook-module';
 
 export interface MinardProject {
   id: number;
@@ -80,8 +80,9 @@ export default class ProjectModule {
 
   public async getBranch(projectId: number, branchName: string): Promise<MinardBranch | null> {
     try {
-      const commits = await this.gitlab.fetchJson<any>(
+      const commitsPromise = await this.gitlab.fetchJson<any>(
         `projects/${projectId}/repository/commits/${branchName}`);
+      const commits = await commitsPromise;
       return {
         id: `${projectId}-${branchName}`,
         name: branchName,

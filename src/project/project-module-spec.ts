@@ -123,6 +123,7 @@ describe('project-module', () => {
           'allow_failure': false,
         },
       ];
+
       const gitlabClient = getClient();
       const projectModule = new ProjectModule(
         {} as AuthenticationModule,

@@ -40,8 +40,22 @@ export default class JsonApiHapiPlugin {
       },
     });
 
+    server.route({
+      method: 'GET',
+      path: '/project/{projectId}',
+      handler: {
+        async: this.getProjectHandler.bind(this),
+      },
+    });
+
     next();
   };
+
+  private async getProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    // TODO: validation
+    const projectId = (<any> request.params).projectId;
+    return reply(this.jsonApiModule.getProject(projectId));
+  }
 
   private async getProjectDeploymentsHandler(request: Hapi.Request, reply: Hapi.IReply) {
     // TODO: validation

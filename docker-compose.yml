@@ -43,7 +43,7 @@ services:
     - ./gitlab-data/gitlab:/home/git/data:Z
     environment:
     - DEBUG=false
-    - MINARD_CI_YML_URL=http://minard-monolith:8000/ci/minard/v1/projects/%d/ciyml
+    - MINARD_CI_YML_URL=http://minard-monolith:8000/ci/projects/%d/%s/%s/yml
     - DB_ADAPTER=postgresql
     - DB_HOST=postgresql
     - DB_PORT=5432

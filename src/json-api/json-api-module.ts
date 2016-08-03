@@ -125,8 +125,8 @@ export default class JsonApiModule {
     });
     const ret = deepcopy(project) as ApiProject;
     ret.branches = await Promise.all<ApiBranch>(promises);
-    project.branches.forEach(item => {
-      item.project = project;
+    ret.branches.forEach(item => {
+      item.project = ret;
     });
     return ret;
   }

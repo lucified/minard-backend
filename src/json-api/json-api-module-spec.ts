@@ -110,6 +110,11 @@ describe('json-api-module', () => {
       ],
     };
 
+    // add back-reference
+    project.branches.forEach(item => {
+      item.project = project;
+    });
+
     const converted = projectToJsonApi(project);
     const data = converted.data;
 

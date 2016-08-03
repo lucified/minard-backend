@@ -3,7 +3,7 @@ import MinardError, { MINARD_ERROR_CODE } from '../shared/minard-error';
 import { inject, injectable } from 'inversify';
 
 import DeploymentModule, { MinardDeployment } from '../deployment/deployment-module';
-import ProjectModule, { MinardBranch, MinardProject } from '../project/project-module';
+import ProjectModule, { MinardBranch, MinardCommit, MinardProject } from '../project/project-module';
 
 const deepcopy = require('deepcopy');
 
@@ -88,6 +88,9 @@ export function projectToJsonApi(project: MinardProject | MinardProject[]) {
   return serialized;
 };
 
+// The Api-prefix interfaces are for richly composed objects
+// that can be directly passed to the JSON API serializer
+
 export interface ApiProject extends MinardProject {
   branches: ApiBranch[];
 }
@@ -95,10 +98,15 @@ export interface ApiProject extends MinardProject {
 export interface ApiBranch extends MinardBranch {
   project: ApiProject;
   deployments: ApiDeployment[];
+  commits: ApiCommit[];
 }
 
 export interface ApiDeployment extends MinardDeployment {
+  commit: ApiCommit;
+}
 
+export interface ApiCommit extends MinardCommit {
+  branch: ApiBranch;
 }
 
 @injectable()
@@ -122,7 +130,7 @@ export default class JsonApiModule {
   }
 
   public async getDeployment(projectId: number, deploymentId: number): Promise<ApiDeployment> {
-    const deployment = await this.deploymentModule.getDeployment(projectId, deploymentId);
+    const deployment = await this.getApiDeployment(projectId, deploymentId);
     return deploymentToJsonApi(deployment) as ApiDeployment;
   }
 
@@ -133,7 +141,23 @@ export default class JsonApiModule {
     return projectToJsonApi(augmentedProjects);
   }
 
-  private async getAugmentedProject(projectId: number): Promise<ApiProject | null> {
+  public async getProject(projectId: number): Promise<JsonApiResponse> {
+    const project = await this.getApiProject(projectId);
+    if (!project) {
+      throw new MinardError(MINARD_ERROR_CODE.NOT_FOUND);
+    }
+    return projectToJsonApi(project);
+  }
+
+  public async getBranch(projectId: number, branchName: string): Promise<JsonApiResponse> {
+    const branch = await this.getApiBranch(projectId, branchName);
+    if (!branch) {
+      throw new MinardError(MINARD_ERROR_CODE.NOT_FOUND);
+    }
+    return branchToJsonApi(branch);
+  }
+
+  private async getApiProject(projectId: number): Promise<ApiProject | null> {
     const project = await this.projectModule.getProject(projectId) as ApiProject;
     if (!project) {
       return null;
@@ -141,10 +165,18 @@ export default class JsonApiModule {
     return await this.augmentProject(project);
   }
 
-  private async getAugmentedBranch(projectId: number, branchName: string): Promise<ApiBranch | null> {
-    const projectPromise = this.getAugmentedProject(projectId);
+  private async getApiDeployment(projectId: number, deploymentId: number): Promise<ApiDeployment | null> {
+     const deployment = await this.deploymentModule.getDeployment(projectId, deploymentId);
+     if (!deployment) {
+       return null;
+     }
+     return await this.augmentDeployment(deployment);
+  }
+
+  private async getApiBranch(projectId: number, branchName: string): Promise<ApiBranch | null> {
+    const projectPromise = this.getApiProject(projectId);
     const branchPromise = this.projectModule.getBranch(projectId, branchName);
-    const project = (await projectPromise);
+    const project = await projectPromise;
     const branch = await branchPromise;
     if (!project || !branch) {
       return null;
@@ -153,25 +185,22 @@ export default class JsonApiModule {
     return augmentedBranch;
   }
 
-  public async getProject(projectId: number): Promise<JsonApiResponse> {
-    const project = await this.getAugmentedProject(projectId);
-    if (!project) {
-      throw new MinardError(MINARD_ERROR_CODE.NOT_FOUND);
-    }
-    return projectToJsonApi(project);
+  private async augmentCommit(commit: MinardCommit): Promise<ApiCommit> {
+    // this function is async because it probably needs to be that in the future
+    return <ApiCommit> commit;
   }
 
-  public async getBranch(projectId: number, branchName: string): Promise<JsonApiResponse> {
-    const branch = await this.getAugmentedBranch(projectId, branchName);
-    if (!branch) {
-      throw new MinardError(MINARD_ERROR_CODE.NOT_FOUND);
-    }
-    return branchToJsonApi(branch);
+  private async augmentDeployment(deployment: MinardDeployment): Promise<ApiDeployment> {
+    const ret = deepcopy(deployment) as ApiDeployment;
+    ret.commit = await this.augmentCommit(deployment._commit);
+    return ret;
   }
 
   private async augmentBranch(project: ApiProject, branch: MinardBranch): Promise<ApiBranch> {
     const ret = deepcopy(branch) as ApiBranch;
-    ret.deployments = await this.deploymentModule.getBranchDeployments(project.id, branch.name);
+    const deployments = await this.deploymentModule.getBranchDeployments(project.id, branch.name);
+    const promises = deployments.map(this.augmentDeployment);
+    ret.deployments = await Promise.all<ApiDeployment>(promises);
     ret.project = project;
     return ret;
   }

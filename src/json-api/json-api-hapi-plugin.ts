@@ -26,7 +26,7 @@ export default class JsonApiHapiPlugin {
 
     server.route({
       method: 'GET',
-      path: '/project/{projectId}/deployments',
+      path: '/projects/{projectId}/deployments',
       handler: {
         async: this.getProjectDeploymentsHandler.bind(this),
       },
@@ -34,7 +34,7 @@ export default class JsonApiHapiPlugin {
 
     server.route({
       method: 'GET',
-      path: '/project/{projectId}/deployments/{deploymentId}',
+      path: '/projects/{projectId}/deployments/{deploymentId}',
       handler: {
         async: this.getDeploymentHandler.bind(this),
       },
@@ -42,7 +42,7 @@ export default class JsonApiHapiPlugin {
 
     server.route({
       method: 'GET',
-      path: '/project/{projectId}',
+      path: '/projects/{projectId}',
       handler: {
         async: this.getProjectHandler.bind(this),
       },

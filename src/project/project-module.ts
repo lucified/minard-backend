@@ -37,7 +37,6 @@ export interface MinardBranch {
   id: string;
   name: string;
   commits: MinardCommit[];
-  project?: MinardProject;
 }
 
 @injectable()

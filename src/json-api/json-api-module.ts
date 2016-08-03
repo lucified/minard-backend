@@ -9,6 +9,18 @@ const deepcopy = require('deepcopy');
 
 const Serializer = require('jsonapi-serializer').Serializer; // tslint:disable-line
 
+export interface JsonApiEntity {
+  type: "commits" | "deployments" | "projects" | "branches";
+  id: string;
+  attributes?: any;
+  relationships?: any;
+}
+
+export interface JsonApiResponse {
+  data: JsonApiEntity | JsonApiEntity[];
+  included?: JsonApiEntity[];
+}
+
 export function standardIdRef(_: any, item: any) {
   return String(item.id);
 }
@@ -16,12 +28,6 @@ export function standardIdRef(_: any, item: any) {
 export const nonIncludedSerialization = {
   ref: standardIdRef,
   included: false,
-};
-
-export const commitSerialization = {
-  attributes: ['message', 'author', 'branch'],
-  ref: standardIdRef,
-  included: true,
 };
 
 export const branchSerialization = {
@@ -33,30 +39,52 @@ export const branchSerialization = {
   included: true,
 };
 
-export const projectSerialization = {
-  attributes: ['name', 'description', 'branches'],
-  branches: branchSerialization,
+export const deploymentSerialization =  {
+  attributes: ['finished_at', 'status', 'commit', 'user', 'url'],
+  ref: standardIdRef,
+  commit: nonIncludedSerialization,
   included: true,
 };
 
-export const deploymentSerialization = {
-  attributes: ['finished_at', 'status', 'commit', 'user', 'url'],
-  commit: commitSerialization,
-  user: {
-    attributes: ['username'],
-    ref: standardIdRef,
-  },
+export const projectSerialization = {
+  attributes: ['name', 'description', 'branches'],
+  branches: nonIncludedSerialization,
+  included: true,
 };
 
+export const commitSerialization = {
+  attributes: ['message', 'author', 'branch'],
+  ref: standardIdRef,
+  branch: nonIncludedSerialization,
+  included: true,
+};
+
+export const branchCompoundSerialization = deepcopy(branchSerialization);
+branchCompoundSerialization.commits = commitSerialization;
+branchCompoundSerialization.deployments = deploymentSerialization;
+branchCompoundSerialization.project = projectSerialization;
+
+export const projectCompoundSerialization = deepcopy(projectSerialization);
+projectCompoundSerialization.branches = branchSerialization;
+
+export const deploymentCompoundSerialization = deepcopy(deploymentSerialization);
+deploymentCompoundSerialization.commit = commitSerialization;
+
+export function branchToJsonApi(branch: ApiBranch | ApiBranch[]) {
+  const serialized = new Serializer('branch',
+    branchCompoundSerialization).serialize(branch);
+  return serialized;
+}
+
 export function deploymentToJsonApi(deployments: any) {
-  const serialized = new Serializer('deployment', deploymentSerialization)
-    .serialize(deployments);
+  const serialized = new Serializer('deployment',
+    deploymentCompoundSerialization).serialize(deployments);
   return serialized;
 };
 
 export function projectToJsonApi(project: MinardProject | MinardProject[]) {
-  projectSerialization.branches.commits.included = false;
-  const serialized = new Serializer('project', projectSerialization).serialize(project);
+  const serialized = new Serializer('project',
+    projectCompoundSerialization).serialize(project);
   return serialized;
 };
 
@@ -65,6 +93,7 @@ export interface ApiProject extends MinardProject {
 }
 
 export interface ApiBranch extends MinardBranch {
+  project: ApiProject;
   deployments: ApiDeployment[];
 }
 
@@ -104,30 +133,55 @@ export default class JsonApiModule {
     return projectToJsonApi(augmentedProjects);
   }
 
-  public async getProject(projectId: number) {
+  private async getAugmentedProject(projectId: number): Promise<ApiProject | null> {
     const project = await this.projectModule.getProject(projectId) as ApiProject;
+    if (!project) {
+      return null;
+    }
+    return await this.augmentProject(project);
+  }
+
+  private async getAugmentedBranch(projectId: number, branchName: string): Promise<ApiBranch | null> {
+    const projectPromise = this.getAugmentedProject(projectId);
+    const branchPromise = this.projectModule.getBranch(projectId, branchName);
+    const project = (await projectPromise);
+    const branch = await branchPromise;
+    if (!project || !branch) {
+      return null;
+    }
+    const augmentedBranch = await this.augmentBranch(project, branch);
+    return augmentedBranch;
+  }
+
+  public async getProject(projectId: number): Promise<JsonApiResponse> {
+    const project = await this.getAugmentedProject(projectId);
     if (!project) {
       throw new MinardError(MINARD_ERROR_CODE.NOT_FOUND);
     }
-    const augmentedProject = await this.augmentProject(project);
-    return projectToJsonApi(augmentedProject);
+    return projectToJsonApi(project);
   }
 
-  private async augmentBranch(projectId: number, branch: MinardBranch): Promise<ApiBranch> {
+  public async getBranch(projectId: number, branchName: string): Promise<JsonApiResponse> {
+    const branch = await this.getAugmentedBranch(projectId, branchName);
+    if (!branch) {
+      throw new MinardError(MINARD_ERROR_CODE.NOT_FOUND);
+    }
+    return branchToJsonApi(branch);
+  }
+
+  private async augmentBranch(project: ApiProject, branch: MinardBranch): Promise<ApiBranch> {
     const ret = deepcopy(branch) as ApiBranch;
-    ret.deployments = await this.deploymentModule.getBranchDeployments(projectId, branch.name);
+    ret.deployments = await this.deploymentModule.getBranchDeployments(project.id, branch.name);
+    ret.project = project;
     return ret;
   }
 
   private async augmentProject(project: MinardProject): Promise<ApiProject> {
-    const promises = project.branches.map(branch => {
-      return this.augmentBranch(project.id, branch);
-    });
     const ret = deepcopy(project) as ApiProject;
-    ret.branches = await Promise.all<ApiBranch>(promises);
-    ret.branches.forEach(item => {
-      item.project = ret;
+    const promises = project.branches.map(branch => {
+      return this.augmentBranch(ret, branch);
     });
+    ret.branches = await Promise.all<ApiBranch>(promises);
     return ret;
   }
 

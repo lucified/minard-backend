@@ -300,8 +300,8 @@ describe('json-api-module', () => {
       expect(master).to.exist;
       expect(master.relationships.deployments.data).to.exist;
       expect(master.relationships.deployments.data[0]).to.exist;
-      expect(master.relationships.deployments.data[0].id).to.equal('8ds7f8asfasd');
-      expect(master.relationships.deployments.data[1].id).to.equal('98df789as897');
+      expect(master.relationships.deployments.data[0].id).to.equal('1-8ds7f8asfasd');
+      expect(master.relationships.deployments.data[1].id).to.equal('1-98df789as897');
     });
   });
 

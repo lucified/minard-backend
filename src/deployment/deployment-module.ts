@@ -22,13 +22,16 @@ export interface DeploymentKey {
   deploymentId: number;
 }
 
-export interface MinardDeployment {
-  id: number;
+export interface MinardDeploymentPlain {
   ref: string;
   status: string;
   url?: string;
   screenshot?: string;
   finished_at: string;
+}
+
+export interface MinardDeployment extends MinardDeploymentPlain {
+  id: number;
   _commit: any;
 }
 

@@ -14,8 +14,6 @@ import { IFetchStatic } from '../shared/fetch.d.ts';
 import { GitlabClient } from '../shared/gitlab-client';
 import Logger from  '../shared/logger';
 
-import { Deployment } from '../shared/gitlab.d.ts';
-
 const fetchMock = require('fetch-mock');
 const rimraf = require('rimraf');
 
@@ -189,7 +187,7 @@ describe('deployment-module', () => {
       fetchMock.restore().mock(`${host}${gitlabClient.apiPrefix}/projects/1/builds/4`, responseObject);
       const deploymentModule = getDeploymentModule(gitlabClient, '');
       // Act
-      const deployment = await deploymentModule.getDeployment(1, 4) as Deployment;
+      const deployment = await deploymentModule.getDeployment(1, 4) as MinardDeployment;
       // Assert
       expect(deployment).to.equal(null);
     });
@@ -202,7 +200,7 @@ describe('deployment-module', () => {
         fetchMock.restore().mock(`${host}${gitlabClient.apiPrefix}/projects/1/builds`, gitLabBuildsResponse);
         const deploymentModule = getDeploymentModule(gitlabClient, '');
         // Act
-        const deployments = await deploymentModule.getProjectDeployments(1) as Deployment[];
+        const deployments = await deploymentModule.getProjectDeployments(1) as MinardDeployment[];
         // Assert
         expect(deployments.length).equals(2);
         expect(deployments[0].id).equals(7);

@@ -2,8 +2,13 @@
 import MinardError, { MINARD_ERROR_CODE } from '../shared/minard-error';
 import { inject, injectable } from 'inversify';
 
-import DeploymentModule, { MinardDeployment } from '../deployment/deployment-module';
-import ProjectModule, { MinardBranch, MinardCommit, MinardProject } from '../project/project-module';
+import DeploymentModule, { MinardDeployment, MinardDeploymentPlain } from '../deployment/deployment-module';
+import ProjectModule, {
+  MinardBranch,
+  MinardCommit,
+  MinardProject,
+  MinardProjectPlain,
+} from '../project/project-module';
 
 const deepcopy = require('deepcopy');
 
@@ -49,6 +54,7 @@ export const deploymentSerialization =  {
 export const projectSerialization = {
   attributes: ['name', 'description', 'branches'],
   branches: nonIncludedSerialization,
+  ref: standardIdRef,
   included: true,
 };
 
@@ -76,13 +82,13 @@ export function branchToJsonApi(branch: ApiBranch | ApiBranch[]) {
   return serialized;
 }
 
-export function deploymentToJsonApi(deployments: any) {
+export function deploymentToJsonApi(deployment: ApiDeployment | ApiDeployment[]) {
   const serialized = new Serializer('deployment',
-    deploymentCompoundSerialization).serialize(deployments);
+    deploymentCompoundSerialization).serialize(deployment);
   return serialized;
 };
 
-export function projectToJsonApi(project: MinardProject | MinardProject[]) {
+export function projectToJsonApi(project: ApiProject | ApiProject[]) {
   const serialized = new Serializer('project',
     projectCompoundSerialization).serialize(project);
   return serialized;
@@ -91,17 +97,20 @@ export function projectToJsonApi(project: MinardProject | MinardProject[]) {
 // The Api-prefix interfaces are for richly composed objects
 // that can be directly passed to the JSON API serializer
 
-export interface ApiProject extends MinardProject {
+export interface ApiProject extends MinardProjectPlain {
+  id: string;
   branches: ApiBranch[];
 }
 
 export interface ApiBranch extends MinardBranch {
+  id: string;
   project: ApiProject;
   deployments: ApiDeployment[];
   commits: ApiCommit[];
 }
 
-export interface ApiDeployment extends MinardDeployment {
+export interface ApiDeployment extends MinardDeploymentPlain {
+  id: string;
   commit: ApiCommit;
 }
 
@@ -124,19 +133,17 @@ export default class JsonApiModule {
     this.projectModule = projectModule;
   }
 
-  public async getProjectDeployments(projectId: number) {
-    const deployments = await this.deploymentModule.getProjectDeployments(projectId);
-    return deploymentToJsonApi(deployments);
-  }
-
-  public async getDeployment(projectId: number, deploymentId: number): Promise<ApiDeployment> {
-    const deployment = await this.getApiDeployment(projectId, deploymentId);
-    return deploymentToJsonApi(deployment) as ApiDeployment;
+  public async getDeployment(deploymentId: string): Promise<JsonApiResponse> {
+    const deployment = await this.getApiDeployment(deploymentId);
+    if (!deployment) {
+      throw new MinardError(MINARD_ERROR_CODE.NOT_FOUND);
+    }
+    return deploymentToJsonApi(deployment);
   }
 
   public async getProjects(teamId: number) {
     const projects = await this.projectModule.getProjects(teamId);
-    const promises = projects.map((project: MinardProject) => this.augmentProject(project));
+    const promises = projects.map((project: MinardProject) => this.toApiProject(project));
     const augmentedProjects = await Promise.all<ApiProject>(promises);
     return projectToJsonApi(augmentedProjects);
   }
@@ -149,31 +156,45 @@ export default class JsonApiModule {
     return projectToJsonApi(project);
   }
 
-  public async getBranch(projectId: number, branchName: string): Promise<JsonApiResponse> {
-    const branch = await this.getApiBranch(projectId, branchName);
+  public async getBranch(branchId: string): Promise<JsonApiResponse> {
+    const branch = await this.getApiBranch(branchId);
     if (!branch) {
       throw new MinardError(MINARD_ERROR_CODE.NOT_FOUND);
     }
     return branchToJsonApi(branch);
   }
 
-  private async getApiProject(projectId: number): Promise<ApiProject | null> {
-    const project = await this.projectModule.getProject(projectId) as ApiProject;
+  private async getApiProject(apiProjectId: string | number): Promise<ApiProject | null> {
+    const projectId = Number(apiProjectId);
+    const project = await this.projectModule.getProject(projectId);
     if (!project) {
       return null;
     }
-    return await this.augmentProject(project);
+    return await this.toApiProject(project);
   }
 
-  private async getApiDeployment(projectId: number, deploymentId: number): Promise<ApiDeployment | null> {
+  private async getApiDeployment(apiDeploymentId: string): Promise<ApiDeployment | null> {
+     const splitted = apiDeploymentId.split('-');
+     if (!splitted || splitted.length !== 2) {
+       throw new MinardError(MINARD_ERROR_CODE.BAD_REQUEST);
+     }
+     const projectId = Number(splitted[0]);
+     const deploymentId = Number(splitted[1]);
      const deployment = await this.deploymentModule.getDeployment(projectId, deploymentId);
      if (!deployment) {
        return null;
      }
-     return await this.augmentDeployment(deployment);
+     return await this.toApiDeployment(String(projectId), deployment);
   }
 
-  private async getApiBranch(projectId: number, branchName: string): Promise<ApiBranch | null> {
+  private async getApiBranch(apiBranchId: string): Promise<ApiBranch | null> {
+    const splitted = apiBranchId.split('-');
+    if (!splitted || splitted.length !== 2) {
+      throw new MinardError(MINARD_ERROR_CODE.BAD_REQUEST);
+    }
+    const projectId = Number(splitted[0]);
+    const branchName = String(splitted[1]);
+
     const projectPromise = this.getApiProject(projectId);
     const branchPromise = this.projectModule.getBranch(projectId, branchName);
     const project = await projectPromise;
@@ -181,34 +202,36 @@ export default class JsonApiModule {
     if (!project || !branch) {
       return null;
     }
-    const augmentedBranch = await this.augmentBranch(project, branch);
-    return augmentedBranch;
+    return await this.toApiBranch(project, branch);
   }
 
-  private async augmentCommit(commit: MinardCommit): Promise<ApiCommit> {
+  private async toApiCommit(commit: MinardCommit): Promise<ApiCommit> {
     // this function is async because it probably needs to be that in the future
     return <ApiCommit> commit;
   }
 
-  private async augmentDeployment(deployment: MinardDeployment): Promise<ApiDeployment> {
+  private async toApiDeployment(projectId: string, deployment: MinardDeployment): Promise<ApiDeployment> {
     const ret = deepcopy(deployment) as ApiDeployment;
-    ret.commit = await this.augmentCommit(deployment._commit);
+    ret.id = `${projectId}-${deployment.id}`;
+    ret.commit = await this.toApiCommit(deployment._commit);
     return ret;
   }
 
-  private async augmentBranch(project: ApiProject, branch: MinardBranch): Promise<ApiBranch> {
+  private async toApiBranch(project: ApiProject, branch: MinardBranch): Promise<ApiBranch> {
     const ret = deepcopy(branch) as ApiBranch;
-    const deployments = await this.deploymentModule.getBranchDeployments(project.id, branch.name);
-    const promises = deployments.map(this.augmentDeployment);
+    ret.id = `${project.id}-${branch.name}`;
+    const deployments = await this.deploymentModule.getBranchDeployments(Number(project.id), branch.name);
+    const promises = deployments.map((deployment: MinardDeployment) => this.toApiDeployment(project.id, deployment));
     ret.deployments = await Promise.all<ApiDeployment>(promises);
     ret.project = project;
     return ret;
   }
 
-  private async augmentProject(project: MinardProject): Promise<ApiProject> {
+  private async toApiProject(project: MinardProject): Promise<ApiProject> {
     const ret = deepcopy(project) as ApiProject;
+    ret.id = String(project.id);
     const promises = project.branches.map(branch => {
-      return this.augmentBranch(ret, branch);
+      return this.toApiBranch(ret, branch);
     });
     ret.branches = await Promise.all<ApiBranch>(promises);
     return ret;

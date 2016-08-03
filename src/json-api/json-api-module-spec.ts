@@ -109,7 +109,7 @@ const exampleNewLayoutBranch = {
 } as ApiBranch;
 
 const exampleProject = {
-  id: 329,
+  id: '329',
   name: 'example-project',
   path: 'sepo/example-project',
   branches: [exampleMasterBranch, exampleNewLayoutBranch],
@@ -270,7 +270,7 @@ describe('json-api-module', () => {
                 name: 'new-feature',
               },
             ],
-          } as MinardProject;
+          } as {} as MinardProject;
         }
       }
       const jsonApiModule = new JsonApiModule(

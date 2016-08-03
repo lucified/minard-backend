@@ -12,11 +12,14 @@ import { EventBus } from '../event-bus/event-bus';
 import { Project } from '../shared/gitlab.d.ts';
 import SystemHookModule from '../system-hook/system-hook-module';
 
-export interface MinardProject {
-  id: number;
+export interface MinardProjectPlain {
   name: string;
   path: string;
   branches: MinardBranch[];
+}
+
+export interface MinardProject extends MinardProjectPlain {
+  id: number;
 }
 
 export interface MinardCommitAuthor {
@@ -34,7 +37,6 @@ export interface MinardCommit {
 }
 
 export interface MinardBranch {
-  id: string;
   name: string;
   commits: MinardCommit[];
 }

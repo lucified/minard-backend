@@ -48,6 +48,14 @@ export default class JsonApiHapiPlugin {
       },
     });
 
+    server.route({
+      method: 'GET',
+      path: '/teams/{teamId}/projects',
+      handler: {
+        async: this.getProjectsHandler.bind(this),
+      },
+    });
+
     next();
   };
 
@@ -55,6 +63,10 @@ export default class JsonApiHapiPlugin {
     // TODO: validation
     const projectId = (<any> request.params).projectId;
     return reply(this.jsonApiModule.getProject(projectId));
+  }
+
+  private async getProjectsHandler(_request: Hapi.Request, reply: Hapi.IReply) {
+    return reply(this.jsonApiModule.getProjects(1));
   }
 
   private async getProjectDeploymentsHandler(request: Hapi.Request, reply: Hapi.IReply) {

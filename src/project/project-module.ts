@@ -9,6 +9,7 @@ import { Commit } from '../shared/gitlab.d.ts';
 // only for types
 import AuthenticationModule from '../authentication/authentication-module';
 import { EventBus } from '../event-bus/event-bus';
+import { Project } from '../shared/gitlab.d.ts';
 import SystemHookModule from '../system-hook/system-hook-module';
 
 export interface MinardProject {
@@ -100,9 +101,23 @@ export default class ProjectModule {
     }
   }
 
+  public async getProjects(_teamId: number): Promise<MinardProject[]> {
+    // TODO: for now this does not use the teamId for anything.
+    // We just return all projects instead
+    const projects = await this.gitlab.fetchJson<Project[]>(`projects/all`);
+    if (!projects) {
+      return [];
+    }
+    // Using getProject() here creates one extra http request for the
+    // project, compared to a more specialized implementation.
+    const promises = projects.map((project: Project) => this.getProject(project.id));
+    const returned = await Promise.all<MinardProject | null>(promises);
+    return returned.filter(item => item !== null) as MinardProject[];
+  }
+
   public async getProject(projectId: number): Promise<MinardProject | null> {
     try {
-      const projectPromise = this.gitlab.fetchJson<any>(`projects/${projectId}`);
+      const projectPromise = this.gitlab.fetchJson<Project>(`projects/${projectId}`);
       const branchesPromise = this.gitlab.fetchJson<any>(`projects/${projectId}/repository/branches`);
 
       // we need to await for the branchesPromise to be able

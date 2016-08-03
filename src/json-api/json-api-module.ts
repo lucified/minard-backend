@@ -54,11 +54,7 @@ export function deploymentToJsonApi(deployments: any) {
   return serialized;
 };
 
-export function projectToJsonApi(project: MinardProject) {
-  project.branches.map(item => {
-      item.project = project;
-  });
-  // do not include commits
+export function projectToJsonApi(project: MinardProject | MinardProject[]) {
   projectSerialization.branches.commits.included = false;
   const serialized = new Serializer('project', projectSerialization).serialize(project);
   return serialized;
@@ -101,6 +97,13 @@ export default class JsonApiModule {
     return deploymentToJsonApi(deployment) as ApiDeployment;
   }
 
+  public async getProjects(teamId: number) {
+    const projects = await this.projectModule.getProjects(teamId);
+    const promises = projects.map((project: MinardProject) => this.augmentProject(project));
+    const augmentedProjects = await Promise.all<ApiProject>(promises);
+    return projectToJsonApi(augmentedProjects);
+  }
+
   public async getProject(projectId: number) {
     const project = await this.projectModule.getProject(projectId) as ApiProject;
     if (!project) {
@@ -122,6 +125,9 @@ export default class JsonApiModule {
     });
     const ret = deepcopy(project) as ApiProject;
     ret.branches = await Promise.all<ApiBranch>(promises);
+    project.branches.forEach(item => {
+      item.project = project;
+    });
     return ret;
   }
 

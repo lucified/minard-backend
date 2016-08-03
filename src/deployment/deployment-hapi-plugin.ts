@@ -86,6 +86,26 @@ class DeploymentHapiPlugin {
       },
     });
 
+    server.route({
+      method: 'GET',
+      path: '/ci/minard/v1/{what}/{id}/{action?}',
+      handler: (_request: Hapi.Request, reply: Hapi.IReply) => reply(`
+image: node:latest
+cache:
+  paths:
+  - node_modules/
+my_job:
+  script:
+   - echo MONOLITH
+   - npm install
+   - npm run-script build
+  artifacts:
+    name: "artifact-name"
+    paths:
+      - dist/
+      `),
+    });
+
     next();
   };
 

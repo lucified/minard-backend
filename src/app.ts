@@ -6,9 +6,11 @@ import 'reflect-metadata';
 import { Kernel } from 'inversify';
 import * as Knex from 'knex';
 
+import JsonApiHapiPlugin from './json-api/json-api-hapi-plugin';
+import JsonApiModule from './json-api/json-api-module';
+
 import AuthenticationModule from './authentication/authentication-module';
 import DeploymentPlugin from './deployment/deployment-hapi-plugin';
-import DeploymentJsonApi from './deployment/deployment-json-api';
 
 import { default as DeploymentModule, deploymentFolderInjectSymbol } from './deployment/deployment-module';
 
@@ -45,7 +47,6 @@ kernel.bind(EventBus.injectSymbol).toConstantValue(new LocalEventBus());
 kernel.bind(loggerInjectSymbol).toConstantValue(Logger(undefined, false, process.env.DEBUG ? true : false));
 kernel.bind(DeploymentPlugin.injectSymbol).to(DeploymentPlugin);
 kernel.bind(DeploymentModule.injectSymbol).to(DeploymentModule);
-kernel.bind(DeploymentJsonApi.injectSymbol).to(DeploymentJsonApi);
 kernel.bind(HelloPlugin.injectSymbol).to(HelloPlugin);
 kernel.bind(MinardServer.injectSymbol).to(MinardServer).inSingletonScope();
 kernel.bind(UserModule.injectSymbol).to(UserModule);
@@ -55,6 +56,9 @@ kernel.bind(ProjectModule.injectSymbol).to(ProjectModule);
 kernel.bind(ProjectPlugin.injectSymbol).to(ProjectPlugin);
 kernel.bind(SystemHookModule.injectSymbol).to(SystemHookModule);
 kernel.bind(AuthenticationModule.injectSymbol).to(AuthenticationModule);
+
+kernel.bind(JsonApiHapiPlugin.injectSymbol).to(JsonApiHapiPlugin);
+kernel.bind(JsonApiModule.injectSymbol).to(JsonApiModule);
 
 const HOST = process.env.HOST ? process.env.HOST : '0.0.0.0';
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 8000;

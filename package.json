@@ -39,11 +39,13 @@
     "mocha-typescript": "^1.0.4",
     "rimraf": "^2.5.4",
     "sqlite3": "^3.1.4",
+    "ts-node": "^1.2.2",
     "typescript": "^2.0.0"
   },
   "scripts": {
     "clean-test": "rm -rf dist && npm run-script transpile && mocha ./dist/**/*-spec.js",
-    "test": "mocha ./dist/**/*-spec.js",
+    "test": "mocha --opts mocha.opts",
+    "dot-test": "mocha --opts mocha.opts --reporter dot",
     "dev": "npm run transpile && node-dev --debug=5858 dist/app.js",
     "start": "node dist/app.js",
     "transpile": "tsc",

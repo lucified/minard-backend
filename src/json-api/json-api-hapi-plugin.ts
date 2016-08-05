@@ -91,9 +91,9 @@ export default class JsonApiHapiPlugin {
     return reply(this.jsonApiModule.getBranch(branchId));
   }
 
-  private async getCommitHandler(_request: Hapi.Request, _reply: Hapi.IReply) {
-    // const _branchId = (<any> request.params).branchId as string;
-    throw new MinardError(MINARD_ERROR_CODE.NOT_IMPLEMENTED);
+  private async getCommitHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    const commitId = (<any> request.params).commitId as string;
+    return reply(this.jsonApiModule.getCommit(commitId));
   }
 
 }

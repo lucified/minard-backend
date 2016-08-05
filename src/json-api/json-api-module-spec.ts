@@ -1,15 +1,18 @@
 
 import 'reflect-metadata';
 
+import { values } from 'lodash';
+
 import DeploymentModule, { MinardDeployment } from '../deployment/deployment-module';
 import ProjectModule, { MinardProject } from '../project/project-module';
 
-import JsonApiModule, { ApiBranch, ApiDeployment, ApiProject, JsonApiEntity, JsonApiResponse,
-  branchToJsonApi, deploymentToJsonApi, projectToJsonApi } from './json-api-module';
+import JsonApiModule, { ApiBranch, ApiCommit, ApiDeployment, ApiProject, JsonApiEntity, JsonApiResponse,
+  branchToJsonApi, commitToJsonApi, deploymentToJsonApi, projectToJsonApi } from './json-api-module';
 import { expect } from 'chai';
 
 const exampleCommitOne = {
-  id: '8ds7f89as7f89sa',
+  id: '1-8ds7f89as7f89sa',
+  hash: '8ds7f89as7f89sa',
   message: 'Remove unnecessary logging',
   author: {
     name: 'Fooman',
@@ -21,10 +24,11 @@ const exampleCommitOne = {
     email: 'barman@gmail.com',
     timestamp: '2015-12-24T16:51:21.802Z',
   },
-};
+} as ApiCommit;
 
 const exampleCommitTwo = {
-  id: 'dsf7a678as697f',
+  id: '1-dsf7a678as697f',
+  hash: '8ds7f89as7f89sa',
   message: 'Improve colors',
   author: {
     name: 'FooFooman',
@@ -36,13 +40,14 @@ const exampleCommitTwo = {
     email: 'barbarman@gmail.com',
     timestamp: '2015-12-24T18:51:21.802Z',
   },
-};
+} as ApiCommit;
 
 const masterBranchCommits = [exampleCommitOne, exampleCommitTwo];
 
 const newLayoutBranchCommits = [
   {
-    id: 'ds7f679f8a6978f6a789',
+    id: '1-ds7f679f8a6978f6a789',
+    hash: 'ds7f679f8a6978f6a789',
     message: 'Try out different layout',
     author: {
       name: 'FooFooFooman',
@@ -56,7 +61,8 @@ const newLayoutBranchCommits = [
     },
   },
   {
-    id: 'dsaf7as6f7as96',
+    id: '1-dsaf7as6f7as96',
+    hash: 'ds7f679f8a6978f6a789',
     message: 'Fix responsiveness of new layout',
     author: {
       name: 'FooFooFooFooman',
@@ -69,10 +75,10 @@ const newLayoutBranchCommits = [
       timestamp: '2015-12-24T22:51:21.802Z',
     },
   },
-];
+] as ApiCommit[];
 
 const exampleDeploymentOne = {
-  id: 'df897as89f7asasdf',
+  id: '1-1',
   url: 'http://www.foobar.com',
   finished_at: '2015-12-24T17:54:31.198Z',
   status: 'success',
@@ -80,7 +86,7 @@ const exampleDeploymentOne = {
 } as {} as ApiDeployment;
 
 const exampleDeploymentTwo = {
-  id: 'ds8a7f98as7f890ds',
+  id: '1-2',
   url: 'http://www.foobarbar.com',
   finished_at: '2015-12-24T19:54:31.198Z',
   status: 'success',
@@ -88,14 +94,14 @@ const exampleDeploymentTwo = {
 } as {} as ApiDeployment;
 
 const exampleMasterBranch = {
-  id: '329-master',
+  id: '1-master',
   name: 'master',
   deployments: [exampleDeploymentOne, exampleDeploymentTwo],
   commits: masterBranchCommits,
 } as ApiBranch;
 
 const exampleNewLayoutBranch = {
-  id: '329-new-layout',
+  id: '1-new-layout',
   name: 'new-layout',
   commits: newLayoutBranchCommits,
   deployments: [
@@ -109,7 +115,7 @@ const exampleNewLayoutBranch = {
 } as ApiBranch;
 
 const exampleProject = {
-  id: '329',
+  id: '1',
   name: 'example-project',
   path: 'sepo/example-project',
   branches: [exampleMasterBranch, exampleNewLayoutBranch],
@@ -126,7 +132,7 @@ describe('json-api-module', () => {
     const data = converted.data;
 
     // id and type
-    expect(data.id).to.equal('329');
+    expect(data.id).to.equal('1');
     expect(data.type).to.equal('projects');
 
     // attributes
@@ -136,25 +142,25 @@ describe('json-api-module', () => {
     expect(data.relationships.branches).to.exist;
     expect(data.relationships.branches.data).to.have.length(2);
 
-    expect(data.relationships.branches.data[0].id).to.equal('329-master');
-    expect(data.relationships.branches.data[1].id).to.equal('329-new-layout');
+    expect(data.relationships.branches.data[0].id).to.equal('1-master');
+    expect(data.relationships.branches.data[1].id).to.equal('1-new-layout');
 
     expect(data.relationships.branches.data[0].type).to.equal('branches');
     expect(data.relationships.branches.data[1].type).to.equal('branches');
 
     // included branches
     const branch1 = converted.included.find(
-      (item: JsonApiEntity) => item.type === 'branches' && item.id === '329-master');
+      (item: JsonApiEntity) => item.type === 'branches' && item.id === '1-master');
     expect(branch1).to.exist;
     expect(branch1.attributes.name).to.equal('master');
     expect(branch1.relationships).to.exist;
     expect(branch1.relationships.commits.data).to.have.length(2);
-    expect(branch1.relationships.commits.data[0].id).to.equal('8ds7f89as7f89sa');
-    expect(branch1.relationships.commits.data[1].id).to.equal('dsf7a678as697f');
+    expect(branch1.relationships.commits.data[0].id).to.equal('1-8ds7f89as7f89sa');
+    expect(branch1.relationships.commits.data[1].id).to.equal('1-dsf7a678as697f');
 
     expect(branch1.relationships.project).to.exist;
     expect(branch1.relationships.project.data).to.exist;
-    expect(branch1.relationships.project.data.id).to.equal('329');
+    expect(branch1.relationships.project.data.id).to.equal('1');
     expect(branch1.relationships.project.data.type).to.equal('projects');
 
     // commits should not be included
@@ -175,7 +181,7 @@ describe('json-api-module', () => {
       expect(data).to.have.length(1);
 
       // id and type
-      expect(data[0].id).to.equal('df897as89f7asasdf');
+      expect(data[0].id).to.equal('1-1');
       expect(data[0].type).to.equal('deployments');
 
       // attributes
@@ -186,13 +192,14 @@ describe('json-api-module', () => {
       // commit relationship
       expect(data[0].relationships.commit).to.exist;
       expect(data[0].relationships.commit.data.type).to.equal('commits');
-      expect(data[0].relationships.commit.data.id).to.equal('8ds7f89as7f89sa');
+      expect(data[0].relationships.commit.data.id).to.equal('1-8ds7f89as7f89sa');
 
       // included commit
       const includedCommit = converted.included.find((item: any) =>
-        item.id === '8ds7f89as7f89sa' && item.type === 'commits');
+        item.id === '1-8ds7f89as7f89sa' && item.type === 'commits');
       expect(includedCommit).to.exist;
-      expect(includedCommit.id).to.equal('8ds7f89as7f89sa');
+      expect(includedCommit.id).to.equal('1-8ds7f89as7f89sa');
+      expect(includedCommit.attributes.hash).to.equal('8ds7f89as7f89sa');
       expect(includedCommit.attributes.message).to.equal('Remove unnecessary logging');
     });
   });
@@ -206,7 +213,7 @@ describe('json-api-module', () => {
       expect(data).to.exist;
 
       // id and type
-      expect(data.id).to.equal('329-master');
+      expect(data.id).to.equal('1-master');
       expect(data.type).to.equal('branches');
 
       // attributes
@@ -215,28 +222,57 @@ describe('json-api-module', () => {
       // commit relationship
       expect(data.relationships.commits).to.exist;
       expect(data.relationships.commits.data).to.have.length(2);
-      expect(data.relationships.commits.data[0].id).to.equal('8ds7f89as7f89sa');
-      expect(data.relationships.commits.data[1].id).to.equal('dsf7a678as697f');
+      expect(data.relationships.commits.data[0].id).to.equal('1-8ds7f89as7f89sa');
+      expect(data.relationships.commits.data[1].id).to.equal('1-dsf7a678as697f');
 
       // deployment relationship
       expect(data.relationships.deployments).to.exist;
       expect(data.relationships.deployments.data).to.have.length(2);
-      expect(data.relationships.deployments.data[0].id).to.equal('df897as89f7asasdf');
-      expect(data.relationships.deployments.data[1].id).to.equal('ds8a7f98as7f890ds');
+      expect(data.relationships.deployments.data[0].id).to.equal('1-1');
+      expect(data.relationships.deployments.data[1].id).to.equal('1-2');
 
       // included commit
       const includedCommit = (<any> converted.included).find((item: any) =>
-        item.id === '8ds7f89as7f89sa' && item.type === 'commits');
+        item.id === '1-8ds7f89as7f89sa' && item.type === 'commits');
       expect(includedCommit).to.exist;
-      expect(includedCommit.id).to.equal('8ds7f89as7f89sa');
+      expect(includedCommit.id).to.equal('1-8ds7f89as7f89sa');
+      expect(includedCommit.attributes.hash).to.equal('8ds7f89as7f89sa');
       expect(includedCommit.attributes.message).to.equal('Remove unnecessary logging');
 
-      // included commit
+      // included deployment
       const includedDeployment = (<any> converted.included).find((item: any) =>
-        item.id === 'df897as89f7asasdf' && item.type === 'deployments');
+        item.id === '1-1' && item.type === 'deployments');
       expect(includedDeployment).to.exist;
-      expect(includedDeployment.id).to.equal('df897as89f7asasdf');
+      expect(includedDeployment.id).to.equal('1-1');
       expect(includedDeployment.attributes.url).to.equal('http://www.foobar.com');
+    });
+  });
+
+  describe('commitToJsonApi()', () => {
+    it('should work with a single commit', () => {
+
+      const commit = exampleCommitOne;
+      const converted = commitToJsonApi(commit) as JsonApiResponse;
+      const data = converted.data as JsonApiEntity;
+      expect(data).to.exist;
+
+      // id and type
+      expect(data.id).to.equal('1-8ds7f89as7f89sa');
+      expect(data.type).to.equal('commits');
+
+      // attributes
+      expect(data.attributes.hash).to.equal('8ds7f89as7f89sa');
+      expect(data.attributes.message).to.equal('Remove unnecessary logging');
+      expect(data.attributes.author.name).to.equal('Fooman');
+      expect(data.attributes.author.email).to.equal('fooman@gmail.com');
+      expect(data.attributes.author.timestamp).to.equal('2015-12-24T15:51:21.802Z');
+      expect(data.attributes.committer.name).to.equal('Barman');
+      expect(data.attributes.committer.email).to.equal('barman@gmail.com');
+      expect(data.attributes.committer.timestamp).to.equal('2015-12-24T16:51:21.802Z');
+
+      // no extra stuff
+      expect(values(data.relationships)).to.have.length(0);
+      expect(values(converted.included)).to.have.length(0);
     });
   });
 

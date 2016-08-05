@@ -59,9 +59,8 @@ export const projectSerialization = {
 };
 
 export const commitSerialization = {
-  attributes: ['message', 'author', 'branch'],
+  attributes: ['message', 'author', 'committer', 'hash'],
   ref: standardIdRef,
-  branch: nonIncludedSerialization,
   included: true,
 };
 
@@ -94,6 +93,11 @@ export function projectToJsonApi(project: ApiProject | ApiProject[]) {
   return serialized;
 };
 
+export function commitToJsonApi(commit: ApiCommit | ApiCommit[]) {
+  return new Serializer('commit', commitSerialization)
+    .serialize(commit);
+}
+
 // The Api-prefix interfaces are for richly composed objects
 // that can be directly passed to the JSON API serializer
 
@@ -115,7 +119,7 @@ export interface ApiDeployment extends MinardDeploymentPlain {
 }
 
 export interface ApiCommit extends MinardCommit {
-  branch: ApiBranch;
+  hash: string;
 }
 
 @injectable()
@@ -164,13 +168,29 @@ export default class JsonApiModule {
     return branchToJsonApi(branch);
   }
 
+  public async getCommit(commitId: string): Promise<JsonApiResponse> {
+    const commit = await this.getApiCommit(commitId);
+    if (!commit) {
+      throw new MinardError(MINARD_ERROR_CODE.NOT_FOUND);
+    }
+    return commitToJsonApi(commit);
+  }
+
+  private async getApiCommit(apiCommitId: string): Promise<ApiCommit | null> {
+    const splitted = apiCommitId.split('-');
+    if (!splitted || splitted.length !== 2) {
+       throw new MinardError(MINARD_ERROR_CODE.BAD_REQUEST);
+    }
+    const projectId = splitted[0];
+    const hash = splitted[1];
+    const commit = await this.projectModule.getCommit(Number(projectId), hash);
+    return commit ? this.toApiCommit(projectId, commit) : null;
+  }
+
   private async getApiProject(apiProjectId: string | number): Promise<ApiProject | null> {
     const projectId = Number(apiProjectId);
     const project = await this.projectModule.getProject(projectId);
-    if (!project) {
-      return null;
-    }
-    return await this.toApiProject(project);
+    return project ? this.toApiProject(project) : null;
   }
 
   private async getApiDeployment(apiDeploymentId: string): Promise<ApiDeployment | null> {
@@ -205,15 +225,22 @@ export default class JsonApiModule {
     return await this.toApiBranch(project, branch);
   }
 
-  private async toApiCommit(commit: MinardCommit): Promise<ApiCommit> {
-    // this function is async because it probably needs to be that in the future
-    return <ApiCommit> commit;
+  private async toApiCommit(projectId: string, commit: MinardCommit): Promise<ApiCommit> {
+    const ret = deepcopy(commit) as ApiCommit;
+    if (!commit) {
+      throw new MinardError(MINARD_ERROR_CODE.INTERNAL_SERVER_ERROR);
+    }
+    ret.id = `${projectId}-${commit.id}`;
+    ret.hash = commit.id;
+    return ret;
   }
 
   private async toApiDeployment(projectId: string, deployment: MinardDeployment): Promise<ApiDeployment> {
     const ret = deepcopy(deployment) as ApiDeployment;
     ret.id = `${projectId}-${deployment.id}`;
-    ret.commit = await this.toApiCommit(deployment._commit);
+    if (deployment._commit) {
+      ret.commit = await this.toApiCommit(projectId, deployment._commit);
+    }
     return ret;
   }
 

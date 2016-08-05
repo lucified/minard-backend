@@ -66,6 +66,31 @@ class DeploymentHapiPlugin {
       },
     });
 
+    server.route({
+      method: 'GET',
+      path: '/ci/projects/{id}/{ref}/{sha}/{action}',
+      handler: (request: Hapi.Request, reply: Hapi.IReply) => {
+        const actionKey = 'action';
+        if (request.params[actionKey] !== 'yml') {
+          return reply(404);
+        }
+        return reply(`
+image: node:latest
+cache:
+  paths:
+  - node_modules/
+my_job:
+  script:
+   - echo MONOLITH
+   - npm install
+   - npm run-script build
+  artifacts:
+    name: "artifact-name"
+    paths:
+      - dist/
+      `); },
+    });
+
     next();
   };
 

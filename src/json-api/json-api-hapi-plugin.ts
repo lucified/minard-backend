@@ -3,8 +3,6 @@ import * as Hapi from 'hapi';
 import { inject, injectable } from 'inversify';
 
 import { HapiRegister } from '../server/hapi-register';
-import MinardError, { MINARD_ERROR_CODE } from '../shared/minard-error';
-
 import JsonApiModule from './json-api-module';
 
 @injectable()

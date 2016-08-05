@@ -80,6 +80,19 @@ export default class ProjectModule {
     };
   }
 
+  public async getCommit(projectId: number, hash: string): Promise<MinardCommit | null> {
+    try {
+      const commit = await this.gitlab.fetchJson<Commit>(
+        `projects/${projectId}/repository/commits/${encodeURIComponent(hash)}`);
+      return this.toMinardCommit(commit);
+    } catch (err) {
+      if (err.status === MINARD_ERROR_CODE.NOT_FOUND) {
+        return null;
+      }
+      return err;
+    }
+  }
+
   public async getBranch(projectId: number, branchName: string): Promise<MinardBranch | null> {
     try {
       const commitsPromise = await this.gitlab.fetchJson<any>(

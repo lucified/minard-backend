@@ -5,7 +5,7 @@ import AuthenticationModule from '../authentication/authentication-module';
 import LocalEventBus from '../event-bus/local-event-bus';
 import { GitlabClient } from '../shared/gitlab-client';
 import SystemHookModule from '../system-hook/system-hook-module';
-import ProjectModule, { MinardBranch, MinardProject } from './project-module';
+import ProjectModule, { MinardBranch, MinardCommit, MinardProject } from './project-module';
 import { expect } from 'chai';
 
 const fetchMock = require('fetch-mock');
@@ -303,6 +303,59 @@ describe('project-module', () => {
 
       expect(project.branches[0].name).to.equal('async');
       expect(project.branches[1].name).to.equal('gh-pages');
+    });
+  });
+
+  describe('getCommit()', () => {
+    it('should work with typical response', async () => {
+      // Arrange
+      const gitlabCommitResponse = {
+        'id': '6104942438c14ec7bd21c6cd5bd995272b3faff6',
+        'short_id': '6104942438c',
+        'title': 'Sanitize for network graph',
+        'author_name': 'randx',
+        'author_email': 'dmitriy.zaporozhets@gmail.com',
+        'created_at': '2012-09-20T09:06:12+03:00',
+        'message': 'Sanitize for network graph',
+        'committed_date': '2012-09-20T09:08:12+03:00',
+        'authored_date': '2012-09-20T09:06:12+03:00',
+        'committer_name': 'fooman',
+        'committer_email': 'fooman@gmail.com',
+        'parent_ids': [
+          'ae1d9fb46aa2b07ee9836d49862ec4e2c46fbbba',
+        ],
+        'stats': {
+          'additions': 15,
+          'deletions': 10,
+          'total': 25,
+        },
+        'status': 'running',
+      };
+
+      const gitlabClient = getClient();
+      const projectModule = new ProjectModule(
+        {} as AuthenticationModule,
+        {} as SystemHookModule,
+        {} as LocalEventBus,
+        gitlabClient);
+
+      fetchMock.restore().mock(
+        `${host}${gitlabClient.apiPrefix}/projects/3/repository/commits/6104942438c14ec7bd21c6cd5bd995272b3faff6`,
+        { body: gitlabCommitResponse });
+
+      // Act
+      const commit = await projectModule.getCommit(3, '6104942438c14ec7bd21c6cd5bd995272b3faff6') as MinardCommit;
+
+      // Assert
+      expect(commit).to.exist;
+      expect(commit.id).to.equal('6104942438c14ec7bd21c6cd5bd995272b3faff6');
+      expect(commit.message).to.equal('Sanitize for network graph');
+      expect(commit.author.email).to.equal('dmitriy.zaporozhets@gmail.com');
+      expect(commit.author.name).to.equal('randx');
+      expect(commit.author.timestamp).to.equal('2012-09-20T09:06:12+03:00');
+      expect(commit.committer.email).to.equal('fooman@gmail.com');
+      expect(commit.committer.name).to.equal('fooman');
+      expect(commit.committer.timestamp).to.equal('2012-09-20T09:08:12+03:00');
     });
   });
 

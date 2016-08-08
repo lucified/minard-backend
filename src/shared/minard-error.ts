@@ -1,16 +1,4 @@
 
-export default class MinardError extends Error {
-  public readonly message: string;
-  public readonly status: number;
-
-  constructor(status: number, message?: string, err?: any) {
-    super();
-    this.status = status;
-    this.stack = err && err.stack ? err.stack : new Error().stack;
-    this.message = message ? message : `Error with status '${status}'`;
-  }
-}
-
 export const enum MINARD_ERROR_CODE {
   CONTINUE = 100,
   SWITCHING_PROTOCOLS = 101,

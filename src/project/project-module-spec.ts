@@ -360,7 +360,7 @@ describe('project-module', () => {
     });
   });
 
-  describe('findActiceCommitters(...)', () => {
+  describe('findActiveCommitters(...)', () => {
     it('should work with project having two branches', async () => {
       // Arrange
       const project = {

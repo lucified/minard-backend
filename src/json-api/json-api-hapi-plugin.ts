@@ -17,6 +17,7 @@ function onPreResponse(request: Hapi.Request, reply: Hapi.IReply) {
     return reply.continue();
   }
 
+  const contentType = 'application/vnd.api+json; charset=utf-8';
   if (response.isBoom) {
     const output = (<any> response).output;
     const error = {
@@ -27,12 +28,12 @@ function onPreResponse(request: Hapi.Request, reply: Hapi.IReply) {
     output.payload = {
       errors: [error],
     };
-    output.headers['content-type'] = 'application/vnd.api+json';
+    output.headers['content-type'] = contentType;
   } else {
     if (response.source) {
       response.source.meta = { id: request.id };
     }
-    response.headers['content-type'] = 'application/vnd.api+json';
+    response.headers['content-type'] = contentType;
   }
   return reply.continue();
 };

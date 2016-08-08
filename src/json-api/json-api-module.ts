@@ -1,4 +1,6 @@
 
+import * as Boom from 'boom';
+
 import MinardError, { MINARD_ERROR_CODE } from '../shared/minard-error';
 import { inject, injectable } from 'inversify';
 
@@ -140,10 +142,10 @@ export default class JsonApiModule {
     this.projectModule = projectModule;
   }
 
-  public async getDeployment(deploymentId: string): Promise<JsonApiResponse> {
-    const deployment = await this.getApiDeployment(deploymentId);
+  public async getDeployment(projectId: number, deploymentId: number): Promise<JsonApiResponse> {
+    const deployment = await this.getApiDeployment(projectId, deploymentId);
     if (!deployment) {
-      throw new MinardError(MINARD_ERROR_CODE.NOT_FOUND);
+      throw Boom.notFound('Deployment not found');
     }
     return deploymentToJsonApi(deployment);
   }
@@ -151,7 +153,7 @@ export default class JsonApiModule {
   public async getProjects(teamId: number): Promise<JsonApiResponse> {
     const projects = await this.getApiProjects(teamId);
     if (!projects) {
-      throw new MinardError(MINARD_ERROR_CODE.NOT_FOUND);
+      throw Boom.notFound();
     }
     return projectToJsonApi(projects);
   }
@@ -159,35 +161,29 @@ export default class JsonApiModule {
   public async getProject(projectId: number): Promise<JsonApiResponse> {
     const project = await this.getApiProject(projectId);
     if (!project) {
-      throw new MinardError(MINARD_ERROR_CODE.NOT_FOUND);
+      throw Boom.notFound('Project not found');
     }
     return projectToJsonApi(project);
   }
 
-  public async getBranch(branchId: string): Promise<JsonApiResponse> {
-    const branch = await this.getApiBranch(branchId);
+  public async getBranch(projectId: number, branchId: string): Promise<JsonApiResponse> {
+    const branch = await this.getApiBranch(projectId, branchId);
     if (!branch) {
-      throw new MinardError(MINARD_ERROR_CODE.NOT_FOUND);
+      throw Boom.notFound('Branch not found');
     }
     return branchToJsonApi(branch);
   }
 
-  public async getCommit(commitId: string): Promise<JsonApiResponse> {
-    const commit = await this.getApiCommit(commitId);
+  public async getCommit(projectId: number, hash: string): Promise<JsonApiResponse> {
+    const commit = await this.getApiCommit(projectId, hash);
     if (!commit) {
-      throw new MinardError(MINARD_ERROR_CODE.NOT_FOUND);
+      throw Boom.notFound('Commit not found');
     }
     return commitToJsonApi(commit);
   }
 
-  private async getApiCommit(apiCommitId: string): Promise<ApiCommit | null> {
-    const splitted = apiCommitId.split('-');
-    if (!splitted || splitted.length !== 2) {
-       throw new MinardError(MINARD_ERROR_CODE.BAD_REQUEST);
-    }
-    const projectId = splitted[0];
-    const hash = splitted[1];
-    const commit = await this.projectModule.getCommit(Number(projectId), hash);
+  private async getApiCommit(projectId: number, hash: string): Promise<ApiCommit | null> {
+    const commit = await this.projectModule.getCommit(projectId, hash);
     return commit ? this.toApiCommit(projectId, commit) : null;
   }
 
@@ -203,28 +199,15 @@ export default class JsonApiModule {
     return await Promise.all<ApiProject>(promises);
   }
 
-  private async getApiDeployment(apiDeploymentId: string): Promise<ApiDeployment | null> {
-     const splitted = apiDeploymentId.split('-');
-     if (!splitted || splitted.length !== 2) {
-       throw new MinardError(MINARD_ERROR_CODE.BAD_REQUEST);
-     }
-     const projectId = Number(splitted[0]);
-     const deploymentId = Number(splitted[1]);
+  private async getApiDeployment(projectId: number, deploymentId: number): Promise<ApiDeployment | null> {
      const deployment = await this.deploymentModule.getDeployment(projectId, deploymentId);
      if (!deployment) {
        return null;
      }
-     return await this.toApiDeployment(String(projectId), deployment);
+     return await this.toApiDeployment(projectId, deployment);
   }
 
-  private async getApiBranch(apiBranchId: string): Promise<ApiBranch | null> {
-    const splitted = apiBranchId.split('-');
-    if (!splitted || splitted.length !== 2) {
-      throw new MinardError(MINARD_ERROR_CODE.BAD_REQUEST);
-    }
-    const projectId = Number(splitted[0]);
-    const branchName = String(splitted[1]);
-
+  private async getApiBranch(projectId: number, branchName: string): Promise<ApiBranch | null> {
     const projectPromise = this.getApiProject(projectId);
     const branchPromise = this.projectModule.getBranch(projectId, branchName);
     const project = await projectPromise;
@@ -235,17 +218,17 @@ export default class JsonApiModule {
     return await this.toApiBranch(project, branch);
   }
 
-  private async toApiCommit(projectId: string, commit: MinardCommit): Promise<ApiCommit> {
+  private async toApiCommit(projectId: number, commit: MinardCommit): Promise<ApiCommit> {
     const ret = deepcopy(commit) as ApiCommit;
     if (!commit) {
-      throw new MinardError(MINARD_ERROR_CODE.INTERNAL_SERVER_ERROR);
+      throw Boom.badImplementation();
     }
     ret.id = `${projectId}-${commit.id}`;
     ret.hash = commit.id;
     return ret;
   }
 
-  private async toApiDeployment(projectId: string, deployment: MinardDeployment): Promise<ApiDeployment> {
+  private async toApiDeployment(projectId: number, deployment: MinardDeployment): Promise<ApiDeployment> {
     const ret = deepcopy(deployment) as ApiDeployment;
     ret.id = `${projectId}-${deployment.id}`;
     if (deployment._commit) {
@@ -259,9 +242,9 @@ export default class JsonApiModule {
     ret.id = `${project.id}-${branch.name}`;
     const deployments = await this.deploymentModule.getBranchDeployments(Number(project.id), branch.name);
     const commitPromises = branch.commits.map(
-      (commit: MinardCommit) => this.toApiCommit(project.id, commit));
+      (commit: MinardCommit) => this.toApiCommit(Number(project.id), commit));
     const deploymentPromises = deployments.map(
-      (deployment: MinardDeployment) => this.toApiDeployment(project.id, deployment));
+      (deployment: MinardDeployment) => this.toApiDeployment(Number(project.id), deployment));
     ret.deployments = await Promise.all<ApiDeployment>(deploymentPromises);
     ret.commits = await Promise.all<ApiCommit>(commitPromises);
     ret.project = project;

@@ -1,9 +1,43 @@
 
 import * as Hapi from 'hapi';
 import { inject, injectable } from 'inversify';
+import * as Joi from 'joi';
 
 import { HapiRegister } from '../server/hapi-register';
 import JsonApiModule from './json-api-module';
+
+
+function onPreResponse(request: Hapi.Request, reply: Hapi.IReply) {
+  const response = request.response;
+
+  if (!request.path.startsWith('/api')) {
+    return reply.continue();
+  }
+
+  if (request.method === 'options') {
+    return reply.continue();
+  }
+
+  const output = (<any> response).output;
+  if (response.isBoom) {
+    const error = {
+      title: output.payload.error,
+      status: output.statusCode,
+      detail: output.payload.message,
+    };
+    output.payload = {
+      errors: [error],
+    };
+    output.headers['content-type'] = 'application/vnd.api+json';
+  } else {
+    if (response.source) {
+      response.source.meta = { id: request.id };
+    }
+    response.headers['content-type'] = 'application/vnd.api+json';
+  }
+  return reply.continue();
+};
+
 
 @injectable()
 export default class JsonApiHapiPlugin {
@@ -23,11 +57,21 @@ export default class JsonApiHapiPlugin {
 
   public register: HapiRegister = (server, _options, next) => {
 
+    server.ext('onPreResponse', onPreResponse);
+
     server.route({
       method: 'GET',
-      path: '/deployments/{deploymentId}',
+      path: '/deployments/{projectId}-{deploymentId}',
       handler: {
         async: this.getDeploymentHandler.bind(this),
+      },
+      config: {
+        validate: {
+          params: {
+            projectId: Joi.number().required(),
+            deploymentId: Joi.number().required(),
+          },
+        },
       },
     });
 
@@ -37,6 +81,13 @@ export default class JsonApiHapiPlugin {
       handler: {
         async: this.getProjectHandler.bind(this),
       },
+      config: {
+        validate: {
+          params: {
+            projectId: Joi.number().required(),
+          },
+        },
+      },
     });
 
     server.route({
@@ -45,21 +96,44 @@ export default class JsonApiHapiPlugin {
       handler: {
         async: this.getProjectsHandler.bind(this),
       },
-    });
-
-    server.route({
-      method: 'GET',
-      path: '/branches/{branchId}',
-      handler: {
-        async: this.getBranchHandler.bind(this),
+      config: {
+        validate: {
+          params: {
+            teamId: Joi.string().required(),
+          },
+        },
       },
     });
 
     server.route({
       method: 'GET',
-      path: '/commits/{commitId}',
+      path: '/branches/{projectId}-{branchName}',
+      handler: {
+        async: this.getBranchHandler.bind(this),
+      },
+      config: {
+        validate: {
+          params: {
+            projectId: Joi.number().required(),
+            branchName: Joi.string().min(1).required(),
+          },
+        },
+      },
+    });
+
+    server.route({
+      method: 'GET',
+      path: '/commits/{projectId}-{hash}',
       handler: {
         async: this.getCommitHandler.bind(this),
+      },
+      config: {
+        validate: {
+          params: {
+            projectId: Joi.number().required(),
+            hash: Joi.string().min(8).required(),
+          },
+        },
       },
     });
 
@@ -67,7 +141,6 @@ export default class JsonApiHapiPlugin {
   };
 
   private async getProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    // TODO: validation
     const projectId = (<any> request.params).projectId;
     return reply(this.jsonApiModule.getProject(projectId));
   }
@@ -78,20 +151,21 @@ export default class JsonApiHapiPlugin {
   }
 
   private async getDeploymentHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    // TODO: validation
-    const deploymentId = (<any> request.params).deploymentId as string;
-    return reply(this.jsonApiModule.getDeployment(deploymentId));
+    const projectId = Number((<any> request.params).projectId);
+    const deploymentId = Number((<any> request.params).deploymentId);
+    return reply(this.jsonApiModule.getDeployment(projectId, deploymentId));
   }
 
   private async getBranchHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    // TODO: validation
+    const projectId = Number((<any> request.params).projectId);
     const branchId = (<any> request.params).branchId as string;
-    return reply(this.jsonApiModule.getBranch(branchId));
+    return reply(this.jsonApiModule.getBranch(projectId, branchId));
   }
 
   private async getCommitHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const commitId = (<any> request.params).commitId as string;
-    return reply(this.jsonApiModule.getCommit(commitId));
+    const projectId = Number((<any> request.params).projectId);
+    const hash = (<any> request.params).hash as string;
+    return reply(this.jsonApiModule.getCommit(projectId, hash));
   }
 
 }

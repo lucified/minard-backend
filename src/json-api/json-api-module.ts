@@ -3,6 +3,8 @@ import * as Boom from 'boom';
 
 import { inject, injectable } from 'inversify';
 
+import { Commit } from '../shared/gitlab.d.ts';
+
 import DeploymentModule, { MinardDeployment, MinardDeploymentPlain } from '../deployment/deployment-module';
 import ProjectModule, {
   MinardBranch,
@@ -230,8 +232,9 @@ export default class JsonApiModule {
   private async toApiDeployment(projectId: number, deployment: MinardDeployment): Promise<ApiDeployment> {
     const ret = deepcopy(deployment) as ApiDeployment;
     ret.id = `${projectId}-${deployment.id}`;
-    if (deployment._commit) {
-      ret.commit = await this.toApiCommit(projectId, deployment._commit);
+    if (deployment.commitRef) {
+      ret.commit = await this.toApiCommit(projectId,
+        this.projectModule.toMinardCommit(deployment.commitRef as Commit));
     }
     return ret;
   }

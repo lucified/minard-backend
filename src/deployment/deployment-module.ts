@@ -30,9 +30,13 @@ export interface MinardDeploymentPlain {
   finished_at: string;
 }
 
+interface CommitRef {
+  id: string;
+}
+
 export interface MinardDeployment extends MinardDeploymentPlain {
   id: number;
-  _commit: any;
+  commitRef: CommitRef;
 }
 
 export function isRawDeploymentHostname(hostname: string) {
@@ -106,10 +110,10 @@ export default class DeploymentModule {
   private toMinardModelDeployment(deployment: Deployment, projectId: number): MinardDeployment {
     let ret = deepcopy(deployment);
     // rename the commit variable
-    ret._commit = deployment.commit;
+    ret.commitRef = deployment.commit;
     delete ret.commit;
     if (ret.status === 'success') {
-      (<any> deployment).url = `http://${deployment.ref}-` +
+      (<any> ret).url = `http://${deployment.ref}-` +
         `${deployment.commit.short_id}-${projectId}-${deployment.id}.localhost:8000`;
     }
     return ret;

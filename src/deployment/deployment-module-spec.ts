@@ -173,7 +173,7 @@ describe('deployment-module', () => {
       // Assert
       expect(deployment).to.not.equal(null);
       expect(deployment.id).to.equal(8);
-      expect(deployment.url).to.equal('http://dfa-4-5.localhost');
+      expect(deployment.url).to.equal('http://master-0ff3ae19-1-8.localhost:8000');
     });
 
     it('should return null when deployment can not be found', async () => {

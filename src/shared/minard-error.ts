@@ -3,10 +3,10 @@ export default class MinardError extends Error {
   public readonly message: string;
   public readonly status: number;
 
-  constructor(status: number, message?: string) {
+  constructor(status: number, message?: string, err?: any) {
     super();
     this.status = status;
-    this.stack = new Error().stack;
+    this.stack = err && err.stack ? err.stack : new Error().stack;
     this.message = message ? message : `Error with status '${status}'`;
   }
 }

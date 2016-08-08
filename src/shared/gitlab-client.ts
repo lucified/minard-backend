@@ -1,4 +1,6 @@
 
+import * as Boom from 'boom';
+
 import Authentication from '../authentication/authentication-module';
 
 import { inject, injectable } from 'inversify';
@@ -90,24 +92,12 @@ export class GitlabClient {
     const url = this.url(path);
     const _options = await this.authenticate(options);
     this.log(`GitlabClient: sending request to ${url}`);
-    const r = await this._fetch(url, _options);
-    if (r.status !== 200) {
-      throw new HttpError(r);
+    const response = await this._fetch(url, _options);
+    if (response.status !== 200) {
+      throw Boom.create(response.status);
     }
-    this.log(`GitlabClient: received response ${r.status} from ${url}`);
-    return await r.json<T>();
+    this.log(`GitlabClient: received response ${response.status} from ${url}`);
+    return await response.json<T>();
   }
 
-}
-
-export class HttpError extends Error {
-    public readonly response: IResponse;
-    public readonly message: string;
-
-    constructor(response: IResponse, msg?: string) {
-      super();
-      this.response = response;
-      this.stack = new Error().stack;
-      this.message = msg ? msg : `Received ${response.status}: ${response.statusText}`;
-    }
 }

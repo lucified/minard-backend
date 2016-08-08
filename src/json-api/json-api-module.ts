@@ -258,8 +258,12 @@ export default class JsonApiModule {
     const ret = deepcopy(branch) as ApiBranch;
     ret.id = `${project.id}-${branch.name}`;
     const deployments = await this.deploymentModule.getBranchDeployments(Number(project.id), branch.name);
-    const promises = deployments.map((deployment: MinardDeployment) => this.toApiDeployment(project.id, deployment));
-    ret.deployments = await Promise.all<ApiDeployment>(promises);
+    const commitPromises = branch.commits.map(
+      (commit: MinardCommit) => this.toApiCommit(project.id, commit));
+    const deploymentPromises = deployments.map(
+      (deployment: MinardDeployment) => this.toApiDeployment(project.id, deployment));
+    ret.deployments = await Promise.all<ApiDeployment>(deploymentPromises);
+    ret.commits = await Promise.all<ApiCommit>(commitPromises);
     ret.project = project;
     return ret;
   }
@@ -267,9 +271,7 @@ export default class JsonApiModule {
   private async toApiProject(project: MinardProject): Promise<ApiProject> {
     const ret = deepcopy(project) as ApiProject;
     ret.id = String(project.id);
-    const promises = project.branches.map(branch => {
-      return this.toApiBranch(ret, branch);
-    });
+    const promises = project.branches.map(branch => this.toApiBranch(ret, branch));
     ret.branches = await Promise.all<ApiBranch>(promises);
     return ret;
   }

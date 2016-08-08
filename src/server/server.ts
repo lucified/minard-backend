@@ -44,13 +44,7 @@ export default class MinardServer {
   }
 
   public async start(): Promise<Hapi.Server> {
-    const options = {
-      debug: {
-        log: ['error'],
-        request: ['error'],
-      },
-    };
-
+    const options = {};
     const server = new Hapi.Server(options);
     server.connection({
       host: this.host,
@@ -80,16 +74,23 @@ export default class MinardServer {
         register: good,
         options: {
           reporters: {
-            console: [{
-              module: 'good-squeeze',
-              name: 'Squeeze',
-              args: [{
-                log: '*',
-                response: '*',
-              }],
-            }, {
-              module: 'good-console',
-            }, 'stdout'],
+            console: [
+              {
+                module: 'good-squeeze',
+                name: 'Squeeze',
+                args: [
+                  {
+                    log: '*',
+                    response: '*',
+                    error: '*',
+                  },
+                ],
+              },
+              {
+                module: 'good-console',
+              },
+              'stdout',
+            ],
           },
         },
       },
@@ -100,9 +101,14 @@ export default class MinardServer {
     await server.register([
       this.helloPlugin.register,
       this.deploymentPlugin.register,
-      this.projectPlugin.register,
-      this.jsonApiPlugin.register,
-    ]);
+      this.projectPlugin.register]);
+
+    await (<any> server).register(this.jsonApiPlugin.register, {
+      routes: {
+        prefix: '/api',
+      },
+    });
+
   }
 
 }

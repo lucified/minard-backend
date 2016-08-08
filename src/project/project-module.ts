@@ -1,7 +1,11 @@
 
-import { inject, injectable } from 'inversify';
+import * as Boom from 'boom';
 
-import MinardError, { MINARD_ERROR_CODE } from '../shared/minard-error';
+import { inject, injectable } from 'inversify';
+import { flatMap, uniqBy } from 'lodash';
+import * as moment from 'moment';
+
+import { MINARD_ERROR_CODE } from '../shared/minard-error';
 
 import { GitlabClient } from '../shared/gitlab-client';
 import { Commit } from '../shared/gitlab.d.ts';
@@ -12,11 +16,15 @@ import { EventBus } from '../event-bus/event-bus';
 import { Project } from '../shared/gitlab.d.ts';
 import SystemHookModule from '../system-hook/system-hook-module';
 
-export interface MinardProject {
-  id: number;
+export interface MinardProjectPlain {
   name: string;
   path: string;
   branches: MinardBranch[];
+  activeCommitters: MinardCommitAuthor[];
+}
+
+export interface MinardProject extends MinardProjectPlain {
+  id: number;
 }
 
 export interface MinardCommitAuthor {
@@ -34,10 +42,15 @@ export interface MinardCommit {
 }
 
 export interface MinardBranch {
-  id: string;
   name: string;
   commits: MinardCommit[];
-  project?: MinardProject;
+}
+
+export function findActiveCommitters(branches: MinardBranch[]): MinardCommitAuthor[] {
+  const commits = flatMap(branches,
+    (branch) => branch.commits.map(commit => commit.author));
+  commits.sort((a, b) => moment(a).diff(moment(b)));
+  return uniqBy(commits, commit => commit.email);
 }
 
 @injectable()
@@ -79,6 +92,19 @@ export default class ProjectModule {
     };
   }
 
+  public async getCommit(projectId: number, hash: string): Promise<MinardCommit | null> {
+    try {
+      const commit = await this.gitlab.fetchJson<Commit>(
+        `projects/${projectId}/repository/commits/${encodeURIComponent(hash)}`);
+      return this.toMinardCommit(commit);
+    } catch (err) {
+      if (err.status === MINARD_ERROR_CODE.NOT_FOUND) {
+        return null;
+      }
+      throw Boom.wrap(err);
+    }
+  }
+
   public async getBranch(projectId: number, branchName: string): Promise<MinardBranch | null> {
     try {
       const commitsPromise = await this.gitlab.fetchJson<any>(
@@ -97,7 +123,7 @@ export default class ProjectModule {
       if (err.status === MINARD_ERROR_CODE.NOT_FOUND) {
         return null;
       }
-      throw err;
+      throw Boom.wrap(err);
     }
   }
 
@@ -134,22 +160,21 @@ export default class ProjectModule {
       // we have requested the branch list. in this case we might
       // have null entries in the branches array, which we wish to
       // filter out
-      const filteredBranches = branches.filter(item => item != null);
+      const filteredBranches = branches.filter(item => item != null) as MinardBranch[];
 
       return {
         id: project.id,
         name: project.name,
         path: project.path,
-        branches: filteredBranches as MinardBranch[],
+        branches: filteredBranches,
+        activeCommitters: findActiveCommitters(filteredBranches),
       };
 
     } catch (err) {
       if (err.response && err.response.status === 404) {
         return null;
       }
-      throw new MinardError(
-        MINARD_ERROR_CODE.INTERNAL_SERVER_ERROR,
-        err.message);
+      throw Boom.wrap(err);
     }
   }
 

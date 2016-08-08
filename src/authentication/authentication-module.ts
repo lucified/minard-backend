@@ -9,6 +9,7 @@ export default class AuthenticationModule {
 
   public static injectSymbol = Symbol('auth-module');
 
+  private rootToken: string;
   private gitlabKnex: Knex;
 
   constructor(
@@ -23,8 +24,8 @@ export default class AuthenticationModule {
   }
 
   public async getRootAuthenticationToken() {
-    // TODO: cache this
-    return await this.getPrivateAuthenticationToken(1);
+    this.rootToken = this.rootToken || await this.getPrivateAuthenticationToken(1);
+    return this.rootToken;
   }
 
 }

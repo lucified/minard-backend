@@ -14,8 +14,8 @@
     "forceConsistentCasingInFileNames": true,
     "allowSyntheticDefaultImports": false,
     "noFallthroughCasesInSwitch": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true, // unused params starting with _ are still allowed
+    "noUnusedLocals": false,
+    "noUnusedParameters": false, // unused params starting with _ are still allowed
     "pretty": true,
     "noImplicitReturns": true,
     "noEmitOnError": false, // still transpiles with type errors

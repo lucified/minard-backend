@@ -1,11 +1,11 @@
 
+import * as Boom from 'boom';
+
 import { inject, injectable } from 'inversify';
 
 import { GitlabClient } from '../shared/gitlab-client';
 import { Deployment } from  '../shared/gitlab.d.ts';
 import * as logger from  '../shared/logger';
-
-import MinardError, { MINARD_ERROR_CODE } from '../shared/minard-error';
 
 import * as fs from 'fs';
 import * as os from 'os';
@@ -22,8 +22,21 @@ export interface DeploymentKey {
   deploymentId: number;
 }
 
-export interface MinardDeployment extends Deployment {
+export interface MinardDeploymentPlain {
+  ref: string;
+  status: string;
   url?: string;
+  screenshot?: string;
+  finished_at: string;
+}
+
+interface CommitRef {
+  id: string;
+}
+
+export interface MinardDeployment extends MinardDeploymentPlain {
+  id: number;
+  commitRef: CommitRef;
 }
 
 export function isRawDeploymentHostname(hostname: string) {
@@ -69,10 +82,8 @@ export default class DeploymentModule {
       if (err.response && err.response.status === 404) {
         return [];
       }
-      throw new MinardError(
-        MINARD_ERROR_CODE.INTERNAL_SERVER_ERROR,
-        err.message);
-      }
+      throw Boom.wrap(err);
+    }
   }
 
   public async getProjectDeployments(projectId: number): Promise<MinardDeployment[]> {
@@ -84,24 +95,25 @@ export default class DeploymentModule {
     return projectDeployments.filter(item => item.ref === branchName);
   };
 
-  public async getDeployment(projectId: number, deploymentId: number) {
+  public async getDeployment(projectId: number, deploymentId: number): Promise<MinardDeployment | null> {
     try {
       return this.toMinardModelDeployment(
         await this.gitlab.fetchJson<Deployment>(`projects/${projectId}/builds/${deploymentId}`), projectId);
     } catch (err) {
-      if (err.response && err.response.status === 404) {
+      if (err.output.statusCode === 404) {
         return null;
       }
-      throw new MinardError(
-        MINARD_ERROR_CODE.INTERNAL_SERVER_ERROR,
-        err.message);
+      throw Boom.wrap(err);
     }
   }
 
   private toMinardModelDeployment(deployment: Deployment, projectId: number): MinardDeployment {
     let ret = deepcopy(deployment);
+    // rename the commit variable
+    ret.commitRef = deployment.commit;
+    delete ret.commit;
     if (ret.status === 'success') {
-      (<any> deployment).url = `http://${deployment.ref}-` +
+      (<any> ret).url = `http://${deployment.ref}-` +
         `${deployment.commit.short_id}-${projectId}-${deployment.id}.localhost:8000`;
     }
     return ret;
@@ -127,21 +139,18 @@ export default class DeploymentModule {
   public async prepareDeploymentForServing(projectId: number, deploymentId: number) {
     const deployment = await this.getDeployment(projectId, deploymentId);
     if (!deployment) {
-      throw new MinardError(MINARD_ERROR_CODE.NOT_FOUND,
+      throw Boom.notFound(
         `No deployment found for: projectId ${projectId}, deploymentId ${deploymentId}`);
     }
     if (deployment.status !== 'success') {
-      throw new MinardError(MINARD_ERROR_CODE.NOT_FOUND,
+      throw Boom.notFound(
         `Deployment status is "${deployment.status}" for: projectId ${projectId}, ` +
         `deploymentId ${deploymentId}`);
     }
     try {
       await this.downloadAndExtractDeployment(projectId, deploymentId);
     } catch (err) {
-      throw new MinardError(
-        MINARD_ERROR_CODE.INTERNAL_SERVER_ERROR,
-        `Could not prepare deployment for serving (projectId ${projectId}, ` +
-        `deploymentId ${deploymentId})`);
+      throw Boom.wrap(err);
     }
   }
 

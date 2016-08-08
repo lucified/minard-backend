@@ -1,3 +1,4 @@
+
 import { expect } from 'chai';
 
 import Authentication from '../authentication/authentication-module';
@@ -83,7 +84,7 @@ describe('gitlab-client', () => {
 
     });
 
-    it('gives back a HttpException on error', async () => {
+    it('throws a Boom error object on error', async () => {
       // Arrange
       const gitlabClient = getClient();
       fetchMock.restore().mock(`^${host}${gitlabClient.apiPrefix}/`, 501);
@@ -94,7 +95,7 @@ describe('gitlab-client', () => {
         expect.fail(r, 0, "Should've thrown");
       } catch (err) {
         // Assert
-        expect(err.response.status).equals(501);
+        expect(err.output.statusCode).equals(501);
       }
     });
 

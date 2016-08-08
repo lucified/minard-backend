@@ -1,5 +1,7 @@
 
 import { inject, injectable } from 'inversify';
+import { flatMap, uniqBy } from 'lodash';
+import * as moment from 'moment';
 
 import MinardError, { MINARD_ERROR_CODE } from '../shared/minard-error';
 
@@ -16,6 +18,7 @@ export interface MinardProjectPlain {
   name: string;
   path: string;
   branches: MinardBranch[];
+  activeCommitters: MinardCommitAuthor[];
 }
 
 export interface MinardProject extends MinardProjectPlain {
@@ -39,6 +42,13 @@ export interface MinardCommit {
 export interface MinardBranch {
   name: string;
   commits: MinardCommit[];
+}
+
+export function findActiveCommitters(branches: MinardBranch[]): MinardCommitAuthor[] {
+  const commits = flatMap(branches,
+    (branch) => branch.commits.map(commit => commit.author));
+  commits.sort((a, b) => moment(a).diff(moment(b)));
+  return uniqBy(commits, commit => commit.email);
 }
 
 @injectable()
@@ -148,13 +158,14 @@ export default class ProjectModule {
       // we have requested the branch list. in this case we might
       // have null entries in the branches array, which we wish to
       // filter out
-      const filteredBranches = branches.filter(item => item != null);
+      const filteredBranches = branches.filter(item => item != null) as MinardBranch[];
 
       return {
         id: project.id,
         name: project.name,
         path: project.path,
-        branches: filteredBranches as MinardBranch[],
+        branches: filteredBranches,
+        activeCommitters: findActiveCommitters(filteredBranches),
       };
 
     } catch (err) {
@@ -163,7 +174,7 @@ export default class ProjectModule {
       }
       throw new MinardError(
         MINARD_ERROR_CODE.INTERNAL_SERVER_ERROR,
-        err.message);
+        err.message, err);
     }
   }
 

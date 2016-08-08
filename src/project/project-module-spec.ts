@@ -5,7 +5,7 @@ import AuthenticationModule from '../authentication/authentication-module';
 import LocalEventBus from '../event-bus/local-event-bus';
 import { GitlabClient } from '../shared/gitlab-client';
 import SystemHookModule from '../system-hook/system-hook-module';
-import ProjectModule, { MinardBranch, MinardCommit, MinardProject } from './project-module';
+import ProjectModule, { MinardBranch, MinardCommit, MinardProject, findActiveCommitters } from './project-module';
 import { expect } from 'chai';
 
 const fetchMock = require('fetch-mock');
@@ -290,6 +290,7 @@ describe('project-module', () => {
       (<any> projectModule).getBranch = function(_projectId: number, name: string) {
         return {
           name: name,
+          commits: [],
         };
       };
 
@@ -356,6 +357,68 @@ describe('project-module', () => {
       expect(commit.committer.email).to.equal('fooman@gmail.com');
       expect(commit.committer.name).to.equal('fooman');
       expect(commit.committer.timestamp).to.equal('2012-09-20T09:08:12+03:00');
+    });
+  });
+
+  describe('findActiceCommitters(...)', () => {
+    it('should work with project having two branches', async () => {
+      // Arrange
+      const project = {
+        branches: [
+          {
+            commits: [
+              {
+                'author': {
+                  'name': 'Jeremy',
+                  'email': 'jashkenas@example.com',
+                  'timestamp': '2012-09-20T09:06:12+03:00',
+                },
+              },
+              {
+                'author': {
+                  'name': 'Fooman',
+                  'email': 'fooman@example.com',
+                  'timestamp': '2012-09-20T09:08:12+03:00',
+                },
+              },
+            ],
+          },
+          {
+            commits: [
+              {
+                'author': {
+                  'name': 'Barwoman',
+                  'email': 'barwoman@example.com',
+                  'timestamp': '2012-09-20T09:07:12+03:00',
+                },
+              },
+              {
+                'author': {
+                  'name': 'FooBarMan',
+                  'email': 'foobarman@example.com',
+                  'timestamp': '2012-09-20T09:09:12+03:00',
+                },
+              },
+              {
+                'author': {
+                  'name': 'Barwoman',
+                  'email': 'barwoman@example.com',
+                  'timestamp': '2012-09-20T09:10:12+03:00',
+                },
+              },
+            ],
+          },
+        ],
+      } as MinardProject;
+
+      // Act
+      const committers = findActiveCommitters(project.branches);
+
+      // Assert
+      expect(committers.length).to.equal(4);
+      expect(committers[0].name).to.equal('Jeremy');
+      expect(committers[0].email).to.equal('jashkenas@example.com');
+      expect(committers[0].timestamp).to.equal('2012-09-20T09:06:12+03:00');
     });
   });
 

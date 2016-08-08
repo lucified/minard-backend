@@ -52,7 +52,7 @@ export const deploymentSerialization =  {
 };
 
 export const projectSerialization = {
-  attributes: ['name', 'description', 'branches'],
+  attributes: ['name', 'description', 'branches', 'activeCommitters'],
   branches: nonIncludedSerialization,
   ref: standardIdRef,
   included: true,

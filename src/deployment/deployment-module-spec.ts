@@ -139,7 +139,6 @@ const gitlabBuildResponse = {
   'started_at': '2015-12-24T17:54:30.733Z',
   'status': 'success',
   'tag': false,
-  'url': 'http://dfa-4-5.localhost',
   'user': {
     'avatar_url': 'http://www.gravatar.com/avatar/e64c7d89f26bd1972efa854d13d7dd61?s=80&d=identicon',
     'bio': null,

@@ -300,10 +300,12 @@ describe('json-api-module', () => {
               {
                 id: `${projectId}-master`,
                 name: 'master',
+                commits: [],
               },
               {
                 id: `${projectId}-new-feature`,
                 name: 'new-feature',
+                commits: [],
               },
             ],
           } as {} as MinardProject;

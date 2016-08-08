@@ -1,7 +1,6 @@
 
 import * as Boom from 'boom';
 
-import MinardError, { MINARD_ERROR_CODE } from '../shared/minard-error';
 import { inject, injectable } from 'inversify';
 
 import DeploymentModule, { MinardDeployment, MinardDeploymentPlain } from '../deployment/deployment-module';

@@ -6,7 +6,6 @@ import * as Joi from 'joi';
 import { HapiRegister } from '../server/hapi-register';
 import JsonApiModule from './json-api-module';
 
-
 function onPreResponse(request: Hapi.Request, reply: Hapi.IReply) {
   const response = request.response;
 
@@ -37,7 +36,6 @@ function onPreResponse(request: Hapi.Request, reply: Hapi.IReply) {
   }
   return reply.continue();
 };
-
 
 @injectable()
 export default class JsonApiHapiPlugin {

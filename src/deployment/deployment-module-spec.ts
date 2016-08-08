@@ -304,7 +304,7 @@ describe('deployment-module', () => {
         await deploymentModule.prepareDeploymentForServing(2, 4);
         expect.fail('should throw exception');
       } catch (err) {
-        expect(err.message).to.equal('Could not prepare deployment for serving (projectId 2, deploymentId 4)');
+        //
       }
     });
 

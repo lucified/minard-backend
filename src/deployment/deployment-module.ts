@@ -96,7 +96,7 @@ export default class DeploymentModule {
       return this.toMinardModelDeployment(
         await this.gitlab.fetchJson<Deployment>(`projects/${projectId}/builds/${deploymentId}`), projectId);
     } catch (err) {
-      if (err.response && err.response.status === 404) {
+      if (err.output.statusCode === 404) {
         return null;
       }
       throw Boom.wrap(err);

@@ -17,8 +17,8 @@ function onPreResponse(request: Hapi.Request, reply: Hapi.IReply) {
     return reply.continue();
   }
 
-  const output = (<any> response).output;
   if (response.isBoom) {
+    const output = (<any> response).output;
     const error = {
       title: output.payload.error,
       status: output.statusCode,

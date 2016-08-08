@@ -1,9 +1,11 @@
 
+import * as Boom from 'boom';
+
 import { inject, injectable } from 'inversify';
 import { flatMap, uniqBy } from 'lodash';
 import * as moment from 'moment';
 
-import MinardError, { MINARD_ERROR_CODE } from '../shared/minard-error';
+import { MINARD_ERROR_CODE } from '../shared/minard-error';
 
 import { GitlabClient } from '../shared/gitlab-client';
 import { Commit } from '../shared/gitlab.d.ts';
@@ -99,7 +101,7 @@ export default class ProjectModule {
       if (err.status === MINARD_ERROR_CODE.NOT_FOUND) {
         return null;
       }
-      return err;
+      throw Boom.wrap(err);
     }
   }
 
@@ -121,7 +123,7 @@ export default class ProjectModule {
       if (err.status === MINARD_ERROR_CODE.NOT_FOUND) {
         return null;
       }
-      throw err;
+      throw Boom.wrap(err);
     }
   }
 
@@ -172,9 +174,7 @@ export default class ProjectModule {
       if (err.response && err.response.status === 404) {
         return null;
       }
-      throw new MinardError(
-        MINARD_ERROR_CODE.INTERNAL_SERVER_ERROR,
-        err.message, err);
+      throw Boom.wrap(err);
     }
   }
 

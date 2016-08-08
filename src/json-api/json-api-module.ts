@@ -98,8 +98,11 @@ export function commitToJsonApi(commit: ApiCommit | ApiCommit[]) {
     .serialize(commit);
 }
 
-// The Api-prefix interfaces are for richly composed objects
+// The API-prefix interfaces are for richly composed objects
 // that can be directly passed to the JSON API serializer
+//
+// Note that these object structures may contain circular references
+// and are typically not serializable with JSON.stringify(...)
 
 export interface ApiProject extends MinardProjectPlain {
   id: string;
@@ -145,11 +148,12 @@ export default class JsonApiModule {
     return deploymentToJsonApi(deployment);
   }
 
-  public async getProjects(teamId: number) {
-    const projects = await this.projectModule.getProjects(teamId);
-    const promises = projects.map((project: MinardProject) => this.toApiProject(project));
-    const augmentedProjects = await Promise.all<ApiProject>(promises);
-    return projectToJsonApi(augmentedProjects);
+  public async getProjects(teamId: number): Promise<JsonApiResponse> {
+    const projects = await this.getApiProjects(teamId);
+    if (!projects) {
+      throw new MinardError(MINARD_ERROR_CODE.NOT_FOUND);
+    }
+    return projectToJsonApi(projects);
   }
 
   public async getProject(projectId: number): Promise<JsonApiResponse> {
@@ -191,6 +195,12 @@ export default class JsonApiModule {
     const projectId = Number(apiProjectId);
     const project = await this.projectModule.getProject(projectId);
     return project ? this.toApiProject(project) : null;
+  }
+
+  private async getApiProjects(teamId: number): Promise<ApiProject[] | null> {
+    const projects = await this.projectModule.getProjects(teamId);
+    const promises = projects.map((project: MinardProject) => this.toApiProject(project));
+    return await Promise.all<ApiProject>(promises);
   }
 
   private async getApiDeployment(apiDeploymentId: string): Promise<ApiDeployment | null> {

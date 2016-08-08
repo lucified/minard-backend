@@ -113,7 +113,7 @@ export default class JsonApiHapiPlugin {
         validate: {
           params: {
             projectId: Joi.number().required(),
-            branchName: Joi.string().min(1).required(),
+            branchName: Joi.string().alphanum().min(1).required(),
           },
         },
       },
@@ -129,7 +129,7 @@ export default class JsonApiHapiPlugin {
         validate: {
           params: {
             projectId: Joi.number().required(),
-            hash: Joi.string().min(8).required(),
+            hash: Joi.string().alphanum().min(8).required(),
           },
         },
       },

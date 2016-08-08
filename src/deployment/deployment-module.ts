@@ -1,11 +1,11 @@
 
+import * as Boom from 'boom';
+
 import { inject, injectable } from 'inversify';
 
 import { GitlabClient } from '../shared/gitlab-client';
 import { Deployment } from  '../shared/gitlab.d.ts';
 import * as logger from  '../shared/logger';
-
-import MinardError, { MINARD_ERROR_CODE } from '../shared/minard-error';
 
 import * as fs from 'fs';
 import * as os from 'os';
@@ -78,10 +78,8 @@ export default class DeploymentModule {
       if (err.response && err.response.status === 404) {
         return [];
       }
-      throw new MinardError(
-        MINARD_ERROR_CODE.INTERNAL_SERVER_ERROR,
-        err.message);
-      }
+      throw Boom.wrap(err);
+    }
   }
 
   public async getProjectDeployments(projectId: number): Promise<MinardDeployment[]> {
@@ -93,7 +91,7 @@ export default class DeploymentModule {
     return projectDeployments.filter(item => item.ref === branchName);
   };
 
-  public async getDeployment(projectId: number, deploymentId: number) {
+  public async getDeployment(projectId: number, deploymentId: number): Promise<MinardDeployment | null> {
     try {
       return this.toMinardModelDeployment(
         await this.gitlab.fetchJson<Deployment>(`projects/${projectId}/builds/${deploymentId}`), projectId);
@@ -101,9 +99,7 @@ export default class DeploymentModule {
       if (err.response && err.response.status === 404) {
         return null;
       }
-      throw new MinardError(
-        MINARD_ERROR_CODE.INTERNAL_SERVER_ERROR,
-        err.message);
+      throw Boom.wrap(err);
     }
   }
 
@@ -139,21 +135,18 @@ export default class DeploymentModule {
   public async prepareDeploymentForServing(projectId: number, deploymentId: number) {
     const deployment = await this.getDeployment(projectId, deploymentId);
     if (!deployment) {
-      throw new MinardError(MINARD_ERROR_CODE.NOT_FOUND,
+      throw Boom.notFound(
         `No deployment found for: projectId ${projectId}, deploymentId ${deploymentId}`);
     }
     if (deployment.status !== 'success') {
-      throw new MinardError(MINARD_ERROR_CODE.NOT_FOUND,
+      throw Boom.notFound(
         `Deployment status is "${deployment.status}" for: projectId ${projectId}, ` +
         `deploymentId ${deploymentId}`);
     }
     try {
       await this.downloadAndExtractDeployment(projectId, deploymentId);
     } catch (err) {
-      throw new MinardError(
-        MINARD_ERROR_CODE.INTERNAL_SERVER_ERROR,
-        `Could not prepare deployment for serving (projectId ${projectId}, ` +
-        `deploymentId ${deploymentId})`);
+      throw Boom.wrap(err);
     }
   }
 

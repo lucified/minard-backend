@@ -23,8 +23,7 @@ import HelloPlugin from './hello/hello-hapi-plugin';
 
 import UserModule from './user/user-module';
 
-import { EventBus } from './event-bus/event-bus';
-import LocalEventBus from './event-bus/local-event-bus';
+import { LocalEventBus, injectSymbol as eventBusInjectSymbol } from './event-bus';
 
 import MinardServer, {hostInjectSymbol, portInjectSymbol} from './server/server';
 
@@ -43,7 +42,7 @@ const kernel = new Kernel();
 // dependencies into EventBus
 //
 //  -- JO 25.6.2016
-kernel.bind(EventBus.injectSymbol).toConstantValue(new LocalEventBus());
+kernel.bind(eventBusInjectSymbol).toConstantValue(new LocalEventBus());
 kernel.bind(loggerInjectSymbol).toConstantValue(Logger(undefined, false, process.env.DEBUG ? true : false));
 kernel.bind(DeploymentPlugin.injectSymbol).to(DeploymentPlugin);
 kernel.bind(DeploymentModule.injectSymbol).to(DeploymentModule);

@@ -34,6 +34,7 @@ describe('event-bus', () => {
     bus
       .subscribe(event => {
         expect(event.type).to.equal(TEST_EVENT_TYPE);
+        expect(event.type).to.equal(testEventCreator.type); // the constructor has a reference to the type
       }, done, done);
     bus.post(testEventCreator({ status: 'bar' }));
     bus.complete();

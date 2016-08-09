@@ -3,8 +3,14 @@ import 'reflect-metadata';
 
 import { values } from 'lodash';
 
+<<<<<<< a655346bab68a8f0ed3a0ecd1f1d61b73ad105bb
 import { DeploymentModule,  MinardDeployment } from '../deployment/';
 import  { MinardProject, ProjectModule } from '../project/';
+=======
+import ActivityModule from '../activity/activity-module';
+import DeploymentModule, { MinardDeployment } from '../deployment/deployment-module';
+import ProjectModule, { MinardProject } from '../project/project-module';
+>>>>>>> Add support for getting activity in json-api-module
 
 <<<<<<< 53413c1473f12855bd8167ac517f1cade0a4eec9
 import JsonApiModule, { ApiBranch, ApiCommit, ApiDeployment, ApiProject, JsonApiEntity, JsonApiResponse,
@@ -22,7 +28,7 @@ import JsonApiModule, {
   branchToJsonApi,
   commitToJsonApi,
   deploymentToJsonApi,
-  projectToJsonApi
+  projectToJsonApi,
 } from './json-api-module';
 >>>>>>> Support json api serialization for activities
 
@@ -371,7 +377,8 @@ describe('json-api-module', () => {
       }
       const jsonApiModule = new JsonApiModule(
         new MockDeploymentModule() as DeploymentModule,
-        new MockProjectsModule() as ProjectModule);
+        new MockProjectsModule() as ProjectModule,
+        {} as ActivityModule);
 
       // Act
       const response = await jsonApiModule.getProject(1);

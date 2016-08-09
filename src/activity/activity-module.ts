@@ -1,5 +1,5 @@
 
-import { MinardDeployment } from '../deployment/deployment-module';
+import { MinardDeployment } from '../deployment';
 
 export interface MinardActivity extends MinardActivityPlain {
   deployment: MinardDeployment;

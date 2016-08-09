@@ -2,10 +2,18 @@
 import * as Boom from 'boom';
 
 import { inject, injectable } from 'inversify';
-
-import { MinardActivityPlain } from '../activity/activity-module';
-import { DeploymentModule, MinardDeployment, MinardDeploymentPlain } from '../deployment/';
 import { Commit } from '../shared/gitlab.d.ts';
+
+import ActivityModule, {
+  MinardActivity,
+  MinardActivityPlain,
+} from '../activity/activity-module';
+
+import {
+  DeploymentModule,
+  MinardDeployment,
+  MinardDeploymentPlain,
+} from '../deployment/';
 
 import {
   MinardBranch,
@@ -155,14 +163,17 @@ export default class JsonApiModule {
 
   public static injectSymbol = Symbol('json-api-module');
 
-  private deploymentModule: DeploymentModule;
-  private projectModule: ProjectModule;
+  private readonly deploymentModule: DeploymentModule;
+  private readonly projectModule: ProjectModule;
+  private readonly activityModule: ActivityModule;
 
   constructor(
     @inject(DeploymentModule.injectSymbol) deploymentModule: DeploymentModule,
-    @inject(ProjectModule.injectSymbol) projectModule: ProjectModule) {
+    @inject(ProjectModule.injectSymbol) projectModule: ProjectModule,
+    @inject(ActivityModule.injectSymbol) activityModule: ActivityModule) {
     this.deploymentModule = deploymentModule;
     this.projectModule = projectModule;
+    this.activityModule = activityModule;
   }
 
   public async getDeployment(projectId: number, deploymentId: number): Promise<JsonApiResponse> {
@@ -205,6 +216,22 @@ export default class JsonApiModule {
     return commitToJsonApi(commit);
   }
 
+  public async getTeamActivity(teamId: number): Promise<JsonApiResponse> {
+    const activity = await this.getApiActivityForTeam(teamId);
+    if (!activity) {
+      throw Boom.notFound();
+    }
+    return activityToJsonApi(activity);
+  }
+
+  public async getProjectActivity(projectId: number): Promise<JsonApiResponse> {
+    const activity = await this.getApiActivityForProject(projectId);
+    if (!activity) {
+      throw Boom.notFound();
+    }
+    return activityToJsonApi(activity);
+  }
+
   private async getApiCommit(projectId: number, hash: string): Promise<ApiCommit | null> {
     const commit = await this.projectModule.getCommit(projectId, hash);
     return commit ? this.toApiCommit(projectId, commit) : null;
@@ -242,6 +269,24 @@ export default class JsonApiModule {
       return null;
     }
     return await this.toApiBranch(project, branch);
+  }
+
+  private async getApiActivityForTeam(teamId: number): Promise<ApiActivity[] | null> {
+    const activity = await this.activityModule.getTeamActivity(teamId);
+    return activity ? await Promise.all(activity.map(item => this.toApiActivity(item))) : null;
+  }
+
+  private async getApiActivityForProject(projectId: number): Promise<ApiActivity[] | null> {
+    const activity = await this.activityModule.getProjectActivity(projectId);
+    return activity ? await Promise.all(activity.map(item => this.toApiActivity(item))) : null;
+  }
+
+  private async toApiActivity(activity: MinardActivity): Promise<ApiActivity> {
+    return {
+      id: `${activity.teamId}-${activity.projectId}-${activity.deployment.id}`,
+      timestamp: activity.timestamp,
+      deployment: await this.toApiDeployment(4, activity.deployment),
+    } as ApiActivity;
   }
 
   private async toApiCommit(projectId: number, commit: MinardCommit): Promise<ApiCommit> {

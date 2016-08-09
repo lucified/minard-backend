@@ -3,9 +3,12 @@ import * as Boom from 'boom';
 
 import { inject, injectable } from 'inversify';
 
+import * as rx from '@reactivex/rxjs';
+
+import { EventBus, injectSymbol as eventBusInjectSymbol } from '../event-bus';
 import { GitlabClient } from '../shared/gitlab-client';
-import { Deployment } from  '../shared/gitlab.d.ts';
-import * as logger from  '../shared/logger';
+import * as logger from '../shared/logger';
+import { DEPLOYMENT_EVENT_TYPE, Deployment, DeploymentEvent, MinardDeployment, createDeploymentEvent } from './types';
 
 import * as fs from 'fs';
 import * as os from 'os';
@@ -16,28 +19,6 @@ const AdmZip = require('adm-zip'); // tslint:disable-line
 const deepcopy = require('deepcopy');
 
 export const deploymentFolderInjectSymbol = Symbol('deployment-folder');
-
-export interface DeploymentKey {
-  projectId: number;
-  deploymentId: number;
-}
-
-export interface MinardDeploymentPlain {
-  ref: string;
-  status: string;
-  url?: string;
-  screenshot?: string;
-  finished_at: string;
-}
-
-interface CommitRef {
-  id: string;
-}
-
-export interface MinardDeployment extends MinardDeploymentPlain {
-  id: number;
-  commitRef: CommitRef;
-}
 
 export function isRawDeploymentHostname(hostname: string) {
   return getDeploymentKey(hostname) !== null;
@@ -63,15 +44,40 @@ export default class DeploymentModule {
   private readonly deploymentFolder: string;
   private readonly logger: logger.Logger;
 
+  private eventBus: EventBus;
   private buildToProject = new Map<number, number>();
+  private events: rx.Observable<DeploymentEvent>;
 
   public constructor(
     @inject(GitlabClient.injectSymbol) gitlab: GitlabClient,
     @inject(deploymentFolderInjectSymbol) deploymentFolder: string,
+    @inject(eventBusInjectSymbol) eventBus: EventBus,
     @inject(logger.loggerInjectSymbol) logger: logger.Logger) {
     this.gitlab = gitlab;
     this.deploymentFolder = deploymentFolder;
     this.logger = logger;
+    this.eventBus = eventBus;
+
+    this.events = eventBus
+      .filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
+      .map(e => e.payload);
+
+    this.subscribeToEvents();
+
+  }
+
+  private subscribeToEvents() {
+    this.events.subscribe(e => this.setDeploymentState(e.id, e.status, e.projectId));
+
+    const started = this.events.filter(e => e.status === 'running' && e.projectId !== undefined);
+    const complete = started.flatMap(x => this.events.filter(y => y.id === x.id && y.status !== 'running')
+      .map(y => ({id: y.id, status: y.status, projectId: x.projectId})));
+
+    complete
+      .filter(e => e.status === 'success')
+      .flatMap(e => this.downloadAndExtractDeployment(e.projectId as number, e.id).then(_ => e))
+      .subscribe((e: DeploymentEvent) =>
+        this.eventBus.post(createDeploymentEvent({ id: e.id, projectId: e.projectId, status: 'extracted' })));
   }
 
   private async getDeployments(url: string): Promise<MinardDeployment[]> {
@@ -154,21 +160,15 @@ export default class DeploymentModule {
     }
   }
 
-  public setDeploymentState(buildId: number, state: string, projectId?: number) {
+  public setDeploymentState(deploymentId: number, state: string, projectId?: number) {
     if (projectId) {
-      this.buildToProject.set(buildId, projectId);
+      this.buildToProject.set(deploymentId, projectId);
     }
-    const _projectId = this.buildToProject.get(buildId);
+    const _projectId = this.buildToProject.get(deploymentId);
     if (!_projectId) {
-      throw new Error(`Couldn't find projectId for build ${buildId}`);
+      throw new Error(`Couldn't find projectId for build ${deploymentId}`);
     }
-    console.log(`Build ${_projectId}/${buildId}: ${state}`);
-    if (state === 'success') {
-      this.downloadAndExtractDeployment(_projectId, buildId)
-        .then(path => {
-          console.log(`Extracted the artifacts to path ${path}`);
-        });
-    }
+    // console.log(`Build ${_projectId}/${deploymentId}: ${state}`);
   }
 
   /*
@@ -182,7 +182,7 @@ export default class DeploymentModule {
     const tempDir = path.join(os.tmpdir(), 'minard');
     mkpath.sync(tempDir);
     let readableStream = (<any> response).body;
-    const tempFileName =  path.join(tempDir, `minard-${projectId}-${deploymentId}.zip`);
+    const tempFileName = path.join(tempDir, `minard-${projectId}-${deploymentId}.zip`);
     const writeStream = fs.createWriteStream(tempFileName);
 
     await new Promise<void>((resolve, reject) => {

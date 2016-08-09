@@ -7,12 +7,16 @@ import * as path from 'path';
 
 import { expect } from 'chai';
 
-import DeploymentModule, { DeploymentKey, MinardDeployment, getDeploymentKey } from './deployment-module';
+import {
+  DEPLOYMENT_EVENT_TYPE, DeploymentEvent, DeploymentModule,
+  MinardDeployment, createDeploymentEvent, getDeploymentKey,
+} from './';
 
 import Authentication from '../authentication/authentication-module';
+import EventBus from '../event-bus/local-event-bus';
 import { IFetchStatic } from '../shared/fetch.d.ts';
 import { GitlabClient } from '../shared/gitlab-client';
-import Logger from  '../shared/logger';
+import Logger from '../shared/logger';
 
 const fetchMock = require('fetch-mock');
 const rimraf = require('rimraf');
@@ -32,8 +36,14 @@ const getClient = () => {
 };
 
 const logger = Logger(undefined, true);
+const eventBus = new EventBus();
 
-const getDeploymentModule = (client: GitlabClient, path: string) => new DeploymentModule(client, path, logger);
+const getDeploymentModule = (client: GitlabClient, path: string) => new DeploymentModule(
+  client,
+  path,
+  eventBus,
+  logger
+);
 
 const gitLabBuildsResponse = [
   {
@@ -194,16 +204,16 @@ describe('deployment-module', () => {
 
   describe('getDeployments()', () => {
     it('it should work with response returning two deployments', async () => {
-        // Arrange
-        const gitlabClient = getClient();
-        fetchMock.restore().mock(`${host}${gitlabClient.apiPrefix}/projects/1/builds`, gitLabBuildsResponse);
-        const deploymentModule = getDeploymentModule(gitlabClient, '');
-        // Act
-        const deployments = await deploymentModule.getProjectDeployments(1) as MinardDeployment[];
-        // Assert
-        expect(deployments.length).equals(2);
-        expect(deployments[0].id).equals(7);
-     });
+      // Arrange
+      const gitlabClient = getClient();
+      fetchMock.restore().mock(`${host}${gitlabClient.apiPrefix}/projects/1/builds`, gitLabBuildsResponse);
+      const deploymentModule = getDeploymentModule(gitlabClient, '');
+      // Act
+      const deployments = await deploymentModule.getProjectDeployments(1) as MinardDeployment[];
+      // Assert
+      expect(deployments.length).equals(2);
+      expect(deployments[0].id).equals(7);
+    });
   });
 
   it('downloadAndExtractDeployment()', async () => {
@@ -235,7 +245,7 @@ describe('deployment-module', () => {
   });
 
   it('getDeploymentPath()', () => {
-    const deploymentModule = getDeploymentModule({ } as GitlabClient, 'example');
+    const deploymentModule = getDeploymentModule({} as GitlabClient, 'example');
     const deploymentPath = deploymentModule.getDeploymentPath(1, 4);
     expect(deploymentPath).to.equal('example/1/4');
   });
@@ -311,35 +321,87 @@ describe('deployment-module', () => {
 
   describe('getDeploymentKey()', () => {
 
-    let ret: (DeploymentKey | null) = null;
-
     it('should match localhost hostname with single-digit ids', () => {
-      ret = getDeploymentKey('fdlkasjs-4-1.localhost') as DeploymentKey;
+      const ret = getDeploymentKey('fdlkasjs-4-1.localhost');
+      if (ret === null) { throw new Error(); }
       expect(ret.projectId).to.equal(4);
       expect(ret.deploymentId).to.equal(1);
     });
 
     it('should match localhost hostname with multi-digit ids', () => {
-      ret = getDeploymentKey('fdlkasjs-523-2667.localhost') as DeploymentKey;
+      const ret = getDeploymentKey('fdlkasjs-523-2667.localhost');
+      if (ret === null) { throw new Error(); }
       expect(ret.projectId).to.equal(523);
       expect(ret.deploymentId).to.equal(2667);
     });
 
     it('should match minard.io hostname with multi-digit ids', () => {
-      ret = getDeploymentKey('fdlkasjs-145-3.minard.io') as DeploymentKey;
+      const ret = getDeploymentKey('fdlkasjs-145-3.minard.io');
+      if (ret === null) { throw new Error(); }
       expect(ret.projectId).to.equal(145);
       expect(ret.deploymentId).to.equal(3);
     });
 
     it('should not match non-matching hostnames', () => {
-      ret = getDeploymentKey('fdlkasjs-523-2667');
-      expect(ret).to.equal(null);
-      ret = getDeploymentKey('fdlkasjs-525.localhost');
-      expect(ret).to.equal(null);
-      ret = getDeploymentKey('fdlkasjs525-52.localhost');
-      expect(ret).to.equal(null);
-      ret = getDeploymentKey('fdlkasjs525-52.minard.io');
-      expect(ret).to.equal(null);
+      const ret1 = getDeploymentKey('fdlkasjs-523-2667');
+      expect(ret1).to.equal(null);
+      const ret2 = getDeploymentKey('fdlkasjs-525.localhost');
+      expect(ret2).to.equal(null);
+      const ret3 = getDeploymentKey('fdlkasjs525-52.localhost');
+      expect(ret3).to.equal(null);
+      const ret4 = getDeploymentKey('fdlkasjs525-52.minard.io');
+      expect(ret4).to.equal(null);
+    });
+
+  });
+
+  describe('deployment events', () => {
+
+    it('should post \'extracted\' event', async (done) => {
+      // Arrange
+      const bus = new EventBus();
+
+      // Arrange
+      rimraf.sync(path.join(os.tmpdir(), 'minard'));
+      const thePath = path.join(__dirname, '../../src/deployment/test-artifact.zip');
+      const stream = fs.createReadStream(thePath);
+      const opts = {
+        status: 200,
+        statusText: 'ok',
+      };
+      const response = new Response(stream, opts);
+      const gitlabClient = getClient();
+      const mockUrl = `${host}${gitlabClient.apiPrefix}/projects/1/builds/1/artifacts`;
+      fetchMock.restore().mock(mockUrl, response);
+      const deploymentsDir = path.join(os.tmpdir(), 'minard', 'deploys');
+
+      const deploymentModule = new DeploymentModule( /* ts-lint-disable-line */
+        gitlabClient,
+        deploymentsDir,
+        bus,
+        logger
+      );
+      expect(deploymentModule.getDeploymentPath(1, 1)).to.exist;
+
+      try {
+        const eventPromise = bus
+          .filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
+          .map(e => e.payload)
+          .filter(e => e.status === 'extracted')
+          .take(1)
+          .toPromise();
+
+        bus.post(createDeploymentEvent({ status: 'running', id: 1, projectId: 1 }));
+        bus.post(createDeploymentEvent({ status: 'running', id: 2, projectId: 2 }));
+        bus.post(createDeploymentEvent({ status: 'success', id: 1 }));
+
+        const event = await eventPromise;
+        expect(event.status).to.eq('extracted');
+        expect(event.id).to.eq(1);
+        done();
+      } catch (err) {
+        done(err);
+      }
     });
 
   });

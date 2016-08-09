@@ -9,42 +9,13 @@ import { MINARD_ERROR_CODE } from '../shared/minard-error';
 
 import { GitlabClient } from '../shared/gitlab-client';
 import { Commit } from '../shared/gitlab.d.ts';
+import { MinardBranch, MinardCommit, MinardCommitAuthor, MinardProject, projectCreated } from './types';
 
 // only for types
 import AuthenticationModule from '../authentication/authentication-module';
-import { EventBus } from '../event-bus/event-bus';
+import { EventBus, injectSymbol as eventBusInjectSymbol } from '../event-bus/';
 import { Project } from '../shared/gitlab.d.ts';
 import SystemHookModule from '../system-hook/system-hook-module';
-
-export interface MinardProjectPlain {
-  name: string;
-  path: string;
-  branches: MinardBranch[];
-  activeCommitters: MinardCommitAuthor[];
-}
-
-export interface MinardProject extends MinardProjectPlain {
-  id: number;
-}
-
-export interface MinardCommitAuthor {
-  name: string;
-  email: string;
-  timestamp: string;
-}
-
-export interface MinardCommit {
-  id: string;
-  shortId?: string;
-  message: string;
-  author: MinardCommitAuthor;
-  committer: MinardCommitAuthor;
-}
-
-export interface MinardBranch {
-  name: string;
-  commits: MinardCommit[];
-}
 
 export function findActiveCommitters(branches: MinardBranch[]): MinardCommitAuthor[] {
   const commits = flatMap(branches,
@@ -66,7 +37,7 @@ export default class ProjectModule {
   constructor(
     @inject(AuthenticationModule.injectSymbol) authenticationModule: AuthenticationModule,
     @inject(SystemHookModule.injectSymbol) systemHookModule: SystemHookModule,
-    @inject(EventBus.injectSymbol) eventBus: EventBus,
+    @inject(eventBusInjectSymbol) eventBus: EventBus,
     @inject(GitlabClient.injectSymbol) gitlab: GitlabClient) {
     this.authenticationModule = authenticationModule;
     this.systemHookModule = systemHookModule;
@@ -185,12 +156,10 @@ export default class ProjectModule {
 
   public receiveHook(payload: any) {
     if (payload.event_name === 'project_create') {
-      const event = {
-        type: 'project-created',
+      this.eventBus.post(projectCreated({
         projectId: payload.project_id,
-        pathWithNameSpace: payload.path_with_namespace,
-      };
-      this.eventBus.post(event);
+        pathWithNameSpace: payload.path_with_namespac,
+      }));
     }
   }
 

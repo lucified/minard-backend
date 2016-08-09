@@ -23,6 +23,8 @@ interface Commit {
   committer_name?: string;
 }
 
+export type DeploymentStatus = 'running' | 'success' | 'failed' | 'canceled' | 'extracted';
+
 export interface Deployment {
   commit: Commit;
   coverage: string|null;
@@ -35,7 +37,7 @@ export interface Deployment {
   runner: string|null;
   stage: string;
   started_at: string;
-  status: string;
+  status: DeploymentStatus;
   tag: boolean;
   user: User;
 }

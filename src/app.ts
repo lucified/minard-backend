@@ -12,7 +12,7 @@ import JsonApiModule from './json-api/json-api-module';
 import AuthenticationModule from './authentication/authentication-module';
 import DeploymentPlugin from './deployment/deployment-hapi-plugin';
 
-import { default as DeploymentModule, deploymentFolderInjectSymbol } from './deployment/deployment-module';
+import { CIProxy, DeploymentModule, deploymentFolderInjectSymbol } from './deployment';
 
 import ProjectPlugin from './project/project-hapi-plugin';
 import ProjectModule from './project/project-module';
@@ -49,6 +49,7 @@ kernel.bind(DeploymentModule.injectSymbol).to(DeploymentModule);
 kernel.bind(HelloPlugin.injectSymbol).to(HelloPlugin);
 kernel.bind(MinardServer.injectSymbol).to(MinardServer).inSingletonScope();
 kernel.bind(UserModule.injectSymbol).to(UserModule);
+kernel.bind(CIProxy.injectSymbol).to(CIProxy);
 
 kernel.bind(GitlabClient.injectSymbol).to(GitlabClient).inSingletonScope();
 kernel.bind(ProjectModule.injectSymbol).to(ProjectModule);

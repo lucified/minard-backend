@@ -1,20 +1,29 @@
 
 import 'reflect-metadata';
 
-import { eventCreator }  from '../shared/events';
+import { eventCreator } from '../shared/events';
 import EventBus from './local-event-bus';
 import { expect } from 'chai';
 
+// Events boilerplate includes payload types, string identifiers and smart constructors
 interface Payload {
-  readonly foo: string;
+  readonly status: 'bar';
+  readonly foo?: string;
+}
+interface AnotherPayload {
+  readonly status: 'foo';
+  readonly bar: string;
 }
 const TEST_EVENT_TYPE = 'TEST_EVENT_TYPE';
 const testEventCreator = eventCreator<Payload>(TEST_EVENT_TYPE);
-const emptyEvent = testEventCreator({foo: 'bar'});
+
+const ANOTHER_TEST_EVENT_TYPE = 'ANOTHER_TEST_EVENT_TYPE';
+const anotherTestEventCreator = eventCreator<AnotherPayload>(ANOTHER_TEST_EVENT_TYPE);
 
 describe('event-creator', () => {
   it('creates events with expected type', () => {
-    expect(emptyEvent.type).to.equal(TEST_EVENT_TYPE);
+    const testEvent = testEventCreator({ status: 'bar', foo: 'foo' });
+    expect(testEvent.type).to.equal(TEST_EVENT_TYPE);
   });
 });
 
@@ -26,7 +35,7 @@ describe('event-bus', () => {
       .subscribe(event => {
         expect(event.type).to.equal(TEST_EVENT_TYPE);
       }, done, done);
-    bus.post(testEventCreator({foo: 'bar'}));
+    bus.post(testEventCreator({ status: 'bar' }));
     bus.complete();
   });
 
@@ -36,11 +45,50 @@ describe('event-bus', () => {
       .filterEvents<Payload>(TEST_EVENT_TYPE)
       .subscribe(event => {
         expect(event.type).to.equal(TEST_EVENT_TYPE);
-        expect(event.payload.foo).to.equal('bar');
+        expect(event.payload.status).to.equal('bar');
       }, done, done);
-    bus.post(testEventCreator({foo: 'bar'}));
-    bus.post({type: 'fooType', payload: {foo: 'bar'}});
+    bus.post(testEventCreator({ status: 'bar' }));
+    bus.post({ type: 'fooType', payload: { foo: 'bar' } });
     bus.complete();
 
   });
+
+  it('should allow filtering by multiple types', (done) => {
+    const bus = new EventBus();
+    let counter = 0;
+    bus
+      .filterEvents<Payload | AnotherPayload>(TEST_EVENT_TYPE, ANOTHER_TEST_EVENT_TYPE)
+      .subscribe(event => {
+        const payload = event.payload;
+        // Type narrowing
+        switch (payload.status) {
+          case 'bar':
+            expect(event.type).to.equal(TEST_EVENT_TYPE);
+            expect(payload.foo).to.equal('foo');
+
+            break;
+          case 'foo':
+            expect(event.type).to.equal(ANOTHER_TEST_EVENT_TYPE);
+            expect(payload.bar).to.equal('bar');
+
+            break;
+
+          default:
+            throw new Error('Unknown type');
+        }
+        counter++;
+
+      }, done, () => {
+        expect(counter).to.eq(2);
+        done();
+      });
+    const testEvent = testEventCreator({ status: 'bar', foo: 'foo' });
+    const anotherTestEvent = anotherTestEventCreator({ status: 'foo', bar: 'bar' });
+
+    bus.post(testEvent);
+    bus.post(anotherTestEvent);
+    bus.complete();
+
+  });
+
 });

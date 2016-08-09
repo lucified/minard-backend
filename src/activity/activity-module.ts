@@ -15,7 +15,7 @@ export interface MinardActivity extends MinardActivityPlain {
 export interface MinardActivityPlain {
   projectId: number;
   timestamp: string;
-  type: string;
+  activityType: string;
 }
 
 @injectable()
@@ -52,7 +52,7 @@ export default class ActivityModule {
       return {
         projectId: projectId,
         timestamp: item.finished_at,
-        type: 'deployment',
+        activityType: 'deployment',
         deployment: item,
       };
     });

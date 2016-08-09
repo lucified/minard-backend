@@ -150,7 +150,7 @@ exampleProject.branches.forEach(item => {
 
 const exampleActivity = {
   id: 'dasfsa',
-  type: 'deployment',
+  activityType: 'deployment',
   deployment: exampleDeploymentOne,
   timestamp: exampleDeploymentOne.finished_at,
 } as ApiActivity;
@@ -321,7 +321,7 @@ describe('json-api-module', () => {
 
       // attributes
       expect(data.attributes.timestamp).to.equal(activity.timestamp);
-      expect(data.attributes.type).to.equal(activity.type);
+      expect(data.attributes['activity-type']).to.equal(activity.activityType);
 
       // deployment relationship
       expect(data.relationships.deployment).to.exist;

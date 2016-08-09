@@ -78,7 +78,7 @@ export const commitSerialization = {
 };
 
 export const activitySerialization = {
-  attributes: ['timestamp', 'type', 'deployment'],
+  attributes: ['timestamp', 'activityType', 'deployment'],
   ref: standardIdRef,
   deployment: nonIncludedSerialization,
   included: true,
@@ -285,6 +285,7 @@ export default class JsonApiModule {
     return {
       id: `${activity.projectId}-${activity.deployment.id}`,
       timestamp: activity.timestamp,
+      activityType: activity.activityType,
       deployment: await this.toApiDeployment(4, activity.deployment),
     } as ApiActivity;
   }

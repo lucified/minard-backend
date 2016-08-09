@@ -34,11 +34,11 @@ describe('activity-module', () => {
       const activity = await activityModule.getProjectActivity(5) as MinardActivity[];
       expect(activity).to.exist;
       expect(activity).to.have.length(2);
-      expect(activity[0].type).to.equal('deployment');
+      expect(activity[0].activityType).to.equal('deployment');
       expect(activity[0].projectId).to.equal(5);
       expect(activity[0].deployment).to.exist;
       expect(activity[0].deployment.id).to.equal(9);
-      expect(activity[1].type).to.equal('deployment');
+      expect(activity[1].activityType).to.equal('deployment');
       expect(activity[1].deployment.id).to.equal(10);
     });
   });

@@ -10,7 +10,6 @@ export interface MinardActivity extends MinardActivityPlain {
 
 export interface MinardActivityPlain {
   projectId: number;
-  teamId: number;
   timestamp: string;
   type: string;
 }

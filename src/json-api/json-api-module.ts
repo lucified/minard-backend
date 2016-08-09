@@ -283,7 +283,7 @@ export default class JsonApiModule {
 
   private async toApiActivity(activity: MinardActivity): Promise<ApiActivity> {
     return {
-      id: `${activity.teamId}-${activity.projectId}-${activity.deployment.id}`,
+      id: `${activity.projectId}-${activity.deployment.id}`,
       timestamp: activity.timestamp,
       deployment: await this.toApiDeployment(4, activity.deployment),
     } as ApiActivity;

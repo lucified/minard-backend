@@ -6,8 +6,25 @@ import { values } from 'lodash';
 import { DeploymentModule,  MinardDeployment } from '../deployment/';
 import  { MinardProject, ProjectModule } from '../project/';
 
+<<<<<<< 53413c1473f12855bd8167ac517f1cade0a4eec9
 import JsonApiModule, { ApiBranch, ApiCommit, ApiDeployment, ApiProject, JsonApiEntity, JsonApiResponse,
   branchToJsonApi, commitToJsonApi, deploymentToJsonApi, projectToJsonApi } from './json-api-module';
+=======
+import JsonApiModule, {
+  ApiActivity,
+  ApiBranch,
+  ApiCommit,
+  ApiDeployment,
+  ApiProject,
+  JsonApiEntity,
+  JsonApiResponse,
+  activityToJsonApi,
+  branchToJsonApi,
+  commitToJsonApi,
+  deploymentToJsonApi,
+  projectToJsonApi
+} from './json-api-module';
+>>>>>>> Support json api serialization for activities
 
 import { expect } from 'chai';
 
@@ -124,6 +141,13 @@ const exampleProject = {
 exampleProject.branches.forEach(item => {
   item.project = exampleProject;
 });
+
+const exampleActivity = {
+  id: 'dasfsa',
+  type: 'deployment',
+  deployment: exampleDeploymentOne,
+  timestamp: exampleDeploymentOne.finished_at,
+} as ApiActivity;
 
 describe('json-api-module', () => {
   it('projectToJsonApi()', () => {
@@ -277,6 +301,39 @@ describe('json-api-module', () => {
     });
   });
 
+  describe('activityToJsonApi()', () => {
+    it('should work with a single commit', () => {
+
+      const activity = exampleActivity as ApiActivity;
+      const converted = activityToJsonApi(activity) as JsonApiResponse;
+      const data = converted.data as JsonApiEntity;
+      expect(data).to.exist;
+
+      // id and type
+      expect(data.id).to.equal(activity.id);
+      expect(data.type).to.equal('activities');
+
+      // attributes
+      expect(data.attributes.timestamp).to.equal(activity.timestamp);
+      expect(data.attributes.type).to.equal(activity.type);
+
+      // deployment relationship
+      expect(data.relationships.deployment).to.exist;
+      expect(data.relationships.deployment.data.id).to.equal(activity.deployment.id);
+      expect(data.relationships.deployment.data.type).to.equal('deployments');
+
+      // included deployment
+      const deployment = (<any> converted).included.find(
+        (item: JsonApiEntity) => item.type === 'deployments' && item.id === activity.deployment.id);
+      expect(deployment).to.exist;
+
+      // included commit
+      const commit = (<any> converted).included.find(
+        (item: JsonApiEntity) => item.type === 'commits' && item.id === activity.deployment.commit.id);
+      expect(commit).to.exist;
+    });
+  });
+
   describe('getProject()', () => {
     it('should work in typical case', async () => {
       // Arrange
@@ -320,7 +377,6 @@ describe('json-api-module', () => {
       const response = await jsonApiModule.getProject(1);
 
       // Assert
-
       const data = response.data as JsonApiEntity;
       expect(data).to.exist;
 

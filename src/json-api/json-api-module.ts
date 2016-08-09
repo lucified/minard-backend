@@ -3,10 +3,11 @@ import * as Boom from 'boom';
 
 import { inject, injectable } from 'inversify';
 
+import { MinardActivityPlain } from '../activity/activity-module';
+import { DeploymentModule, MinardDeployment, MinardDeploymentPlain } from '../deployment/';
 import { Commit } from '../shared/gitlab.d.ts';
 
-import { DeploymentModule, MinardDeployment, MinardDeploymentPlain } from '../deployment/';
-import  {
+import {
   MinardBranch,
   MinardCommit,
   MinardProject,
@@ -68,6 +69,13 @@ export const commitSerialization = {
   included: true,
 };
 
+export const activitySerialization = {
+  attributes: ['timestamp', 'type', 'deployment'],
+  ref: standardIdRef,
+  deployment: nonIncludedSerialization,
+  included: true,
+};
+
 export const branchCompoundSerialization = deepcopy(branchSerialization);
 branchCompoundSerialization.commits = commitSerialization;
 branchCompoundSerialization.deployments = deploymentSerialization;
@@ -78,6 +86,9 @@ projectCompoundSerialization.branches = branchSerialization;
 
 export const deploymentCompoundSerialization = deepcopy(deploymentSerialization);
 deploymentCompoundSerialization.commit = commitSerialization;
+
+export const activityCompoundSerialization = deepcopy(activitySerialization);
+activityCompoundSerialization.deployment = deploymentCompoundSerialization;
 
 export function branchToJsonApi(branch: ApiBranch | ApiBranch[]) {
   const serialized = new Serializer('branch',
@@ -100,6 +111,11 @@ export function projectToJsonApi(project: ApiProject | ApiProject[]) {
 export function commitToJsonApi(commit: ApiCommit | ApiCommit[]) {
   return new Serializer('commit', commitSerialization)
     .serialize(commit);
+}
+
+export function activityToJsonApi(activity: ApiActivity | ApiActivity[]) {
+  return new Serializer('activity', activityCompoundSerialization)
+    .serialize(activity);
 }
 
 // The API-prefix interfaces are for richly composed objects
@@ -127,6 +143,11 @@ export interface ApiDeployment extends MinardDeploymentPlain {
 
 export interface ApiCommit extends MinardCommit {
   hash: string;
+}
+
+export interface ApiActivity extends MinardActivityPlain {
+  id: string;
+  deployment: ApiDeployment;
 }
 
 @injectable()

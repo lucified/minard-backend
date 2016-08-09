@@ -1,4 +1,5 @@
 
+import * as Boom from 'boom';
 import * as Hapi from 'hapi';
 import { inject, injectable } from 'inversify';
 import * as Joi from 'joi';
@@ -45,7 +46,7 @@ export function parseActivityFilter(filter: string | null) {
   if (!filter) {
     return ret;
   }
-  const projectMatches = filter.match(/project(\d+)/);
+  const projectMatches = filter.match(/^project\[(\d+)\]$/);
   if (projectMatches !== null && projectMatches.length === 2) {
     ret.projectId = Number(projectMatches[1]);
   }
@@ -194,6 +195,10 @@ export default class JsonApiHapiPlugin {
     const filterOptions = parseActivityFilter(filter);
     if (filterOptions.projectId) {
       return reply(this.jsonApiModule.getProjectActivity(filterOptions.projectId));
+    }
+    if (filter && !filterOptions.projectId) {
+      // if filter is specified it should be valid
+      throw Boom.badRequest('Invalid filter');
     }
     // for now any team id returns all activity
     return reply(this.jsonApiModule.getTeamActivity(1));

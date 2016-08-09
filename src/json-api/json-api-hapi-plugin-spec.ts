@@ -8,7 +8,7 @@ describe('json-api-hapi-plugin', () => {
 
   describe('parseActivityFilter', () => {
     it('should correctly parse filter with projectId', () => {
-      const filterOptions = parseActivityFilter('project943275');
+      const filterOptions = parseActivityFilter('project[943275]');
       expect(filterOptions.projectId).to.equal(943275);
     });
 

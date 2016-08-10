@@ -1,6 +1,6 @@
 # Based on https://github.com/sameersbn/docker-gitlab/blob/master/docker-compose.yml
 # The main changes are mounting the directories under ./gitlab-data and
-# including gitlab-runner and minard-monolith
+# including gitlab-runner and charles
 
 version: '2'
 
@@ -12,23 +12,16 @@ services:
     - "6379:6379"
     command:
     - --loglevel warning
-    volumes:
-    - ./gitlab-data/redis:/var/lib/redis:Z
 
   postgresql:
     restart: always
     image: postgres:9.5
     ports:
     - "5432:5432"
-    volumes:
-    - ./gitlab-data/postgresql/pgdata:/var/lib/postgresql/data/pgdata:Z
-    ports:
-    - "5432:5432"
     environment:
     - POSTGRES_USER=gitlab
     - POSTGRES_PASSWORD=password
     - POSTGRES_DB=gitlabhq_production
-    - PGDATA=/var/lib/postgresql/data/pgdata
 
   gitlab:
     restart: always
@@ -39,11 +32,9 @@ services:
     ports:
     - "10080:80"
     - "10022:22"
-    volumes:
-    - ./gitlab-data/gitlab:/home/git/data:Z
     environment:
     - DEBUG=false
-    - MINARD_CI_YML_URL=http://minard-monolith:8000/ci/projects/%d/%s/%s/yml
+    - MINARD_CI_YML_URL=http://charles:8000/ci/projects/%d/%s/%s/yml
     - DB_ADAPTER=postgresql
     - DB_HOST=postgresql
     - DB_PORT=5432
@@ -157,46 +148,29 @@ services:
     - OAUTH_AZURE_API_SECRET=
     - OAUTH_AZURE_TENANT_ID=
 
-# The commented lines below are useful for developing the runner
-# so don't hate them
+
   runner:
     restart: always
     image: lucify/gitlab-runner
-    # build:
-    #   context: ../gitlab-ci-multi-runner
-    #   dockerfile: Dockerfile-lucify
     depends_on:
       - gitlab
     volumes:
-        - ./gitlab-data/runner:/etc/gitlab-runner
-        # - ../gitlab-ci-multi-runner/docker-entrypoint.sh:/docker-entrypoint.sh
         - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      - DEBUG=true
-      - CI_SERVER_URL=http://minard-monolith:8000/ci/
+      - CI_SERVER_URL=http://charles:8000/ci/
       - RUNNER_EXECUTOR=docker
-      - DOCKER_IMAGE=node
       - DOCKER_TLS_VERIFY=false
       - DOCKER_PRIVILEGED=false
       - DOCKER_DISABLE_CACHE=false
       - DOCKER_VOLUMES=/cache
-      - DOCKER_NETWORK_MODE=minardbackend_default
 
-  minard-monolith:
-    build: .
+  charles:
+    image: lucify/charles
     depends_on:
       - gitlab
-    command: "npm run dev"
     ports:
       - "8000:8000"
       - "5858:5858"
-    volumes:
-      - ./src:/code/src
-      - ./test:/code/test
-      - ./dist:/code/dist
-      - ./tsconfig.json:/code/tsconfig.json
-      - ./package.json:/code/package.json
-      - ./node_modules:/code/node_modules
     environment:
       - HOST=0.0.0.0
       - PORT=8000
@@ -209,5 +183,5 @@ services:
       - DB_USER=gitlab
       - DB_PASS=password
       - DB_NAME=gitlabhq_production
-      - SYSTEMHOOK_BASEURL=http://minard-monolith:8000
+      - SYSTEMHOOK_BASEURL=http://charles:8000
 

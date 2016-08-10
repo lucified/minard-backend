@@ -1,0 +1,33 @@
+version: '2'
+
+services:
+  redis:
+    volumes:
+    - ./gitlab-data/redis:/var/lib/redis:Z
+
+  postgresql:
+    volumes:
+    - ./gitlab-data/postgresql/pgdata:/var/lib/postgresql/data/pgdata:Z
+    environment:
+    - PGDATA=/var/lib/postgresql/data/pgdata
+
+  gitlab:
+    volumes:
+    - ./gitlab-data/gitlab:/home/git/data:Z
+
+  runner:
+    volumes:
+        - ./gitlab-data/runner:/etc/gitlab-runner
+    environment:
+      - DEBUG=false
+      - DOCKER_IMAGE=node
+      - DOCKER_NETWORK_MODE=minardbackend_default
+
+  charles:
+    build: .
+    command: "npm run dev"
+    volumes:
+      - ./src:/code/src
+      - ./dist:/code/dist
+      - ./tsconfig.json:/code/tsconfig.json
+

@@ -8,7 +8,8 @@ import * as rx from '@reactivex/rxjs';
 import { EventBus, injectSymbol as eventBusInjectSymbol } from '../event-bus';
 import { GitlabClient } from '../shared/gitlab-client';
 import * as logger from '../shared/logger';
-import { DEPLOYMENT_EVENT_TYPE, Deployment, DeploymentEvent, MinardDeployment, createDeploymentEvent } from './types';
+import { DEPLOYMENT_EVENT_TYPE, Deployment, DeploymentEvent, DeploymentStatus,
+  MinardDeployment, createDeploymentEvent } from './types';
 
 import * as fs from 'fs';
 import * as os from 'os';
@@ -68,16 +69,28 @@ export default class DeploymentModule {
 
   private subscribeToEvents() {
     this.events.subscribe(e => this.setDeploymentState(e.id, e.status, e.projectId));
+    // On successfully completed deployments, download, extract and post an 'extracted' event
+    this.completedDeployments()
+      .filter(event => event.status === 'success')
+      .flatMap(event => this.downloadAndExtractDeployment(event.projectId, event.id).then(_ => event))
+      .subscribe(event =>
+        this.eventBus.post(createDeploymentEvent(Object.assign({}, event, {status: 'extracted'}))));
+  }
 
-    const started = this.events.filter(e => e.status === 'running' && e.projectId !== undefined);
-    const complete = started.flatMap(x => this.events.filter(y => y.id === x.id && y.status !== 'running')
-      .map(y => ({id: y.id, status: y.status, projectId: x.projectId})));
+  private completedDeployments() {
+    const events = this.events;
+    // The initial events for a new deployment have status 'running' and always include the projectId
+    const started = events.filter(e => e.status === 'running' && e.projectId !== undefined);
+    // We use a flatMap to return a single event *with* the projectId, when the deployment has finished
+    return started
+      .flatMap(initial => events.filter(later => later.id === initial.id && this.isFinished(later.status))
+        .map(later => ({id: later.id, status: later.status, projectId: initial.projectId as number}))
+      );
 
-    complete
-      .filter(e => e.status === 'success')
-      .flatMap(e => this.downloadAndExtractDeployment(e.projectId as number, e.id).then(_ => e))
-      .subscribe((e: DeploymentEvent) =>
-        this.eventBus.post(createDeploymentEvent({ id: e.id, projectId: e.projectId, status: 'extracted' })));
+  }
+
+  private isFinished(status: DeploymentStatus) {
+    return status === 'success' || status === 'failed' || status === 'canceled';
   }
 
   private async getDeployments(url: string): Promise<MinardDeployment[]> {

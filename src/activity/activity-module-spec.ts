@@ -18,28 +18,49 @@ describe('activity-module', () => {
             {
               id: 9,
               finished_at: '',
+              ref: 'master',
             } as MinardDeployment,
             {
               id: 10,
               finished_at: '',
+              ref: 'foo-branch',
             } as MinardDeployment,
           ];
         }
       }
+      class MockProjectModule {
+        public async getProject(projectId: number): Promise<MinardProject> {
+          expect(projectId).to.equal(5);
+          return {
+            id: 5,
+            branches: [
+              {
+                name: 'master',
+              },
+              {
+                name: 'foo-branch',
+              },
+            ],
+          } as MinardProject;
+        }
+      }
+      const projectModule = new MockProjectModule() as ProjectModule;
       const deploymentModule = new MockDeploymentModule() as DeploymentModule;
       const activityModule = new ActivityModule(
-        {} as ProjectModule,
+        projectModule,
         deploymentModule,
         {} as logger.Logger);
       const activity = await activityModule.getProjectActivity(5) as MinardActivity[];
       expect(activity).to.exist;
       expect(activity).to.have.length(2);
       expect(activity[0].activityType).to.equal('deployment');
-      expect(activity[0].projectId).to.equal(5);
+      expect(activity[0].project.id).to.equal(5);
+      expect(activity[0].branch.name).to.equal('master');
       expect(activity[0].deployment).to.exist;
       expect(activity[0].deployment.id).to.equal(9);
       expect(activity[1].activityType).to.equal('deployment');
       expect(activity[1].deployment.id).to.equal(10);
+      expect(activity[1].branch.name).to.equal('foo-branch');
     });
   });
 

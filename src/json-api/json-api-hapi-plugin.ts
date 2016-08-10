@@ -157,8 +157,8 @@ export default class JsonApiHapiPlugin {
 
   private async getBranchHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const projectId = Number((<any> request.params).projectId);
-    const branchId = (<any> request.params).branchId as string;
-    return reply(this.jsonApiModule.getBranch(projectId, branchId));
+    const branchName = (<any> request.params).branchName as string;
+    return reply(this.jsonApiModule.getBranch(projectId, branchName));
   }
 
   private async getCommitHandler(request: Hapi.Request, reply: Hapi.IReply) {

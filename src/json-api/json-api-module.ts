@@ -167,8 +167,8 @@ export default class JsonApiModule {
     return projectToJsonApi(project);
   }
 
-  public async getBranch(projectId: number, branchId: string): Promise<JsonApiResponse> {
-    const branch = await this.getApiBranch(projectId, branchId);
+  public async getBranch(projectId: number, branchName: string): Promise<JsonApiResponse> {
+    const branch = await this.getApiBranch(projectId, branchName);
     if (!branch) {
       throw Boom.notFound('Branch not found');
     }
@@ -209,6 +209,9 @@ export default class JsonApiModule {
   }
 
   private async getApiBranch(projectId: number, branchName: string): Promise<ApiBranch | null> {
+    if (!branchName) {
+      throw Boom.badRequest('branchName is missing');
+    }
     const projectPromise = this.getApiProject(projectId);
     const branchPromise = this.projectModule.getBranch(projectId, branchName);
     const project = await projectPromise;

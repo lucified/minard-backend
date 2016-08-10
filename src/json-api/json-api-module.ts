@@ -1,7 +1,7 @@
 
 import * as Boom from 'boom';
+import { inject, injectable, interfaces } from 'inversify';
 
-import { inject, injectable } from 'inversify';
 import { Commit } from '../shared/gitlab.d.ts';
 
 import ActivityModule, {
@@ -24,8 +24,14 @@ import {
 } from '../project/';
 
 const deepcopy = require('deepcopy');
+const memoize = require('memoizee');
 
 const Serializer = require('jsonapi-serializer').Serializer; // tslint:disable-line
+
+interface MemoizedJsonApiModule {
+  toApiProject: (project: MinardProject) => Promise<ApiProject>;
+  toApiBranch: (project: MinardProject, branch: MinardBranch) => Promise<ApiBranch>;
+}
 
 export interface JsonApiEntity {
   type: "commits" | "deployments" | "projects" | "branches";
@@ -159,9 +165,10 @@ export interface ApiActivity extends MinardActivityPlain {
 }
 
 @injectable()
-export default class JsonApiModule {
+export class InternalJsonApi {
 
-  public static injectSymbol = Symbol('json-api-module');
+  public static factoryInjectSymbol = Symbol('internal-json-api');
+  public static injectSymbol = Symbol('internal-json-api');
 
   private readonly deploymentModule: DeploymentModule;
   private readonly projectModule: ProjectModule;
@@ -176,80 +183,24 @@ export default class JsonApiModule {
     this.activityModule = activityModule;
   }
 
-  public async getDeployment(projectId: number, deploymentId: number): Promise<JsonApiResponse> {
-    const deployment = await this.getApiDeployment(projectId, deploymentId);
-    if (!deployment) {
-      throw Boom.notFound('Deployment not found');
-    }
-    return deploymentToJsonApi(deployment);
-  }
-
-  public async getProjects(teamId: number): Promise<JsonApiResponse> {
-    const projects = await this.getApiProjects(teamId);
-    if (!projects) {
-      throw Boom.notFound();
-    }
-    return projectToJsonApi(projects);
-  }
-
-  public async getProject(projectId: number): Promise<JsonApiResponse> {
-    const project = await this.getApiProject(projectId);
-    if (!project) {
-      throw Boom.notFound('Project not found');
-    }
-    return projectToJsonApi(project);
-  }
-
-  public async getBranch(projectId: number, branchName: string): Promise<JsonApiResponse> {
-    const branch = await this.getApiBranch(projectId, branchName);
-    if (!branch) {
-      throw Boom.notFound('Branch not found');
-    }
-    return branchToJsonApi(branch);
-  }
-
-  public async getCommit(projectId: number, hash: string): Promise<JsonApiResponse> {
-    const commit = await this.getApiCommit(projectId, hash);
-    if (!commit) {
-      throw Boom.notFound('Commit not found');
-    }
-    return commitToJsonApi(commit);
-  }
-
-  public async getTeamActivity(teamId: number): Promise<JsonApiResponse> {
-    const activity = await this.getApiActivityForTeam(teamId);
-    if (!activity) {
-      throw Boom.notFound();
-    }
-    return activityToJsonApi(activity);
-  }
-
-  public async getProjectActivity(projectId: number): Promise<JsonApiResponse> {
-    const activity = await this.getApiActivityForProject(projectId);
-    if (!activity) {
-      throw Boom.notFound();
-    }
-    return activityToJsonApi(activity);
-  }
-
-  private async getApiCommit(projectId: number, hash: string): Promise<ApiCommit | null> {
+  public async getApiCommit(projectId: number, hash: string): Promise<ApiCommit | null> {
     const commit = await this.projectModule.getCommit(projectId, hash);
     return commit ? this.toApiCommit(projectId, commit) : null;
   }
 
-  private async getApiProject(apiProjectId: string | number): Promise<ApiProject | null> {
+  public async getApiProject(apiProjectId: string | number): Promise<ApiProject | null> {
     const projectId = Number(apiProjectId);
     const project = await this.projectModule.getProject(projectId);
     return project ? this.toApiProject(project) : null;
   }
 
-  private async getApiProjects(teamId: number): Promise<ApiProject[] | null> {
+  public async getApiProjects(teamId: number): Promise<ApiProject[] | null> {
     const projects = await this.projectModule.getProjects(teamId);
     const promises = projects.map((project: MinardProject) => this.toApiProject(project));
     return await Promise.all<ApiProject>(promises);
   }
 
-  private async getApiDeployment(projectId: number, deploymentId: number): Promise<ApiDeployment | null> {
+  public async getApiDeployment(projectId: number, deploymentId: number): Promise<ApiDeployment | null> {
      const deployment = await this.deploymentModule.getDeployment(projectId, deploymentId);
      if (!deployment) {
        return null;
@@ -257,7 +208,7 @@ export default class JsonApiModule {
      return await this.toApiDeployment(projectId, deployment);
   }
 
-  private async getApiBranch(projectId: number, branchName: string): Promise<ApiBranch | null> {
+  public async getApiBranch(projectId: number, branchName: string): Promise<ApiBranch | null> {
     if (!branchName) {
       throw Boom.badRequest('branchName is missing');
     }
@@ -271,26 +222,30 @@ export default class JsonApiModule {
     return await this.toApiBranch(project, branch);
   }
 
-  private async getApiActivityForTeam(teamId: number): Promise<ApiActivity[] | null> {
+  public async getApiActivityForTeam(teamId: number): Promise<ApiActivity[] | null> {
     const activity = await this.activityModule.getTeamActivity(teamId);
     return activity ? await Promise.all(activity.map(item => this.toApiActivity(item))) : null;
   }
 
-  private async getApiActivityForProject(projectId: number): Promise<ApiActivity[] | null> {
+  public async getApiActivityForProject(projectId: number): Promise<ApiActivity[] | null> {
     const activity = await this.activityModule.getProjectActivity(projectId);
     return activity ? await Promise.all(activity.map(item => this.toApiActivity(item))) : null;
   }
 
-  private async toApiActivity(activity: MinardActivity): Promise<ApiActivity> {
+  public async toApiActivity(activity: MinardActivity): Promise<ApiActivity> {
+    const project = await this.toApiProject(activity.project);
+    const branch = await this.toApiBranch(project, activity.branch);
     return {
-      id: `${activity.projectId}-${activity.deployment.id}`,
+      branch: branch,
+      project: project,
+      id: `${activity.project.id}-${activity.deployment.id}`,
       timestamp: activity.timestamp,
       activityType: activity.activityType,
       deployment: await this.toApiDeployment(4, activity.deployment),
-    } as ApiActivity;
+    };
   }
 
-  private async toApiCommit(projectId: number, commit: MinardCommit): Promise<ApiCommit> {
+  public async toApiCommit(projectId: number, commit: MinardCommit): Promise<ApiCommit> {
     const ret = deepcopy(commit) as ApiCommit;
     if (!commit) {
       throw Boom.badImplementation();
@@ -300,7 +255,7 @@ export default class JsonApiModule {
     return ret;
   }
 
-  private async toApiDeployment(projectId: number, deployment: MinardDeployment): Promise<ApiDeployment> {
+  public async toApiDeployment(projectId: number, deployment: MinardDeployment): Promise<ApiDeployment> {
     const ret = deepcopy(deployment) as ApiDeployment;
     ret.id = `${projectId}-${deployment.id}`;
     if (deployment.commitRef) {
@@ -310,7 +265,7 @@ export default class JsonApiModule {
     return ret;
   }
 
-  private async toApiBranch(project: ApiProject, branch: MinardBranch): Promise<ApiBranch> {
+  public async toApiBranch(project: ApiProject, branch: MinardBranch): Promise<ApiBranch> {
     const ret = deepcopy(branch) as ApiBranch;
     ret.id = `${project.id}-${branch.name}`;
     const deployments = await this.deploymentModule.getBranchDeployments(Number(project.id), branch.name);
@@ -324,12 +279,124 @@ export default class JsonApiModule {
     return ret;
   }
 
-  private async toApiProject(project: MinardProject): Promise<ApiProject> {
+  public async toApiProject(project: MinardProject): Promise<ApiProject> {
     const ret = deepcopy(project) as ApiProject;
     ret.id = String(project.id);
     const promises = project.branches.map(branch => this.toApiBranch(ret, branch));
     ret.branches = await Promise.all<ApiBranch>(promises);
     return ret;
+  }
+}
+
+@injectable()
+export class MemoizedInternalJsonApi extends InternalJsonApi {
+
+  public static injectSymbol = Symbol('memoized-internal-json-api');
+
+  constructor(
+    @inject(DeploymentModule.injectSymbol) deploymentModule: DeploymentModule,
+    @inject(ProjectModule.injectSymbol) projectModule: ProjectModule,
+    @inject(ActivityModule.injectSymbol) activityModule: ActivityModule) {
+    super(deploymentModule, projectModule, activityModule);
+
+    this.getApiProject = memoize(this.getApiProject.bind(this), {
+      promise: true,
+      normalizer: (args: any) => (<number> args[0]),
+    });
+    this.getApiBranch = memoize(this.getApiBranch.bind(this), {
+      promise: true,
+      normalizer: (args: any) => `${(<MinardProject> args[0]).id}-${(<string> args[1])}`,
+    });
+    this.toApiProject = memoize(this.toApiProject.bind(this), {
+      promise: true,
+      normalizer: (args: any) => (<MinardProject> args[0]).id,
+    });
+    this.toApiBranch = memoize(this.toApiBranch.bind(this), {
+      promise: true,
+      normalizer: (args: any) => `${(<MinardProject> args[0]).id}-${(<MinardBranch> args[1]).name}`,
+    });
+    this.toApiDeployment = memoize(this.toApiDeployment.bind(this), {
+      promise: true,
+      normalizer: (args: any) => `${(<number> args[0])}-${(<MinardDeployment> args[1]).id}`,
+    });
+    this.toApiCommit = memoize(this.toApiCommit.bind(this), {
+      promise: true,
+      normalizer: (args: any) => `${(<number> args[0])}-${(<MinardCommit> args[1]).id}`,
+    });
+
+  }
+}
+
+@injectable()
+export default class JsonApiModule {
+
+  public static injectSymbol = Symbol('json-api-module');
+  private readonly factory: interfaces.Factory<InternalJsonApi>;
+
+  constructor(
+    @inject(InternalJsonApi.factoryInjectSymbol) factory: interfaces.Factory<InternalJsonApi>) {
+    this.factory = factory;
+  }
+
+  private createContext(): InternalJsonApi {
+    const ctx = this.factory();
+    return <InternalJsonApi> ctx;
+  }
+
+  public async getDeployment(projectId: number, deploymentId: number): Promise<JsonApiResponse> {
+    const deployment = await this.createContext().getApiDeployment(projectId, deploymentId);
+    if (!deployment) {
+      throw Boom.notFound('Deployment not found');
+    }
+    return deploymentToJsonApi(deployment);
+  }
+
+  public async getProjects(teamId: number): Promise<JsonApiResponse> {
+    const projects = await this.createContext().getApiProjects(teamId);
+    if (!projects) {
+      throw Boom.notFound();
+    }
+    return projectToJsonApi(projects);
+  }
+
+  public async getProject(projectId: number): Promise<JsonApiResponse> {
+    const project = await this.createContext().getApiProject(projectId);
+    if (!project) {
+      throw Boom.notFound('Project not found');
+    }
+    return projectToJsonApi(project);
+  }
+
+  public async getBranch(projectId: number, branchName: string): Promise<JsonApiResponse> {
+    const branch = await this.createContext().getApiBranch(projectId, branchName);
+    if (!branch) {
+      throw Boom.notFound('Branch not found');
+    }
+    return branchToJsonApi(branch);
+  }
+
+  public async getCommit(projectId: number, hash: string): Promise<JsonApiResponse> {
+    const commit = await this.createContext().getApiCommit(projectId, hash);
+    if (!commit) {
+      throw Boom.notFound('Commit not found');
+    }
+    return commitToJsonApi(commit);
+  }
+
+  public async getTeamActivity(teamId: number): Promise<JsonApiResponse> {
+    const activity = await this.createContext().getApiActivityForTeam(teamId);
+    if (!activity) {
+      throw Boom.notFound();
+    }
+    return activityToJsonApi(activity);
+  }
+
+  public async getProjectActivity(projectId: number): Promise<JsonApiResponse> {
+    const activity = await this.createContext().getApiActivityForProject(projectId);
+    if (!activity) {
+      throw Boom.notFound();
+    }
+    return activityToJsonApi(activity);
   }
 
 }

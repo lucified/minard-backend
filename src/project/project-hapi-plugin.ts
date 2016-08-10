@@ -25,7 +25,7 @@ export default class ProjectHapiPlugin {
     server.route({
       method: 'GET',
       path: '/project/hook',
-      handler: (request, reply) => {
+      handler: (request: any, reply: any) => {
         this.projectModule.receiveHook(request.payload);
         return reply('ok');
       },

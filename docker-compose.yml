@@ -19,6 +19,7 @@ services:
     ports:
     - "5432:5432"
     environment:
+    - PGDATA=/var/lib/postgresql/data/pgdata
     - POSTGRES_USER=gitlab
     - POSTGRES_PASSWORD=password
     - POSTGRES_DB=gitlabhq_production
@@ -165,7 +166,7 @@ services:
       - DOCKER_VOLUMES=/cache
 
   charles:
-    image: lucify/charles
+    build: .
     depends_on:
       - gitlab
     ports:

@@ -21,9 +21,17 @@ Since it's all Docker, just run
 ```
 docker-compose up
 ```
-in the project root. When first run, this will build a Docker image for Charles
+in the project root.
+
+## First run
+
+When first run, this will build a Docker image for Charles
 and pull the rest from Docker Hub. Beware that this operation requires some bandwidth/patience,
 since building the image runs `npm install` and the Gitlab Docker image is quite large.
+
+Bringing all the services up on the first run can take quite a while (some minutes) and the
+console will fill up with nasty looking error messages. These are caused by the
+services trying to access each other before they are fully up.
 
 ## Mounted directories
 

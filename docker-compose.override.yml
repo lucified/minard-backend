@@ -8,8 +8,6 @@ services:
   postgresql:
     volumes:
     - ./gitlab-data/postgresql/pgdata:/var/lib/postgresql/data/pgdata:Z
-    environment:
-    - PGDATA=/var/lib/postgresql/data/pgdata
 
   gitlab:
     volumes:
@@ -19,7 +17,6 @@ services:
     volumes:
         - ./gitlab-data/runner:/etc/gitlab-runner
     environment:
-      - DEBUG=false
       - DOCKER_IMAGE=node
       - DOCKER_NETWORK_MODE=minardbackend_default
 

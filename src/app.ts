@@ -45,14 +45,14 @@ const kernel = new Kernel();
 kernel.bind(eventBusInjectSymbol).toConstantValue(new LocalEventBus());
 kernel.bind(loggerInjectSymbol).toConstantValue(Logger(undefined, false, process.env.DEBUG ? true : false));
 kernel.bind(DeploymentPlugin.injectSymbol).to(DeploymentPlugin);
-kernel.bind(DeploymentModule.injectSymbol).to(DeploymentModule);
-kernel.bind(HelloPlugin.injectSymbol).to(HelloPlugin);
+kernel.bind(DeploymentModule.injectSymbol).to(DeploymentModule).inSingletonScope();
+kernel.bind(HelloPlugin.injectSymbol).to(HelloPlugin).inSingletonScope();
 kernel.bind(MinardServer.injectSymbol).to(MinardServer).inSingletonScope();
 kernel.bind(UserModule.injectSymbol).to(UserModule);
 kernel.bind(CIProxy.injectSymbol).to(CIProxy);
 
 kernel.bind(GitlabClient.injectSymbol).to(GitlabClient).inSingletonScope();
-kernel.bind(ProjectModule.injectSymbol).to(ProjectModule);
+kernel.bind(ProjectModule.injectSymbol).to(ProjectModule).inSingletonScope();
 kernel.bind(ProjectPlugin.injectSymbol).to(ProjectPlugin);
 kernel.bind(SystemHookModule.injectSymbol).to(SystemHookModule);
 kernel.bind(AuthenticationModule.injectSymbol).to(AuthenticationModule);

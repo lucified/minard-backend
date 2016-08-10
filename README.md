@@ -72,6 +72,13 @@ rm -rf gitlab-data
 git checkout master -- gitlab-data
 ```
 
+## Test data
+
+To get up to speed quickly with a couple of projects and some deployments,
+you can run the `fetch-test-data.sh` script, which downloads a complete
+`gitlab-data` folder from AWS S3. Before running, make sure you are properly authorized
+ by following the instructions in [lucify-infra#setup-credentials](https://github.com/lucified/lucify-infra#setup-credentials).
+
 # Development (outside of Docker)
 
 Install Charles's dependencies on the host with

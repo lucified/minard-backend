@@ -360,8 +360,6 @@ describe('deployment-module', () => {
     it('should post \'extracted\' event', async (done) => {
       // Arrange
       const bus = new EventBus();
-
-      // Arrange
       rimraf.sync(path.join(os.tmpdir(), 'minard'));
       const thePath = path.join(__dirname, '../../src/deployment/test-artifact.zip');
       const stream = fs.createReadStream(thePath);

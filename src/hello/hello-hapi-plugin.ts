@@ -1,7 +1,7 @@
 
 import { inject, injectable } from 'inversify';
 
-import { EventBus } from '../event-bus/event-bus';
+import { EventBus, injectSymbol as eventBusInjectSymbol } from '../event-bus/';
 import { HapiRegister } from '../server/hapi-register';
 import { fetchSomethingHandler } from './hello-module';
 
@@ -11,7 +11,7 @@ class HelloHapiPlugin {
   public static injectSymbol = Symbol('hello-hapi-plugin');
   private eventBus: EventBus;
 
-  constructor(@inject(EventBus.injectSymbol) eventBus: EventBus) {
+  constructor(@inject(eventBusInjectSymbol) eventBus: EventBus) {
     this.eventBus = eventBus;
     this.register.attributes = {
       name: 'hello-plugin',
@@ -29,7 +29,7 @@ class HelloHapiPlugin {
       method: 'GET',
       path: '/',
       handler: (_request, reply) => {
-        this.eventBus.post({ type: 'hello' });
+        this.eventBus.post({ type: 'hello', payload: {} });
         return reply('hello');
       },
     });

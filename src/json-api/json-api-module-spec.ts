@@ -3,11 +3,12 @@ import 'reflect-metadata';
 
 import { values } from 'lodash';
 
-import DeploymentModule, { MinardDeployment } from '../deployment/deployment-module';
-import ProjectModule, { MinardProject } from '../project/project-module';
+import { DeploymentModule,  MinardDeployment } from '../deployment/';
+import  { MinardProject, ProjectModule } from '../project/';
 
 import JsonApiModule, { ApiBranch, ApiCommit, ApiDeployment, ApiProject, JsonApiEntity, JsonApiResponse,
   branchToJsonApi, commitToJsonApi, deploymentToJsonApi, projectToJsonApi } from './json-api-module';
+
 import { expect } from 'chai';
 
 const exampleCommitOne = {

@@ -3,11 +3,10 @@ import * as Hapi from 'hapi';
 import { inject, injectable } from 'inversify';
 
 import { HapiRegister } from '../server/hapi-register';
-import DeploymentModule, { DeploymentKey, getDeploymentKey, isRawDeploymentHostname} from './deployment-module';
+import DeploymentModule, { getDeploymentKey, isRawDeploymentHostname} from './deployment-module';
 
 import { gitlabHostInjectSymbol } from '../shared/gitlab-client';
 
-import { proxyCI } from './proxy-ci';
 import * as path from 'path';
 
 const directoryHandler = require('inert/lib/directory').handler;
@@ -54,19 +53,6 @@ class DeploymentHapiPlugin {
     });
 
     server.route({
-      method: '*',
-      path: '/ci/api/v1/{what}/{id}/{action?}',
-      handler: proxyCI.bind(null, this.gitlabHost,
-        this.deploymentModule.setDeploymentState.bind(this.deploymentModule)),
-      config: {
-        payload: {
-          output: 'stream',
-          parse: false,
-        },
-      },
-    });
-
-    server.route({
       method: 'GET',
       path: '/ci/projects/{id}/{ref}/{sha}/{action}',
       handler: (request: Hapi.Request, reply: Hapi.IReply) => {
@@ -95,9 +81,7 @@ my_job:
   };
 
   public async rawDeploymentHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const key = getDeploymentKey(request.info.hostname) as DeploymentKey;
-    const projectId = key.projectId;
-    const deploymentId = key.deploymentId;
+    const key = getDeploymentKey(request.info.hostname);
 
     if (!key) {
       return reply({
@@ -105,7 +89,10 @@ my_job:
         message: `Could not parse deployment URL from hostname '${request.info.hostname}'`});
     }
 
+    const projectId = key.projectId;
+    const deploymentId = key.deploymentId;
     const isReady = this.deploymentModule.isDeploymentReadyToServe(projectId, deploymentId);
+
     if (!isReady) {
       try {
         await this.deploymentModule.prepareDeploymentForServing(projectId, deploymentId);

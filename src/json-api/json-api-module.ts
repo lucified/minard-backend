@@ -5,13 +5,14 @@ import { inject, injectable } from 'inversify';
 
 import { Commit } from '../shared/gitlab.d.ts';
 
-import DeploymentModule, { MinardDeployment, MinardDeploymentPlain } from '../deployment/deployment-module';
-import ProjectModule, {
+import { DeploymentModule, MinardDeployment, MinardDeploymentPlain } from '../deployment/';
+import  {
   MinardBranch,
   MinardCommit,
   MinardProject,
   MinardProjectPlain,
-} from '../project/project-module';
+  ProjectModule,
+} from '../project/';
 
 const deepcopy = require('deepcopy');
 

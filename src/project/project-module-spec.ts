@@ -5,7 +5,8 @@ import AuthenticationModule from '../authentication/authentication-module';
 import LocalEventBus from '../event-bus/local-event-bus';
 import { GitlabClient } from '../shared/gitlab-client';
 import SystemHookModule from '../system-hook/system-hook-module';
-import ProjectModule, { MinardBranch, MinardCommit, MinardProject, findActiveCommitters } from './project-module';
+import { MinardBranch, MinardCommit, MinardProject,
+  PROJECT_CREATED_EVENT_TYPE, ProjectModule, findActiveCommitters } from './';
 import { expect } from 'chai';
 
 const fetchMock = require('fetch-mock');
@@ -31,9 +32,9 @@ describe('project-module', () => {
       eventBus,
       {} as GitlabClient);
 
-    eventBus.subscribe((item: any) => {
-      expect(item.type).to.equal('project-created');
-      expect(item.projectId).to.equal(74);
+    eventBus.subscribe(event => {
+      expect(event.type).to.equal(PROJECT_CREATED_EVENT_TYPE);
+      expect(event.payload.projectId).to.equal(74);
       done();
     });
 

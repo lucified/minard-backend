@@ -12,7 +12,7 @@ import JsonApiModule from './json-api/json-api-module';
 import AuthenticationModule from './authentication/authentication-module';
 import DeploymentPlugin from './deployment/deployment-hapi-plugin';
 
-import { default as DeploymentModule, deploymentFolderInjectSymbol } from './deployment/deployment-module';
+import { CIProxy, DeploymentModule, deploymentFolderInjectSymbol } from './deployment';
 
 import ProjectPlugin from './project/project-hapi-plugin';
 import ProjectModule from './project/project-module';
@@ -23,8 +23,7 @@ import HelloPlugin from './hello/hello-hapi-plugin';
 
 import UserModule from './user/user-module';
 
-import { EventBus } from './event-bus/event-bus';
-import LocalEventBus from './event-bus/local-event-bus';
+import { LocalEventBus, injectSymbol as eventBusInjectSymbol } from './event-bus';
 
 import MinardServer, {hostInjectSymbol, portInjectSymbol} from './server/server';
 
@@ -43,16 +42,17 @@ const kernel = new Kernel();
 // dependencies into EventBus
 //
 //  -- JO 25.6.2016
-kernel.bind(EventBus.injectSymbol).toConstantValue(new LocalEventBus());
+kernel.bind(eventBusInjectSymbol).toConstantValue(new LocalEventBus());
 kernel.bind(loggerInjectSymbol).toConstantValue(Logger(undefined, false, process.env.DEBUG ? true : false));
 kernel.bind(DeploymentPlugin.injectSymbol).to(DeploymentPlugin);
-kernel.bind(DeploymentModule.injectSymbol).to(DeploymentModule);
-kernel.bind(HelloPlugin.injectSymbol).to(HelloPlugin);
+kernel.bind(DeploymentModule.injectSymbol).to(DeploymentModule).inSingletonScope();
+kernel.bind(HelloPlugin.injectSymbol).to(HelloPlugin).inSingletonScope();
 kernel.bind(MinardServer.injectSymbol).to(MinardServer).inSingletonScope();
 kernel.bind(UserModule.injectSymbol).to(UserModule);
+kernel.bind(CIProxy.injectSymbol).to(CIProxy);
 
 kernel.bind(GitlabClient.injectSymbol).to(GitlabClient).inSingletonScope();
-kernel.bind(ProjectModule.injectSymbol).to(ProjectModule);
+kernel.bind(ProjectModule.injectSymbol).to(ProjectModule).inSingletonScope();
 kernel.bind(ProjectPlugin.injectSymbol).to(ProjectPlugin);
 kernel.bind(SystemHookModule.injectSymbol).to(SystemHookModule);
 kernel.bind(AuthenticationModule.injectSymbol).to(AuthenticationModule);

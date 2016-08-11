@@ -5,7 +5,9 @@ import { inject, injectable } from 'inversify';
 import * as Joi from 'joi';
 
 import { HapiRegister } from '../server/hapi-register';
-import JsonApiModule from './json-api-module';
+import { ApiEntities, ApiEntity, MemoizedJsonApiModule } from './';
+import { serializeApiEntity }  from './serialization';
+
 
 function onPreResponse(request: Hapi.Request, reply: Hapi.IReply) {
   const response = request.response;
@@ -59,14 +61,14 @@ export function parseActivityFilter(filter: string | null) {
 }
 
 @injectable()
-export default class JsonApiHapiPlugin {
+export class JsonApiHapiPlugin {
 
   public static injectSymbol = Symbol('json-api-hapi-plugin');
 
-  private jsonApiModule: JsonApiModule;
+  private jsonApiModule: MemoizedJsonApiModule;
 
   constructor(
-    @inject(JsonApiModule.injectSymbol) jsonApiModule: JsonApiModule) {
+    @inject(MemoizedJsonApiModule.injectSymbol) jsonApiModule: MemoizedJsonApiModule) {
     this.jsonApiModule = jsonApiModule;
     this.register.attributes = {
       name: 'json-api-plugin',
@@ -167,46 +169,58 @@ export default class JsonApiHapiPlugin {
     next();
   };
 
+
+  private async getEntity(type: string, p: Promise<ApiEntity | ApiEntities | null> ) {
+    // const api = this.jsonApiModule;
+    // api.invalidate();
+    const entity = await p;
+    if (!entity) {
+      throw Boom.notFound(`${type} not found`);
+    }
+    return serializeApiEntity(type, entity);
+  }
+
+
   private async getProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const projectId = (<any> request.params).projectId;
-    return reply(this.jsonApiModule.getProject(projectId));
+    return reply(this.getEntity('project', this.jsonApiModule.getProject(projectId)));
   }
 
   private async getProjectsHandler(_request: Hapi.Request, reply: Hapi.IReply) {
     // TODO: parse team information
-    return reply(this.jsonApiModule.getProjects(1));
+    return reply(this.getEntity('project', this.jsonApiModule.getProjects(1)));
   }
 
   private async getDeploymentHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const projectId = Number((<any> request.params).projectId);
     const deploymentId = Number((<any> request.params).deploymentId);
-    return reply(this.jsonApiModule.getDeployment(projectId, deploymentId));
+    return reply(this.getEntity('deployment', this.jsonApiModule.getDeployment(projectId, deploymentId)));
   }
 
   private async getBranchHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const projectId = Number((<any> request.params).projectId);
     const branchName = (<any> request.params).branchName as string;
-    return reply(this.jsonApiModule.getBranch(projectId, branchName));
+    return reply(this.getEntity('branch', this.jsonApiModule.getBranch(projectId, branchName)));
   }
 
   private async getCommitHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const projectId = Number((<any> request.params).projectId);
     const hash = (<any> request.params).hash as string;
-    return reply(this.jsonApiModule.getCommit(projectId, hash));
+    return reply(this.getEntity('commit', this.jsonApiModule.getCommit(projectId, hash)));
   }
 
   private async getActivityHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const filter = request.query.filter as string;
     const filterOptions = parseActivityFilter(filter);
     if (filterOptions.projectId) {
-      return reply(this.jsonApiModule.getProjectActivity(filterOptions.projectId));
+      return reply(this.getEntity('activity', this.jsonApiModule.getProjectActivity(filterOptions.projectId)));
     }
     if (filter && !filterOptions.projectId) {
       // if filter is specified it should be valid
       throw Boom.badRequest('Invalid filter');
     }
     // for now any team id returns all activity
-    return reply(this.jsonApiModule.getTeamActivity(1));
+    return reply(this.getEntity('project', this.jsonApiModule.getTeamActivity(1)));
   }
 
 }

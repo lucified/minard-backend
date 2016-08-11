@@ -65,7 +65,7 @@ export const branchSerialization = {
 };
 
 export const deploymentSerialization =  {
-  attributes: ['finished_at', 'status', 'commit', 'url'],
+  attributes: ['status', 'commit', 'url', 'creator'],
   ref: standardIdRef,
   commit: nonIncludedSerialization,
   included: true,

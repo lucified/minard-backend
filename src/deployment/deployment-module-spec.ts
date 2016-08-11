@@ -183,6 +183,9 @@ describe('deployment-module', () => {
       expect(deployment).to.not.equal(null);
       expect(deployment.id).to.equal(8);
       expect(deployment.url).to.equal('http://master-0ff3ae19-1-8.localhost:8000');
+      expect(deployment.creator.email).to.equal(gitlabBuildResponse.commit.author_email);
+      expect(deployment.creator.name).to.equal(gitlabBuildResponse.commit.author_name);
+      expect(deployment.creator.timestamp).to.equal(gitlabBuildResponse.finished_at);
     });
 
     it('should return null when deployment can not be found', async () => {

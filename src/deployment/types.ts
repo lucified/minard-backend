@@ -25,10 +25,17 @@ export interface MinardDeploymentPlain {
   url?: string;
   screenshot?: string;
   finished_at: string;
+  creator: MinardDeploymentCreator;
 }
 
 interface CommitRef {
   id: string;
+}
+
+export interface MinardDeploymentCreator {
+  name: string;
+  email: string;
+  timestamp: string;
 }
 
 export interface MinardDeployment extends MinardDeploymentPlain {

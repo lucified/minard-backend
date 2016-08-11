@@ -98,9 +98,13 @@ const newLayoutBranchCommits = [
 const exampleDeploymentOne = {
   id: '1-1',
   url: 'http://www.foobar.com',
-  finished_at: '2015-12-24T17:54:31.198Z',
   status: 'success',
   commit: exampleCommitOne,
+  creator: {
+    name: 'Fooman',
+    email: 'fooman@gmail.com',
+    timestamp: '2015-12-24T17:54:31.198Z',
+  },
 } as {} as ApiDeployment;
 
 const exampleDeploymentTwo = {
@@ -109,6 +113,11 @@ const exampleDeploymentTwo = {
   finished_at: '2015-12-24T19:54:31.198Z',
   status: 'success',
   commit: exampleCommitTwo,
+  creator: {
+    name: 'Barwoman',
+    email: 'barwoman@gmail.com',
+    timestamp: '2015-12-24T17:55:31.198Z',
+  },
 } as {} as ApiDeployment;
 
 const exampleMasterBranch = {
@@ -138,9 +147,11 @@ const exampleProject = {
   path: 'sepo/example-project',
   branches: [exampleMasterBranch, exampleNewLayoutBranch],
 } as ApiProject;
+
 exampleProject.branches.forEach(item => {
   item.project = exampleProject;
 });
+
 
 const exampleActivity = {
   project: exampleProject,
@@ -212,9 +223,9 @@ describe('json-api-module', () => {
       expect(data[0].type).to.equal('deployments');
 
       // attributes
-      expect(data[0].attributes['finished-at']).to.equal('2015-12-24T17:54:31.198Z');
       expect(data[0].attributes.status).to.equal('success');
       expect(data[0].attributes.url).to.equal('http://www.foobar.com');
+      expect(data[0].attributes.creator).to.deep.equal(exampleDeploymentOne.creator);
 
       // commit relationship
       expect(data[0].relationships.commit).to.exist;

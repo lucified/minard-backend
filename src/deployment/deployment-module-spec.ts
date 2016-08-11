@@ -215,7 +215,26 @@ describe('deployment-module', () => {
       const deployments = await deploymentModule.getProjectDeployments(1) as MinardDeployment[];
       // Assert
       expect(deployments.length).equals(2);
-      expect(deployments[0].id).equals(7);
+      expect(deployments[0].id).equals(gitLabBuildsResponse[0].id);
+      expect(deployments[1].id).equals(gitLabBuildsResponse[1].id);
+    });
+  });
+
+  describe('getCommitDeployments()', () => {
+    it('it should work with response returning two deployments', async () => {
+      // Arrange
+      const sha = 'foo-commit-sha';
+      const gitlabClient = getClient();
+      fetchMock.restore().mock(
+        `${host}${gitlabClient.apiPrefix}/projects/1/repository/commits/${sha}/builds`,
+        gitLabBuildsResponse);
+      const deploymentModule = getDeploymentModule(gitlabClient, '');
+      // Act
+      const deployments = await deploymentModule.getCommitDeployments(1, sha) as MinardDeployment[];
+      // Assert
+      expect(deployments.length).equals(2);
+      expect(deployments[0].id).equals(gitLabBuildsResponse[0].id);
+      expect(deployments[1].id).equals(gitLabBuildsResponse[1].id);
     });
   });
 

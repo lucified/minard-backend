@@ -152,6 +152,8 @@ exampleProject.branches.forEach(item => {
   item.project = exampleProject;
 });
 
+exampleCommitOne.deployments = [exampleDeploymentOne];
+exampleCommitTwo.deployments = [exampleDeploymentTwo];
 
 const exampleActivity = {
   project: exampleProject,
@@ -308,9 +310,16 @@ describe('json-api-module', () => {
       expect(data.attributes.committer.email).to.equal('barman@gmail.com');
       expect(data.attributes.committer.timestamp).to.equal('2015-12-24T16:51:21.802Z');
 
+      // deployments relationship
+      expect(data.relationships.deployments).to.exist;
+      expect(data.relationships.deployments.data).to.have.length(1);
+      expect(data.relationships.deployments.data[0].id).to.equal(exampleCommitOne.deployments[0].id);
+
       // no extra stuff
-      expect(values(data.relationships)).to.have.length(0);
+      expect(values(data.relationships)).to.have.length(1);
       expect(values(converted.included)).to.have.length(0);
+
+      // TODO: should deployments be included?
     });
   });
 

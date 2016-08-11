@@ -79,8 +79,9 @@ export const projectSerialization = {
 };
 
 export const commitSerialization = {
-  attributes: ['message', 'author', 'committer', 'hash'],
+  attributes: ['message', 'author', 'committer', 'hash', 'deployments'],
   ref: standardIdRef,
+  deployments: nonIncludedSerialization,
   included: true,
 };
 
@@ -162,6 +163,7 @@ export interface ApiDeployment extends MinardDeploymentPlain {
 
 export interface ApiCommit extends MinardCommit {
   hash: string;
+  deployments: ApiDeployment[];
 }
 
 export interface ApiActivity extends MinardActivityPlain {
@@ -272,15 +274,26 @@ export class InternalJsonApi implements InternalJsonApiInterface {
     if (!commit) {
       throw Boom.badImplementation();
     }
+    const deployments = await this.deploymentModule.getCommitDeployments(projectId, commit.id);
+    if (!deployments) {
+      throw Boom.badImplementation();
+    }
+    ret.deployments = await Promise.all<ApiDeployment>(
+      deployments.map(deployment => this.toApiDeployment(projectId, deployment, ret)));
     ret.id = `${projectId}-${commit.id}`;
     ret.hash = commit.id;
     return ret;
   }
 
-  public async toApiDeployment(projectId: number, deployment: MinardDeployment): Promise<ApiDeployment> {
+  public async toApiDeployment(
+    projectId: number,
+    deployment: MinardDeployment,
+    commit?: ApiCommit): Promise<ApiDeployment> {
     const ret = deepcopy(deployment) as ApiDeployment;
     ret.id = `${projectId}-${deployment.id}`;
-    if (deployment.commitRef) {
+    if (commit) {
+      ret.commit = commit;
+    } else if (deployment.commitRef) {
       ret.commit = await this.toApiCommit(projectId,
         this.projectModule.toMinardCommit(deployment.commitRef as Commit));
     }

@@ -112,6 +112,19 @@ export default class DeploymentModule {
     return projectDeployments.filter(item => item.ref === branchName);
   };
 
+  public async getCommitDeployments(projectId: number, sha: string) {
+    try {
+      const deployments = await this.gitlab.fetchJson<Deployment[]>(
+        `projects/${projectId}/repository/commits/${sha}/builds`);
+      return deployments.map((deployment: Deployment) => this.toMinardModelDeployment(deployment, projectId));
+    } catch (err) {
+      if (err.output.statusCode === 404) {
+        return null;
+      }
+      throw Boom.wrap(err);
+    }
+  }
+
   public async getDeployment(projectId: number, deploymentId: number): Promise<MinardDeployment | null> {
     try {
       return this.toMinardModelDeployment(

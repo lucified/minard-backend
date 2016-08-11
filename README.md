@@ -77,6 +77,15 @@ rm -rf gitlab-data
 git checkout master -- gitlab-data
 ```
 
+## Rebuild image
+
+If you update charles and need to e.g. install new NPM libraries, you will need to rebuild the
+charles Docker image. This can be done with:
+
+```shell
+docker-compose build charles
+```
+
 ## Test data
 
 To get up to speed quickly with a couple of projects and some deployments, you can run the
@@ -86,15 +95,6 @@ Before running, make sure you are properly authorized by following the instructi
 
 The test data has a GitLab user `root` with password `12345678`. After logging in, be sure to set
 your own [public key in GitLab](http://docs.gitlab.com/ce/gitlab-basics/create-your-ssh-keys.html).
-
-# Development (in Docker)
-
-If you need to rebuild the charles image (to e.g. run `npm install` after requiring new libraries),
-run the following:
-
-```shell
-docker-compose build charles
-```
 
 # Development (outside of Docker)
 

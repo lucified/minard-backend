@@ -3,13 +3,9 @@ import 'reflect-metadata';
 
 import { values } from 'lodash';
 
-import ActivityModule from '../activity/activity-module';
-import { DeploymentModule } from '../deployment/';
-
 import {
   MinardBranch,
   MinardProject,
-  ProjectModule,
 } from '../project/';
 
 import {

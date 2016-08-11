@@ -21,7 +21,9 @@ Since it's all Docker, just run
 ```
 docker-compose up
 ```
-in the project root.
+in the project root. After the bootup process completes, which can take a while,
+you can login to GitLab at `http://localhost:10080`. Similarly, the git ssh backend
+for pushing and pulling repositories is at `http://localhost:10022`.
 
 ## First run
 
@@ -32,6 +34,7 @@ since building the image runs `npm install` and the Gitlab Docker image is quite
 Bringing all the services up on the first run can take quite a while (some minutes) and the
 console will fill up with nasty looking error messages. These are caused by the
 services trying to access each other before they are fully up.
+
 
 ## Mounted directories
 
@@ -78,6 +81,9 @@ To get up to speed quickly with a couple of projects and some deployments,
 you can run the `fetch-test-data.sh` script, which downloads a complete
 `gitlab-data` folder from AWS S3. Before running, make sure you are properly authorized
  by following the instructions in [lucify-infra#setup-credentials](https://github.com/lucified/lucify-infra#setup-credentials).
+
+The test data has a GitLab user `root` with password `12345678`. After logging in, be sure to set
+your own [public key in GitLab](http://docs.gitlab.com/ce/gitlab-basics/create-your-ssh-keys.html).
 
 # Development (outside of Docker)
 

@@ -166,6 +166,8 @@ export interface ApiCommit extends MinardCommit {
 export interface ApiActivity extends MinardActivityPlain {
   id: string;
   deployment: ApiDeployment;
+  project: ApiProject;
+  branch: ApiBranch;
 }
 
 @injectable()

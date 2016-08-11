@@ -141,6 +141,8 @@ exampleProject.branches.forEach(item => {
 });
 
 const exampleActivity = {
+  project: exampleProject,
+  branch: exampleMasterBranch,
   id: 'dasfsa',
   activityType: 'deployment',
   deployment: exampleDeploymentOne,
@@ -301,7 +303,6 @@ describe('json-api-module', () => {
 
   describe('activityToJsonApi()', () => {
     it('should work with a single commit', () => {
-
       const activity = exampleActivity as ApiActivity;
       const converted = activityToJsonApi(activity) as JsonApiResponse;
       const data = converted.data as JsonApiEntity;
@@ -315,20 +316,37 @@ describe('json-api-module', () => {
       expect(data.attributes.timestamp).to.equal(activity.timestamp);
       expect(data.attributes['activity-type']).to.equal(activity.activityType);
 
-      // deployment relationship
-      expect(data.relationships.deployment).to.exist;
-      expect(data.relationships.deployment.data.id).to.equal(activity.deployment.id);
-      expect(data.relationships.deployment.data.type).to.equal('deployments');
-
       // included deployment
       const deployment = (<any> converted).included.find(
         (item: JsonApiEntity) => item.type === 'deployments' && item.id === activity.deployment.id);
       expect(deployment).to.exist;
 
-      // included commit
+      // included commit (via deployment)
       const commit = (<any> converted).included.find(
         (item: JsonApiEntity) => item.type === 'commits' && item.id === activity.deployment.commit.id);
       expect(commit).to.exist;
+
+      // included project
+      const project = (<any> converted).included.find(
+        (item: JsonApiEntity) => item.type === 'projects' && item.id === activity.project.id);
+      expect(project).to.exist;
+      expect(project.attributes.name).to.equal(activity.project.name);
+
+      // include branch that is references from activity
+      const branch = (<any> converted).included.find(
+        (item: JsonApiEntity) => item.type === 'branches' && item.id === activity.branch.id);
+      expect(branch).to.exist;
+      expect(branch.attributes.name).to.equal(activity.branch.name);
+
+      // do not include other branches
+      const branches = (<any> converted).included.filter(
+        (item: JsonApiEntity) => item.type === 'branches');
+      expect(branches).to.have.length(1);
+
+      // do not include other commits
+      const commits = (<any> converted).included.filter(
+        (item: JsonApiEntity) => item.type === 'commits');
+      expect(commits).to.have.length(1);
     });
   });
 

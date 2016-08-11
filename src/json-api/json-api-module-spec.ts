@@ -5,6 +5,7 @@ import { values } from 'lodash';
 
 import {
   MinardBranch,
+  MinardCommit,
   MinardProject,
 } from '../project/';
 
@@ -17,6 +18,7 @@ import {
   InternalJsonApi,
   JsonApiEntity,
   JsonApiResponse,
+  MemoizedInternalJsonApi,
   activityToJsonApi,
   branchToJsonApi,
   commitToJsonApi,
@@ -384,6 +386,180 @@ describe('json-api-module', () => {
       expect(project.branches[0].id).to.equal('1-master');
       expect(project.branches[0].deployments).to.have.length(2);
     });
+  });
+
+  describe('MemoizedInternalJsonApi', () => {
+    describe('toApiProject', () => {
+      class MockInternalJsonApi extends InternalJsonApi {
+        public constructor() {
+          super({} as any, {} as any, {} as any);
+        }
+        public async toApiProject(project: MinardProject) {
+          return {
+            id: project.id,
+          };
+        }
+      }
+      it('should return memoized copy when passed an identical object', async () => {
+        const api = new MemoizedInternalJsonApi(new MockInternalJsonApi() as InternalJsonApi);
+        const ret1 = await api.toApiProject( { id: 1, name: 'foo' } as MinardProject );
+        const ret2 = await api.toApiProject( { id: 1, name: 'foo' } as MinardProject );
+        expect(ret1).to.equal(ret2);
+      });
+
+      it('should return memoized copy when passed an object that has same id', async () => {
+        const api = new MemoizedInternalJsonApi(new MockInternalJsonApi() as InternalJsonApi);
+        const ret1 = await api.toApiProject( { id: 1, name: 'foo' } as MinardProject );
+        const ret2 = await api.toApiProject( { id: 1, name: 'bar' } as MinardProject );
+        expect(ret1).to.equal(ret2);
+      });
+
+      it('should not return memoized copy passed an object with different id', async () => {
+        const api = new MemoizedInternalJsonApi(new MockInternalJsonApi() as InternalJsonApi);
+        const ret1 = await api.toApiProject( { id: 1, name: 'foo' } as MinardProject );
+        const ret2 = await api.toApiProject( { id: 2, name: 'foo' } as MinardProject );
+        expect(ret1).to.not.equal(ret2);
+      });
+    });
+    describe('toApiBranch', () => {
+      class MockInternalJsonApi extends InternalJsonApi {
+        public constructor() {
+          super({} as any, {} as any, {} as any);
+        }
+        public async toApiBranch(project: ApiProject, branch: MinardBranch) {
+          return {
+            id: 'foo',
+          };
+        }
+      }
+      it('should return memoized copy when passed an identical object as parameters', async () => {
+        const api = new MemoizedInternalJsonApi(new MockInternalJsonApi() as InternalJsonApi);
+        const ret1 = await api.toApiBranch(
+          { id: '1', name: 'foo' } as ApiProject,
+          { name: 'foo' } as MinardBranch);
+        const ret2 = await api.toApiBranch(
+          { id: '1', name: 'foo' } as ApiProject,
+          { name: 'foo' } as MinardBranch);
+        expect(ret1).to.equal(ret2);
+      });
+
+      it('should not return memoized copy when project has different id', async () => {
+        const api = new MemoizedInternalJsonApi(new MockInternalJsonApi() as InternalJsonApi);
+        const ret1 = await api.toApiBranch(
+          { id: '1', name: 'foo' } as ApiProject,
+          { name: 'foo' } as MinardBranch);
+        const ret2 = await api.toApiBranch(
+          { id: '2', name: 'foo' } as ApiProject,
+          { name: 'foo' } as MinardBranch);
+        expect(ret1).to.not.equal(ret2);
+      });
+
+      it('should not return memoized copy when branch has different name', async () => {
+        const api = new MemoizedInternalJsonApi(new MockInternalJsonApi() as InternalJsonApi);
+        const ret1 = await api.toApiBranch(
+          { id: '1', name: 'foo' } as ApiProject,
+          { name: 'foo' } as MinardBranch);
+        const ret2 = await api.toApiBranch(
+          { id: '1', name: 'foo' } as ApiProject,
+          { name: 'bar' } as MinardBranch);
+        expect(ret1).to.not.equal(ret2);
+      });
+    });
+
+    describe('toApiCommit', () => {
+      class MockInternalJsonApi extends InternalJsonApi {
+        public constructor() {
+          super({} as any, {} as any, {} as any);
+        }
+        public async toApiCommit(projectId: number, commit: MinardCommit) {
+          return {
+            id: 'foo',
+          };
+        }
+      }
+      it('should return memoized copy when passed same project id and identical commit object', async () => {
+        const api = new MemoizedInternalJsonApi(new MockInternalJsonApi() as InternalJsonApi);
+        const ret1 = await api.toApiCommit(1, { id: 'foo' } as MinardCommit );
+        const ret2 = await api.toApiCommit(1, { id: 'foo' } as MinardCommit );
+        expect(ret1).to.equal(ret2);
+      });
+
+      it('should not return memoized copy when project id is different', async () => {
+        const api = new MemoizedInternalJsonApi(new MockInternalJsonApi() as InternalJsonApi);
+        const ret1 = await api.toApiCommit(1, { id: 'foo' } as MinardCommit );
+        const ret2 = api.toApiCommit(2, { id: 'foo' } as MinardCommit );
+        expect(ret1).to.not.equal(ret2);
+      });
+
+      it('should not return memoized copy when commit id is different', async () => {
+        const api = new MemoizedInternalJsonApi(new MockInternalJsonApi() as InternalJsonApi);
+        const ret1 = await api.toApiCommit(1, { id: 'foo' } as MinardCommit );
+        const ret2 = await api.toApiCommit(2, { id: 'bar' } as MinardCommit );
+        expect(ret1).to.not.equal(ret2);
+      });
+    });
+
+    describe('getApiProject', () => {
+      class MockInternalJsonApi extends InternalJsonApi {
+        public constructor() {
+          super({} as any, {} as any, {} as any);
+        }
+        public async getApiProject(projectId: number | string) {
+          return {
+            id: 'foo',
+          };
+        }
+      }
+      it('should return memoized copy when passed same project id', async () => {
+        const api = new MemoizedInternalJsonApi(new MockInternalJsonApi() as InternalJsonApi);
+        const ret1 = await api.getApiProject(1);
+        const ret2 = await api.getApiProject(1);
+        const ret3 = await api.getApiProject('1');
+        expect(ret1).to.equal(ret2);
+        expect(ret1).to.equal(ret3);
+      });
+
+      it('should not return memoized copy when project is is different', async () => {
+        const api = new MemoizedInternalJsonApi(new MockInternalJsonApi() as InternalJsonApi);
+        const ret1 = await api.getApiProject(1);
+        const ret2 = await api.getApiProject(2);
+        expect(ret1).to.not.equal(ret2);
+      });
+    });
+
+    describe('getApiBranch', () => {
+      class MockInternalJsonApi extends InternalJsonApi {
+        public constructor() {
+          super({} as any, {} as any, {} as any);
+        }
+        public async getApiBranch(projectId: number | string) {
+          return {
+            id: 'foo',
+          };
+        }
+      }
+      it('should return memoized copy when passed same project id and branch name', async () => {
+        const api = new MemoizedInternalJsonApi(new MockInternalJsonApi() as InternalJsonApi);
+        const ret1 = await api.getApiBranch(1, 'master');
+        const ret2 = await api.getApiBranch(1, 'master');
+        expect(ret1).to.equal(ret2);
+      });
+
+      it('should not return memoized copy when project id is different', async () => {
+        const api = new MemoizedInternalJsonApi(new MockInternalJsonApi() as InternalJsonApi);
+        const ret1 = await api.getApiBranch(1, 'master');
+        const ret2 = await api.getApiBranch(2, 'master');
+        expect(ret1).to.not.equal(ret2);
+      });
+
+      it('should not return memoized copy when branch name is different', async () => {
+        const api = new MemoizedInternalJsonApi(new MockInternalJsonApi() as InternalJsonApi);
+        const ret1 = await api.getApiBranch(1, 'master');
+        const ret2 = await api.getApiBranch(1, 'foo');
+        expect(ret1).to.not.equal(ret2);
+      });
+    });
+
   });
 
 });

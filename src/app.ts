@@ -90,6 +90,11 @@ const knex = Knex({
     database : DB_NAME,
     port: DB_PORT,
   },
+  pool: {
+    min: 2,
+    max: 10,
+    bailAfter: 10 * 60 * 1000,
+  } as any,
 });
 kernel.bind('gitlab-knex').toConstantValue(knex);
 

@@ -28,7 +28,7 @@ class HelloHapiPlugin {
     server.route({
       method: 'GET',
       path: '/',
-      handler: (_request, reply) => {
+      handler: (request: any, reply: any) => {
         this.eventBus.post({ type: 'hello', payload: {} });
         return reply('hello');
       },
@@ -37,7 +37,7 @@ class HelloHapiPlugin {
     server.route({
       method: 'GET',
       path: '/hello/{name}',
-      handler: (request, reply) => {
+      handler: (request: any, reply: any) => {
         const nameKey = 'name';
         return reply('hello ' + request.params[nameKey]);
       },

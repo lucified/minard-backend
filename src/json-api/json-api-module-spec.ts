@@ -336,70 +336,39 @@ describe('json-api-module', () => {
     });
   });
 
-  describe('getProject()', () => {
+  describe('toApiProject()', () => {
     it('should work in typical case', async () => {
       // Arrange
-      class MockDeploymentModule {
-        public async getBranchDeployments(_projectId: number, _branchName: string) {
-          return [
-            {
-              id: '8ds7f8asfasd',
-            },
-            {
-              id: '98df789as897',
-            },
-          ] as {} as MinardDeployment[];
-        }
-      }
-      class MockProjectsModule {
-        public async getProject(projectId: number): Promise<MinardProject> {
-          return {
-            id: projectId,
-            name: 'project-name',
-            branches: [
-              {
-                id: `${projectId}-master`,
-                name: 'master',
-                commits: [],
-              },
-              {
-                id: `${projectId}-new-feature`,
-                name: 'new-feature',
-                commits: [],
-              },
-            ],
-          } as {} as MinardProject;
-        }
-      }
-      const jsonApiModule = new JsonApiModule(
-        new MockDeploymentModule() as DeploymentModule,
-        new MockProjectsModule() as ProjectModule,
-        {} as ActivityModule);
+      // -------
+      const minardProject = {
+        id: 1,
+        branches: [
+          {
+            name: 'master',
+          } as MinardBranch,
+        ],
+      } as MinardProject;
+
+      const api = {} as InternalJsonApi;
+      api.toApiProject = InternalJsonApi.prototype.toApiProject.bind(api);
+      api.toApiBranch = async function(project: ApiProject, branch: MinardBranch) {
+        expect(project.id).to.equal('1');
+        return {
+          id: '1-master',
+          deployments: [{}, {}],
+        };
+      };
 
       // Act
-      const response = await jsonApiModule.getProject(1);
+      // ---
+      const project = await api.toApiProject(minardProject);
 
       // Assert
-      const data = response.data as JsonApiEntity;
-      expect(data).to.exist;
-
-      expect(data.id).to.equal('1');
-      expect(data.type).to.equal('projects');
-      expect(data.attributes.name).to.equal('project-name');
-
-      expect(data.relationships.branches).to.exist;
-      expect(data.relationships.branches.data).to.exist;
-      expect(data.relationships.branches.data[0].id).to.equal('1-master');
-      expect(data.relationships.branches.data[1].id).to.equal('1-new-feature');
-
-      expect(response.included).to.exist;
-      const master = (<JsonApiEntity[]> response.included)
-        .find((item: any) => item.id === '1-master') as JsonApiEntity;
-      expect(master).to.exist;
-      expect(master.relationships.deployments.data).to.exist;
-      expect(master.relationships.deployments.data[0]).to.exist;
-      expect(master.relationships.deployments.data[0].id).to.equal('1-8ds7f8asfasd');
-      expect(master.relationships.deployments.data[1].id).to.equal('1-98df789as897');
+      // ------
+      expect(project.id).to.equal('1');
+      // Make sure branches are converted to APIBranch:es
+      expect(project.branches[0].id).to.equal('1-master');
+      expect(project.branches[0].deployments).to.have.length(2);
     });
   });
 

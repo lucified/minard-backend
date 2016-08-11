@@ -7,7 +7,7 @@ import { Kernel } from 'inversify';
 import * as Knex from 'knex';
 
 import JsonApiHapiPlugin from './json-api/json-api-hapi-plugin';
-import JsonApiModule, { InternalJsonApi, MemoizedInternalJsonApi } from './json-api/json-api-module';
+import JsonApiModule, { InternalJsonApi } from './json-api/json-api-module';
 
 import AuthenticationModule from './authentication/authentication-module';
 import DeploymentPlugin from './deployment/deployment-hapi-plugin';
@@ -59,6 +59,7 @@ kernel.bind(SystemHookModule.injectSymbol).to(SystemHookModule);
 kernel.bind(AuthenticationModule.injectSymbol).to(AuthenticationModule);
 kernel.bind(ActivityModule.injectSymbol).to(ActivityModule);
 
+kernel.bind(InternalJsonApi.injectSymbol).to(InternalJsonApi);
 kernel.bind(JsonApiHapiPlugin.injectSymbol).to(JsonApiHapiPlugin);
 kernel.bind(JsonApiModule.injectSymbol).to(JsonApiModule);
 
@@ -83,10 +84,7 @@ kernel.bind(fetchInjectSymbol).toConstantValue(fetch);
 kernel.bind(systemHookBaseUrlSymbol).toConstantValue(SYSTEMHOOK_BASEURL);
 kernel.bind(deploymentFolderInjectSymbol).toConstantValue(DEPLOYMENT_FOLDER);
 
-kernel.bind(InternalJsonApi.injectSymbol).to(InternalJsonApi);
-kernel.bind(MemoizedInternalJsonApi.injectSymbol).to(MemoizedInternalJsonApi);
 
-kernel.bind(InternalJsonApi.factoryInjectSymbol).toAutoFactory(MemoizedInternalJsonApi.injectSymbol);
 
 const knex = Knex({
   client: DB_ADAPTER,

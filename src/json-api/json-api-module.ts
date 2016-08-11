@@ -1,197 +1,46 @@
 
 import * as Boom from 'boom';
-import { inject, injectable, interfaces } from 'inversify';
+import { inject, injectable } from 'inversify';
 
 import { Commit } from '../shared/gitlab.d.ts';
 
 import {
+  ApiCommit,
+  ApiBranch,
+  ApiProject,
+  ApiDeployment,
+  ApiEntity,
+  ApiEntities,
+  ApiActivity,
+  JsonApiResponse,
+} from './types';
+
+import { serializeApiEntity } from './serialization';
+
+import {
   ActivityModule,
   MinardActivity,
-  MinardActivityPlain,
 } from '../activity';
 
 import {
   DeploymentModule,
   MinardDeployment,
-  MinardDeploymentPlain,
 } from '../deployment/';
 
 import {
   MinardBranch,
   MinardCommit,
   MinardProject,
-  MinardProjectPlain,
   ProjectModule,
 } from '../project/';
 
 const deepcopy = require('deepcopy');
 const memoize = require('memoizee');
 
-const Serializer = require('jsonapi-serializer').Serializer; // tslint:disable-line
-
-interface MemoizedJsonApiModule {
-  toApiProject: (project: MinardProject) => Promise<ApiProject>;
-  toApiBranch: (project: MinardProject, branch: MinardBranch) => Promise<ApiBranch>;
-}
-
-export interface JsonApiEntity {
-  type: "commits" | "deployments" | "projects" | "branches";
-  id: string;
-  attributes?: any;
-  relationships?: any;
-}
-
-export interface JsonApiResponse {
-  data: JsonApiEntity | JsonApiEntity[];
-  included?: JsonApiEntity[];
-}
-
-export function standardIdRef(_: any, item: any) {
-  return String(item.id);
-}
-
-export const nonIncludedSerialization = {
-  ref: standardIdRef,
-  included: false,
-};
-
-export const branchSerialization = {
-  attributes: ['name', 'description', 'project', 'commits', 'project', 'deployments'],
-  ref: standardIdRef,
-  commits: nonIncludedSerialization,
-  project: nonIncludedSerialization,
-  deployments: nonIncludedSerialization,
-  included: true,
-};
-
-export const deploymentSerialization =  {
-  attributes: ['status', 'commit', 'url', 'creator'],
-  ref: standardIdRef,
-  commit: nonIncludedSerialization,
-  included: true,
-};
-
-export const projectSerialization = {
-  attributes: ['name', 'description', 'branches', 'activeCommitters'],
-  branches: nonIncludedSerialization,
-  ref: standardIdRef,
-  included: true,
-};
-
-export const commitSerialization = {
-  attributes: ['message', 'author', 'committer', 'hash', 'deployments'],
-  ref: standardIdRef,
-  deployments: nonIncludedSerialization,
-  included: true,
-};
-
-export const activitySerialization = {
-  attributes: ['timestamp', 'activityType', 'deployment', 'project', 'branch'],
-  ref: standardIdRef,
-  deployment: nonIncludedSerialization,
-  branch: nonIncludedSerialization,
-  project: nonIncludedSerialization,
-  included: true,
-};
-
-export const branchCompoundSerialization = deepcopy(branchSerialization);
-branchCompoundSerialization.commits = commitSerialization;
-branchCompoundSerialization.deployments = deploymentSerialization;
-branchCompoundSerialization.project = projectSerialization;
-
-export const projectCompoundSerialization = deepcopy(projectSerialization);
-projectCompoundSerialization.branches = branchSerialization;
-
-export const deploymentCompoundSerialization = deepcopy(deploymentSerialization);
-deploymentCompoundSerialization.commit = commitSerialization;
-
-export const activityCompoundSerialization = deepcopy(activitySerialization);
-activityCompoundSerialization.deployment = deploymentCompoundSerialization;
-activityCompoundSerialization.branch = branchSerialization;
-activityCompoundSerialization.project = projectSerialization;
-
-export function branchToJsonApi(branch: ApiBranch | ApiBranch[]) {
-  const serialized = new Serializer('branch',
-    branchCompoundSerialization).serialize(branch);
-  return serialized;
-}
-
-export function deploymentToJsonApi(deployment: ApiDeployment | ApiDeployment[]) {
-  const serialized = new Serializer('deployment',
-    deploymentCompoundSerialization).serialize(deployment);
-  return serialized;
-};
-
-export function projectToJsonApi(project: ApiProject | ApiProject[]) {
-  const serialized = new Serializer('project',
-    projectCompoundSerialization).serialize(project);
-  return serialized;
-};
-
-export function commitToJsonApi(commit: ApiCommit | ApiCommit[]) {
-  return new Serializer('commit', commitSerialization)
-    .serialize(commit);
-}
-
-export function activityToJsonApi(activity: ApiActivity | ApiActivity[]) {
-  return new Serializer('activity', activityCompoundSerialization)
-    .serialize(activity);
-}
-
-// The API-prefix interfaces are for richly composed objects
-// that can be directly passed to the JSON API serializer
-//
-// Note that these object structures may contain circular references
-// and are typically not serializable with JSON.stringify(...)
-
-export interface ApiProject extends MinardProjectPlain {
-  id: string;
-  branches: ApiBranch[];
-}
-
-export interface ApiBranch extends MinardBranch {
-  id: string;
-  project: ApiProject;
-  deployments: ApiDeployment[];
-  commits: ApiCommit[];
-}
-
-export interface ApiDeployment extends MinardDeploymentPlain {
-  id: string;
-  commit: ApiCommit;
-}
-
-export interface ApiCommit extends MinardCommit {
-  hash: string;
-  deployments: ApiDeployment[];
-}
-
-export interface ApiActivity extends MinardActivityPlain {
-  id: string;
-  deployment: ApiDeployment;
-  project: ApiProject;
-  branch: ApiBranch;
-}
-
-interface InternalJsonApiInterface {
- getApiCommit(projectId: number, hash: string): Promise<ApiCommit | null>;
- getApiProject(apiProjectId: string | number): Promise<ApiProject | null>;
- getApiProjects(teamId: number): Promise<ApiProject[] | null>;
- getApiDeployment(projectId: number, deploymentId: number): Promise<ApiDeployment | null>;
- getApiBranch(projectId: number, branchName: string): Promise<ApiBranch | null>;
- getApiActivityForTeam(teamId: number): Promise<ApiActivity[] | null>;
- getApiActivityForProject(projectId: number): Promise<ApiActivity[] | null>;
- toApiActivity(activity: MinardActivity): Promise<ApiActivity>;
- toApiCommit(projectId: number, commit: MinardCommit): Promise<ApiCommit>;
- toApiDeployment(projectId: number, deployment: MinardDeployment): Promise<ApiDeployment>;
- toApiBranch(project: ApiProject, branch: MinardBranch): Promise<ApiBranch>;
- toApiProject(project: MinardProject): Promise<ApiProject>;
-}
 
 @injectable()
-export class InternalJsonApi implements InternalJsonApiInterface {
+export class InternalJsonApi {
 
-  public static factoryInjectSymbol = Symbol('internal-json-api');
   public static injectSymbol = Symbol('internal-json-api');
 
   private readonly deploymentModule: DeploymentModule;
@@ -199,12 +48,18 @@ export class InternalJsonApi implements InternalJsonApiInterface {
   private readonly activityModule: ActivityModule;
 
   constructor(
-    @inject(DeploymentModule.injectSymbol) deploymentModule: DeploymentModule,
-    @inject(ProjectModule.injectSymbol) projectModule: ProjectModule,
-    @inject(ActivityModule.injectSymbol) activityModule: ActivityModule) {
-    this.deploymentModule = deploymentModule;
-    this.projectModule = projectModule;
-    this.activityModule = activityModule;
+    @inject(DeploymentModule.injectSymbol) deploymentModule?: DeploymentModule,
+    @inject(ProjectModule.injectSymbol) projectModule?: ProjectModule,
+    @inject(ActivityModule.injectSymbol) activityModule?: ActivityModule) {
+    if (deploymentModule) {
+      this.deploymentModule = deploymentModule;
+    }
+    if (projectModule) {
+      this.projectModule = projectModule;
+    }
+    if (activityModule) {
+      this.activityModule = activityModule;
+    }
   }
 
   public async getApiCommit(projectId: number, hash: string): Promise<ApiCommit | null> {
@@ -260,6 +115,7 @@ export class InternalJsonApi implements InternalJsonApiInterface {
     const project = await this.toApiProject(activity.project);
     const branch = await this.toApiBranch(project, activity.branch);
     return {
+      type: 'activity',
       branch: branch,
       project: project,
       id: `${activity.project.id}-${activity.deployment.id}`,
@@ -349,6 +205,7 @@ export class InternalJsonApi implements InternalJsonApiInterface {
 
   public async toApiProject(project: MinardProject, branches?: ApiBranch[]): Promise<ApiProject> {
     const ret = deepcopy(project) as ApiProject;
+    ret.type = 'project';
     ret.id = String(project.id);
     if (branches) {
       ret.branches = branches;
@@ -362,138 +219,107 @@ export class InternalJsonApi implements InternalJsonApiInterface {
 }
 
 @injectable()
-export class MemoizedInternalJsonApi implements InternalJsonApiInterface {
-
-  public static injectSymbol = Symbol('memoized-internal-json-api');
-
-  // We do not inherit the InternalJsonApi, because this way we can
-  // pass a mock implementation of InternalJsonApi in unit tests
-  //
-  // (This results in a little bit more boilerplate, seen below)
-  //
-  public getApiProject: typeof InternalJsonApi.prototype.getApiProject;
-  public getApiBranch: typeof InternalJsonApi.prototype.getApiBranch;
-  public getApiCommit: typeof InternalJsonApi.prototype.getApiCommit;
-  public getApiProjects: typeof InternalJsonApi.prototype.getApiProject;
-  public getApiDeployment: typeof InternalJsonApi.prototype.getApiDeployment;
-  public getApiActivityForTeam: typeof InternalJsonApi.prototype.getApiActivityForTeam;
-  public getApiActivityForProject: typeof InternalJsonApi.prototype.getApiActivityForProject;
-  public toApiDeployment: typeof InternalJsonApi.prototype.toApiDeployment;
-  public toApiProject: typeof InternalJsonApi.prototype.toApiProject;
-  public toApiBranch: typeof InternalJsonApi.prototype.toApiBranch;
-  public toApiCommit: typeof InternalJsonApi.prototype.toApiCommit;
-  public toApiActivity: typeof InternalJsonApi.prototype.toApiActivity;
-
-  constructor(
-    @inject(InternalJsonApi.injectSymbol) api: InternalJsonApi) {
-
-    // Note that we need to re-assign the functions also to the instance
-    // methods of the wrapped object. Otherwise its this.foo() calls within
-    // its methods will not be using these memoized versions
-
-    this.getApiProject = api.getApiProject = memoize(api.getApiProject.bind(api), {
-      promise: true,
-      normalizer: (args: any) => (<number> args[0]),
-    });
-    this.getApiBranch = api.getApiBranch = memoize(api.getApiBranch.bind(api), {
-      promise: true,
-      normalizer: (args: any) => `${(<number> args[0])}-${(<string> args[1])}`,
-    });
-    this.getApiCommit = api.getApiCommit.bind(api);
-    this.getApiProjects = api.getApiProjects.bind(api);
-    this.getApiDeployment = api.getApiDeployment.bind(api);
-    this.getApiActivityForTeam = api.getApiActivityForTeam.bind(api);
-    this.getApiActivityForProject = api.getApiActivityForProject.bind(api);
-    this.toApiProject = api.toApiProject = memoize(api.toApiProject.bind(api), {
-      promise: true,
-      normalizer: (args: any) => (<MinardProject> args[0]).id,
-    });
-    this.toApiBranch = api.toApiBranch = memoize(api.toApiBranch.bind(api), {
-      promise: true,
-      normalizer: (args: any) => `${(<MinardProject> args[0]).id}-${(<MinardBranch> args[1]).name}`,
-    });
-    this.toApiDeployment = api.getApiDeployment = memoize(api.toApiDeployment.bind(api), {
-      promise: true,
-      normalizer: (args: any) => `${(<number> args[0])}-${(<MinardDeployment> args[1]).id}`,
-    });
-    this.toApiCommit = api.toApiCommit = memoize(api.toApiCommit.bind(api), {
-      promise: true,
-      normalizer: (args: any) => `${(<number> args[0])}-${(<MinardCommit> args[1]).id}`,
-    });
-    this.toApiActivity = api.toApiActivity.bind(api);
-  }
-}
-
-@injectable()
-export default class JsonApiModule {
+export default class JsonApiModule extends InternalJsonApi {
 
   public static injectSymbol = Symbol('json-api-module');
-  private readonly factory: interfaces.Factory<InternalJsonApi>;
+
+  private api: InternalJsonApi;
+  private memoized: any[];
 
   constructor(
-    @inject(InternalJsonApi.factoryInjectSymbol) factory: interfaces.Factory<InternalJsonApi>) {
-    this.factory = factory;
+    @inject(InternalJsonApi.injectSymbol) api: InternalJsonApi,
+    @inject(DeploymentModule.injectSymbol) deploymentModule?: DeploymentModule,
+    @inject(ProjectModule.injectSymbol) projectModule?: ProjectModule,
+    @inject(ActivityModule.injectSymbol) activityModule?: ActivityModule) {
+    super();
+    this.api = api;
+    this.memoize();
   }
 
-  private createContext(): InternalJsonApi {
-    const ctx = this.factory();
-    return <InternalJsonApi> ctx;
+  private memoize() {
+    const api = this.api;
+
+    const memoizedMethods = [{
+      name: 'getApiProject',
+      normalizer: (args: any) => args[0],
+    }, {
+      name: 'getApiBranch',
+      normalizer: (args: any) => `${(args[0])}-${(args[1])}`,
+    }, {
+      name: 'toApiProject',
+      normalizer: (args: any) => args[0].id,
+    }, {
+      name: 'toApiBranch',
+      normalizer: (args: any) => `${args[0].id}-${args[1].name}`,
+    }, {
+      name: 'toApiDeployment',
+      normalizer: (args: any) => `${args[0]}-${args[1].id}`,
+    }, {
+      name: 'toApiCommit',
+      normalizer: (args: any) => `${args[0]}-${args[1].id}`,
+    }];
+
+    // Memoize everything we want memoized
+    this.memoized = memoizedMethods.map(method => {
+      const originalMethod = (<any> api)[method.name].bind(api);
+      const memoized = memoize(originalMethod, {
+        promise: true,
+        normalizer: method.normalizer,
+      });
+      (<any> api)[method.name] = memoized;
+      return memoized;
+    }, this);
+
+    // Map all of our own methods to this.api
+    Object.getOwnPropertyNames(InternalJsonApi.prototype)
+      .filter(prop => typeof (<any> api)[prop] === 'function' && prop.indexOf('Api') >= 0)
+      .forEach(method => {
+        (<any> this)[method] = (<any> api)[method].bind(api);
+      });
+
+  }
+
+  private invalidate() {
+    this.memoized.forEach(method => method.clear());
+  }
+
+  private async getEntity(entityName: string, serializeName: string, ...args: any[]) {
+    this.invalidate();
+    const method = (<any> this)[`getApi${entityName}`] as (...aargs: any[]) => Promise<any>;
+    console.log(method);
+    const entity = (await method.apply(this, args)) as ApiEntity | ApiEntities | null;
+    if (!entity) {
+      throw Boom.notFound(`${entityName} not found`);
+    }
+    return serializeApiEntity(serializeName, entity);
   }
 
   public async getDeployment(projectId: number, deploymentId: number): Promise<JsonApiResponse> {
-    const deployment = await this.createContext().getApiDeployment(projectId, deploymentId);
-    if (!deployment) {
-      throw Boom.notFound('Deployment not found');
-    }
-    return deploymentToJsonApi(deployment);
+    return this.getEntity('Deployment', 'deployment', projectId, deploymentId);
   }
 
   public async getProjects(teamId: number): Promise<JsonApiResponse> {
-    const projects = await this.createContext().getApiProjects(teamId);
-    if (!projects) {
-      throw Boom.notFound();
-    }
-    return projectToJsonApi(projects);
+    return this.getEntity('Projects', 'project', teamId);
   }
 
   public async getProject(projectId: number): Promise<JsonApiResponse> {
-    const project = await this.createContext().getApiProject(projectId);
-    if (!project) {
-      throw Boom.notFound('Project not found');
-    }
-    return projectToJsonApi(project);
+    return this.getEntity('Project', 'project');
   }
 
   public async getBranch(projectId: number, branchName: string): Promise<JsonApiResponse> {
-    const branch = await this.createContext().getApiBranch(projectId, branchName);
-    if (!branch) {
-      throw Boom.notFound('Branch not found');
-    }
-    return branchToJsonApi(branch);
+    return this.getEntity('Branch', 'branch', projectId, branchName);
   }
 
   public async getCommit(projectId: number, hash: string): Promise<JsonApiResponse> {
-    const commit = await this.createContext().getApiCommit(projectId, hash);
-    if (!commit) {
-      throw Boom.notFound('Commit not found');
-    }
-    return commitToJsonApi(commit);
+    return this.getEntity('Commit', 'commit', projectId, hash);
   }
 
   public async getTeamActivity(teamId: number): Promise<JsonApiResponse> {
-    const activity = await this.createContext().getApiActivityForTeam(teamId);
-    if (!activity) {
-      throw Boom.notFound();
-    }
-    return activityToJsonApi(activity);
+    return this.getEntity('ActivityForTeam', 'activity', teamId);
   }
 
   public async getProjectActivity(projectId: number): Promise<JsonApiResponse> {
-    const activity = await this.createContext().getApiActivityForProject(projectId);
-    if (!activity) {
-      throw Boom.notFound();
-    }
-    return activityToJsonApi(activity);
+    return this.getEntity('ActivityForProject', 'activity', projectId);
   }
-
 }
+

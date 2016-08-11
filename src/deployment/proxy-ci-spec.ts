@@ -54,7 +54,7 @@ describe('ci-proxy', () => {
     upstream.route([{
       method: 'GET',
       path,
-      handler: (_req, rep) => {
+      handler: (_req: any, rep: any) => {
         return rep('Ok!');
       },
     }]);
@@ -80,7 +80,7 @@ describe('ci-proxy', () => {
     upstream.route([{
       method: 'PUT',
       path,
-      handler: (_req, rep) => {
+      handler: (_req: any, rep: any) => {
         return rep('Ok!');
       },
     }]);
@@ -108,7 +108,7 @@ describe('ci-proxy', () => {
     upstream.route([{
       method: 'POST',
       path,
-      handler: (_req, rep) => {
+      handler: (_req: any, rep: any) => {
         return rep({
           status: 'running',
           id: 1,
@@ -148,7 +148,7 @@ describe('ci-proxy', () => {
     upstream.route([{
       method: 'PUT',
       path,
-      handler: (_req, rep) => {
+      handler: (_req: any, rep: any) => {
         return rep({
           status: 'cancelled',
           id: 1,

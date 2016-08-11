@@ -4,10 +4,11 @@ import { inject, injectable, interfaces } from 'inversify';
 
 import { Commit } from '../shared/gitlab.d.ts';
 
-import ActivityModule, {
+import {
+  ActivityModule,
   MinardActivity,
   MinardActivityPlain,
-} from '../activity/activity-module';
+} from '../activity';
 
 import {
   DeploymentModule,

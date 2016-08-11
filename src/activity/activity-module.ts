@@ -4,19 +4,9 @@ import { flatMap } from 'lodash';
 import * as moment from 'moment';
 
 import { DeploymentModule, MinardDeployment } from '../deployment';
-import { MinardBranch, MinardProject, ProjectModule } from '../project';
+import { MinardBranch, ProjectModule } from '../project';
 import * as logger from  '../shared/logger';
-
-export interface MinardActivity extends MinardActivityPlain {
-  deployment: MinardDeployment;
-  project: MinardProject;
-  branch: MinardBranch;
-}
-
-export interface MinardActivityPlain {
-  timestamp: string;
-  activityType: string;
-}
+import { MinardActivity } from './types';
 
 @injectable()
 export default class ActivityModule {

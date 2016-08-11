@@ -5,7 +5,7 @@ import 'reflect-metadata';
 import { DeploymentModule, MinardDeployment } from '../deployment';
 import { MinardProject, ProjectModule } from '../project';
 import * as logger from  '../shared/logger';
-import ActivityModule, { MinardActivity } from './activity-module';
+import { ActivityModule, MinardActivity } from './';
 
 describe('activity-module', () => {
 

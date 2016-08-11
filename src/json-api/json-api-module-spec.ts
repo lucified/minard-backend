@@ -3,25 +3,22 @@ import 'reflect-metadata';
 
 import { values } from 'lodash';
 
-<<<<<<< a655346bab68a8f0ed3a0ecd1f1d61b73ad105bb
-import { DeploymentModule,  MinardDeployment } from '../deployment/';
-import  { MinardProject, ProjectModule } from '../project/';
-=======
 import ActivityModule from '../activity/activity-module';
-import DeploymentModule, { MinardDeployment } from '../deployment/deployment-module';
-import ProjectModule, { MinardProject } from '../project/project-module';
->>>>>>> Add support for getting activity in json-api-module
+import { DeploymentModule } from '../deployment/';
 
-<<<<<<< 53413c1473f12855bd8167ac517f1cade0a4eec9
-import JsonApiModule, { ApiBranch, ApiCommit, ApiDeployment, ApiProject, JsonApiEntity, JsonApiResponse,
-  branchToJsonApi, commitToJsonApi, deploymentToJsonApi, projectToJsonApi } from './json-api-module';
-=======
-import JsonApiModule, {
+import {
+  MinardBranch,
+  MinardProject,
+  ProjectModule,
+} from '../project/';
+
+import {
   ApiActivity,
   ApiBranch,
   ApiCommit,
   ApiDeployment,
   ApiProject,
+  InternalJsonApi,
   JsonApiEntity,
   JsonApiResponse,
   activityToJsonApi,
@@ -30,7 +27,6 @@ import JsonApiModule, {
   deploymentToJsonApi,
   projectToJsonApi,
 } from './json-api-module';
->>>>>>> Support json api serialization for activities
 
 import { expect } from 'chai';
 

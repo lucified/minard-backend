@@ -170,8 +170,23 @@ export interface ApiActivity extends MinardActivityPlain {
   branch: ApiBranch;
 }
 
+interface InternalJsonApiInterface {
+ getApiCommit(projectId: number, hash: string): Promise<ApiCommit | null>;
+ getApiProject(apiProjectId: string | number): Promise<ApiProject | null>;
+ getApiProjects(teamId: number): Promise<ApiProject[] | null>;
+ getApiDeployment(projectId: number, deploymentId: number): Promise<ApiDeployment | null>;
+ getApiBranch(projectId: number, branchName: string): Promise<ApiBranch | null>;
+ getApiActivityForTeam(teamId: number): Promise<ApiActivity[] | null>;
+ getApiActivityForProject(projectId: number): Promise<ApiActivity[] | null>;
+ toApiActivity(activity: MinardActivity): Promise<ApiActivity>;
+ toApiCommit(projectId: number, commit: MinardCommit): Promise<ApiCommit>;
+ toApiDeployment(projectId: number, deployment: MinardDeployment): Promise<ApiDeployment>;
+ toApiBranch(project: ApiProject, branch: MinardBranch): Promise<ApiBranch>;
+ toApiProject(project: MinardProject): Promise<ApiProject>;
+}
+
 @injectable()
-export class InternalJsonApi {
+export class InternalJsonApi implements InternalJsonApiInterface {
 
   public static factoryInjectSymbol = Symbol('internal-json-api');
   public static injectSymbol = Symbol('internal-json-api');
@@ -295,41 +310,65 @@ export class InternalJsonApi {
 }
 
 @injectable()
-export class MemoizedInternalJsonApi extends InternalJsonApi {
+export class MemoizedInternalJsonApi implements InternalJsonApiInterface {
 
   public static injectSymbol = Symbol('memoized-internal-json-api');
 
-  constructor(
-    @inject(DeploymentModule.injectSymbol) deploymentModule: DeploymentModule,
-    @inject(ProjectModule.injectSymbol) projectModule: ProjectModule,
-    @inject(ActivityModule.injectSymbol) activityModule: ActivityModule) {
-    super(deploymentModule, projectModule, activityModule);
+  // We do not inherit the InternalJsonApi, because this way we can
+  // pass a mock implementation of InternalJsonApi in unit tests
+  //
+  // (This results in a little bit more boilerplate, seen below)
+  //
+  public getApiProject: typeof InternalJsonApi.prototype.getApiProject;
+  public getApiBranch: typeof InternalJsonApi.prototype.getApiBranch;
+  public getApiCommit: typeof InternalJsonApi.prototype.getApiCommit;
+  public getApiProjects: typeof InternalJsonApi.prototype.getApiProject;
+  public getApiDeployment: typeof InternalJsonApi.prototype.getApiDeployment;
+  public getApiActivityForTeam: typeof InternalJsonApi.prototype.getApiActivityForTeam;
+  public getApiActivityForProject: typeof InternalJsonApi.prototype.getApiActivityForProject;
+  public toApiDeployment: typeof InternalJsonApi.prototype.toApiDeployment;
+  public toApiProject: typeof InternalJsonApi.prototype.toApiProject;
+  public toApiBranch: typeof InternalJsonApi.prototype.toApiBranch;
+  public toApiCommit: typeof InternalJsonApi.prototype.toApiCommit;
+  public toApiActivity: typeof InternalJsonApi.prototype.toApiActivity;
 
-    this.getApiProject = memoize(this.getApiProject.bind(this), {
+  constructor(
+    @inject(InternalJsonApi.injectSymbol) api: InternalJsonApi) {
+
+    // Note that we need to re-assign the functions also to the instance
+    // methods of the wrapped object. Otherwise its this.foo() calls within
+    // its methods will not be using these memoized versions
+
+    this.getApiProject = api.getApiProject = memoize(api.getApiProject.bind(api), {
       promise: true,
       normalizer: (args: any) => (<number> args[0]),
     });
-    this.getApiBranch = memoize(this.getApiBranch.bind(this), {
+    this.getApiBranch = api.getApiBranch = memoize(api.getApiBranch.bind(api), {
       promise: true,
-      normalizer: (args: any) => `${(<MinardProject> args[0]).id}-${(<string> args[1])}`,
+      normalizer: (args: any) => `${(<number> args[0])}-${(<string> args[1])}`,
     });
-    this.toApiProject = memoize(this.toApiProject.bind(this), {
+    this.getApiCommit = api.getApiCommit.bind(api);
+    this.getApiProjects = api.getApiProjects.bind(api);
+    this.getApiDeployment = api.getApiDeployment.bind(api);
+    this.getApiActivityForTeam = api.getApiActivityForTeam.bind(api);
+    this.getApiActivityForProject = api.getApiActivityForProject.bind(api);
+    this.toApiProject = api.toApiProject = memoize(api.toApiProject.bind(api), {
       promise: true,
       normalizer: (args: any) => (<MinardProject> args[0]).id,
     });
-    this.toApiBranch = memoize(this.toApiBranch.bind(this), {
+    this.toApiBranch = api.toApiBranch = memoize(api.toApiBranch.bind(api), {
       promise: true,
       normalizer: (args: any) => `${(<MinardProject> args[0]).id}-${(<MinardBranch> args[1]).name}`,
     });
-    this.toApiDeployment = memoize(this.toApiDeployment.bind(this), {
+    this.toApiDeployment = api.getApiDeployment = memoize(api.toApiDeployment.bind(api), {
       promise: true,
       normalizer: (args: any) => `${(<number> args[0])}-${(<MinardDeployment> args[1]).id}`,
     });
-    this.toApiCommit = memoize(this.toApiCommit.bind(this), {
+    this.toApiCommit = api.toApiCommit = memoize(api.toApiCommit.bind(api), {
       promise: true,
       normalizer: (args: any) => `${(<number> args[0])}-${(<MinardCommit> args[1]).id}`,
     });
-
+    this.toApiActivity = api.toApiActivity.bind(api);
   }
 }
 

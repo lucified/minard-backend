@@ -6,7 +6,6 @@ const randomstring = require('randomstring');
 
 import Authentication from '../authentication/authentication-module';
 
-
 export const fetchInjectSymbol = Symbol('fetch');
 export const gitlabHostInjectSymbol = Symbol('gitlab-host');
 
@@ -102,7 +101,8 @@ export class GitlabClient {
     }
     const timerResult = perfy.end(timerId);
     this.log(`GitlabClient: received response ${response.status} from ${url} in ${timerResult.time} secs.`);
-    return await response.json<T>();
+    const json = await response.json<T>();
+    return json;
   }
 
 }

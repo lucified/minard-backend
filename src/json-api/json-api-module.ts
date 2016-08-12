@@ -269,17 +269,25 @@ export class InternalJsonApi implements InternalJsonApiInterface {
     };
   }
 
-  public async toApiCommit(projectId: number, commit: MinardCommit): Promise<ApiCommit> {
+  public async toApiCommit(
+    projectId: number,
+    commit: MinardCommit,
+    deployments?: ApiDeployment[]): Promise<ApiCommit> {
     const ret = deepcopy(commit) as ApiCommit;
     if (!commit) {
       throw Boom.badImplementation();
     }
-    const deployments = await this.deploymentModule.getCommitDeployments(projectId, commit.id);
-    if (!deployments) {
-      throw Boom.badImplementation();
+    if (deployments) {
+      ret.deployments = deployments;
+    } else {
+      const minardDeployments = await this.deploymentModule.getCommitDeployments(projectId, commit.id);
+      if (!minardDeployments) {
+        ret.deployments = [];
+      } else {
+        ret.deployments = await Promise.all<ApiDeployment>(
+          minardDeployments.map(deployment => this.toApiDeployment(projectId, deployment, ret)));
+      }
     }
-    ret.deployments = await Promise.all<ApiDeployment>(
-      deployments.map(deployment => this.toApiDeployment(projectId, deployment, ret)));
     ret.id = `${projectId}-${commit.id}`;
     ret.hash = commit.id;
     return ret;

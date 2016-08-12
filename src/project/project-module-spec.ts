@@ -19,7 +19,7 @@ const getClient = () => {
     }
   }
   return new GitlabClient(host, fetchMock.fetchMock as IFetchStatic,
-    new MockAuthModule() as AuthenticationModule);
+    new MockAuthModule() as AuthenticationModule, {} as any);
 };
 
 describe('project-module', () => {

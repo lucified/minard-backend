@@ -90,8 +90,10 @@ export class GitlabClient {
   }
 
   public async fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
-    const timerId = randomstring.generate();
-    perfy.start(timerId);
+    const timerId = this._logging ? randomstring.generate() : null;
+    if (this._logging) {
+      perfy.start(timerId);
+    }
     const url = this.url(path);
     const _options = await this.authenticate(options);
     this.log(`GitlabClient: sending request to ${url}`);
@@ -99,8 +101,10 @@ export class GitlabClient {
     if (response.status !== 200) {
       throw Boom.create(response.status);
     }
-    const timerResult = perfy.end(timerId);
-    this.log(`GitlabClient: received response ${response.status} from ${url} in ${timerResult.time} secs.`);
+    if (this._logging) {
+      const timerResult = perfy.end(timerId);
+      this.log(`GitlabClient: received response ${response.status} from ${url} in ${timerResult.time} secs.`);
+    }
     const json = await response.json<T>();
     return json;
   }

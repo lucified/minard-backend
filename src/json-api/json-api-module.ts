@@ -314,13 +314,18 @@ export class InternalJsonApi implements InternalJsonApiInterface {
     return ret;
   }
 
-  public async toApiProject(project: MinardProject): Promise<ApiProject> {
+  public async toApiProject(project: MinardProject, branches?: ApiBranch[]): Promise<ApiProject> {
     const ret = deepcopy(project) as ApiProject;
     ret.id = String(project.id);
-    const promises = project.branches.map(branch => this.toApiBranch(ret, branch));
-    ret.branches = await Promise.all<ApiBranch>(promises);
+    if (branches) {
+      ret.branches = branches;
+    } else {
+      ret.branches = await Promise.all<ApiBranch>(project.branches.map(branch => this
+        .toApiBranch(ret, branch)));
+    }
     return ret;
   }
+
 }
 
 @injectable()

@@ -265,7 +265,7 @@ export class InternalJsonApi implements InternalJsonApiInterface {
       id: `${activity.project.id}-${activity.deployment.id}`,
       timestamp: activity.timestamp,
       activityType: activity.activityType,
-      deployment: await this.toApiDeployment(4, activity.deployment),
+      deployment: await this.toApiDeployment(Number(project.id), activity.deployment),
     };
   }
 
@@ -334,7 +334,7 @@ export class InternalJsonApi implements InternalJsonApiInterface {
       ret.commits = await Promise.all<ApiCommit>(branch.commits.map(
       (commit: MinardCommit) => {
         const commitDeploys = ret.deployments.filter(
-          deployment => deployment.commit.id === commit.id);
+          deployment => deployment.commit.hash === commit.id);
         return this.toApiCommit(Number(ret.project.id), commit, commitDeploys);
       }));
       // Replace commit reference objects with proper

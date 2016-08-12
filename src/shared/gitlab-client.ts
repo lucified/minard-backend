@@ -1,9 +1,11 @@
 
 import * as Boom from 'boom';
+import { inject, injectable } from 'inversify';
+const perfy = require('perfy');
+const randomstring = require('randomstring');
 
 import Authentication from '../authentication/authentication-module';
 
-import { inject, injectable } from 'inversify';
 
 export const fetchInjectSymbol = Symbol('fetch');
 export const gitlabHostInjectSymbol = Symbol('gitlab-host');
@@ -89,6 +91,8 @@ export class GitlabClient {
   }
 
   public async fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
+    const timerId = randomstring.generate();
+    perfy.start(timerId);
     const url = this.url(path);
     const _options = await this.authenticate(options);
     this.log(`GitlabClient: sending request to ${url}`);
@@ -96,7 +100,8 @@ export class GitlabClient {
     if (response.status !== 200) {
       throw Boom.create(response.status);
     }
-    this.log(`GitlabClient: received response ${response.status} from ${url}`);
+    const timerResult = perfy.end(timerId);
+    this.log(`GitlabClient: received response ${response.status} from ${url} in ${timerResult.time} secs.`);
     return await response.json<T>();
   }
 

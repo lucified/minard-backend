@@ -5,6 +5,7 @@ const perfy = require('perfy');
 const randomstring = require('randomstring');
 
 import Authentication from '../authentication/authentication-module';
+import { Logger, loggerInjectSymbol} from '../shared/logger';
 
 export const fetchInjectSymbol = Symbol('fetch');
 export const gitlabHostInjectSymbol = Symbol('gitlab-host');
@@ -20,6 +21,7 @@ export class GitlabClient {
   public readonly apiPrefix: string = '/api/v3';
   public readonly authenticationHeader = 'PRIVATE-TOKEN';
 
+  private logger: Logger;
   private _fetch: IFetchStatic;
   private _logging: boolean;
   private _authentication: Authentication;
@@ -28,9 +30,10 @@ export class GitlabClient {
     @inject(gitlabHostInjectSymbol) host: string,
     @inject(fetchInjectSymbol) fetch: IFetchStatic,
     @inject(Authentication.injectSymbol) auth: Authentication,
-    logging: boolean = false) {
-
+    @inject(loggerInjectSymbol) logger: Logger,
+    logging: boolean = true) {
     this.host = host;
+    this.logger = logger;
     this._fetch = fetch;
     this._logging = logging;
     this._authentication = auth;
@@ -46,7 +49,7 @@ export class GitlabClient {
 
   private log(msg: string): void {
     if (this._logging) {
-      console.log(msg);
+      this.logger.info(msg);
     }
   }
 

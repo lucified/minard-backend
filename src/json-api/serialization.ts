@@ -7,11 +7,10 @@ import {
   ApiBranch,
   ApiCommit,
   ApiDeployment,
-  ApiEntity,
   ApiEntities,
+  ApiEntity,
   ApiProject,
 } from './types';
-
 
 export function standardIdRef(_: any, item: any) {
   return String(item.id);
@@ -32,7 +31,7 @@ export const branchSerialization = {
 };
 
 export const deploymentSerialization =  {
-  attributes: ['finished_at', 'status', 'commit', 'url'],
+  attributes: ['status', 'commit', 'url', 'creator'],
   ref: standardIdRef,
   commit: nonIncludedSerialization,
   included: true,
@@ -46,8 +45,9 @@ export const projectSerialization = {
 };
 
 export const commitSerialization = {
-  attributes: ['message', 'author', 'committer', 'hash'],
+  attributes: ['message', 'author', 'committer', 'hash', 'deployments'],
   ref: standardIdRef,
+  deployments: nonIncludedSerialization,
   included: true,
 };
 
@@ -61,6 +61,7 @@ export const activitySerialization = {
 };
 
 export const branchCompoundSerialization = deepcopy(branchSerialization);
+
 branchCompoundSerialization.commits = commitSerialization;
 branchCompoundSerialization.deployments = deploymentSerialization;
 branchCompoundSerialization.project = projectSerialization;
@@ -103,7 +104,6 @@ export function activityToJsonApi(activity: ApiActivity | ApiActivity[]) {
   return new Serializer('activity', activityCompoundSerialization)
     .serialize(activity);
 }
-
 interface Serializers {
   [propName: string]: any;
 }

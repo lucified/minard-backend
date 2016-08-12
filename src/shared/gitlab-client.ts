@@ -31,7 +31,7 @@ export class GitlabClient {
     @inject(fetchInjectSymbol) fetch: IFetchStatic,
     @inject(Authentication.injectSymbol) auth: Authentication,
     @inject(loggerInjectSymbol) logger: Logger,
-    logging: boolean = true) {
+    logging: boolean = false) {
     this.host = host;
     this.logger = logger;
     this._fetch = fetch;

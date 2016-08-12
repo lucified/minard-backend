@@ -1,9 +1,11 @@
 
 import * as Boom from 'boom';
+import { inject, injectable } from 'inversify';
+const perfy = require('perfy');
+const randomstring = require('randomstring');
 
 import Authentication from '../authentication/authentication-module';
-
-import { inject, injectable } from 'inversify';
+import { Logger, loggerInjectSymbol} from '../shared/logger';
 
 export const fetchInjectSymbol = Symbol('fetch');
 export const gitlabHostInjectSymbol = Symbol('gitlab-host');
@@ -19,6 +21,7 @@ export class GitlabClient {
   public readonly apiPrefix: string = '/api/v3';
   public readonly authenticationHeader = 'PRIVATE-TOKEN';
 
+  private logger: Logger;
   private _fetch: IFetchStatic;
   private _logging: boolean;
   private _authentication: Authentication;
@@ -27,9 +30,10 @@ export class GitlabClient {
     @inject(gitlabHostInjectSymbol) host: string,
     @inject(fetchInjectSymbol) fetch: IFetchStatic,
     @inject(Authentication.injectSymbol) auth: Authentication,
+    @inject(loggerInjectSymbol) logger: Logger,
     logging: boolean = false) {
-
     this.host = host;
+    this.logger = logger;
     this._fetch = fetch;
     this._logging = logging;
     this._authentication = auth;
@@ -45,7 +49,7 @@ export class GitlabClient {
 
   private log(msg: string): void {
     if (this._logging) {
-      console.log(msg);
+      this.logger.info(msg);
     }
   }
 
@@ -89,6 +93,10 @@ export class GitlabClient {
   }
 
   public async fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
+    const timerId = this._logging ? randomstring.generate() : null;
+    if (this._logging) {
+      perfy.start(timerId);
+    }
     const url = this.url(path);
     const _options = await this.authenticate(options);
     this.log(`GitlabClient: sending request to ${url}`);
@@ -96,8 +104,12 @@ export class GitlabClient {
     if (response.status !== 200) {
       throw Boom.create(response.status);
     }
-    this.log(`GitlabClient: received response ${response.status} from ${url}`);
-    return await response.json<T>();
+    if (this._logging) {
+      const timerResult = perfy.end(timerId);
+      this.log(`GitlabClient: received response ${response.status} from ${url} in ${timerResult.time} secs.`);
+    }
+    const json = await response.json<T>();
+    return json;
   }
 
 }

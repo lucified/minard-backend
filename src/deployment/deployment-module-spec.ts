@@ -9,7 +9,7 @@ import { expect } from 'chai';
 
 import {
   DEPLOYMENT_EVENT_TYPE, DeploymentEvent, DeploymentModule,
-  MinardDeployment, createDeploymentEvent, getDeploymentKey,
+  createDeploymentEvent, getDeploymentKey,
 } from './';
 
 import Authentication from '../authentication/authentication-module';
@@ -32,7 +32,8 @@ const getClient = () => {
       return token;
     }
   }
-  return new GitlabClient(host, fetchMock.fetchMock as IFetchStatic, new MockAuthModule() as Authentication);
+  return new GitlabClient(host, fetchMock.fetchMock as IFetchStatic,
+    new MockAuthModule() as Authentication, {} as any);
 };
 
 const logger = Logger(undefined, true);
@@ -178,11 +179,14 @@ describe('deployment-module', () => {
       fetchMock.restore().mock(`${host}${gitlabClient.apiPrefix}/projects/1/builds/4`, response);
       const deploymentModule = getDeploymentModule(gitlabClient, '');
       // Act
-      const deployment = await deploymentModule.getDeployment(1, 4) as MinardDeployment;
+      const deployment = await deploymentModule.getDeployment(1, 4);
       // Assert
       expect(deployment).to.not.equal(null);
-      expect(deployment.id).to.equal(8);
-      expect(deployment.url).to.equal('http://master-0ff3ae19-1-8.localhost:8000');
+      expect(deployment!.id).to.equal(8);
+      expect(deployment!.url).to.equal('http://master-0ff3ae19-1-8.localhost:8000');
+      expect(deployment!.creator.email).to.equal(gitlabBuildResponse.commit.author_email);
+      expect(deployment!.creator.name).to.equal(gitlabBuildResponse.commit.author_name);
+      expect(deployment!.creator.timestamp).to.equal(gitlabBuildResponse.finished_at);
     });
 
     it('should return null when deployment can not be found', async () => {
@@ -196,7 +200,7 @@ describe('deployment-module', () => {
       fetchMock.restore().mock(`${host}${gitlabClient.apiPrefix}/projects/1/builds/4`, responseObject);
       const deploymentModule = getDeploymentModule(gitlabClient, '');
       // Act
-      const deployment = await deploymentModule.getDeployment(1, 4) as MinardDeployment;
+      const deployment = await deploymentModule.getDeployment(1, 4);
       // Assert
       expect(deployment).to.equal(null);
     });
@@ -209,10 +213,30 @@ describe('deployment-module', () => {
       fetchMock.restore().mock(`${host}${gitlabClient.apiPrefix}/projects/1/builds`, gitLabBuildsResponse);
       const deploymentModule = getDeploymentModule(gitlabClient, '');
       // Act
-      const deployments = await deploymentModule.getProjectDeployments(1) as MinardDeployment[];
+      const deployments = await deploymentModule.getProjectDeployments(1);
       // Assert
-      expect(deployments.length).equals(2);
-      expect(deployments[0].id).equals(7);
+      expect(deployments!.length).equals(2);
+      expect(deployments![0].id).equals(gitLabBuildsResponse[0].id);
+      expect(deployments![1].id).equals(gitLabBuildsResponse[1].id);
+    });
+  });
+
+  describe('getCommitDeployments()', () => {
+    it('it should work with response returning two deployments', async () => {
+      // Arrange
+      const sha = 'foo-commit-sha';
+      const gitlabClient = getClient();
+      fetchMock.restore().mock(
+        `${host}${gitlabClient.apiPrefix}/projects/1/repository/commits/${sha}/builds`,
+        gitLabBuildsResponse);
+      const deploymentModule = getDeploymentModule(gitlabClient, '');
+      // Act
+      const deployments = (await deploymentModule.getCommitDeployments(1, sha));
+      // Assert
+      expect(deployments).to.exist;
+      expect(deployments!.length).equals(2);
+      expect(deployments![0].id).equals(gitLabBuildsResponse[0].id);
+      expect(deployments![1].id).equals(gitLabBuildsResponse[1].id);
     });
   });
 

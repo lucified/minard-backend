@@ -64,7 +64,6 @@ export default class DeploymentModule {
       .map(e => e.payload);
 
     this.subscribeToEvents();
-
   }
 
   private subscribeToEvents() {
@@ -86,7 +85,6 @@ export default class DeploymentModule {
       .flatMap(initial => events.filter(later => later.id === initial.id && this.isFinished(later.status))
         .map(later => ({id: later.id, status: later.status, projectId: initial.projectId as number}))
       );
-
   }
 
   private isFinished(status: DeploymentStatus) {
@@ -114,6 +112,19 @@ export default class DeploymentModule {
     return projectDeployments.filter(item => item.ref === branchName);
   };
 
+  public async getCommitDeployments(projectId: number, sha: string) {
+    try {
+      const deployments = await this.gitlab.fetchJson<Deployment[]>(
+        `projects/${projectId}/repository/commits/${sha}/builds`);
+      return deployments.map((deployment: Deployment) => this.toMinardModelDeployment(deployment, projectId));
+    } catch (err) {
+      if (err.output.statusCode === 404) {
+        return null;
+      }
+      throw Boom.wrap(err);
+    }
+  }
+
   public async getDeployment(projectId: number, deploymentId: number): Promise<MinardDeployment | null> {
     try {
       return this.toMinardModelDeployment(
@@ -127,10 +138,15 @@ export default class DeploymentModule {
   }
 
   private toMinardModelDeployment(deployment: Deployment, projectId: number): MinardDeployment {
-    let ret = deepcopy(deployment);
+    let ret = deepcopy(deployment) as MinardDeployment;
+    ret.creator = {
+      name: deployment.commit.author_name,
+      email: deployment.commit.author_email,
+      timestamp: deployment.finished_at || deployment.started_at || deployment.finished_at,
+    };
     // rename the commit variable
     ret.commitRef = deployment.commit;
-    delete ret.commit;
+    delete (<any> ret).commit;
     if (ret.status === 'success') {
       (<any> ret).url = `http://${deployment.ref}-` +
         `${deployment.commit.short_id}-${projectId}-${deployment.id}.localhost:8000`;

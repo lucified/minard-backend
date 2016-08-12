@@ -308,17 +308,42 @@ export class InternalJsonApi implements InternalJsonApiInterface {
     return ret;
   }
 
-  public async toApiBranch(project: ApiProject, branch: MinardBranch): Promise<ApiBranch> {
+  public async toApiBranch(
+    project: ApiProject,
+    branch: MinardBranch,
+    deployments?: ApiDeployment[],
+    commits?: ApiCommit[]): Promise<ApiBranch> {
+
     const ret = deepcopy(branch) as ApiBranch;
-    ret.id = `${project.id}-${branch.name}`;
-    const deployments = await this.deploymentModule.getBranchDeployments(Number(project.id), branch.name);
-    const commitPromises = branch.commits.map(
-      (commit: MinardCommit) => this.toApiCommit(Number(project.id), commit));
-    const deploymentPromises = deployments.map(
-      (deployment: MinardDeployment) => this.toApiDeployment(Number(project.id), deployment));
-    ret.deployments = await Promise.all<ApiDeployment>(deploymentPromises);
-    ret.commits = await Promise.all<ApiCommit>(commitPromises);
     ret.project = project;
+    ret.id = `${ret.project.id}-${branch.name}`;
+
+    if (deployments && commits) {
+      ret.deployments = deployments;
+      ret.commits = commits;
+    } else {
+      // We wish to avoid toApiDeployment() from fetching commits, since
+      // we have already fetched everything we need. However, we don't yet
+      // have the deployment references needed by ApiCommit ready. For that
+      // reason, we are passing a reference object, and later replacing them
+      // with references to proper ApiCommits.
+      const minardDeployments = await this.deploymentModule.getBranchDeployments(Number(ret.project.id), branch.name);
+      ret.deployments = await Promise.all<ApiDeployment>(minardDeployments.map(
+        (deployment: MinardDeployment) => this.toApiDeployment(
+          Number(ret.project.id), deployment, { hash: deployment.commitRef.id } as ApiCommit)));
+      ret.commits = await Promise.all<ApiCommit>(branch.commits.map(
+      (commit: MinardCommit) => {
+        const commitDeploys = ret.deployments.filter(
+          deployment => deployment.commit.id === commit.id);
+        return this.toApiCommit(Number(ret.project.id), commit, commitDeploys);
+      }));
+      // Replace commit reference objects with proper
+      // ApiCommits that were just prepared
+      ret.deployments.forEach((deployment: ApiDeployment) => {
+      deployment.commit = ret.commits.find((commit: ApiCommit) =>
+        commit.hash === deployment.commit.hash) as ApiCommit;
+      });
+    }
     return ret;
   }
 

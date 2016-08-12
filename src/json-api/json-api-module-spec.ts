@@ -3,11 +3,28 @@ import 'reflect-metadata';
 
 import { values } from 'lodash';
 
-import { DeploymentModule,  MinardDeployment } from '../deployment/';
-import  { MinardProject, ProjectModule } from '../project/';
+import {
+  MinardBranch,
+  MinardCommit,
+  MinardProject,
+} from '../project/';
 
-import JsonApiModule, { ApiBranch, ApiCommit, ApiDeployment, ApiProject, JsonApiEntity, JsonApiResponse,
-  branchToJsonApi, commitToJsonApi, deploymentToJsonApi, projectToJsonApi } from './json-api-module';
+import {
+  ApiActivity,
+  ApiBranch,
+  ApiCommit,
+  ApiDeployment,
+  ApiProject,
+  InternalJsonApi,
+  JsonApiEntity,
+  JsonApiResponse,
+  MemoizedInternalJsonApi,
+  activityToJsonApi,
+  branchToJsonApi,
+  commitToJsonApi,
+  deploymentToJsonApi,
+  projectToJsonApi,
+} from './json-api-module';
 
 import { expect } from 'chai';
 
@@ -124,6 +141,15 @@ const exampleProject = {
 exampleProject.branches.forEach(item => {
   item.project = exampleProject;
 });
+
+const exampleActivity = {
+  project: exampleProject,
+  branch: exampleMasterBranch,
+  id: 'dasfsa',
+  activityType: 'deployment',
+  deployment: exampleDeploymentOne,
+  timestamp: exampleDeploymentOne.finished_at,
+} as ApiActivity;
 
 describe('json-api-module', () => {
   it('projectToJsonApi()', () => {
@@ -277,71 +303,263 @@ describe('json-api-module', () => {
     });
   });
 
-  describe('getProject()', () => {
-    it('should work in typical case', async () => {
-      // Arrange
-      class MockDeploymentModule {
-        public async getBranchDeployments(_projectId: number, _branchName: string) {
-          return [
-            {
-              id: '8ds7f8asfasd',
-            },
-            {
-              id: '98df789as897',
-            },
-          ] as {} as MinardDeployment[];
-        }
-      }
-      class MockProjectsModule {
-        public async getProject(projectId: number): Promise<MinardProject> {
-          return {
-            id: projectId,
-            name: 'project-name',
-            branches: [
-              {
-                id: `${projectId}-master`,
-                name: 'master',
-                commits: [],
-              },
-              {
-                id: `${projectId}-new-feature`,
-                name: 'new-feature',
-                commits: [],
-              },
-            ],
-          } as {} as MinardProject;
-        }
-      }
-      const jsonApiModule = new JsonApiModule(
-        new MockDeploymentModule() as DeploymentModule,
-        new MockProjectsModule() as ProjectModule);
-
-      // Act
-      const response = await jsonApiModule.getProject(1);
-
-      // Assert
-
-      const data = response.data as JsonApiEntity;
+  describe('activityToJsonApi()', () => {
+    it('should work with a single commit', () => {
+      const activity = exampleActivity as ApiActivity;
+      const converted = activityToJsonApi(activity) as JsonApiResponse;
+      const data = converted.data as JsonApiEntity;
       expect(data).to.exist;
 
-      expect(data.id).to.equal('1');
-      expect(data.type).to.equal('projects');
-      expect(data.attributes.name).to.equal('project-name');
+      // id and type
+      expect(data.id).to.equal(activity.id);
+      expect(data.type).to.equal('activities');
 
-      expect(data.relationships.branches).to.exist;
-      expect(data.relationships.branches.data).to.exist;
-      expect(data.relationships.branches.data[0].id).to.equal('1-master');
-      expect(data.relationships.branches.data[1].id).to.equal('1-new-feature');
+      // attributes
+      expect(data.attributes.timestamp).to.equal(activity.timestamp);
+      expect(data.attributes['activity-type']).to.equal(activity.activityType);
 
-      expect(response.included).to.exist;
-      const master = (<JsonApiEntity[]> response.included)
-        .find((item: any) => item.id === '1-master') as JsonApiEntity;
-      expect(master).to.exist;
-      expect(master.relationships.deployments.data).to.exist;
-      expect(master.relationships.deployments.data[0]).to.exist;
-      expect(master.relationships.deployments.data[0].id).to.equal('1-8ds7f8asfasd');
-      expect(master.relationships.deployments.data[1].id).to.equal('1-98df789as897');
+      // included deployment
+      const deployment = (<any> converted).included.find(
+        (item: JsonApiEntity) => item.type === 'deployments' && item.id === activity.deployment.id);
+      expect(deployment).to.exist;
+
+      // included commit (via deployment)
+      const commit = (<any> converted).included.find(
+        (item: JsonApiEntity) => item.type === 'commits' && item.id === activity.deployment.commit.id);
+      expect(commit).to.exist;
+
+      // included project
+      const project = (<any> converted).included.find(
+        (item: JsonApiEntity) => item.type === 'projects' && item.id === activity.project.id);
+      expect(project).to.exist;
+      expect(project.attributes.name).to.equal(activity.project.name);
+
+      // include branch that is references from activity
+      const branch = (<any> converted).included.find(
+        (item: JsonApiEntity) => item.type === 'branches' && item.id === activity.branch.id);
+      expect(branch).to.exist;
+      expect(branch.attributes.name).to.equal(activity.branch.name);
+
+      // do not include other branches
+      const branches = (<any> converted).included.filter(
+        (item: JsonApiEntity) => item.type === 'branches');
+      expect(branches).to.have.length(1);
+
+      // do not include other commits
+      const commits = (<any> converted).included.filter(
+        (item: JsonApiEntity) => item.type === 'commits');
+      expect(commits).to.have.length(1);
     });
+  });
+
+  describe('toApiProject()', () => {
+    it('should work in typical case', async () => {
+      // Arrange
+      // -------
+      const minardProject = {
+        id: 1,
+        branches: [
+          {
+            name: 'master',
+          } as MinardBranch,
+        ],
+      } as MinardProject;
+
+      const api = {} as InternalJsonApi;
+      api.toApiProject = InternalJsonApi.prototype.toApiProject.bind(api);
+      api.toApiBranch = async function(project: ApiProject, branch: MinardBranch) {
+        expect(project.id).to.equal('1');
+        return {
+          id: '1-master',
+          deployments: [{}, {}],
+        };
+      };
+
+      // Act
+      // ---
+      const project = await api.toApiProject(minardProject);
+
+      // Assert
+      // ------
+      expect(project.id).to.equal('1');
+      // Make sure branches are converted to APIBranch:es
+      expect(project.branches[0].id).to.equal('1-master');
+      expect(project.branches[0].deployments).to.have.length(2);
+    });
+  });
+
+  describe('MemoizedInternalJsonApi', () => {
+    describe('toApiProject', () => {
+      class MockInternalJsonApi extends InternalJsonApi {
+        public constructor() {
+          super({} as any, {} as any, {} as any);
+        }
+        public async toApiProject(project: MinardProject) {
+          return {
+            id: project.id,
+          };
+        }
+      }
+      it('should return memoized copy when passed an identical object', async () => {
+        const api = new MemoizedInternalJsonApi(new MockInternalJsonApi() as InternalJsonApi);
+        const ret1 = await api.toApiProject( { id: 1, name: 'foo' } as MinardProject );
+        const ret2 = await api.toApiProject( { id: 1, name: 'foo' } as MinardProject );
+        expect(ret1).to.equal(ret2);
+      });
+
+      it('should return memoized copy when passed an object that has same id', async () => {
+        const api = new MemoizedInternalJsonApi(new MockInternalJsonApi() as InternalJsonApi);
+        const ret1 = await api.toApiProject( { id: 1, name: 'foo' } as MinardProject );
+        const ret2 = await api.toApiProject( { id: 1, name: 'bar' } as MinardProject );
+        expect(ret1).to.equal(ret2);
+      });
+
+      it('should not return memoized copy passed an object with different id', async () => {
+        const api = new MemoizedInternalJsonApi(new MockInternalJsonApi() as InternalJsonApi);
+        const ret1 = await api.toApiProject( { id: 1, name: 'foo' } as MinardProject );
+        const ret2 = await api.toApiProject( { id: 2, name: 'foo' } as MinardProject );
+        expect(ret1).to.not.equal(ret2);
+      });
+    });
+    describe('toApiBranch', () => {
+      class MockInternalJsonApi extends InternalJsonApi {
+        public constructor() {
+          super({} as any, {} as any, {} as any);
+        }
+        public async toApiBranch(project: ApiProject, branch: MinardBranch) {
+          return {
+            id: 'foo',
+          };
+        }
+      }
+      it('should return memoized copy when passed an identical object as parameters', async () => {
+        const api = new MemoizedInternalJsonApi(new MockInternalJsonApi() as InternalJsonApi);
+        const ret1 = await api.toApiBranch(
+          { id: '1', name: 'foo' } as ApiProject,
+          { name: 'foo' } as MinardBranch);
+        const ret2 = await api.toApiBranch(
+          { id: '1', name: 'foo' } as ApiProject,
+          { name: 'foo' } as MinardBranch);
+        expect(ret1).to.equal(ret2);
+      });
+
+      it('should not return memoized copy when project has different id', async () => {
+        const api = new MemoizedInternalJsonApi(new MockInternalJsonApi() as InternalJsonApi);
+        const ret1 = await api.toApiBranch(
+          { id: '1', name: 'foo' } as ApiProject,
+          { name: 'foo' } as MinardBranch);
+        const ret2 = await api.toApiBranch(
+          { id: '2', name: 'foo' } as ApiProject,
+          { name: 'foo' } as MinardBranch);
+        expect(ret1).to.not.equal(ret2);
+      });
+
+      it('should not return memoized copy when branch has different name', async () => {
+        const api = new MemoizedInternalJsonApi(new MockInternalJsonApi() as InternalJsonApi);
+        const ret1 = await api.toApiBranch(
+          { id: '1', name: 'foo' } as ApiProject,
+          { name: 'foo' } as MinardBranch);
+        const ret2 = await api.toApiBranch(
+          { id: '1', name: 'foo' } as ApiProject,
+          { name: 'bar' } as MinardBranch);
+        expect(ret1).to.not.equal(ret2);
+      });
+    });
+
+    describe('toApiCommit', () => {
+      class MockInternalJsonApi extends InternalJsonApi {
+        public constructor() {
+          super({} as any, {} as any, {} as any);
+        }
+        public async toApiCommit(projectId: number, commit: MinardCommit) {
+          return {
+            id: 'foo',
+          };
+        }
+      }
+      it('should return memoized copy when passed same project id and identical commit object', async () => {
+        const api = new MemoizedInternalJsonApi(new MockInternalJsonApi() as InternalJsonApi);
+        const ret1 = await api.toApiCommit(1, { id: 'foo' } as MinardCommit );
+        const ret2 = await api.toApiCommit(1, { id: 'foo' } as MinardCommit );
+        expect(ret1).to.equal(ret2);
+      });
+
+      it('should not return memoized copy when project id is different', async () => {
+        const api = new MemoizedInternalJsonApi(new MockInternalJsonApi() as InternalJsonApi);
+        const ret1 = await api.toApiCommit(1, { id: 'foo' } as MinardCommit );
+        const ret2 = api.toApiCommit(2, { id: 'foo' } as MinardCommit );
+        expect(ret1).to.not.equal(ret2);
+      });
+
+      it('should not return memoized copy when commit id is different', async () => {
+        const api = new MemoizedInternalJsonApi(new MockInternalJsonApi() as InternalJsonApi);
+        const ret1 = await api.toApiCommit(1, { id: 'foo' } as MinardCommit );
+        const ret2 = await api.toApiCommit(2, { id: 'bar' } as MinardCommit );
+        expect(ret1).to.not.equal(ret2);
+      });
+    });
+
+    describe('getApiProject', () => {
+      class MockInternalJsonApi extends InternalJsonApi {
+        public constructor() {
+          super({} as any, {} as any, {} as any);
+        }
+        public async getApiProject(projectId: number | string) {
+          return {
+            id: 'foo',
+          };
+        }
+      }
+      it('should return memoized copy when passed same project id', async () => {
+        const api = new MemoizedInternalJsonApi(new MockInternalJsonApi() as InternalJsonApi);
+        const ret1 = await api.getApiProject(1);
+        const ret2 = await api.getApiProject(1);
+        const ret3 = await api.getApiProject('1');
+        expect(ret1).to.equal(ret2);
+        expect(ret1).to.equal(ret3);
+      });
+
+      it('should not return memoized copy when project is is different', async () => {
+        const api = new MemoizedInternalJsonApi(new MockInternalJsonApi() as InternalJsonApi);
+        const ret1 = await api.getApiProject(1);
+        const ret2 = await api.getApiProject(2);
+        expect(ret1).to.not.equal(ret2);
+      });
+    });
+
+    describe('getApiBranch', () => {
+      class MockInternalJsonApi extends InternalJsonApi {
+        public constructor() {
+          super({} as any, {} as any, {} as any);
+        }
+        public async getApiBranch(projectId: number | string) {
+          return {
+            id: 'foo',
+          };
+        }
+      }
+      it('should return memoized copy when passed same project id and branch name', async () => {
+        const api = new MemoizedInternalJsonApi(new MockInternalJsonApi() as InternalJsonApi);
+        const ret1 = await api.getApiBranch(1, 'master');
+        const ret2 = await api.getApiBranch(1, 'master');
+        expect(ret1).to.equal(ret2);
+      });
+
+      it('should not return memoized copy when project id is different', async () => {
+        const api = new MemoizedInternalJsonApi(new MockInternalJsonApi() as InternalJsonApi);
+        const ret1 = await api.getApiBranch(1, 'master');
+        const ret2 = await api.getApiBranch(2, 'master');
+        expect(ret1).to.not.equal(ret2);
+      });
+
+      it('should not return memoized copy when branch name is different', async () => {
+        const api = new MemoizedInternalJsonApi(new MockInternalJsonApi() as InternalJsonApi);
+        const ret1 = await api.getApiBranch(1, 'master');
+        const ret2 = await api.getApiBranch(1, 'foo');
+        expect(ret1).to.not.equal(ret2);
+      });
+    });
+
   });
 
 });

@@ -1,4 +1,5 @@
 
+import * as Boom from 'boom';
 import * as Hapi from 'hapi';
 import { inject, injectable } from 'inversify';
 import * as Joi from 'joi';
@@ -17,7 +18,12 @@ function onPreResponse(request: Hapi.Request, reply: Hapi.IReply) {
     return reply.continue();
   }
 
-  const contentType = 'application/vnd.api+json; charset=utf-8';
+  function applyHeaders(obj: any) {
+    const contentType = 'application/vnd.api+json; charset=utf-8';
+    obj.headers['content-type'] = contentType;
+    obj.headers['Access-Control-Allow-Origin'] = '*';
+  }
+
   if (response.isBoom) {
     const output = (<any> response).output;
     const error = {
@@ -28,15 +34,29 @@ function onPreResponse(request: Hapi.Request, reply: Hapi.IReply) {
     output.payload = {
       errors: [error],
     };
-    output.headers['content-type'] = contentType;
+    applyHeaders(output);
   } else {
     if (response.source) {
       response.source.meta = { id: request.id };
     }
-    response.headers['content-type'] = contentType;
+    applyHeaders(response);
   }
   return reply.continue();
 };
+
+export function parseActivityFilter(filter: string | null) {
+  const ret = {
+    projectId: null as number | null,
+  };
+  if (!filter) {
+    return ret;
+  }
+  const projectMatches = filter.match(/^project\[(\d+)\]$/);
+  if (projectMatches !== null && projectMatches.length === 2) {
+    ret.projectId = Number(projectMatches[1]);
+  }
+  return ret;
+}
 
 @injectable()
 export default class JsonApiHapiPlugin {
@@ -136,6 +156,14 @@ export default class JsonApiHapiPlugin {
       },
     });
 
+    server.route({
+      method: 'GET',
+      path: '/activity',
+      handler: {
+        async: this.getActivityHandler.bind(this),
+      },
+    });
+
     next();
   };
 
@@ -165,6 +193,20 @@ export default class JsonApiHapiPlugin {
     const projectId = Number((<any> request.params).projectId);
     const hash = (<any> request.params).hash as string;
     return reply(this.jsonApiModule.getCommit(projectId, hash));
+  }
+
+  private async getActivityHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    const filter = request.query.filter as string;
+    const filterOptions = parseActivityFilter(filter);
+    if (filterOptions.projectId) {
+      return reply(this.jsonApiModule.getProjectActivity(filterOptions.projectId));
+    }
+    if (filter && !filterOptions.projectId) {
+      // if filter is specified it should be valid
+      throw Boom.badRequest('Invalid filter');
+    }
+    // for now any team id returns all activity
+    return reply(this.jsonApiModule.getTeamActivity(1));
   }
 
 }

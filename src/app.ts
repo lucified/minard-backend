@@ -7,7 +7,7 @@ import { Kernel } from 'inversify';
 import * as Knex from 'knex';
 
 import JsonApiHapiPlugin from './json-api/json-api-hapi-plugin';
-import JsonApiModule from './json-api/json-api-module';
+import JsonApiModule, { InternalJsonApi, MemoizedInternalJsonApi } from './json-api/json-api-module';
 
 import AuthenticationModule from './authentication/authentication-module';
 import DeploymentPlugin from './deployment/deployment-hapi-plugin';
@@ -21,6 +21,7 @@ import { default as SystemHookModule, systemHookBaseUrlSymbol } from './system-h
 
 import HelloPlugin from './hello/hello-hapi-plugin';
 
+import ActivityModule from './activity/activity-module';
 import UserModule from './user/user-module';
 
 import { LocalEventBus, injectSymbol as eventBusInjectSymbol } from './event-bus';
@@ -56,6 +57,7 @@ kernel.bind(ProjectModule.injectSymbol).to(ProjectModule).inSingletonScope();
 kernel.bind(ProjectPlugin.injectSymbol).to(ProjectPlugin);
 kernel.bind(SystemHookModule.injectSymbol).to(SystemHookModule);
 kernel.bind(AuthenticationModule.injectSymbol).to(AuthenticationModule);
+kernel.bind(ActivityModule.injectSymbol).to(ActivityModule);
 
 kernel.bind(JsonApiHapiPlugin.injectSymbol).to(JsonApiHapiPlugin);
 kernel.bind(JsonApiModule.injectSymbol).to(JsonApiModule);
@@ -80,6 +82,11 @@ kernel.bind(gitlabHostInjectSymbol).toConstantValue(`http://${GITLAB_HOST}:${GIT
 kernel.bind(fetchInjectSymbol).toConstantValue(fetch);
 kernel.bind(systemHookBaseUrlSymbol).toConstantValue(SYSTEMHOOK_BASEURL);
 kernel.bind(deploymentFolderInjectSymbol).toConstantValue(DEPLOYMENT_FOLDER);
+
+kernel.bind(InternalJsonApi.injectSymbol).to(InternalJsonApi);
+kernel.bind(MemoizedInternalJsonApi.injectSymbol).to(MemoizedInternalJsonApi);
+
+kernel.bind(InternalJsonApi.factoryInjectSymbol).toAutoFactory(MemoizedInternalJsonApi.injectSymbol);
 
 const knex = Knex({
   client: DB_ADAPTER,

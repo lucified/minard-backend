@@ -17,7 +17,11 @@ const getClient = () => {
     }
   }
 
-  return new GitlabClient(host, fetchMock.fetchMock as IFetchStatic, new MockAuthModule() as Authentication, false);
+  return new GitlabClient(host,
+    fetchMock.fetchMock as IFetchStatic,
+    new MockAuthModule() as Authentication,
+    {} as any,
+    false);
 };
 
 describe('gitlab-client', () => {

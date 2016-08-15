@@ -8,7 +8,6 @@ import { HapiRegister } from '../server/hapi-register';
 import { ApiEntities, ApiEntity, MemoizedJsonApiModule } from './';
 import { serializeApiEntity }  from './serialization';
 
-
 function onPreResponse(request: Hapi.Request, reply: Hapi.IReply) {
   const response = request.response;
 
@@ -169,7 +168,6 @@ export class JsonApiHapiPlugin {
     next();
   };
 
-
   private async getEntity(type: string, p: Promise<ApiEntity | ApiEntities | null> ) {
     // const api = this.jsonApiModule;
     // api.invalidate();
@@ -179,7 +177,6 @@ export class JsonApiHapiPlugin {
     }
     return serializeApiEntity(type, entity);
   }
-
 
   private async getProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const projectId = (<any> request.params).projectId;

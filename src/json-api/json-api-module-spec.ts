@@ -21,10 +21,7 @@ import {
   MemoizedJsonApiModule,
 } from './';
 
-import {
-  serializeApiEntity
-} from './serialization';
-
+import { serializeApiEntity } from './serialization';
 
 import { expect } from 'chai';
 

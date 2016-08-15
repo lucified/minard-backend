@@ -13,7 +13,6 @@ import {
   MinardDeploymentPlain,
 } from '../deployment/';
 
-
 interface MemoizedJsonApiModule {
   toApiProject: (project: MinardProject) => Promise<ApiProject>;
   toApiBranch: (project: MinardProject, branch: MinardBranch) => Promise<ApiBranch>;
@@ -71,4 +70,3 @@ export interface ApiActivity extends MinardActivityPlain {
 
 export type ApiEntity = ApiActivity | ApiProject | ApiCommit | ApiDeployment | ApiBranch;
 export type ApiEntities = ApiActivity[] | ApiProject[] | ApiCommit[] | ApiDeployment[] | ApiBranch[];
-

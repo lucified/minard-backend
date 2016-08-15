@@ -83,8 +83,6 @@ kernel.bind(fetchInjectSymbol).toConstantValue(fetch);
 kernel.bind(systemHookBaseUrlSymbol).toConstantValue(SYSTEMHOOK_BASEURL);
 kernel.bind(deploymentFolderInjectSymbol).toConstantValue(DEPLOYMENT_FOLDER);
 
-
-
 const knex = Knex({
   client: DB_ADAPTER,
   connection: {

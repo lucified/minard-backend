@@ -13,7 +13,6 @@ import {
   ProjectModule,
 } from '../project/';
 
-
 import { JsonApiModule } from './';
 
 @injectable()

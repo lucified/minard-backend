@@ -5,16 +5,12 @@ import { inject, injectable } from 'inversify';
 import { Commit } from '../shared/gitlab.d.ts';
 
 import {
-  ApiCommit,
-  ApiBranch,
-  ApiProject,
-  ApiDeployment,
-  ApiEntity,
-  ApiEntities,
   ApiActivity,
-  JsonApiResponse,
+  ApiBranch,
+  ApiCommit,
+  ApiDeployment,
+  ApiProject,
 } from './types';
-
 
 import {
   ActivityModule,
@@ -34,7 +30,6 @@ import {
 } from '../project/';
 
 const deepcopy = require('deepcopy');
-
 
 @injectable()
 export class JsonApiModule {

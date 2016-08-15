@@ -48,7 +48,7 @@ export default class SystemHookModule {
       try {
         registered = await this.tryAssureSystemHookRegistered(path);
         this.bus.post(createSystemHookRegistrationEvent({ status: 'success', path }));
-        this.logger.info(`Registered system hook for ${path}`);
+        this.logger.info(`Registered system hook for path "${path}"`);
 
     } catch (err) {
         this.bus.post(createSystemHookRegistrationEvent({

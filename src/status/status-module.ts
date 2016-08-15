@@ -1,5 +1,6 @@
 
 import { inject, injectable } from 'inversify';
+import * as moment from 'moment';
 
 import { AuthenticationModule } from '../authentication';
 import { Event, EventBus, injectSymbol as eventBusInjectSymbol } from '../event-bus';
@@ -19,6 +20,24 @@ interface RunnerStatus {
   id: number;
   is_shared: boolean;
   name?: any;
+}
+
+interface DetailedRunnerStatus {
+    id: number;
+    description: string;
+    active: boolean;
+    is_shared: boolean;
+    name: string;
+    tag_list: any[];
+    run_untagged: boolean;
+    locked: boolean;
+    version: string;
+    revision: string;
+    platform: string;
+    architecture: string;
+    contacted_at: Date;
+    token: string;
+    projects: any[];
 }
 
 @injectable()
@@ -61,7 +80,7 @@ export default class StatusModule {
     return {
       status: status === 'success' ? 'ok' : 'error',
       message: status === 'success' ?
-        `Successfully registered ${this.latestSystemHookRegistration.created.fromNow()}` :
+        `Successfully verified ${this.latestSystemHookRegistration.created.fromNow()}` :
         this.latestSystemHookRegistration.payload.message,
     };
   }
@@ -70,9 +89,26 @@ export default class StatusModule {
     try {
       const runners = await this.gitlab.fetchJson<RunnerStatus[]>('runners/all/?scope=online');
       const activeRunners = runners.filter(runner => runner.active);
+      const detailedRunners = await Promise.all<DetailedRunnerStatus>(activeRunners.map((runner: RunnerStatus) => {
+        return this.gitlab.fetchJson<DetailedRunnerStatus>(`runners/${runner.id}`);
+      }));
+
+      const timeDiffs = detailedRunners.map((runner: DetailedRunnerStatus) => {
+        const diff = moment().diff(moment(runner.contacted_at), 'seconds');
+        return {
+          id: runner.id,
+          diff: diff,
+        };
+      });
+      // gitlab does not seem to refresh the contacted_at time for every
+      // request. with a working runner the diff seems to go at maximum
+      // to around 80. Thus comparing to 120 should be a safe to way to
+      // figure whether the runner is really OK
+      const filtered = timeDiffs.filter((runner) => runner.diff < 120);
+
       return {
-        status: activeRunners.length > 0 ? 'ok' : 'error',
-        message: `${activeRunners.length} active runners`,
+        status: filtered.length > 0 ? 'ok' : 'error',
+        message: `${filtered.length} online runner(s)`,
       };
     } catch (err) {
       return {
@@ -123,11 +159,17 @@ export default class StatusModule {
     const postgreStatusPromise = this.getPostgreSqlStatus();
     const gitlabStatusPromise = this.getGitlabStatus();
     const runnersStatusPromise = this.getRunnersStatus();
+
+    const systemHook = this.getSystemHookStatus();
+    const gitlab = await gitlabStatusPromise;
+    const runners = await runnersStatusPromise;
+    const postresql = await postgreStatusPromise;
+
     return {
-       systemHook: this.getSystemHookStatus(),
-       gitlab: await gitlabStatusPromise,
-       runners: await runnersStatusPromise,
-       postgresql: await postgreStatusPromise,
+       systemHook,
+       gitlab,
+       runners,
+       postresql,
     };
   }
 

@@ -1,9 +1,10 @@
 
+import { expect } from 'chai';
+import * as moment from 'moment';
 import 'reflect-metadata';
 
 import { eventCreator } from '../shared/events';
 import EventBus from './local-event-bus';
-import { expect } from 'chai';
 
 // Events boilerplate includes payload types, string identifiers and smart constructors
 interface Payload {
@@ -49,7 +50,7 @@ describe('event-bus', () => {
         expect(event.payload.status).to.equal('bar');
       }, done, done);
     bus.post(testEventCreator({ status: 'bar' }));
-    bus.post({ type: 'fooType', payload: { foo: 'bar' } });
+    bus.post({ type: 'fooType', payload: { foo: 'bar' }, created: moment() });
     bus.complete();
 
   });

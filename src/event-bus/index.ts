@@ -3,7 +3,7 @@ import { Observable, Subscription } from '@reactivex/rxjs';
 
 import { Event } from '../shared/events';
 
-export {default as LocalEventBus} from './local-event-bus';
+export { default as LocalEventBus } from './local-event-bus';
 
 export type Subscription = Subscription;
 export type Event<T> = Event<T>;

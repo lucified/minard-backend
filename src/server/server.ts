@@ -5,7 +5,7 @@ import { inject, injectable } from 'inversify';
 import { CIProxy } from '../deployment';
 import DeploymentPlugin from '../deployment/deployment-hapi-plugin';
 import HelloPlugin from '../hello/hello-hapi-plugin';
-import JsonApiPlugin from '../json-api/json-api-hapi-plugin';
+import { JsonApiHapiPlugin as JsonApiPlugin } from '../json-api';
 import ProjectPlugin from '../project/project-hapi-plugin';
 
 const hapiAsyncHandler = require('hapi-async-handler');

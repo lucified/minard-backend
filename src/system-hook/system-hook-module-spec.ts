@@ -5,9 +5,14 @@ import Authentication from '../authentication/authentication-module';
 import { IFetchStatic } from '../shared/fetch.d.ts';
 import { GitlabClient } from '../shared/gitlab-client';
 import SystemHookModule from './system-hook-module';
+import { SYSTEM_HOOK_REGISTRATION_EVENT_TYPE, SystemHookRegistrationEvent } from './types';
 
 const fetchMock = require('fetch-mock');
+import { EventBus, LocalEventBus } from '../event-bus';
+import Logger from '../shared/logger';
 import { expect } from 'chai';
+
+const logger = Logger(undefined, true);
 
 describe('system-hooks-module', () => {
 
@@ -26,14 +31,15 @@ describe('system-hooks-module', () => {
     );
   }
 
-  function getSystemHooksModule(gitlabClient: GitlabClient) {
-    return new SystemHookModule(gitlabClient, 'http://fake-internal-url.com/');
+  function getSystemHooksModule(gitlabClient: GitlabClient, bus: EventBus) {
+    return new SystemHookModule(
+        gitlabClient, 'http://fake-internal-url.com/', bus, logger);
   }
 
   it('getSystemHooks', async () => {
     // arrange
     const gitlabClient = getGitlabClient();
-    const systemHookModule = getSystemHooksModule(gitlabClient);
+    const systemHookModule = getSystemHooksModule(gitlabClient, {} as any);
     const listHooksResponse = [
       {
         'id' : 1,
@@ -56,7 +62,7 @@ describe('system-hooks-module', () => {
   it('hasSystemHookPositiveCase', async () => {
     // arrange
     const gitlabClient = getGitlabClient();
-    const systemHookModule = getSystemHooksModule(gitlabClient);
+    const systemHookModule = getSystemHooksModule(gitlabClient, { } as any);
     fetchMock.restore().mock(`http://fake-gitlab.com:1000${gitlabClient.apiPrefix}/hooks`,
       [{
         'id' : 1,
@@ -76,7 +82,7 @@ describe('system-hooks-module', () => {
 
   it('hasSystemHookPositiveCase', async () => {
     const gitlabClient = getGitlabClient();
-    const systemHookModule = getSystemHooksModule(gitlabClient);
+    const systemHookModule = getSystemHooksModule(gitlabClient, {} as any);
     fetchMock.restore().mock(`http://fake-gitlab.com:1000${gitlabClient.apiPrefix}/hooks`,
       [{
         'id' : 1,
@@ -94,25 +100,72 @@ describe('system-hooks-module', () => {
     expect(hasHook).to.equal(false);
   });
 
-  it('registerSystemHook', async () => {
-    // arrange
-    const gitlabClient = getGitlabClient();
-    const systemHookModule = getSystemHooksModule(gitlabClient);
-    const mockUrl = `http://fake-gitlab.com:1000${gitlabClient.apiPrefix}/hooks` +
-        '?url=http%3A%2F%2Ffake-internal-url.com%2Fproject%2Fhook';
-    fetchMock.restore().mock(mockUrl, {
-      'status': 200,
-    },
-    {
-      method: 'POST',
+  it('registerSystemHook', () => {
+
+    it('successfully registers system hook and posts event', async () => {
+      const bus = new LocalEventBus();
+
+      // arrange
+      const gitlabClient = getGitlabClient();
+      const systemHookModule = getSystemHooksModule(gitlabClient, bus);
+      const mockUrl = `http://fake-gitlab.com:1000${gitlabClient.apiPrefix}/hooks` +
+          '?url=http%3A%2F%2Ffake-internal-url.com%2Fproject%2Fhook';
+      fetchMock.restore().mock(mockUrl, {
+        'status': 200,
+      },
+      {
+        method: 'POST',
+      });
+
+      let eventFired = true;
+      bus.
+        filterEvents<SystemHookRegistrationEvent>(SYSTEM_HOOK_REGISTRATION_EVENT_TYPE)
+        .subscribe(event => {
+          expect(event.payload.status).to.equal('success');
+          eventFired = true;
+      });
+
+      // act
+      const success = await systemHookModule.registerSystemHook('/project/hook');
+
+      // assert
+      expect(success).to.equal(true);
+      expect(fetchMock.called()).to.equal(true);
+      expect(eventFired).to.equal(true);
     });
 
-    // act
-    const success = await systemHookModule.registerSystemHook('/project/hook');
+    it('reports failure event when registration fails', async () => {
+      const bus = new LocalEventBus();
 
-    // assert
-    expect(success).to.equal(true);
-    expect(fetchMock.called()).to.equal(true);
+      // arrange
+      const gitlabClient = getGitlabClient();
+      const systemHookModule = getSystemHooksModule(gitlabClient, bus);
+      const mockUrl = `http://fake-gitlab.com:1000${gitlabClient.apiPrefix}/hooks` +
+          '?url=http%3A%2F%2Ffake-internal-url.com%2Fproject%2Fhook';
+      fetchMock.restore().mock(mockUrl, {
+        'status': 500,
+      },
+      {
+        method: 'POST',
+      });
+
+      let eventFired = true;
+      bus.
+        filterEvents<SystemHookRegistrationEvent>(SYSTEM_HOOK_REGISTRATION_EVENT_TYPE)
+        .subscribe(event => {
+          expect(event.payload.status).to.equal('failed');
+          eventFired = true;
+      });
+
+      // act
+      const success = await systemHookModule.registerSystemHook('/project/hook');
+
+      // assert
+      expect(success).to.equal(false);
+      expect(fetchMock.called()).to.equal(true);
+      expect(eventFired).to.equal(true);
+    });
+
   });
 
 });

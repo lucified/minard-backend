@@ -49,19 +49,6 @@ export function memoizeApi(api: JsonApiModule) {
   return api;
 }
 
-function mapApiMethods(api: JsonApiModule, to: any) {
-  // Map all methods from
-
-  Object.getOwnPropertyNames(JsonApiModule.prototype)
-    .map(p => {
-      return p;
-    })
-    .filter(prop => typeof (<any> api)[prop] === 'function' && prop !== 'constructor')
-    .forEach(method => {
-      to[method] = (<any> api)[method].bind(api);
-    });
-}
-
 @injectable()
 export class MemoizedJsonApiModule extends JsonApiModule {
 
@@ -71,9 +58,9 @@ export class MemoizedJsonApiModule extends JsonApiModule {
     @inject(ActivityModule.injectSymbol) activityModule: ActivityModule) {
     super(deploymentModule, projectModule, activityModule);
     memoizeApi(this);
-    mapApiMethods(this, this);
   }
 
+  // Not used anywere so far
   public invalidate() {
     memoizedMethods.forEach(method => (<any> this)[method.name].clear());
   }

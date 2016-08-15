@@ -1,15 +1,17 @@
 
 import 'reflect-metadata';
 
+import { expect } from 'chai';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
-import { expect } from 'chai';
-
 import {
-  DEPLOYMENT_EVENT_TYPE, DeploymentEvent, DeploymentModule,
-  createDeploymentEvent, getDeploymentKey,
+  DEPLOYMENT_EVENT_TYPE,
+  DeploymentEvent,
+  DeploymentModule,
+  createDeploymentEvent,
+  getDeploymentKey,
 } from './';
 
 import Authentication from '../authentication/authentication-module';

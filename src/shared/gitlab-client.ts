@@ -1,11 +1,12 @@
 
 import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
+
+import { AuthenticationModule } from '../authentication';
+import { Logger, loggerInjectSymbol } from '../shared/logger';
+
 const perfy = require('perfy');
 const randomstring = require('randomstring');
-
-import Authentication from '../authentication/authentication-module';
-import { Logger, loggerInjectSymbol} from '../shared/logger';
 
 export const fetchInjectSymbol = Symbol('fetch');
 export const gitlabHostInjectSymbol = Symbol('gitlab-host');
@@ -24,12 +25,12 @@ export class GitlabClient {
   private logger: Logger;
   private _fetch: IFetchStatic;
   private _logging: boolean;
-  private _authentication: Authentication;
+  private _authentication: AuthenticationModule;
 
   public constructor(
     @inject(gitlabHostInjectSymbol) host: string,
     @inject(fetchInjectSymbol) fetch: IFetchStatic,
-    @inject(Authentication.injectSymbol) auth: Authentication,
+    @inject(AuthenticationModule.injectSymbol) auth: AuthenticationModule,
     @inject(loggerInjectSymbol) logger: Logger,
     logging: boolean = false) {
     this.host = host;

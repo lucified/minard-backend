@@ -1,19 +1,23 @@
 
-import * as Boom from 'boom';
-
-import { inject, injectable } from 'inversify';
-
 import * as rx from '@reactivex/rxjs';
+import * as Boom from 'boom';
+import * as fs from 'fs';
+import { inject, injectable } from 'inversify';
+import * as os from 'os';
+import * as path from 'path';
 
 import { EventBus, eventBusInjectSymbol } from '../event-bus';
 import { GitlabClient } from '../shared/gitlab-client';
 import * as logger from '../shared/logger';
-import { DEPLOYMENT_EVENT_TYPE, Deployment, DeploymentEvent, DeploymentStatus,
-  MinardDeployment, createDeploymentEvent } from './types';
 
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
+import {
+  DEPLOYMENT_EVENT_TYPE,
+  Deployment,
+  DeploymentEvent,
+  DeploymentStatus,
+  MinardDeployment,
+  createDeploymentEvent,
+} from './types';
 
 const mkpath = require('mkpath');
 const AdmZip = require('adm-zip'); // tslint:disable-line

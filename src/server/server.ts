@@ -4,9 +4,9 @@ import { inject, injectable } from 'inversify';
 import * as stream from 'stream';
 
 import { CIProxy } from '../deployment';
-import DeploymentPlugin from '../deployment/deployment-hapi-plugin';
-import { JsonApiHapiPlugin as JsonApiPlugin } from '../json-api';
-import ProjectPlugin from '../project/project-hapi-plugin';
+import { DeploymentHapiPlugin } from '../deployment';
+import { JsonApiHapiPlugin } from '../json-api';
+import { ProjectHapiPlugin } from '../project';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
 import { StatusHapiPlugin as StatusPlugin } from '../status';
 
@@ -43,9 +43,9 @@ export default class MinardServer {
   public static injectSymbol = Symbol('minard-server');
 
   private statusPlugin: StatusPlugin;
-  private projectPlugin: ProjectPlugin;
-  private deploymentPlugin: DeploymentPlugin;
-  private jsonApiPlugin: JsonApiPlugin;
+  private projectPlugin: ProjectHapiPlugin;
+  private deploymentPlugin: DeploymentHapiPlugin;
+  private jsonApiPlugin: JsonApiHapiPlugin;
   private ciProxy: CIProxy;
   private port: number;
   private host: string;
@@ -53,9 +53,9 @@ export default class MinardServer {
   private logger: Logger;
 
   constructor(
-    @inject(DeploymentPlugin.injectSymbol) deploymentPlugin: DeploymentPlugin,
-    @inject(ProjectPlugin.injectSymbol) projectPlugin: ProjectPlugin,
-    @inject(JsonApiPlugin.injectSymbol) jsonApiPlugin: JsonApiPlugin,
+    @inject(DeploymentHapiPlugin.injectSymbol) deploymentPlugin: DeploymentHapiPlugin,
+    @inject(ProjectHapiPlugin.injectSymbol) projectPlugin: ProjectHapiPlugin,
+    @inject(JsonApiHapiPlugin.injectSymbol) jsonApiPlugin: JsonApiHapiPlugin,
     @inject(CIProxy.injectSymbol) ciProxy: CIProxy,
     @inject(hostInjectSymbol) host: string,
     @inject(portInjectSymbol) port: number,

@@ -1,9 +1,9 @@
+
 import * as events from 'events';
 import * as Hapi from 'hapi';
 import * as http from 'http';
-import * as url from 'url';
-
 import { inject, injectable } from 'inversify';
+import * as url from 'url';
 
 import { EventBus, eventBusInjectSymbol } from '../event-bus';
 import { HapiRegister } from '../server/hapi-register';

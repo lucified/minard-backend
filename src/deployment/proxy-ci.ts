@@ -22,7 +22,7 @@ function isJson(headers: Hapi.IDictionary<string>) {
 @injectable()
 export class CIProxy {
 
-  public static readonly injectSymbol = Symbol();
+  public static readonly injectSymbol = Symbol('ci-proxy');
   private gitlabHost: string;
   private upstream: { host: string, port: number, protocol: string };
   private eventBus: EventBus;

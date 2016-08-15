@@ -27,7 +27,7 @@ export function findActiveCommitters(branches: MinardBranch[]): MinardCommitAuth
 @injectable()
 export default class ProjectModule {
 
-  public static injectSymbol = Symbol('user-module');
+  public static injectSymbol = Symbol('project-module');
 
   private authenticationModule: AuthenticationModule;
   private systemHookModule: SystemHookModule;

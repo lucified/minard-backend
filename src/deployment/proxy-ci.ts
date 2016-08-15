@@ -5,7 +5,7 @@ import * as url from 'url';
 
 import { inject, injectable } from 'inversify';
 
-import { EventBus, injectSymbol as eventBusInjectSymbol } from '../event-bus';
+import { EventBus, eventBusInjectSymbol } from '../event-bus';
 import { HapiRegister } from '../server/hapi-register';
 import { gitlabHostInjectSymbol } from '../shared/gitlab-client';
 import * as logger from '../shared/logger';

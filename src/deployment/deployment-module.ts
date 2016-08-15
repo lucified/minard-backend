@@ -5,7 +5,7 @@ import { inject, injectable } from 'inversify';
 
 import * as rx from '@reactivex/rxjs';
 
-import { EventBus, injectSymbol as eventBusInjectSymbol } from '../event-bus';
+import { EventBus, eventBusInjectSymbol } from '../event-bus';
 import { GitlabClient } from '../shared/gitlab-client';
 import * as logger from '../shared/logger';
 import { DEPLOYMENT_EVENT_TYPE, Deployment, DeploymentEvent, DeploymentStatus,

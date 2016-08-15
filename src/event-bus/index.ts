@@ -8,7 +8,7 @@ export { default as LocalEventBus } from './local-event-bus';
 export type Subscription = Subscription;
 export type Event<T> = Event<T>;
 
-export const injectSymbol = Symbol('event-bus');
+export const eventBusInjectSymbol = Symbol('event-bus');
 
 export interface EventBus extends Observable<Event<any>> {
   post(event: Event<any>): void;

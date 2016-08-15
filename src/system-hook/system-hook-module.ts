@@ -8,7 +8,7 @@ import { Logger, loggerInjectSymbol} from '../shared/logger';
 import { GitlabClient } from '../shared/gitlab-client';
 import { SystemHook } from '../shared/gitlab.d.ts';
 
-import { EventBus, injectSymbol as eventBusInjectSymbol } from '../event-bus';
+import { EventBus, eventBusInjectSymbol } from '../event-bus';
 
 const urljoin = require('url-join');
 

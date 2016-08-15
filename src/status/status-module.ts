@@ -3,7 +3,7 @@ import { inject, injectable } from 'inversify';
 import * as moment from 'moment';
 
 import { AuthenticationModule } from '../authentication';
-import { Event, EventBus, injectSymbol as eventBusInjectSymbol } from '../event-bus';
+import { Event, EventBus, eventBusInjectSymbol } from '../event-bus';
 import { GitlabClient } from '../shared/gitlab-client';
 import { SYSTEM_HOOK_REGISTRATION_EVENT_TYPE, SystemHookRegistrationEvent } from '../system-hook';
 

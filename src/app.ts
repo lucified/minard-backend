@@ -5,39 +5,65 @@ import 'reflect-metadata';
 
 import { Kernel } from 'inversify';
 
+// Imports below should be in alphabetical order, based
+// on the last part of the import path.
+
+import { ActivityModule } from './activity';
+import { AuthenticationModule } from './authentication';
+
+import {
+  developmentConfig,
+  getOverrideConfig,
+  productionConfig,
+} from './config';
+
+import {
+  CIProxy,
+  DeploymentHapiPlugin,
+  DeploymentModule,
+} from './deployment';
+
+import {
+  LocalEventBus,
+  eventBusInjectSymbol,
+} from './event-bus';
+
+import {
+  GitlabClient,
+  fetchInjectSymbol,
+} from './shared/gitlab-client';
+
 import {
   JsonApiHapiPlugin,
   JsonApiModule,
   MemoizedJsonApiModule,
 } from './json-api';
 
-import AuthenticationModule from './authentication/authentication-module';
-import DeploymentPlugin from './deployment/deployment-hapi-plugin';
-import { Logger, loggerInjectSymbol } from './shared/logger';
-import { StatusModule } from './status';
+import {
+  Logger,
+  loggerInjectSymbol,
+} from './shared/logger';
 
-import { CIProxy, DeploymentModule } from './deployment';
-
-import { ProjectHapiPlugin, ProjectModule } from './project';
-
-import SystemHookModule from './system-hook/system-hook-module';
-
-import { StatusHapiPlugin } from './status';
-
-import ActivityModule from './activity/activity-module';
-import UserModule from './user/user-module';
-
-import { LocalEventBus, injectSymbol as eventBusInjectSymbol } from './event-bus';
+import {
+  ProjectHapiPlugin,
+  ProjectModule,
+} from './project';
 
 import { MinardServer } from './server';
 
-import { GitlabClient, fetchInjectSymbol } from './shared/gitlab-client';
+import {
+  StatusHapiPlugin,
+  StatusModule,
+} from './status';
 
-import { developmentConfig, getOverrideConfig, productionConfig } from './config';
+import { SystemHookModule } from './system-hook';
+import { UserModule } from './user';
 
 const kernel = new Kernel();
 
-// We are injecting the eventBus here as a constantValue as the
+// Notes on injecting EventBus:
+//
+// We are binding the eventBus as a constantValue as the
 // normal injection mechanism does not work when the base class
 // does not have the @injectable() annotation, and the base class
 // in RxJx, which means we cannot modify it.
@@ -46,29 +72,33 @@ const kernel = new Kernel();
 // dependencies into EventBus
 //
 //  -- JO 25.6.2016
-kernel.bind(eventBusInjectSymbol).toConstantValue(new LocalEventBus());
-kernel.bind(DeploymentPlugin.injectSymbol).to(DeploymentPlugin);
-kernel.bind(DeploymentModule.injectSymbol).to(DeploymentModule).inSingletonScope();
-kernel.bind(MinardServer.injectSymbol).to(MinardServer).inSingletonScope();
-kernel.bind(UserModule.injectSymbol).to(UserModule);
-kernel.bind(CIProxy.injectSymbol).to(CIProxy);
-kernel.bind(StatusModule.injectSymbol).to(StatusModule);
 
-kernel.bind(GitlabClient.injectSymbol).to(GitlabClient).inSingletonScope();
-kernel.bind(ProjectModule.injectSymbol).to(ProjectModule).inSingletonScope();
-kernel.bind(SystemHookModule.injectSymbol).to(SystemHookModule);
-kernel.bind(AuthenticationModule.injectSymbol).to(AuthenticationModule);
+// Bindings for modules
 kernel.bind(ActivityModule.injectSymbol).to(ActivityModule);
-
-kernel.bind(JsonApiHapiPlugin.injectSymbol).to(JsonApiHapiPlugin).inSingletonScope();
+kernel.bind(AuthenticationModule.injectSymbol).to(AuthenticationModule);
+kernel.bind(DeploymentModule.injectSymbol).to(DeploymentModule).inSingletonScope();
 kernel.bind(JsonApiModule.injectSymbol).to(MemoizedJsonApiModule);
 kernel.bind(JsonApiModule.factoryInjectSymbol).toAutoFactory(JsonApiModule.injectSymbol);
-kernel.bind(StatusHapiPlugin.injectSymbol).to(StatusHapiPlugin);
+kernel.bind(ProjectModule.injectSymbol).to(ProjectModule).inSingletonScope();
+kernel.bind(StatusModule.injectSymbol).to(StatusModule);
+kernel.bind(SystemHookModule.injectSymbol).to(SystemHookModule);
+kernel.bind(UserModule.injectSymbol).to(UserModule);
+
+// Bindings for hapi plugins
+kernel.bind(DeploymentHapiPlugin.injectSymbol).to(DeploymentHapiPlugin);
+kernel.bind(JsonApiHapiPlugin.injectSymbol).to(JsonApiHapiPlugin).inSingletonScope();
 kernel.bind(ProjectHapiPlugin.injectSymbol).to(ProjectHapiPlugin);
+kernel.bind(StatusHapiPlugin.injectSymbol).to(StatusHapiPlugin);
+
+// Other bindings
+kernel.bind(eventBusInjectSymbol).toConstantValue(new LocalEventBus());
+kernel.bind(CIProxy.injectSymbol).to(CIProxy);
+kernel.bind(GitlabClient.injectSymbol).to(GitlabClient).inSingletonScope();
 kernel.bind(fetchInjectSymbol).toConstantValue(fetch);
+kernel.bind(MinardServer.injectSymbol).to(MinardServer).inSingletonScope();
 
+// Load bindings that represent configuration
 const env = process.env.NODE_ENV || 'development';
-
 const overrideConfig = getOverrideConfig();
 if (overrideConfig != null) {
   console.log('Using override config');

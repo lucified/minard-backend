@@ -13,7 +13,7 @@ import { MinardBranch, MinardCommit, MinardCommitAuthor, MinardProject, projectC
 
 // only for types
 import AuthenticationModule from '../authentication/authentication-module';
-import { EventBus, injectSymbol as eventBusInjectSymbol } from '../event-bus/';
+import { EventBus, eventBusInjectSymbol } from '../event-bus/';
 import { Project } from '../shared/gitlab.d.ts';
 import SystemHookModule from '../system-hook/system-hook-module';
 

@@ -2,4 +2,5 @@
 
 source ./get-monolith-ip
 echo $MONOLITH_IP
+rm -f gitlab-data/runner/config.toml
 docker-compose --file=docker-compose-infra.yml up

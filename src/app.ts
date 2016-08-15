@@ -22,7 +22,6 @@ import ProjectModule from './project/project-module';
 
 import { default as SystemHookModule, systemHookBaseUrlSymbol } from './system-hook/system-hook-module';
 
-import HelloPlugin from './hello/hello-hapi-plugin';
 
 import ActivityModule from './activity/activity-module';
 import UserModule from './user/user-module';
@@ -50,7 +49,6 @@ kernel.bind(eventBusInjectSymbol).toConstantValue(new LocalEventBus());
 kernel.bind(loggerInjectSymbol).toConstantValue(Logger(undefined, false, process.env.DEBUG ? true : false));
 kernel.bind(DeploymentPlugin.injectSymbol).to(DeploymentPlugin);
 kernel.bind(DeploymentModule.injectSymbol).to(DeploymentModule).inSingletonScope();
-kernel.bind(HelloPlugin.injectSymbol).to(HelloPlugin).inSingletonScope();
 kernel.bind(MinardServer.injectSymbol).to(MinardServer).inSingletonScope();
 kernel.bind(UserModule.injectSymbol).to(UserModule);
 kernel.bind(CIProxy.injectSymbol).to(CIProxy);

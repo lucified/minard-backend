@@ -4,7 +4,6 @@ import { inject, injectable } from 'inversify';
 
 import { CIProxy } from '../deployment';
 import DeploymentPlugin from '../deployment/deployment-hapi-plugin';
-import HelloPlugin from '../hello/hello-hapi-plugin';
 import { JsonApiHapiPlugin as JsonApiPlugin } from '../json-api';
 import ProjectPlugin from '../project/project-hapi-plugin';
 
@@ -20,7 +19,6 @@ export const portInjectSymbol = Symbol();
 export default class MinardServer {
   public static injectSymbol = Symbol('minard-server');
 
-  private helloPlugin: HelloPlugin;
   private projectPlugin: ProjectPlugin;
   private deploymentPlugin: DeploymentPlugin;
   private jsonApiPlugin: JsonApiPlugin;
@@ -29,14 +27,12 @@ export default class MinardServer {
   private host: string;
 
   constructor(
-    @inject(HelloPlugin.injectSymbol) helloPlugin: HelloPlugin,
     @inject(DeploymentPlugin.injectSymbol) deploymentPlugin: DeploymentPlugin,
     @inject(ProjectPlugin.injectSymbol) projectPlugin: ProjectPlugin,
     @inject(JsonApiPlugin.injectSymbol) jsonApiPlugin: JsonApiPlugin,
     @inject(CIProxy.injectSymbol) ciProxy: CIProxy,
     @inject(hostInjectSymbol) host: string,
     @inject(portInjectSymbol) port: number) {
-    this.helloPlugin = helloPlugin;
     this.deploymentPlugin = deploymentPlugin;
     this.projectPlugin = projectPlugin;
     this.jsonApiPlugin = jsonApiPlugin;
@@ -101,7 +97,6 @@ export default class MinardServer {
 
   private async loadAppPlugins(server: Hapi.Server) {
     await server.register([
-      this.helloPlugin.register,
       this.deploymentPlugin.register,
       this.projectPlugin.register,
       this.ciProxy.register]);

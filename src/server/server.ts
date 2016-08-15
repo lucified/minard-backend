@@ -6,6 +6,7 @@ import { CIProxy } from '../deployment';
 import DeploymentPlugin from '../deployment/deployment-hapi-plugin';
 import { JsonApiHapiPlugin as JsonApiPlugin } from '../json-api';
 import ProjectPlugin from '../project/project-hapi-plugin';
+import { StatusHapiPlugin as StatusPlugin } from '../status';
 
 const hapiAsyncHandler = require('hapi-async-handler');
 const inert = require('inert');
@@ -19,6 +20,7 @@ export const portInjectSymbol = Symbol();
 export default class MinardServer {
   public static injectSymbol = Symbol('minard-server');
 
+  private statusPlugin: StatusPlugin;
   private projectPlugin: ProjectPlugin;
   private deploymentPlugin: DeploymentPlugin;
   private jsonApiPlugin: JsonApiPlugin;
@@ -32,11 +34,13 @@ export default class MinardServer {
     @inject(JsonApiPlugin.injectSymbol) jsonApiPlugin: JsonApiPlugin,
     @inject(CIProxy.injectSymbol) ciProxy: CIProxy,
     @inject(hostInjectSymbol) host: string,
-    @inject(portInjectSymbol) port: number) {
+    @inject(portInjectSymbol) port: number,
+    @inject(StatusPlugin.injectSymbol) statusPlugin: StatusPlugin) {
     this.deploymentPlugin = deploymentPlugin;
     this.projectPlugin = projectPlugin;
     this.jsonApiPlugin = jsonApiPlugin;
     this.ciProxy = ciProxy;
+    this.statusPlugin = statusPlugin;
     this.host = host;
     this.port = port;
   }
@@ -99,7 +103,8 @@ export default class MinardServer {
     await server.register([
       this.deploymentPlugin.register,
       this.projectPlugin.register,
-      this.ciProxy.register]);
+      this.ciProxy.register,
+      this.statusPlugin.register]);
 
     await (<any> server).register(this.jsonApiPlugin.register, {
       routes: {

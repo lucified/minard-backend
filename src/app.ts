@@ -14,6 +14,7 @@ import {
 
 import AuthenticationModule from './authentication/authentication-module';
 import DeploymentPlugin from './deployment/deployment-hapi-plugin';
+import { StatusModule } from './status';
 
 import { CIProxy, DeploymentModule, deploymentFolderInjectSymbol } from './deployment';
 
@@ -22,6 +23,7 @@ import ProjectModule from './project/project-module';
 
 import { default as SystemHookModule, systemHookBaseUrlSymbol } from './system-hook/system-hook-module';
 
+import { StatusHapiPlugin } from './status';
 
 import ActivityModule from './activity/activity-module';
 import UserModule from './user/user-module';
@@ -52,6 +54,7 @@ kernel.bind(DeploymentModule.injectSymbol).to(DeploymentModule).inSingletonScope
 kernel.bind(MinardServer.injectSymbol).to(MinardServer).inSingletonScope();
 kernel.bind(UserModule.injectSymbol).to(UserModule);
 kernel.bind(CIProxy.injectSymbol).to(CIProxy);
+kernel.bind(StatusModule.injectSymbol).to(StatusModule);
 
 kernel.bind(GitlabClient.injectSymbol).to(GitlabClient).inSingletonScope();
 kernel.bind(ProjectModule.injectSymbol).to(ProjectModule).inSingletonScope();
@@ -63,6 +66,7 @@ kernel.bind(ActivityModule.injectSymbol).to(ActivityModule);
 kernel.bind(JsonApiHapiPlugin.injectSymbol).to(JsonApiHapiPlugin).inSingletonScope();
 kernel.bind(JsonApiModule.injectSymbol).to(MemoizedJsonApiModule);
 kernel.bind(JsonApiModule.factoryInjectSymbol).toAutoFactory(JsonApiModule.injectSymbol);
+kernel.bind(StatusHapiPlugin.injectSymbol).to(StatusHapiPlugin);
 
 const HOST = process.env.HOST ? process.env.HOST : '0.0.0.0';
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 8000;

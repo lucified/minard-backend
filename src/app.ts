@@ -6,7 +6,11 @@ import 'reflect-metadata';
 import { Kernel } from 'inversify';
 import * as Knex from 'knex';
 
-import { JsonApiHapiPlugin, JsonApiModule, MemoizedJsonApiModule } from './json-api';
+import {
+  JsonApiHapiPlugin,
+  JsonApiModule,
+  MemoizedJsonApiModule,
+} from './json-api';
 
 import AuthenticationModule from './authentication/authentication-module';
 import DeploymentPlugin from './deployment/deployment-hapi-plugin';
@@ -58,9 +62,9 @@ kernel.bind(SystemHookModule.injectSymbol).to(SystemHookModule);
 kernel.bind(AuthenticationModule.injectSymbol).to(AuthenticationModule);
 kernel.bind(ActivityModule.injectSymbol).to(ActivityModule);
 
-kernel.bind(JsonApiHapiPlugin.injectSymbol).to(JsonApiHapiPlugin);
-kernel.bind(JsonApiModule.injectSymbol).to(JsonApiModule);
-kernel.bind(MemoizedJsonApiModule.injectSymbol).to(MemoizedJsonApiModule);
+kernel.bind(JsonApiHapiPlugin.injectSymbol).to(JsonApiHapiPlugin).inSingletonScope();
+kernel.bind(JsonApiModule.injectSymbol).to(MemoizedJsonApiModule);
+kernel.bind(JsonApiModule.factoryInjectSymbol).toAutoFactory(JsonApiModule.injectSymbol);
 
 const HOST = process.env.HOST ? process.env.HOST : '0.0.0.0';
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 8000;

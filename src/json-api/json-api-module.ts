@@ -34,25 +34,20 @@ const deepcopy = require('deepcopy');
 @injectable()
 export class JsonApiModule {
 
-  public static injectSymbol = Symbol('json-api-module');
+  public static injectSymbol = Symbol('json-api-injectsymbol');
+  public static factoryInjectSymbol = Symbol('json-api-factory-injectsymbol');
 
   private readonly deploymentModule: DeploymentModule;
   private readonly projectModule: ProjectModule;
   private readonly activityModule: ActivityModule;
 
   constructor(
-    @inject(DeploymentModule.injectSymbol) deploymentModule?: DeploymentModule,
-    @inject(ProjectModule.injectSymbol) projectModule?: ProjectModule,
-    @inject(ActivityModule.injectSymbol) activityModule?: ActivityModule) {
-    if (deploymentModule) {
+    @inject(DeploymentModule.injectSymbol) deploymentModule: DeploymentModule,
+    @inject(ProjectModule.injectSymbol) projectModule: ProjectModule,
+    @inject(ActivityModule.injectSymbol) activityModule: ActivityModule) {
       this.deploymentModule = deploymentModule;
-    }
-    if (projectModule) {
       this.projectModule = projectModule;
-    }
-    if (activityModule) {
       this.activityModule = activityModule;
-    }
   }
 
   public async getCommit(projectId: number, hash: string): Promise<ApiCommit | null> {

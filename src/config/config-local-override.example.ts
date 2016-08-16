@@ -4,7 +4,7 @@ import * as winston from 'winston';
 
 import { goodOptionsInjectSymbol } from '../server';
 import Logger, { loggerInjectSymbol } from '../shared/logger';
-import productionConfig from './config-production';
+import { ENV } from '../shared/types';
 import { FilterStream } from './utils';
 
 function requestFilter(data: any) {
@@ -55,8 +55,7 @@ const winstonOptions = {
   ],
 };
 
-export default (kernel: interfaces.Kernel) => {
-  productionConfig(kernel);
+export default (kernel: interfaces.Kernel, env: ENV) => {
   kernel.unbind(goodOptionsInjectSymbol);
   kernel.bind(goodOptionsInjectSymbol).toConstantValue(goodOptions);
   kernel.unbind(loggerInjectSymbol);

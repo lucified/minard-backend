@@ -5,7 +5,6 @@ import { default as development } from './config-development';
 import { default as override } from './config-override';
 import { default as production } from './config-production';
 
-import { MinardServer } from '../server';
 import { ENV } from '../shared/types';
 
 const kernel = new Kernel();
@@ -30,4 +29,4 @@ if (!config) {
 config(kernel);
 override(kernel, env);
 
-export const getServer = () => kernel.get<MinardServer>(MinardServer.injectSymbol);
+export function get<T>(identifier: Symbol | string) { return kernel.get<T>(identifier); }

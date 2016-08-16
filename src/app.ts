@@ -3,9 +3,11 @@
 require('isomorphic-fetch');
 import 'reflect-metadata';
 
-import { getServer } from './config';
+import { MinardServer } from './server';
 
-const server = getServer();
+import { get } from './config';
+
+const server = get<MinardServer>(MinardServer.injectSymbol);
 
 server.start().catch((err) => {
   server.logger.error('Error starting charles');

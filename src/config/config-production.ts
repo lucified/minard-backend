@@ -66,7 +66,7 @@ const HOST = process.env.HOST ? process.env.HOST : '0.0.0.0';
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 8000;
 const GITLAB_HOST = process.env.GITLAB_HOST ? process.env.GITLAB_HOST : 'localhost';
 const GITLAB_PORT = process.env.GITLAB_PORT ? parseInt(process.env.GITLAB_PORT, 10) : 10080;
-const SYSTEMHOOK_BASEURL = process.env.SYSTEMHOOK_BASEURL ? process.env.SYSTEMHOOK_BASEURL : `http://monolith:${PORT}`;
+const SYSTEMHOOK_BASEURL = process.env.SYSTEMHOOK_BASEURL ? process.env.SYSTEMHOOK_BASEURL : `http://charles:${PORT}`;
 
 // Database configuration
 // ----------------------

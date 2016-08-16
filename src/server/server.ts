@@ -50,7 +50,7 @@ export default class MinardServer {
   private port: number;
   private host: string;
   private goodOptions: any;
-  private logger: Logger;
+  public readonly logger: Logger;
 
   constructor(
     @inject(DeploymentHapiPlugin.injectSymbol) deploymentPlugin: DeploymentHapiPlugin,
@@ -90,7 +90,7 @@ export default class MinardServer {
     await this.loadAppPlugins(server);
     await server.start();
 
-    this.logger.info(`Server running at: ${server.info.uri}`);
+    this.logger.info(`Charles running at: ${server.info.uri}`);
     return server;
   };
 

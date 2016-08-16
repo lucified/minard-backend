@@ -1,14 +1,33 @@
+import { Kernel, interfaces } from 'inversify';
 
-export { default as productionConfig } from './config-production';
-export { default as developmentConfig } from './config-development';
+import { default as common } from './config-common';
+import { default as development } from './config-development';
+import { default as override } from './config-override';
+import { default as production } from './config-production';
 
-let override = null;
-try {
-  override = require('./config-override').default;
-} catch (err) {
-  // there was no override config
+import { MinardServer } from '../server';
+import { ENV } from '../shared/types';
+
+const kernel = new Kernel();
+kernel.load(common);
+
+interface Configs {
+  [env: string]: ((kernel: interfaces.Kernel) => void) | undefined;
 }
+const configs: Configs = {
+  production,
+  development,
+  'staging': production,
+  'test': development,
+};
 
-export function getOverrideConfig() {
-  return override;
+// Load bindings that represent configuration
+const env: ENV = process.env.NODE_ENV || 'development';
+const config = configs[env];
+if (!config) {
+  throw new Error(`Unknown environment '${env}''`);
 }
+config(kernel);
+override(kernel, env);
+
+export const getServer = () => kernel.get<MinardServer>(MinardServer.injectSymbol);

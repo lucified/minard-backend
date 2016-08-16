@@ -28,11 +28,14 @@ import {
   MemoizedJsonApiModule,
 } from '../json-api';
 
+import { OperationsModule } from '../operations';
+
 import {
   ProjectHapiPlugin,
   ProjectModule,
 } from '../project';
 
+import { ScreenshotModule } from '../screenshot';
 import { MinardServer } from '../server';
 
 import {
@@ -63,7 +66,9 @@ export default new KernelModule(bind => {
   bind(DeploymentModule.injectSymbol).to(DeploymentModule).inSingletonScope();
   bind(JsonApiModule.injectSymbol).to(MemoizedJsonApiModule);
   bind(JsonApiModule.factoryInjectSymbol).toAutoFactory(JsonApiModule.injectSymbol);
+  bind(OperationsModule.injectSymbol).to(OperationsModule);
   bind(ProjectModule.injectSymbol).to(ProjectModule).inSingletonScope();
+  bind(ScreenshotModule.injectSymbol).to(ScreenshotModule);
   bind(StatusModule.injectSymbol).to(StatusModule);
   bind(SystemHookModule.injectSymbol).to(SystemHookModule);
   bind(UserModule.injectSymbol).to(UserModule);

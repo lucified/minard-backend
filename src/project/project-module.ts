@@ -103,6 +103,14 @@ export default class ProjectModule {
     }
   }
 
+  public async getAllProjectIds() {
+    const projects = await this.gitlab.fetchJson<Project[]>(`projects/all`);
+    if (!projects) {
+      return [];
+    }
+    return projects.map(item => item.id);
+  }
+
   public async getProjects(_teamId: number): Promise<MinardProject[]> {
     // TODO: for now this does not use the teamId for anything.
     // We just return all projects instead

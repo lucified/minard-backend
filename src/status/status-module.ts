@@ -23,21 +23,21 @@ interface RunnerStatus {
 }
 
 interface DetailedRunnerStatus {
-    id: number;
-    description: string;
-    active: boolean;
-    is_shared: boolean;
-    name: string;
-    tag_list: any[];
-    run_untagged: boolean;
-    locked: boolean;
-    version: string;
-    revision: string;
-    platform: string;
-    architecture: string;
-    contacted_at: Date;
-    token: string;
-    projects: any[];
+  id: number;
+  description: string;
+  active: boolean;
+  is_shared: boolean;
+  name: string;
+  tag_list: any[];
+  run_untagged: boolean;
+  locked: boolean;
+  version: string;
+  revision: string;
+  platform: string;
+  architecture: string;
+  contacted_at: Date;
+  token: string;
+  projects: any[];
 }
 
 @injectable()

@@ -1,9 +1,11 @@
 
+import { createSystemHookRegistrationEvent } from './types';
 import { inject, injectable } from 'inversify';
 
-// only for types
+import { EventBus, eventBusInjectSymbol } from '../event-bus';
 import { GitlabClient } from '../shared/gitlab-client';
 import { SystemHook } from '../shared/gitlab.d.ts';
+import { Logger, loggerInjectSymbol} from '../shared/logger';
 
 const urljoin = require('url-join');
 
@@ -16,12 +18,18 @@ export default class SystemHookModule {
 
   private gitlabClient: GitlabClient;
   private baseUrl: string;
+  private bus: EventBus;
+  private logger: Logger;
 
   public constructor(
     @inject(GitlabClient.injectSymbol) gitlabClient: GitlabClient,
-    @inject(systemHookBaseUrlSymbol) baseUrl: string) {
+    @inject(systemHookBaseUrlSymbol) baseUrl: string,
+    @inject(eventBusInjectSymbol) bus: EventBus,
+    @inject(loggerInjectSymbol) logger: Logger) {
     this.gitlabClient = gitlabClient;
     this.baseUrl = baseUrl;
+    this.bus = bus;
+    this.logger = logger;
   }
 
   public getUrl(path: string) {
@@ -36,10 +44,15 @@ export default class SystemHookModule {
     while (!registered) {
       try {
         registered = await this.tryAssureSystemHookRegistered(path);
-      } catch (err) {
-        console.log(`Could not register system hook for '${path}'. ` +
-          `Error message was: '${err.message}'. ` +
-          `Trying again in 3 seconds`);
+        this.bus.post(createSystemHookRegistrationEvent({ status: 'success', path }));
+        this.logger.info(`Registered system hook for path "${path}"`);
+
+    } catch (err) {
+        this.bus.post(createSystemHookRegistrationEvent({
+            status: 'failed',
+            path,
+            message: err.message,
+          }));
         await sleep(3000);
       }
     }

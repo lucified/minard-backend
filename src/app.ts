@@ -4,7 +4,34 @@ require('isomorphic-fetch');
 import 'reflect-metadata';
 
 import { Kernel } from 'inversify';
-import * as Knex from 'knex';
+
+// Imports below should be in alphabetical order, based
+// on the last part of the import path.
+
+import { ActivityModule } from './activity';
+import { AuthenticationModule } from './authentication';
+
+import {
+  developmentConfig,
+  getOverrideConfig,
+  productionConfig,
+} from './config';
+
+import {
+  CIProxy,
+  DeploymentHapiPlugin,
+  DeploymentModule,
+} from './deployment';
+
+import {
+  LocalEventBus,
+  eventBusInjectSymbol,
+} from './event-bus';
+
+import {
+  GitlabClient,
+  fetchInjectSymbol,
+} from './shared/gitlab-client';
 
 import {
   JsonApiHapiPlugin,
@@ -12,32 +39,31 @@ import {
   MemoizedJsonApiModule,
 } from './json-api';
 
-import AuthenticationModule from './authentication/authentication-module';
-import DeploymentPlugin from './deployment/deployment-hapi-plugin';
+import {
+  Logger,
+  loggerInjectSymbol,
+} from './shared/logger';
 
-import { CIProxy, DeploymentModule, deploymentFolderInjectSymbol } from './deployment';
+import {
+  ProjectHapiPlugin,
+  ProjectModule,
+} from './project';
 
-import ProjectPlugin from './project/project-hapi-plugin';
-import ProjectModule from './project/project-module';
+import { MinardServer } from './server';
 
-import { default as SystemHookModule, systemHookBaseUrlSymbol } from './system-hook/system-hook-module';
+import {
+  StatusHapiPlugin,
+  StatusModule,
+} from './status';
 
-import HelloPlugin from './hello/hello-hapi-plugin';
-
-import ActivityModule from './activity/activity-module';
-import UserModule from './user/user-module';
-
-import { LocalEventBus, injectSymbol as eventBusInjectSymbol } from './event-bus';
-
-import MinardServer, {hostInjectSymbol, portInjectSymbol} from './server/server';
-
-import { GitlabClient, fetchInjectSymbol, gitlabHostInjectSymbol } from './shared/gitlab-client';
-
-import Logger, { loggerInjectSymbol } from './shared/logger';
+import { SystemHookModule } from './system-hook';
+import { UserModule } from './user';
 
 const kernel = new Kernel();
 
-// We are injecting the eventBus here as a constantValue as the
+// Notes on injecting EventBus:
+//
+// We are binding the eventBus as a constantValue as the
 // normal injection mechanism does not work when the base class
 // does not have the @injectable() annotation, and the base class
 // in RxJx, which means we cannot modify it.
@@ -46,69 +72,48 @@ const kernel = new Kernel();
 // dependencies into EventBus
 //
 //  -- JO 25.6.2016
-kernel.bind(eventBusInjectSymbol).toConstantValue(new LocalEventBus());
-kernel.bind(loggerInjectSymbol).toConstantValue(Logger(undefined, false, process.env.DEBUG ? true : false));
-kernel.bind(DeploymentPlugin.injectSymbol).to(DeploymentPlugin);
-kernel.bind(DeploymentModule.injectSymbol).to(DeploymentModule).inSingletonScope();
-kernel.bind(HelloPlugin.injectSymbol).to(HelloPlugin).inSingletonScope();
-kernel.bind(MinardServer.injectSymbol).to(MinardServer).inSingletonScope();
-kernel.bind(UserModule.injectSymbol).to(UserModule);
-kernel.bind(CIProxy.injectSymbol).to(CIProxy);
 
-kernel.bind(GitlabClient.injectSymbol).to(GitlabClient).inSingletonScope();
-kernel.bind(ProjectModule.injectSymbol).to(ProjectModule).inSingletonScope();
-kernel.bind(ProjectPlugin.injectSymbol).to(ProjectPlugin);
-kernel.bind(SystemHookModule.injectSymbol).to(SystemHookModule);
-kernel.bind(AuthenticationModule.injectSymbol).to(AuthenticationModule);
+// Bindings for modules
 kernel.bind(ActivityModule.injectSymbol).to(ActivityModule);
-
-kernel.bind(JsonApiHapiPlugin.injectSymbol).to(JsonApiHapiPlugin).inSingletonScope();
+kernel.bind(AuthenticationModule.injectSymbol).to(AuthenticationModule);
+kernel.bind(DeploymentModule.injectSymbol).to(DeploymentModule).inSingletonScope();
 kernel.bind(JsonApiModule.injectSymbol).to(MemoizedJsonApiModule);
 kernel.bind(JsonApiModule.factoryInjectSymbol).toAutoFactory(JsonApiModule.injectSymbol);
+kernel.bind(ProjectModule.injectSymbol).to(ProjectModule).inSingletonScope();
+kernel.bind(StatusModule.injectSymbol).to(StatusModule);
+kernel.bind(SystemHookModule.injectSymbol).to(SystemHookModule);
+kernel.bind(UserModule.injectSymbol).to(UserModule);
 
-const HOST = process.env.HOST ? process.env.HOST : '0.0.0.0';
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 8000;
-const GITLAB_HOST = process.env.GITLAB_HOST ? process.env.GITLAB_HOST : 'localhost';
-const GITLAB_PORT = process.env.GITLAB_PORT ? parseInt(process.env.GITLAB_PORT, 10) : 10080;
-const DEPLOYMENT_FOLDER = process.env.DEPLOYMENT_FOLDER ? process.env.DEPLOYMENT_FOLDER : 'gitlab-data/monolith/';
-const SYSTEMHOOK_BASEURL = process.env.SYSTEMHOOK_BASEURL ? process.env.SYSTEMHOOK_BASEURL : `http://monolith:${PORT}`;
-const DB_ADAPTER = process.env.DB_ADAPTER ? process.env.DB_ADAPTER : 'postgresql';
-const DB_HOST = process.env.DB_HOST ? process.env.DB_HOST : 'localhost';
-const DB_PORT = process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : 5432;
-const DB_USER = process.env.DB_USER ? process.env.DB_USER : 'gitlab';
-const DB_PASS = process.env.DB_PASS ? process.env.DB_PASS : 'password';
-const DB_NAME = process.env.DB_NAME ? process.env.DB_NAME : 'gitlabhq_production';
+// Bindings for hapi plugins
+kernel.bind(DeploymentHapiPlugin.injectSymbol).to(DeploymentHapiPlugin);
+kernel.bind(JsonApiHapiPlugin.injectSymbol).to(JsonApiHapiPlugin).inSingletonScope();
+kernel.bind(ProjectHapiPlugin.injectSymbol).to(ProjectHapiPlugin);
+kernel.bind(StatusHapiPlugin.injectSymbol).to(StatusHapiPlugin);
 
-kernel.bind(hostInjectSymbol).toConstantValue(HOST);
-kernel.bind(portInjectSymbol).toConstantValue(PORT);
-
-kernel.bind(gitlabHostInjectSymbol).toConstantValue(`http://${GITLAB_HOST}:${GITLAB_PORT}`);
+// Other bindings
+kernel.bind(eventBusInjectSymbol).toConstantValue(new LocalEventBus());
+kernel.bind(CIProxy.injectSymbol).to(CIProxy);
+kernel.bind(GitlabClient.injectSymbol).to(GitlabClient).inSingletonScope();
 kernel.bind(fetchInjectSymbol).toConstantValue(fetch);
-kernel.bind(systemHookBaseUrlSymbol).toConstantValue(SYSTEMHOOK_BASEURL);
-kernel.bind(deploymentFolderInjectSymbol).toConstantValue(DEPLOYMENT_FOLDER);
+kernel.bind(MinardServer.injectSymbol).to(MinardServer).inSingletonScope();
 
-const knex = Knex({
-  client: DB_ADAPTER,
-  connection: {
-    host     : DB_HOST,
-    user     : DB_USER,
-    password : DB_PASS,
-    database : DB_NAME,
-    port: DB_PORT,
-  },
-  pool: {
-    min: 2,
-    max: 10,
-    bailAfter: 10 * 60 * 1000,
-  } as any,
-});
-kernel.bind('gitlab-knex').toConstantValue(knex);
+// Load bindings that represent configuration
+const env = process.env.NODE_ENV || 'development';
+const overrideConfig = getOverrideConfig();
+if (overrideConfig != null) {
+  console.log('Using override config');
+  overrideConfig(kernel);
+} else if (env === 'production') {
+  productionConfig(kernel);
+} else {
+  developmentConfig(kernel);
+}
 
 const server = kernel.get<MinardServer>(MinardServer.injectSymbol);
+const logger = kernel.get<Logger>(loggerInjectSymbol);
 
 server.start().then(() => {
-  console.log('App started');
+  logger.info('Started charles');
 }).catch((err) => {
-  console.log('Error starting application');
-  console.log(err);
+  logger.warn('Error starting charles');
 });

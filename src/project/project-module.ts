@@ -1,21 +1,26 @@
 
 import * as Boom from 'boom';
-
 import { inject, injectable } from 'inversify';
 import { flatMap, uniqBy } from 'lodash';
 import * as moment from 'moment';
 
-import { MINARD_ERROR_CODE } from '../shared/minard-error';
-
 import { GitlabClient } from '../shared/gitlab-client';
 import { Commit } from '../shared/gitlab.d.ts';
-import { MinardBranch, MinardCommit, MinardCommitAuthor, MinardProject, projectCreated } from './types';
+import { MINARD_ERROR_CODE } from '../shared/minard-error';
+
+import {
+  MinardBranch,
+  MinardCommit,
+  MinardCommitAuthor,
+  MinardProject,
+  projectCreated,
+} from './types';
 
 // only for types
-import AuthenticationModule from '../authentication/authentication-module';
-import { EventBus, injectSymbol as eventBusInjectSymbol } from '../event-bus/';
+import { AuthenticationModule } from '../authentication';
+import { EventBus, eventBusInjectSymbol } from '../event-bus/';
 import { Project } from '../shared/gitlab.d.ts';
-import SystemHookModule from '../system-hook/system-hook-module';
+import { SystemHookModule } from '../system-hook';
 
 export function findActiveCommitters(branches: MinardBranch[]): MinardCommitAuthor[] {
   const commits = flatMap(branches,
@@ -27,7 +32,7 @@ export function findActiveCommitters(branches: MinardBranch[]): MinardCommitAuth
 @injectable()
 export default class ProjectModule {
 
-  public static injectSymbol = Symbol('user-module');
+  public static injectSymbol = Symbol('project-module');
 
   private authenticationModule: AuthenticationModule;
   private systemHookModule: SystemHookModule;

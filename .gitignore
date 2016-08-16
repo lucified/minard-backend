@@ -10,3 +10,4 @@ gitlab-data/runner/config.toml
 gitlab-data-backup
 temp
 npm-debug.log
+src/config/config-override.ts

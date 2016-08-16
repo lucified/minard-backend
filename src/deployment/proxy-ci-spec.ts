@@ -1,14 +1,12 @@
 import 'reflect-metadata';
 
 import { expect } from 'chai';
-
 import Hapi = require('hapi');
-import { CIProxy } from './proxy-ci';
-
-import { default as EventBus } from '../event-bus/local-event-bus';
-import loggerConstructor from '../shared/logger';
 
 import { DEPLOYMENT_EVENT_TYPE, DeploymentEvent } from '../deployment';
+import { default as EventBus } from '../event-bus/local-event-bus';
+import loggerConstructor from '../shared/logger';
+import { CIProxy } from './proxy-ci';
 
 const h2o2 = require('h2o2');
 

@@ -1,11 +1,11 @@
+
 import * as events from 'events';
 import * as Hapi from 'hapi';
 import * as http from 'http';
+import { inject, injectable } from 'inversify';
 import * as url from 'url';
 
-import { inject, injectable } from 'inversify';
-
-import { EventBus, injectSymbol as eventBusInjectSymbol } from '../event-bus';
+import { EventBus, eventBusInjectSymbol } from '../event-bus';
 import { HapiRegister } from '../server/hapi-register';
 import { gitlabHostInjectSymbol } from '../shared/gitlab-client';
 import * as logger from '../shared/logger';
@@ -22,7 +22,7 @@ function isJson(headers: Hapi.IDictionary<string>) {
 @injectable()
 export class CIProxy {
 
-  public static readonly injectSymbol = Symbol();
+  public static readonly injectSymbol = Symbol('ci-proxy');
   private gitlabHost: string;
   private upstream: { host: string, port: number, protocol: string };
   private eventBus: EventBus;

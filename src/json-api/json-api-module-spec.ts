@@ -56,7 +56,7 @@ describe('json-api-module', () => {
 
       const jsonApiModule = new JsonApiModule({} as any, projectModule, {} as any);
       jsonApiModule.toApiCommit = async function(
-        projectId: number,
+        _projectId: number,
         commit: MinardCommit,
         deployments?: ApiDeployment[]) {
         expect(deployments).to.not.exist;

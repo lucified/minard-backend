@@ -1,8 +1,18 @@
 
 import { expect } from 'chai';
 import 'reflect-metadata';
+import Hapi = require('hapi');
 
-import { parseActivityFilter } from './json-api-hapi-plugin';
+import { get } from '../config';
+import { JsonApiHapiPlugin, parseActivityFilter } from './json-api-hapi-plugin';
+
+const provisionServer = async () => {
+  const plugin = get<JsonApiHapiPlugin>(JsonApiHapiPlugin.injectSymbol);
+  const server = new Hapi.Server();
+  server.connection({ port: 8080 });
+  await server.register([plugin]);
+  return server;
+};
 
 describe('json-api-hapi-plugin', () => {
 

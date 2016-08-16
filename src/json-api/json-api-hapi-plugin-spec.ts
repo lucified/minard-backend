@@ -28,8 +28,8 @@ describe('json-api-hapi-plugin', () => {
             },
             {
               id: 'bar',
-            }
-          ]
+            },
+          ];
         },
       });
       const plugin = new JsonApiHapiPlugin(mockFactory as any);
@@ -60,8 +60,8 @@ describe('json-api-hapi-plugin', () => {
             },
             {
               id: 'bar',
-            }
-          ]
+            },
+          ];
         },
       });
       const plugin = new JsonApiHapiPlugin(mockFactory as any);

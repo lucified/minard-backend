@@ -217,7 +217,7 @@ export class JsonApiHapiPlugin {
       throw Boom.badRequest('Invalid filter');
     }
     // for now any team id returns all activity
-    return reply(this.getEntity('project', api => api.getTeamActivity(1)));
+    return reply(this.getEntity('activity', api => api.getTeamActivity(1)));
   }
 
 }

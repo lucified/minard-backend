@@ -17,7 +17,7 @@ const provisionServer = async (plugin: JsonApiHapiPlugin) => {
 
 describe('json-api-hapi-plugin', () => {
 
-  describe('/activity', () => {
+  describe('activity route', () => {
     it('should correctly get project activity', async() => {
       // Arrange
       const mockFactory = () => ({

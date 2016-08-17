@@ -5,8 +5,9 @@ import { inject, injectable, interfaces } from 'inversify';
 import * as Joi from 'joi';
 
 import { HapiRegister } from '../server/hapi-register';
-import { ApiEntities, ApiEntity, JsonApiModule } from './';
+import { JsonApiModule } from './json-api-module';
 import { serializeApiEntity }  from './serialization';
+import { ApiEntities, ApiEntity } from './types';
 
 function onPreResponse(request: Hapi.Request, reply: Hapi.IReply) {
   const response = request.response;

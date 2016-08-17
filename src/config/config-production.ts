@@ -9,6 +9,11 @@ import { gitlabHostInjectSymbol } from '../shared/gitlab-client';
 import { loggerInjectSymbol } from '../shared/logger';
 import { systemHookBaseUrlSymbol } from '../system-hook/system-hook-module';
 
+import {
+  screenshotHostInjectSymbol,
+  screenshotPortInjectSymbol,
+} from '../screenshot';
+
 import Logger from '../shared/logger';
 import { FilterStream } from './utils';
 
@@ -67,6 +72,8 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 8000;
 const GITLAB_HOST = process.env.GITLAB_HOST ? process.env.GITLAB_HOST : 'localhost';
 const GITLAB_PORT = process.env.GITLAB_PORT ? parseInt(process.env.GITLAB_PORT, 10) : 10080;
 const SYSTEMHOOK_BASEURL = process.env.SYSTEMHOOK_BASEURL ? process.env.SYSTEMHOOK_BASEURL : `http://charles:${PORT}`;
+const SCREENSHOT_HOST = process.env.SCREENSHOT_HOST ? process.env.SCREENSHOT_HOST : 'minard.dev';
+const SCREENSHOT_PORT = process.env.SCREENSHOT_PORT ? process.env.SCREENSHOT_PORT : 8000;
 
 // Database configuration
 // ----------------------
@@ -110,4 +117,6 @@ export default (kernel: interfaces.Kernel) => {
   kernel.bind(systemHookBaseUrlSymbol).toConstantValue(SYSTEMHOOK_BASEURL);
   kernel.bind(deploymentFolderInjectSymbol).toConstantValue(DEPLOYMENT_FOLDER);
   kernel.bind('gitlab-knex').toConstantValue(knex);
+  kernel.bind(screenshotHostInjectSymbol).toConstantValue(SCREENSHOT_HOST);
+  kernel.bind(screenshotPortInjectSymbol).toConstantValue(SCREENSHOT_PORT);
 };

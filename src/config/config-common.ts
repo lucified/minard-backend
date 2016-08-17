@@ -1,4 +1,5 @@
 import { KernelModule } from 'inversify';
+import * as webshot from 'webshot';
 
 // Imports below should be in alphabetical order, based
 // on the last part of the import path.
@@ -35,7 +36,11 @@ import {
   ProjectModule,
 } from '../project';
 
-import { ScreenshotModule } from '../screenshot';
+import {
+  ScreenshotModule,
+  webshotInjectSymbol,
+} from '../screenshot';
+
 import { MinardServer } from '../server';
 
 import {
@@ -85,5 +90,5 @@ export default new KernelModule(bind => {
   bind(GitlabClient.injectSymbol).to(GitlabClient).inSingletonScope();
   bind(fetchInjectSymbol).toConstantValue(fetch);
   bind(MinardServer.injectSymbol).to(MinardServer).inSingletonScope();
-
+  bind(webshotInjectSymbol).toFunction(webshot);
 });

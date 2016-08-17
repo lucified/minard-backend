@@ -8,9 +8,14 @@ import * as webshot from 'webshot';
 import { EventBus, eventBusInjectSymbol } from '../event-bus';
 import { hostInjectSymbol, portInjectSymbol } from '../server';
 import * as logger from '../shared/logger';
-import { webshotInjectSymbol } from './types';
 
-import { promisify } from 'bluebird';
+import {
+  screenshotHostInjectSymbol,
+  screenshotPortInjectSymbol,
+  webshotInjectSymbol
+} from './types';
+
+const promisify = require('bluebird').promisify;
 
 const mkpath = require('mkpath');
 
@@ -35,8 +40,8 @@ export default class ScreenshotModule {
   constructor(
     @inject(eventBusInjectSymbol) eventBus: EventBus,
     @inject(logger.loggerInjectSymbol) logger: logger.Logger,
-    @inject(hostInjectSymbol) host: string,
-    @inject(portInjectSymbol) port: number,
+    @inject(screenshotHostInjectSymbol) host: string,
+    @inject(screenshotPortInjectSymbol) port: number,
     @inject(webshotInjectSymbol) webshot: Webshot
     ) {
     this.eventBus = eventBus;
@@ -85,8 +90,12 @@ export default class ScreenshotModule {
     try {
       const dir = this.getScreenshotDir(projectId, deploymentId);
       const file = this.getScreenshotPath(projectId, deploymentId);
+      const webshotOptions = {
+        defaultWhiteBackground: true,
+        renderDelay: 2000,
+      };
       await (promisify(mkpath) as any)(dir);
-      await promisify(this.webshot)(url, file);
+      await promisify(this.webshot)(url, file, webshotOptions);
     } catch (err) {
       // TODO: detect issues taking screenshot that are not Minard's fault
       this.logger.error(`Failed to create screenshot for url ${url}`, err);

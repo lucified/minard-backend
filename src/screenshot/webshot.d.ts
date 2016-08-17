@@ -1,6 +1,6 @@
 
 declare module "webshot" {
-  function webshot(url: string, path: string): Promise<void>;
+  function webshot(url: string, path: string, callback: (err: any) => void) : void;
   namespace webshot {}
   export = webshot;
 }

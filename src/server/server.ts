@@ -7,6 +7,7 @@ import { CIProxy } from '../deployment';
 import { DeploymentHapiPlugin } from '../deployment';
 import { JsonApiHapiPlugin } from '../json-api';
 import { ProjectHapiPlugin } from '../project';
+import { ScreenshotHapiPlugin } from '../screenshot';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
 import { StatusHapiPlugin } from '../status';
 
@@ -46,6 +47,7 @@ export default class MinardServer {
   private projectPlugin: ProjectHapiPlugin;
   private deploymentPlugin: DeploymentHapiPlugin;
   private jsonApiPlugin: JsonApiHapiPlugin;
+  private screenshotPlugin: ScreenshotHapiPlugin;
   private ciProxy: CIProxy;
   private port: number;
   private host: string;
@@ -61,12 +63,14 @@ export default class MinardServer {
     @inject(portInjectSymbol) port: number,
     @inject(StatusHapiPlugin.injectSymbol) statusPlugin: StatusHapiPlugin,
     @inject(goodOptionsInjectSymbol) goodOptions: any,
-    @inject(loggerInjectSymbol) logger: Logger) {
+    @inject(loggerInjectSymbol) logger: Logger,
+    @inject(ScreenshotHapiPlugin.injectSymbol) screenshotPlugin: ScreenshotHapiPlugin) {
     this.deploymentPlugin = deploymentPlugin;
     this.projectPlugin = projectPlugin;
     this.jsonApiPlugin = jsonApiPlugin;
     this.ciProxy = ciProxy;
     this.statusPlugin = statusPlugin;
+    this.screenshotPlugin = screenshotPlugin;
     this.host = host;
     this.port = port;
     this.goodOptions = goodOptions;
@@ -120,6 +124,11 @@ export default class MinardServer {
       },
     });
 
+    await (<any> server).register(this.screenshotPlugin.register, {
+      routes: {
+        prefix: '/screenshot',
+      },
+    });
   }
 
 }

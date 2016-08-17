@@ -15,6 +15,10 @@ import {
 } from '../project/';
 
 import {
+  ScreenshotModule,
+} from '../screenshot';
+
+import {
   ApiBranch,
   ApiCommit,
   ApiDeployment,
@@ -39,6 +43,12 @@ describe('json-api-module', () => {
   });
 
   describe('toApiDeployment', () => {
+
+    const screenshotModule = {} as ScreenshotModule;
+    screenshotModule.getPublicUrl = async function() {
+      return 'http://foobar.com';
+    };
+
     it('should work when commit is not passed', async () => {
       // Arrange
       const projectId = 5;
@@ -54,7 +64,12 @@ describe('json-api-module', () => {
       const projectModule = {} as ProjectModule;
       projectModule.toMinardCommit = ProjectModule.prototype.toMinardCommit;
 
-      const jsonApiModule = new JsonApiModule({} as any, projectModule, {} as any);
+      const jsonApiModule = new JsonApiModule(
+        {} as any,
+        projectModule,
+        {} as any,
+        screenshotModule);
+
       jsonApiModule.toApiCommit = async function(
         _projectId: number,
         commit: MinardCommit,
@@ -85,7 +100,7 @@ describe('json-api-module', () => {
         id: 'foo-commit',
       } as ApiCommit;
 
-      const jsonApiModule = new JsonApiModule({} as any, {} as any, {} as any);
+      const jsonApiModule = new JsonApiModule({} as any, {} as any, {} as any, screenshotModule);
       const deployment = await jsonApiModule.toApiDeployment(projectId, minardDeployment, apiCommit);
       expect(deployment).to.exist;
       expect(deployment.commit.id).to.equal('foo-commit');

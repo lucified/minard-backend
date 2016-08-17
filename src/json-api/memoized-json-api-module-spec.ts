@@ -18,7 +18,7 @@ describe('memoized-json-api-module', () => {
   describe('toApiProject', () => {
     class MockInternalJsonApi extends JsonApiModule {
       public constructor() {
-        super({} as any, {} as any, {} as any);
+        super({} as any, {} as any, {} as any, {} as any);
       }
       public async toApiProject(project: MinardProject) {
         return {
@@ -50,7 +50,7 @@ describe('memoized-json-api-module', () => {
   describe('toApiBranch', () => {
     class MockInternalJsonApi extends JsonApiModule {
       public constructor() {
-        super({} as any, {} as any, {} as any);
+        super({} as any, {} as any, {} as any, {} as any);
       }
       public async toApiBranch(project: ApiProject, branch: MinardBranch) {
         return {
@@ -95,7 +95,7 @@ describe('memoized-json-api-module', () => {
   describe('toApiCommit', () => {
     class MockInternalJsonApi extends JsonApiModule {
       public constructor() {
-        super({} as any, {} as any, {} as any);
+        super({} as any, {} as any, {} as any, {} as any);
       }
       public async toApiCommit(projectId: number, commit: MinardCommit) {
         return {
@@ -128,7 +128,7 @@ describe('memoized-json-api-module', () => {
   describe('getProject', () => {
     class MockInternalJsonApi extends JsonApiModule {
       public constructor() {
-        super({} as any, {} as any, {} as any);
+        super({} as any, {} as any, {} as any, {} as any);
       }
       public async getProject(projectId: number | string) {
         return {
@@ -156,7 +156,7 @@ describe('memoized-json-api-module', () => {
   describe('getBranch', () => {
     class MockInternalJsonApi extends JsonApiModule {
       public constructor() {
-        super({} as any, {} as any, {} as any);
+        super({} as any, {} as any, {} as any, {} as any);
       }
       public async getBranch(projectId: number | string) {
         return {

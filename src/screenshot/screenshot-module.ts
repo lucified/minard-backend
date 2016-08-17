@@ -6,13 +6,12 @@ import * as path from 'path';
 import * as webshot from 'webshot';
 
 import { EventBus, eventBusInjectSymbol } from '../event-bus';
-import { hostInjectSymbol, portInjectSymbol } from '../server';
 import * as logger from '../shared/logger';
 
 import {
   screenshotHostInjectSymbol,
   screenshotPortInjectSymbol,
-  webshotInjectSymbol
+  webshotInjectSymbol,
 } from './types';
 
 const promisify = require('bluebird').promisify;
@@ -26,15 +25,14 @@ import {
   DeploymentEvent,
 } from '../deployment';
 
-
 @injectable()
 export default class ScreenshotModule {
 
   public static injectSymbol = Symbol('screenshot-module');
   private readonly logger: logger.Logger;
   private readonly eventBus: EventBus;
-  private readonly host: string;
-  private readonly port: number;
+  private readonly screenshotHost: string;
+  private readonly screenshotPort: number;
   private readonly webshot: Webshot;
 
   constructor(
@@ -46,8 +44,8 @@ export default class ScreenshotModule {
     ) {
     this.eventBus = eventBus;
     this.logger = logger;
-    this.host = host;
-    this.port = port;
+    this.screenshotHost = host;
+    this.screenshotPort = port;
     this.webshot = webshot;
     this.subscribeToEvents();
   }
@@ -72,6 +70,13 @@ export default class ScreenshotModule {
     return path.join('gitlab-data', 'screenshots', String(projectId), String(deploymentId));
   }
 
+  public async getPublicUrl(projectId: number, deploymentId: number): Promise<string | null> {
+    if (!this.deploymentHasScreenshot(projectId, deploymentId)) {
+      return null;
+    }
+    return `/screenshot/${projectId}/${deploymentId}`;
+  }
+
   public getScreenshotPath(projectId: number, deploymentId: number) {
     const file = path.join(this.getScreenshotDir(projectId, deploymentId), 'screenshot.jpg');
     return file;
@@ -86,7 +91,7 @@ export default class ScreenshotModule {
    * Take a screenshot for given projectId and deploymentId
    */
   public async takeScreenshot(projectId: number, deploymentId: number) {
-    const url = `http://deploy-${projectId}-${deploymentId}.${this.host}:${this.port}`;
+    const url = `http://deploy-${projectId}-${deploymentId}.${this.screenshotHost}:${this.screenshotPort}`;
     try {
       const dir = this.getScreenshotDir(projectId, deploymentId);
       const file = this.getScreenshotPath(projectId, deploymentId);

@@ -59,7 +59,7 @@ describe('screenshot-module', () => {
       // Arrange
       let url = null as string | null;
       let path = null as string | null;
-      const webshot = (_url: string, _path: string, callback: () => void) => {
+      const webshot = (_url: string, _path: string, options: any, callback: () => void) => {
         url = _url;
         path = _path;
         callback();

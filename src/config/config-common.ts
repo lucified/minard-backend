@@ -37,6 +37,7 @@ import {
 } from '../project';
 
 import {
+  ScreenshotHapiPlugin,
   ScreenshotModule,
   webshotInjectSymbol,
 } from '../screenshot';
@@ -82,6 +83,7 @@ export default new KernelModule(bind => {
   bind(DeploymentHapiPlugin.injectSymbol).to(DeploymentHapiPlugin);
   bind(JsonApiHapiPlugin.injectSymbol).to(JsonApiHapiPlugin).inSingletonScope();
   bind(ProjectHapiPlugin.injectSymbol).to(ProjectHapiPlugin);
+  bind(ScreenshotHapiPlugin.injectSymbol).to(ScreenshotHapiPlugin);
   bind(StatusHapiPlugin.injectSymbol).to(StatusHapiPlugin);
 
   // Other bindings

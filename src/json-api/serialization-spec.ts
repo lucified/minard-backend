@@ -87,6 +87,7 @@ const newLayoutBranchCommits = [
 const exampleDeploymentOne = {
   id: '1-1',
   url: 'http://www.foobar.com',
+  screenshot: 'http://foo.com/screenshot/1/1',
   status: 'success',
   commit: exampleCommitOne,
   creator: {
@@ -214,9 +215,10 @@ describe('json-api serialization', () => {
       expect(data[0].type).to.equal('deployments');
 
       // attributes
-      expect(data[0].attributes.status).to.equal('success');
-      expect(data[0].attributes.url).to.equal('http://www.foobar.com');
+      expect(data[0].attributes.status).to.equal(exampleDeploymentOne.status);
+      expect(data[0].attributes.url).to.equal(exampleDeploymentOne.url);
       expect(data[0].attributes.creator).to.deep.equal(exampleDeploymentOne.creator);
+      expect(data[0].attributes.screenshot).to.equal(exampleDeploymentOne.screenshot);
 
       // commit relationship
       expect(data[0].relationships.commit).to.exist;

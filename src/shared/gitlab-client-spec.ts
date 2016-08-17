@@ -1,5 +1,6 @@
 
 import { expect } from 'chai';
+import 'reflect-metadata';
 
 import Authentication from '../authentication/authentication-module';
 import { GitlabClient } from './gitlab-client';

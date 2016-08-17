@@ -1,4 +1,7 @@
 
+import { expect } from 'chai';
+import 'reflect-metadata';
+
 require('isomorphic-fetch');
 
 import Authentication from '../authentication/authentication-module';
@@ -10,7 +13,6 @@ import { SYSTEM_HOOK_REGISTRATION_EVENT_TYPE, SystemHookRegistrationEvent } from
 const fetchMock = require('fetch-mock');
 import { EventBus, LocalEventBus } from '../event-bus';
 import Logger from '../shared/logger';
-import { expect } from 'chai';
 
 const logger = Logger(undefined, true);
 

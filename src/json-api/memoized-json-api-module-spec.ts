@@ -1,5 +1,6 @@
 
 import { expect } from 'chai';
+import 'reflect-metadata';
 
 import {
   MinardBranch,

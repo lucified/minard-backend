@@ -8,7 +8,7 @@ import { DeploymentHapiPlugin } from '../deployment';
 import { JsonApiHapiPlugin } from '../json-api';
 import { ProjectHapiPlugin } from '../project';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
-import { StatusHapiPlugin as StatusPlugin } from '../status';
+import { StatusHapiPlugin } from '../status';
 
 const hapiAsyncHandler = require('hapi-async-handler');
 const inert = require('inert');
@@ -42,7 +42,7 @@ class FilterStream extends stream.Transform {
 export default class MinardServer {
   public static injectSymbol = Symbol('minard-server');
 
-  private statusPlugin: StatusPlugin;
+  private statusPlugin: StatusHapiPlugin;
   private projectPlugin: ProjectHapiPlugin;
   private deploymentPlugin: DeploymentHapiPlugin;
   private jsonApiPlugin: JsonApiHapiPlugin;
@@ -59,7 +59,7 @@ export default class MinardServer {
     @inject(CIProxy.injectSymbol) ciProxy: CIProxy,
     @inject(hostInjectSymbol) host: string,
     @inject(portInjectSymbol) port: number,
-    @inject(StatusPlugin.injectSymbol) statusPlugin: StatusPlugin,
+    @inject(StatusHapiPlugin.injectSymbol) statusPlugin: StatusHapiPlugin,
     @inject(goodOptionsInjectSymbol) goodOptions: any,
     @inject(loggerInjectSymbol) logger: Logger) {
     this.deploymentPlugin = deploymentPlugin;

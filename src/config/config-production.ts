@@ -4,12 +4,13 @@ import * as Knex from 'knex';
 import * as winston from 'winston';
 
 import { deploymentFolderInjectSymbol } from '../deployment';
-import { goodOptionsInjectSymbol, hostInjectSymbol, portInjectSymbol} from '../server';
+import { externalBaseUrlInjectSymbol, goodOptionsInjectSymbol, hostInjectSymbol, portInjectSymbol} from '../server';
 import { gitlabHostInjectSymbol } from '../shared/gitlab-client';
 import { loggerInjectSymbol } from '../shared/logger';
 import { systemHookBaseUrlSymbol } from '../system-hook/system-hook-module';
 
 import {
+  screenshotFolderInjectSymbol,
   screenshotHostInjectSymbol,
   screenshotPortInjectSymbol,
 } from '../screenshot';
@@ -74,6 +75,7 @@ const GITLAB_PORT = process.env.GITLAB_PORT ? parseInt(process.env.GITLAB_PORT, 
 const SYSTEMHOOK_BASEURL = process.env.SYSTEMHOOK_BASEURL ? process.env.SYSTEMHOOK_BASEURL : `http://charles:${PORT}`;
 const SCREENSHOT_HOST = process.env.SCREENSHOT_HOST ? process.env.SCREENSHOT_HOST : 'minard.dev';
 const SCREENSHOT_PORT = process.env.SCREENSHOT_PORT ? process.env.SCREENSHOT_PORT : 8000;
+const EXTERNAL_BASEURL = `http://localhost:${PORT}`;
 
 // Database configuration
 // ----------------------
@@ -104,6 +106,7 @@ const knex = Knex({
 // ------------------------
 
 const DEPLOYMENT_FOLDER = process.env.DEPLOYMENT_FOLDER ? process.env.DEPLOYMENT_FOLDER : 'gitlab-data/monolith/';
+const SCREENSHOT_FOLDER = process.env.SCREENSHOT_FOLDER ? process.env.SCREENSHOT_FOLDER : 'gitlab-data/screenshots';
 
 // Inversify kernel bindings
 // -------------------------
@@ -119,4 +122,6 @@ export default (kernel: interfaces.Kernel) => {
   kernel.bind('gitlab-knex').toConstantValue(knex);
   kernel.bind(screenshotHostInjectSymbol).toConstantValue(SCREENSHOT_HOST);
   kernel.bind(screenshotPortInjectSymbol).toConstantValue(SCREENSHOT_PORT);
+  kernel.bind(screenshotFolderInjectSymbol).toConstantValue(SCREENSHOT_FOLDER);
+  kernel.bind(externalBaseUrlInjectSymbol).toConstantValue(EXTERNAL_BASEURL);
 };

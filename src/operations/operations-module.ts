@@ -35,9 +35,12 @@ export default class OperationsModule {
     @inject(logger.loggerInjectSymbol) logger: logger.Logger) {
     this.projectModule = projectModule;
     this.deploymentModule = deploymentModule;
+    this.screenshotModule = screenshotModule;
     this.eventBus = eventBus;
     this.logger = logger;
+  }
 
+  public async runBasicMaintenceTasks() {
     this.assureScreenshotsGenerated();
   }
 
@@ -52,18 +55,40 @@ export default class OperationsModule {
       deploymentsPromise: this.deploymentModule.getProjectDeployments(projectId),
     }));
 
-    // using for loop to allow for await
+    // using for loops to allow for awaiting
     for (let i = 0; i < pending.length; i++) {
       const item = pending[i];
-      const deployments = await item.deploymentsPromise;
-      deployments.filter((deployment: MinardDeployment) =>
-        deployment.status === 'success'
-        && this.deploymentModule.isDeploymentReadyToServe(item.projectId, deployment.id)
-        && !this.screenshotModule.deploymentHasScreenshot(item.projectId, deployment.id))
-        .forEach(deployment => {
-          this.logger.info(`Creating missing screenshot for deployment ${deployment.id} of project ${item.projectId}.`);
-          this.screenshotModule.takeScreenshot(item.projectId, deployment.id);
-        });
+      let deployments: MinardDeployment[] | null = null;
+      try {
+        deployments = await item.deploymentsPromise;
+      } catch (err) {
+        this.logger.error(`Failed to fetch deployments for project ${item.projectId}`);
+      }
+      if (deployments) {
+        // both awaiting and triggering the assure operation here within
+        // the for loop is slow, but this can be a good thing, as it will reduce
+        // the momentary load caused by this operation
+        await this.assureScreenshotsGeneratedForDeployments(item.projectId, deployments);
+      }
+    }
+  }
+
+  private async assureScreenshotsGeneratedForDeployments(projectId: number, deployments: MinardDeployment[]) {
+    const filtered = deployments.filter((deployment: MinardDeployment) =>
+      deployment.status === 'success'
+      && this.deploymentModule.isDeploymentReadyToServe(projectId, deployment.id));
+    for (let j = 0; j < filtered.length; j++) {
+      const deployment = deployments[j];
+      const hasScreenshot = await this.screenshotModule
+        .deploymentHasScreenshot(projectId, deployment.id);
+      if (!hasScreenshot) {
+        this.logger.info(`Creating missing screenshot for deployment ${deployment.id} of project ${projectId}.`);
+        try {
+          await this.screenshotModule.takeScreenshot(projectId, deployment.id);
+        } catch (err) {
+          this.logger.warn(`Failed to take screenshot for deployment ${deployment.id} of project ${projectId}.`);
+        }
+      }
     }
   }
 

@@ -15,7 +15,7 @@ import {
 
 import { ScreenshotModule } from '../screenshot';
 
-import { JsonApiModule } from './';
+import { JsonApiModule } from './json-api-module';
 
 function id(arg: any) {
   if (!arg || !arg.id) {

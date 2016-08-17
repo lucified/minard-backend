@@ -10,12 +10,9 @@ import { hostInjectSymbol, portInjectSymbol } from '../server';
 import * as logger from '../shared/logger';
 import { webshotInjectSymbol } from './types';
 
-const promisify = require('promisify-node');
-const mkpath = require('mkpath');
+import { promisify } from 'bluebird';
 
-promisify(webshot);
-promisify(mkpath);
-promisify(fs);
+const mkpath = require('mkpath');
 
 declare type Webshot = typeof webshot;
 
@@ -23,6 +20,7 @@ import {
   DEPLOYMENT_EVENT_TYPE,
   DeploymentEvent,
 } from '../deployment';
+
 
 @injectable()
 export default class ScreenshotModule {
@@ -39,7 +37,8 @@ export default class ScreenshotModule {
     @inject(logger.loggerInjectSymbol) logger: logger.Logger,
     @inject(hostInjectSymbol) host: string,
     @inject(portInjectSymbol) port: number,
-    @inject(webshotInjectSymbol) webshot: Webshot) {
+    @inject(webshotInjectSymbol) webshot: Webshot
+    ) {
     this.eventBus = eventBus;
     this.logger = logger;
     this.host = host;
@@ -65,7 +64,7 @@ export default class ScreenshotModule {
   }
 
   private getScreenshotDir(projectId: number, deploymentId: number) {
-    return path.join('gitlab-data', 'screenshots', String(projectId), deploymentId);
+    return path.join('gitlab-data', 'screenshots', String(projectId), String(deploymentId));
   }
 
   public getScreenshotPath(projectId: number, deploymentId: number) {
@@ -74,21 +73,22 @@ export default class ScreenshotModule {
   }
 
   public async deploymentHasScreenshot(projectId: number, deploymentId: number) {
-    return await fs.exists(this.getScreenshotPath(projectId, deploymentId));
+    return await (promisify(fs.exists) as any)
+      (this.getScreenshotPath(projectId, deploymentId)) as boolean;
   }
 
   /*
    * Take a screenshot for given projectId and deploymentId
    */
   public async takeScreenshot(projectId: number, deploymentId: number) {
-    const url = `http://build-${projectId}-${deploymentId}.${this.host}:${this.port}`;
+    const url = `http://deploy-${projectId}-${deploymentId}.${this.host}:${this.port}`;
     try {
       const dir = this.getScreenshotDir(projectId, deploymentId);
       const file = this.getScreenshotPath(projectId, deploymentId);
-      await mkpath.sync(dir);
-      await this.webshot(url, path.join(dir, file));
+      await (promisify(mkpath) as any)(dir);
+      await promisify(this.webshot)(url, file);
     } catch (err) {
-      // TODO: detect issues taking screenshot that are not Minards fault
+      // TODO: detect issues taking screenshot that are not Minard's fault
       this.logger.error(`Failed to create screenshot for url ${url}`, err);
       throw Boom.badImplementation();
     }

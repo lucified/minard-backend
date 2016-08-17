@@ -42,7 +42,6 @@ describe('screenshot-module', () => {
       // Arrange
       const bus = new LocalEventBus();
       const screenshotModule = new ScreenshotModule(bus, logger, host, port, {} as any);
-      let called = false;
       screenshotModule.takeScreenshot = async function(_projectId, _deploymentId) {
         expect.fail('Should not take screenshot');
       };
@@ -57,18 +56,24 @@ describe('screenshot-module', () => {
 
   describe('takeScreenshot', () => {
     it('should call webshot with correct arguments', async () => {
+      // Arrange
       let url = null as string | null;
       let path = null as string | null;
-      const webshot = async (_url: string, _path: string) => {
+      const webshot = (_url: string, _path: string, callback: () => void) => {
         url = _url;
         path = _path;
+        callback();
       };
-      const screenshotModule = new ScreenshotModule({} as any, logger, host, port, webshot);
+      const bus = new LocalEventBus();
+      const screenshotModule = new ScreenshotModule(bus, logger, host, port, webshot);
+
+      // Act
       await screenshotModule.takeScreenshot(projectId, deploymentId);
 
+      // Assert
       expect(url).to.exist;
       expect(path).to.exist;
-      expect(url).to.equal('deploy-4-12.localhost:8000');
+      expect(url).to.equal(`http://deploy-4-12.${host}:${port}`);
       expect(path).to.equal(screenshotModule.getScreenshotPath(projectId, deploymentId));
     });
   });

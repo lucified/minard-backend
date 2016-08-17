@@ -16,9 +16,11 @@ const inert = require('inert');
 const h2o2 = require('h2o2');
 const good = require('good');
 
-export const hostInjectSymbol = Symbol('server-host');
-export const portInjectSymbol = Symbol('server-port');
-export const goodOptionsInjectSymbol = Symbol('good-options');
+import {
+  goodOptionsInjectSymbol,
+  hostInjectSymbol,
+  portInjectSymbol,
+} from './types';
 
 class FilterStream extends stream.Transform {
 

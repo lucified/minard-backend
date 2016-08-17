@@ -21,7 +21,7 @@ describe('screenshot-module', () => {
     it('should take screenshot when receiving deployment event with status "extracted"', () => {
       // Arrange
       const bus = new LocalEventBus();
-      const screenshotModule = new ScreenshotModule(bus, logger, host, port, {} as any);
+      const screenshotModule = new ScreenshotModule(bus, logger, host, port, {} as any, '', '');
       let called = false;
       screenshotModule.takeScreenshot = async function(_projectId, _deploymentId) {
         expect(_projectId).to.equal(projectId);
@@ -41,7 +41,7 @@ describe('screenshot-module', () => {
     it('should not take screenshot other deployment events', () => {
       // Arrange
       const bus = new LocalEventBus();
-      const screenshotModule = new ScreenshotModule(bus, logger, host, port, {} as any);
+      const screenshotModule = new ScreenshotModule(bus, logger, host, port, {} as any, '', '');
       screenshotModule.takeScreenshot = async function(_projectId, _deploymentId) {
         expect.fail('Should not take screenshot');
       };
@@ -65,7 +65,7 @@ describe('screenshot-module', () => {
         callback();
       };
       const bus = new LocalEventBus();
-      const screenshotModule = new ScreenshotModule(bus, logger, host, port, webshot);
+      const screenshotModule = new ScreenshotModule(bus, logger, host, port, webshot, '', '');
 
       // Act
       await screenshotModule.takeScreenshot(projectId, deploymentId);

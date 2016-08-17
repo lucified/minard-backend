@@ -23,7 +23,6 @@ export interface MinardDeploymentPlain {
   ref: string;
   status: string;
   url?: string;
-  screenshot?: string;
   finished_at: string;
   creator: MinardDeploymentCreator;
 }

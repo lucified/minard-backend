@@ -98,7 +98,7 @@ export default class ScreenshotModule {
   /*
    * Take a screenshot for given projectId and deploymentId
    */
-  public async takeScreenshot(projectId: number, deploymentId: number) {
+  public async takeScreenshot(projectId: number, deploymentId: number): Promise<string> {
     const url = `http://deploy-${projectId}-${deploymentId}.${this.screenshotHost}:${this.screenshotPort}`;
     try {
       const dir = this.getScreenshotDir(projectId, deploymentId);
@@ -109,11 +109,13 @@ export default class ScreenshotModule {
       };
       await (promisify(mkpath) as any)(dir);
       await promisify(this.webshot)(url, file, webshotOptions);
+      const publicUrl = await this.getPublicUrl(projectId, deploymentId);
       this.eventBus.post(createScreenshotEvent({
         projectId,
         deploymentId,
-        url: (await this.getPublicUrl(projectId, deploymentId))!,
+        url: publicUrl!,
       }));
+      return publicUrl!;
     } catch (err) {
       // TODO: detect issues taking screenshot that are not Minard's fault
       this.logger.error(`Failed to create screenshot for url ${url}`, err);

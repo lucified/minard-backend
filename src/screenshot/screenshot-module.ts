@@ -61,17 +61,15 @@ export default class ScreenshotModule {
   public subscribeToEvents() {
     this.eventBus
       .filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
-      .filter(event => event.payload.status === 'extracted')
-      .subscribe(event => {
-        const projectId = event.payload.projectId;
-        const deploymentId = event.payload.id;
-        if (!projectId) {
-          this.logger.warn(
-            `Deployment event for deployment ${deploymentId} was missing projectId. Skipped creation of screenshot.`);
-          return;
+      .filter(event => event.payload.status === 'extracted' && event.payload.projectId !== undefined)
+      .flatMap(async event => {
+        try {
+          return await this.takeScreenshot(event.payload.projectId!, event.payload.id);
+        } catch (err) {
+          return Promise.resolve(null);
         }
-        this.takeScreenshot(projectId, event.payload.id);
-      });
+      })
+      .subscribe();
   }
 
   private getScreenshotDir(projectId: number, deploymentId: number) {
@@ -98,7 +96,7 @@ export default class ScreenshotModule {
   /*
    * Take a screenshot for given projectId and deploymentId
    */
-  public async takeScreenshot(projectId: number, deploymentId: number): Promise<string> {
+  public async takeScreenshot(projectId: number, deploymentId: number) {
     const url = `http://deploy-${projectId}-${deploymentId}.${this.screenshotHost}:${this.screenshotPort}`;
     try {
       const dir = this.getScreenshotDir(projectId, deploymentId);

@@ -40,6 +40,7 @@ describe('screenshot-module', () => {
         projectId: 4,
         status: 'extracted',
       }));
+
       // Assert
       expect(called).to.equal(true);
     });
@@ -58,6 +59,37 @@ describe('screenshot-module', () => {
         status: 'success',
       }));
     });
+
+    it('should continue after error taking a screenshot', () => {
+      // Arrange
+      const failProjectId = 5;
+      const bus = new LocalEventBus();
+      const screenshotModule = new ScreenshotModule(bus, logger, host, port, {} as any, '', '');
+      let called = false;
+      screenshotModule.takeScreenshot = async function(_projectId, _deploymentId) {
+        if (_projectId === failProjectId) {
+          throw Error('foo');
+        }
+        expect(_projectId).to.equal(projectId);
+        expect(_deploymentId).to.equal(_deploymentId);
+        called = true;
+      };
+      // Act
+      bus.post(createDeploymentEvent({
+        id: deploymentId,
+        projectId: 5,
+        status: 'extracted',
+      }));
+      bus.post(createDeploymentEvent({
+        id: deploymentId,
+        projectId: 4,
+        status: 'extracted',
+      }));
+
+      // Assert
+      expect(called).to.equal(true);
+    });
+
   });
 
   describe('takeScreenshot', () => {

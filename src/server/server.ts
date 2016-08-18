@@ -122,7 +122,7 @@ export default class MinardServer {
       {
         register: this.jsonApiPlugin.register,
         routes: {
-          prefix: '/api2',
+          prefix: '/api',
         },
       },
       {

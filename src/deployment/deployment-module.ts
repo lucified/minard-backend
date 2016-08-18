@@ -26,11 +26,22 @@ const deepcopy = require('deepcopy');
 export const deploymentFolderInjectSymbol = Symbol('deployment-folder');
 
 export function isRawDeploymentHostname(hostname: string) {
-  return getDeploymentKey(hostname) !== null;
+  return getDeploymentKeyFromHost(hostname) !== null;
 }
 
-export function getDeploymentKey(hostname: string) {
+export function getDeploymentKeyFromHost(hostname: string) {
   const match = hostname.match(/\S+-(\d+)-(\d+)\.\S+$/);
+  if (!match) {
+    return null;
+  }
+  return {
+    projectId: Number(match[1]),
+    deploymentId: Number(match[2]),
+  };
+}
+
+export function getDeploymentKeyFromId(id: string) {
+  const match = id.match(/(\d+)-(\d+)$/);
   if (!match) {
     return null;
   }

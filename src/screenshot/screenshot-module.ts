@@ -6,9 +6,9 @@ import * as path from 'path';
 import * as webshot from 'webshot';
 
 import { EventBus, eventBusInjectSymbol } from '../event-bus';
-import * as logger from '../shared/logger';
-
 import { externalBaseUrlInjectSymbol } from '../server/types';
+import * as logger from '../shared/logger';
+import { createScreenshotEvent } from './types';
 
 import {
   screenshotFolderInjectSymbol,
@@ -109,6 +109,11 @@ export default class ScreenshotModule {
       };
       await (promisify(mkpath) as any)(dir);
       await promisify(this.webshot)(url, file, webshotOptions);
+      this.eventBus.post(createScreenshotEvent({
+        projectId,
+        deploymentId,
+        url: (await this.getPublicUrl(projectId, deploymentId))!,
+      }));
     } catch (err) {
       // TODO: detect issues taking screenshot that are not Minard's fault
       this.logger.error(`Failed to create screenshot for url ${url}`, err);

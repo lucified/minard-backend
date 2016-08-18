@@ -118,19 +118,20 @@ export default class MinardServer {
       this.deploymentPlugin.register,
       this.projectPlugin.register,
       this.ciProxy.register,
-      this.statusPlugin.register]);
-
-    await (<any> server).register(this.jsonApiPlugin.register, {
-      routes: {
-        prefix: '/api',
+      this.statusPlugin.register,
+      {
+        register: this.jsonApiPlugin.register,
+        routes: {
+          prefix: '/api2',
+        },
       },
-    });
-
-    await (<any> server).register(this.screenshotPlugin.register, {
-      routes: {
-        prefix: '/screenshot',
+      {
+        register: this.screenshotPlugin.register,
+        routes: {
+          prefix: '/screenshot',
+        },
       },
-    });
+    ]);
   }
 
 }

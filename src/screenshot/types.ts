@@ -1,10 +1,15 @@
 
 import { eventCreator } from '../shared/events';
 
-export const webshotInjectSymbol = Symbol('webshot');
+export const screenshotterHostInjectSymbol = Symbol('screenshotter-host');
+export const screenshotterInjectSymbol = Symbol('screenshotter-client');
 export const screenshotHostInjectSymbol = Symbol('screenshot-host');
 export const screenshotPortInjectSymbol = Symbol('screenshot-port');
 export const screenshotFolderInjectSymbol = Symbol('screenshot-folder');
+
+export interface Screenshotter {
+  webshot(websiteUrl: string, imageFile: string, webshotOptions?: any): Promise<boolean>;
+}
 
 export interface ScreenshotEvent {
   readonly projectId: number;

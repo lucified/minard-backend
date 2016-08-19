@@ -45,7 +45,7 @@ describe('json-api-module', () => {
   describe('toApiDeployment', () => {
 
     const screenshotModule = {} as ScreenshotModule;
-    screenshotModule.getPublicUrl = async function() {
+    screenshotModule.getPublicUrl = function() {
       return 'http://foobar.com';
     };
 

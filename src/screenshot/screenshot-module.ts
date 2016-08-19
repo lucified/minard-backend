@@ -3,7 +3,6 @@ import * as Boom from 'boom';
 import * as fs from 'fs';
 import { inject, injectable } from 'inversify';
 import * as path from 'path';
-import * as webshot from 'webshot';
 
 import { EventBus, eventBusInjectSymbol } from '../event-bus';
 import { externalBaseUrlInjectSymbol } from '../server/types';
@@ -11,17 +10,15 @@ import * as logger from '../shared/logger';
 import { createScreenshotEvent } from './types';
 
 import {
+  Screenshotter,
   screenshotFolderInjectSymbol,
   screenshotHostInjectSymbol,
   screenshotPortInjectSymbol,
-  webshotInjectSymbol,
+  screenshotterInjectSymbol,
 } from './types';
 
 const promisify = require('bluebird').promisify;
 const urljoin = require('url-join');
-const mkpath = require('mkpath');
-
-declare type Webshot = typeof webshot;
 
 import {
   DEPLOYMENT_EVENT_TYPE,
@@ -36,7 +33,7 @@ export default class ScreenshotModule {
   private readonly eventBus: EventBus;
   private readonly screenshotHost: string;
   private readonly screenshotPort: number;
-  private readonly webshot: Webshot;
+  private readonly screenshotter: Screenshotter;
   private readonly folder: string;
   private readonly externalBaseUrl: string;
 
@@ -45,20 +42,20 @@ export default class ScreenshotModule {
     @inject(logger.loggerInjectSymbol) logger: logger.Logger,
     @inject(screenshotHostInjectSymbol) host: string,
     @inject(screenshotPortInjectSymbol) port: number,
-    @inject(webshotInjectSymbol) webshot: Webshot,
+    @inject(screenshotterInjectSymbol) screenshotter: Screenshotter,
     @inject(screenshotFolderInjectSymbol) folder: string,
     @inject(externalBaseUrlInjectSymbol) baseUrl: string) {
     this.eventBus = eventBus;
     this.logger = logger;
     this.screenshotHost = host;
     this.screenshotPort = port;
-    this.webshot = webshot;
+    this.screenshotter = screenshotter;
     this.folder = folder;
     this.externalBaseUrl = baseUrl;
     this.subscribeToEvents();
   }
 
-  public subscribeToEvents() {
+  private subscribeToEvents() {
     this.eventBus
       .filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
       .filter(event => event.payload.status === 'extracted' && event.payload.projectId !== undefined)
@@ -66,7 +63,7 @@ export default class ScreenshotModule {
         try {
           return await this.takeScreenshot(event.payload.projectId!, event.payload.id);
         } catch (err) {
-          return Promise.resolve(null);
+          return null;
         }
       })
       .subscribe();
@@ -76,16 +73,12 @@ export default class ScreenshotModule {
     return path.join(this.folder, String(projectId), String(deploymentId));
   }
 
-  public async getPublicUrl(projectId: number, deploymentId: number): Promise<string | null> {
-    if (!this.deploymentHasScreenshot(projectId, deploymentId)) {
-      return null;
-    }
+  public getPublicUrl(projectId: number, deploymentId: number): string {
     return urljoin(this.externalBaseUrl, 'screenshot', String(projectId), String(deploymentId));
   }
 
   public getScreenshotPath(projectId: number, deploymentId: number) {
-    const file = path.join(this.getScreenshotDir(projectId, deploymentId), 'screenshot.jpg');
-    return file;
+    return path.join(this.getScreenshotDir(projectId, deploymentId), 'screenshot.jpg');
   }
 
   public async deploymentHasScreenshot(projectId: number, deploymentId: number) {
@@ -100,21 +93,19 @@ export default class ScreenshotModule {
   public async takeScreenshot(projectId: number, deploymentId: number) {
     const url = `http://deploy-${projectId}-${deploymentId}.${this.screenshotHost}:${this.screenshotPort}`;
     try {
-      const dir = this.getScreenshotDir(projectId, deploymentId);
       const file = this.getScreenshotPath(projectId, deploymentId);
       const webshotOptions = {
         defaultWhiteBackground: true,
         renderDelay: 2000,
       };
-      await (promisify(mkpath) as any)(dir);
-      await promisify(this.webshot)(url, file, webshotOptions);
-      const publicUrl = await this.getPublicUrl(projectId, deploymentId);
+      await this.screenshotter.webshot(url, file, webshotOptions);
+      const publicUrl = this.getPublicUrl(projectId, deploymentId);
       this.eventBus.post(createScreenshotEvent({
         projectId,
         deploymentId,
-        url: publicUrl!,
+        url: publicUrl,
       }));
-      return publicUrl!;
+      return publicUrl;
     } catch (err) {
       // TODO: detect issues taking screenshot that are not Minard's fault
       this.logger.error(`Failed to create screenshot for url ${url}`, err);

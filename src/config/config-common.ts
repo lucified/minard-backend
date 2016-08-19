@@ -1,5 +1,4 @@
 import { KernelModule } from 'inversify';
-import * as webshot from 'webshot';
 
 // Imports below should be in alphabetical order, based
 // on the last part of the import path.
@@ -20,8 +19,11 @@ import {
 
 import {
   GitlabClient,
-  fetchInjectSymbol,
 } from '../shared/gitlab-client';
+
+import {
+  fetchInjectSymbol,
+} from '../shared/types';
 
 import {
   JsonApiHapiPlugin,
@@ -40,9 +42,10 @@ import {
 } from '../project';
 
 import {
+  RemoteScreenshotter,
   ScreenshotHapiPlugin,
   ScreenshotModule,
-  webshotInjectSymbol,
+  screenshotterInjectSymbol,
 } from '../screenshot';
 
 import { MinardServer } from '../server';
@@ -96,5 +99,8 @@ export default new KernelModule(bind => {
   bind(GitlabClient.injectSymbol).to(GitlabClient).inSingletonScope();
   bind(fetchInjectSymbol).toConstantValue(fetch);
   bind(MinardServer.injectSymbol).to(MinardServer).inSingletonScope();
-  bind(webshotInjectSymbol).toFunction(webshot);
+  bind(RemoteScreenshotter.injectSymbol).to(RemoteScreenshotter).inSingletonScope();
+
+  bind(screenshotterInjectSymbol).to(RemoteScreenshotter);
+
 });

@@ -5,13 +5,13 @@ import Logger from '../shared/logger';
 import { expect } from 'chai';
 
 import { createDeploymentEvent } from '../deployment';
-import { Event } from '../event-bus';
 import LocalEventBus from '../event-bus/local-event-bus';
 
 import {
   SCREENSHOT_EVENT_TYPE,
   ScreenshotEvent,
   ScreenshotModule,
+  Screenshotter,
 } from './';
 
 const logger = Logger(undefined, true);
@@ -45,7 +45,7 @@ describe('screenshot-module', () => {
       expect(called).to.equal(true);
     });
 
-    it('should not take screenshot other deployment events', () => {
+    it('should not take screenshot on other deployment events', () => {
       // Arrange
       const bus = new LocalEventBus();
       const screenshotModule = new ScreenshotModule(bus, logger, host, port, {} as any, '', '');
@@ -98,11 +98,14 @@ describe('screenshot-module', () => {
       // Arrange
       let url = null as string | null;
       let path = null as string | null;
-      const webshot = (_url: string, _path: string, options: any, callback: () => void) => {
-        url = _url;
-        path = _path;
-        callback();
-      };
+      const webshot = {
+        webshot: (_url: string, _path: string, options?: any) => {
+          url = _url;
+          path = _path;
+          return Promise.resolve(true);
+        },
+      } as Screenshotter;
+
       const bus = new LocalEventBus();
       const screenshotModule = new ScreenshotModule(bus, logger, host, port, webshot, '', baseUrl);
 
@@ -116,27 +119,28 @@ describe('screenshot-module', () => {
       expect(path).to.equal(screenshotModule.getScreenshotPath(projectId, deploymentId));
       expect(publicUrl).to.equal(`${baseUrl}/screenshot/${projectId}/${deploymentId}`);
     });
-    it('should post event', async (done) => {
+    it('should post event', async () => {
       // Arrange
-      const webshot = (_url: string, _path: string, options: any, callback: () => void) => {
-        callback();
-      };
+      const webshot = {
+        webshot: (_url: string, _path: string, options?: any) => {
+          return Promise.resolve(true);
+        },
+      } as Screenshotter;
       const bus = new LocalEventBus();
-      let event: Event<ScreenshotEvent> | null = null;
-      bus.filterEvents<ScreenshotEvent>(SCREENSHOT_EVENT_TYPE).subscribe(_event => {
-        event = _event;
-        done();
-      });
       const screenshotModule = new ScreenshotModule(bus, logger, host, port, webshot, '', baseUrl);
 
       // Act
-      await screenshotModule.takeScreenshot(projectId, deploymentId);
+      screenshotModule.takeScreenshot(projectId, deploymentId);
+      const payload = await bus.filterEvents<ScreenshotEvent>(SCREENSHOT_EVENT_TYPE)
+        .map(event => event.payload)
+        .take(1)
+        .toPromise();
 
       // Assert
-      expect(event).to.exist;
-      expect(event!.payload.projectId).to.equal(projectId);
-      expect(event!.payload.deploymentId).to.equal(deploymentId);
-      expect(event!.payload.url).to.equal(`${baseUrl}/screenshot/${projectId}/${deploymentId}`);
+      expect(payload).to.exist;
+      expect(payload.projectId).to.equal(projectId);
+      expect(payload.deploymentId).to.equal(deploymentId);
+      expect(payload.url).to.equal(`${baseUrl}/screenshot/${projectId}/${deploymentId}`);
     });
   });
 

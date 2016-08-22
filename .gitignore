@@ -8,7 +8,7 @@ gitlab-data/postgresql/*
 !gitlab-data/postgresql/README.md
 gitlab-data/runner/config.toml
 gitlab-data-backup
-gitlab-data/screenshots
+gitlab-data/charles
 temp
 npm-debug.log
 src/config/config-local-override.ts

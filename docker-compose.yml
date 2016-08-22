@@ -177,7 +177,7 @@ services:
          - charles.local
     environment:
       - HOST=0.0.0.0
-      - PORT=80
+      - PORT=8000
       - GITLAB_HOST=gitlab
       - GITLAB_PORT=80
       - DB_ADAPTER=postgresql

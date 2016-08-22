@@ -59,7 +59,7 @@
     "clean-test": "rm -rf dist && npm run-script transpile && mocha ./dist/**/*-spec.js",
     "test": "mocha --opts mocha.opts",
     "dot-test": "mocha --opts mocha.opts --reporter dot",
-    "dev": "npm run transpile && node-dev --debug=5858 dist/app.js",
+    "dev": "npm run transpile && node-dev --debug=5858 --nolazy dist/app.js",
     "start": "node dist/app.js",
     "transpile": "tsc",
     "lint": "tslint 'src/**/*.ts'"

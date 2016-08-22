@@ -13,6 +13,7 @@ import {
   screenshotFolderInjectSymbol,
   screenshotHostInjectSymbol,
   screenshotPortInjectSymbol,
+  screenshotterBaseurlInjectSymbol,
 } from '../screenshot';
 
 import Logger from '../shared/logger';
@@ -65,27 +66,29 @@ const winstonOptions = {
   ],
 };
 
+const env = process.env;
 // General networking
 // ------------------
 
-const HOST = process.env.HOST ? process.env.HOST : '0.0.0.0';
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 8000;
-const GITLAB_HOST = process.env.GITLAB_HOST ? process.env.GITLAB_HOST : 'localhost';
-const GITLAB_PORT = process.env.GITLAB_PORT ? parseInt(process.env.GITLAB_PORT, 10) : 10080;
-const SYSTEMHOOK_BASEURL = process.env.SYSTEMHOOK_BASEURL ? process.env.SYSTEMHOOK_BASEURL : `http://charles:${PORT}`;
-const SCREENSHOT_HOST = process.env.SCREENSHOT_HOST ? process.env.SCREENSHOT_HOST : 'minard.dev';
-const SCREENSHOT_PORT = process.env.SCREENSHOT_PORT ? process.env.SCREENSHOT_PORT : 8000;
+const HOST = env.HOST ? env.HOST : '0.0.0.0';
+const PORT = env.PORT ? parseInt(env.PORT, 10) : 8000;
+const GITLAB_HOST = env.GITLAB_HOST ? env.GITLAB_HOST : 'localhost';
+const GITLAB_PORT = env.GITLAB_PORT ? parseInt(env.GITLAB_PORT, 10) : 10080;
+const SYSTEMHOOK_BASEURL = env.SYSTEMHOOK_BASEURL ? env.SYSTEMHOOK_BASEURL : `http://charles:${PORT}`;
+const SCREENSHOT_HOST = env.SCREENSHOT_HOST ? env.SCREENSHOT_HOST : 'charles';
+const SCREENSHOT_PORT = env.SCREENSHOT_PORT ? env.SCREENSHOT_PORT : 8000;
+const SCREENSHOTTER_BASEURL = env.SCREENSHOTTER_BASEURL ? env.SCREENSHOTTER_BASEURL : 'http://screenshotter';
 const EXTERNAL_BASEURL = `http://localhost:${PORT}`;
 
 // Database configuration
 // ----------------------
 
-const DB_ADAPTER = process.env.DB_ADAPTER ? process.env.DB_ADAPTER : 'postgresql';
-const DB_HOST = process.env.DB_HOST ? process.env.DB_HOST : 'localhost';
-const DB_PORT = process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : 5432;
-const DB_USER = process.env.DB_USER ? process.env.DB_USER : 'gitlab';
-const DB_PASS = process.env.DB_PASS ? process.env.DB_PASS : 'password';
-const DB_NAME = process.env.DB_NAME ? process.env.DB_NAME : 'gitlabhq_production';
+const DB_ADAPTER = env.DB_ADAPTER ? env.DB_ADAPTER : 'postgresql';
+const DB_HOST = env.DB_HOST ? env.DB_HOST : 'localhost';
+const DB_PORT = env.DB_PORT ? parseInt(env.DB_PORT, 10) : 5432;
+const DB_USER = env.DB_USER ? env.DB_USER : 'gitlab';
+const DB_PASS = env.DB_PASS ? env.DB_PASS : 'password';
+const DB_NAME = env.DB_NAME ? env.DB_NAME : 'gitlabhq_production';
 const knex = Knex({
   client: DB_ADAPTER,
   connection: {
@@ -105,8 +108,8 @@ const knex = Knex({
 // Filesystem configuration
 // ------------------------
 
-const DEPLOYMENT_FOLDER = process.env.DEPLOYMENT_FOLDER ? process.env.DEPLOYMENT_FOLDER : 'gitlab-data/monolith/';
-const SCREENSHOT_FOLDER = process.env.SCREENSHOT_FOLDER ? process.env.SCREENSHOT_FOLDER : 'gitlab-data/screenshots';
+const DEPLOYMENT_FOLDER = env.DEPLOYMENT_FOLDER ? env.DEPLOYMENT_FOLDER : '/deployments/';
+const SCREENSHOT_FOLDER = env.SCREENSHOT_FOLDER ? env.SCREENSHOT_FOLDER : '/screenshots/';
 
 // Inversify kernel bindings
 // -------------------------
@@ -123,5 +126,6 @@ export default (kernel: interfaces.Kernel) => {
   kernel.bind(screenshotHostInjectSymbol).toConstantValue(SCREENSHOT_HOST);
   kernel.bind(screenshotPortInjectSymbol).toConstantValue(SCREENSHOT_PORT);
   kernel.bind(screenshotFolderInjectSymbol).toConstantValue(SCREENSHOT_FOLDER);
+  kernel.bind(screenshotterBaseurlInjectSymbol).toConstantValue(SCREENSHOTTER_BASEURL);
   kernel.bind(externalBaseUrlInjectSymbol).toConstantValue(EXTERNAL_BASEURL);
 };

@@ -140,4 +140,24 @@ describe('screenshot-module', () => {
     });
   });
 
+  describe('deploymentHasScreenshot', () => {
+
+    it('should return true when screenshot exists', async () => {
+      const bus = new LocalEventBus();
+      const screenshotModule = new ScreenshotModule(
+        bus, {} as any, '', 0, {} as any, 'src/screenshot/test-data', '');
+      const has = await screenshotModule.deploymentHasScreenshot(2, 3);
+      expect(has).to.equal(true);
+    });
+
+    it('should return false when screenshot does not exist', async () => {
+      const bus = new LocalEventBus();
+      const screenshotModule = new ScreenshotModule(
+        bus, {} as any, '', 0, {} as any, 'src/screenshot/test-data', '');
+      const has = await screenshotModule.deploymentHasScreenshot(2, 4);
+      expect(has).to.equal(false);
+    });
+
+  });
+
 });

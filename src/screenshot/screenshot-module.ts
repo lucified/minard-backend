@@ -89,8 +89,9 @@ export default class ScreenshotModule {
   }
 
   public async deploymentHasScreenshot(projectId: number, deploymentId: number) {
-    return await (promisify(fs.exists) as any)
-      (this.getScreenshotPath(projectId, deploymentId)) as boolean;
+    return await new Promise(resolve => {
+      fs.exists(this.getScreenshotPath(projectId, deploymentId), resolve);
+    });
   }
 
   /*

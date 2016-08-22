@@ -42,11 +42,15 @@ import {
 } from '../project';
 
 import {
-  RemoteScreenshotter,
   ScreenshotHapiPlugin,
   ScreenshotModule,
   screenshotterInjectSymbol,
 } from '../screenshot';
+
+import {
+  RemoteScreenshotter,
+} from '../screenshot/screenshotter-remote';
+
 
 import { MinardServer } from '../server';
 

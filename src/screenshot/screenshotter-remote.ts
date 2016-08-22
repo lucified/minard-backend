@@ -3,8 +3,9 @@ import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
 
 import { Logger, loggerInjectSymbol } from '../shared/logger';
-import { fetchInjectSymbol } from '../shared/types';
-import { Screenshotter, screenshotterHostInjectSymbol } from './types';
+import { Screenshotter, screenshotterBaseurlInjectSymbol } from './types';
+
+const _fetch = require('node-fetch');
 
 @injectable()
 export class RemoteScreenshotter implements Screenshotter {
@@ -13,17 +14,14 @@ export class RemoteScreenshotter implements Screenshotter {
 
   public readonly host: string;
   private logger: Logger;
-  private fetch: IFetchStatic;
   private logging: boolean;
 
   public constructor(
-    @inject(screenshotterHostInjectSymbol) host: string,
-    @inject(fetchInjectSymbol) fetch: IFetchStatic,
+    @inject(screenshotterBaseurlInjectSymbol) host: string,
     @inject(loggerInjectSymbol) logger: Logger,
     logging: boolean = false) {
     this.host = host;
     this.logger = logger;
-    this.fetch = fetch;
     this.logging = logging;
   }
 
@@ -51,13 +49,15 @@ export class RemoteScreenshotter implements Screenshotter {
       fileName: imageFile,
       options: webshotOptions || {},
     };
+    console.log(body);
     try {
-      const response = await fetch(host.replace(/\/$/, '') + '/', {
+      const response = await _fetch(host.replace(/\/$/, '') + '/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(body),
+        timeout: 2 * 60 * 1000,
       });
       if (response.status !== 200) {
         throw Boom.create(response.status, response.statusText);

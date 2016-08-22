@@ -17,14 +17,42 @@ services:
     volumes:
         - ./gitlab-data/runner:/etc/gitlab-runner
     environment:
+#      - DEBUG=1
       - DOCKER_IMAGE=node
       - DOCKER_NETWORK_MODE=minardbackend_default
 
   charles:
     build: .
     command: "npm run dev"
+    ports:
+      - "5858:5858"
     volumes:
+      - ./gitlab-data/charles/deployments:/deployments
+      - ./gitlab-data/charles/screenshots:/screenshots
       - ./src:/code/src
       - ./dist:/code/dist
       - ./tsconfig.json:/code/tsconfig.json
+      - ./package.json:/code/package.json
+    environment:
+      - DEPLOYMENT_FOLDER=/deployments/
+      - SCREENSHOT_FOLDER=/screenshots/
+
+  screenshotter:
+    volumes:
+      - ./gitlab-data/charles/screenshots:/screenshots
+
+  bind:
+    image: cosmicq/docker-bind
+    networks:
+      default:
+        aliases:
+         - bind.local
+    volumes:
+      - ./gitlab-data/bind/etc:/etc/bind
+      - ./gitlab-data/bind/zones:/var/lib/bind
+    environment:
+      - PASS=newpass
+    logging:
+      driver: none
+
 

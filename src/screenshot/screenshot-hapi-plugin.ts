@@ -49,7 +49,7 @@ export default class ScreenshotHapiPlugin {
       throw Boom.notFound();
     }
     const path = this.screenshotModule.getScreenshotPath(projectId, deploymentId);
-    return reply.file(path);
+    return reply.file(path, {confine: false} as any);
   }
 
 }

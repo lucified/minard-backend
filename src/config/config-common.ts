@@ -29,7 +29,10 @@ import {
   MemoizedJsonApiModule,
 } from '../json-api';
 
-import { OperationsModule } from '../operations';
+import {
+  OperationsHapiPlugin,
+  OperationsModule,
+} from '../operations';
 
 import {
   ProjectHapiPlugin,
@@ -82,6 +85,7 @@ export default new KernelModule(bind => {
   // Bindings for hapi plugins
   bind(DeploymentHapiPlugin.injectSymbol).to(DeploymentHapiPlugin);
   bind(JsonApiHapiPlugin.injectSymbol).to(JsonApiHapiPlugin).inSingletonScope();
+  bind(OperationsHapiPlugin.injectSymbol).to(OperationsHapiPlugin);
   bind(ProjectHapiPlugin.injectSymbol).to(ProjectHapiPlugin);
   bind(ScreenshotHapiPlugin.injectSymbol).to(ScreenshotHapiPlugin);
   bind(StatusHapiPlugin.injectSymbol).to(StatusHapiPlugin);

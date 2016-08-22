@@ -11,7 +11,6 @@ import { gitlabHostInjectSymbol } from '../shared/gitlab-client';
 import * as logger from '../shared/logger';
 import { createDeploymentEvent } from './types';
 
-
 @injectable()
 export class CIProxy {
 
@@ -88,14 +87,12 @@ export class CIProxy {
       config,
     });
 
-
     next();
   }
 
   public readonly register: HapiRegister;
 
   private putRequestHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    console.log('******* PUT ********');
     try {
       const id = request.paramsArray[0];
       this.collectStream(request.payload)
@@ -116,7 +113,6 @@ export class CIProxy {
       status,
       projectId: projectId ? parseInt(projectId, 10) : undefined,
     } as any);
-    console.log(event.payload);
     this.eventBus.post(event);
     return event;
   }
@@ -144,7 +140,6 @@ export class CIProxy {
   }
 
   private deploymentCreatedHandler(response: http.IncomingMessage, reply: Hapi.IReply) {
-    console.log('***CREATED***');
     try {
       return this.collectStream(response)
         .then(JSON.parse)

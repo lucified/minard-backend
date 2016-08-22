@@ -51,7 +51,6 @@ import {
   RemoteScreenshotter,
 } from '../screenshot/screenshotter-remote';
 
-
 import { MinardServer } from '../server';
 
 import {

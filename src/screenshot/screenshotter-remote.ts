@@ -49,7 +49,6 @@ export class RemoteScreenshotter implements Screenshotter {
       fileName: imageFile,
       options: webshotOptions || {},
     };
-    console.log(body);
     try {
       const response = await _fetch(host.replace(/\/$/, '') + '/', {
         method: 'POST',
@@ -57,7 +56,7 @@ export class RemoteScreenshotter implements Screenshotter {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(body),
-        timeout: 2 * 60 * 1000,
+        timeout: 0.5 * 60 * 1000,
       });
       if (response.status !== 200) {
         throw Boom.create(response.status, response.statusText);

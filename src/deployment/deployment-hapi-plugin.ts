@@ -177,8 +177,6 @@ my_job:
     }
     return reply('ok');
   }
-
-
 }
 
 export default DeploymentHapiPlugin;

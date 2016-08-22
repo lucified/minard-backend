@@ -12,7 +12,6 @@ import {
   LocalScreenshotter,
 } from '../screenshot/screenshotter-local';
 
-
 export default (kernel: interfaces.Kernel, env: ENV) => {
   kernel.unbind(screenshotterInjectSymbol);
   kernel.bind(screenshotterInjectSymbol).to(LocalScreenshotter);

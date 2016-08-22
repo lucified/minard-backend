@@ -17,7 +17,6 @@ import {
   screenshotterInjectSymbol,
 } from './types';
 
-const promisify = require('bluebird').promisify;
 const urljoin = require('url-join');
 
 import {

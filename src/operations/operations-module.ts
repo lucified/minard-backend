@@ -48,8 +48,13 @@ export default class OperationsModule {
    * Assure that all successful and extracted deployments have screenshots
    */
   public async assureScreenshotsGenerated() {
-    const projectIds = await this.projectModule.getAllProjectIds();
-
+    let projectIds: number[];
+    try {
+      projectIds = await this.projectModule.getAllProjectIds();
+    } catch (err) {
+      this.logger.error('Could not get project ids', err);
+      return;
+    }
     const pending = projectIds.map((projectId: number) => ({
       projectId: projectId,
       deploymentsPromise: this.deploymentModule.getProjectDeployments(projectId),

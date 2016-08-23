@@ -108,8 +108,8 @@ const knex = Knex({
 // Filesystem configuration
 // ------------------------
 
-const DEPLOYMENT_FOLDER = env.DEPLOYMENT_FOLDER ? env.DEPLOYMENT_FOLDER : '/deployments/';
-const SCREENSHOT_FOLDER = env.SCREENSHOT_FOLDER ? env.SCREENSHOT_FOLDER : '/screenshots/';
+const DEPLOYMENT_FOLDER = env.DEPLOYMENT_FOLDER ? env.DEPLOYMENT_FOLDER : 'gitlab-data/deployments/';
+const SCREENSHOT_FOLDER = env.SCREENSHOT_FOLDER ? env.SCREENSHOT_FOLDER : 'gitlab-data/screenshots/';
 
 // Inversify kernel bindings
 // -------------------------

@@ -1,6 +1,7 @@
 
-services:
-  - docker
+machine:
+  services:
+    - docker
 
 dependencies:
   pre:

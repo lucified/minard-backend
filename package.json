@@ -62,7 +62,7 @@
     "start": "node dist/app.js",
     "transpile": "tsc",
     "lint": "tslint --format=verbose 'src/**/*.ts'",
-    "deploy": "ecs-upd8er"
+    "deploy": "ecs-upd8r"
   },
   "contributors": [
     {

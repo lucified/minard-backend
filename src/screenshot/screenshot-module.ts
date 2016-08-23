@@ -86,13 +86,17 @@ export default class ScreenshotModule {
     });
   }
 
+  private getScreenshotterPath(projectId: number, deploymentId: number) {
+    return path.join('/screenshots', String(projectId), String(deploymentId), 'screenshot.jpg');
+  }
+
   /*
    * Take a screenshot for given projectId and deploymentId
    */
   public async takeScreenshot(projectId: number, deploymentId: number) {
     const url = `http://deploy-${projectId}-${deploymentId}.${this.screenshotHost}:${this.screenshotPort}`;
     try {
-      const file = this.getScreenshotPath(projectId, deploymentId);
+      const file = this.getScreenshotterPath(projectId, deploymentId);
       const webshotOptions = {
         defaultWhiteBackground: true,
         renderDelay: 2000,

@@ -1,3 +1,5 @@
+/* tslint:disable only-arrow-functions */
+
 export function promisify<T>(original: any, settings: any) {
 
   return function (...args: any[]) {

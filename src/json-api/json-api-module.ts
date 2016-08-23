@@ -158,7 +158,11 @@ export class JsonApiModule {
         this.projectModule.toMinardCommit(deployment.commitRef as Commit)
       );
     }
-    ret.screenshot = await this.screenshotModule.getPublicUrl(projectId, deployment.id);
+
+    const hasScreenshot = await this.screenshotModule.deploymentHasScreenshot(projectId, deployment.id);
+    if (hasScreenshot) {
+      ret.screenshot = this.screenshotModule.getPublicUrl(projectId, deployment.id);
+    }
     return ret;
   }
 

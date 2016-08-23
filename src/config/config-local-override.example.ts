@@ -1,5 +1,4 @@
 
-
 import { Kernel, interfaces } from 'inversify';
 import * as winston from 'winston';
 

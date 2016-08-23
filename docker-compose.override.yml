@@ -40,6 +40,8 @@ services:
   screenshotter:
     volumes:
       - ./gitlab-data/charles/screenshots:/screenshots
+    environment:
+      - DEBUG=1
 
   bind:
     image: cosmicq/docker-bind

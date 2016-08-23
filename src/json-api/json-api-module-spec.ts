@@ -48,6 +48,9 @@ describe('json-api-module', () => {
     screenshotModule.getPublicUrl = function() {
       return 'http://foobar.com';
     };
+    screenshotModule.deploymentHasScreenshot = async function() {
+      return true;
+    };
 
     it('should work when commit is not passed', async () => {
       // Arrange

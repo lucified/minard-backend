@@ -111,8 +111,8 @@ export class JsonApiModule {
     const branch = await this.toApiBranch(project, activity.branch);
     return {
       type: 'activity',
-      branch: branch,
-      project: project,
+      branch,
+      project,
       id: `${activity.project.id}-${activity.deployment.id}`,
       timestamp: activity.timestamp,
       activityType: activity.activityType,

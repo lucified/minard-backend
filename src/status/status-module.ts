@@ -97,7 +97,7 @@ export default class StatusModule {
         const diff = moment().diff(moment(runner.contacted_at), 'seconds');
         return {
           id: runner.id,
-          diff: diff,
+          diff,
         };
       });
       // gitlab does not seem to refresh the contacted_at time for every

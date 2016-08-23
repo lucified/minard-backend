@@ -45,10 +45,10 @@ describe('json-api-module', () => {
   describe('toApiDeployment', () => {
 
     const screenshotModule = {} as ScreenshotModule;
-    screenshotModule.getPublicUrl = function() {
+    screenshotModule.getPublicUrl = () => {
       return 'http://foobar.com';
     };
-    screenshotModule.deploymentHasScreenshot = async function() {
+    screenshotModule.deploymentHasScreenshot = async () => {
       return true;
     };
 
@@ -73,10 +73,10 @@ describe('json-api-module', () => {
         {} as any,
         screenshotModule);
 
-      jsonApiModule.toApiCommit = async function(
+      jsonApiModule.toApiCommit = async (
         _projectId: number,
         commit: MinardCommit,
-        deployments?: ApiDeployment[]) {
+        deployments?: ApiDeployment[]) => {
         expect(deployments).to.not.exist;
         expect(commit.id).to.equal(minardDeployment.commitRef.id);
         return {
@@ -126,7 +126,7 @@ describe('json-api-module', () => {
 
       const api = {} as JsonApiModule;
       api.toApiProject = JsonApiModule.prototype.toApiProject.bind(api);
-      api.toApiBranch = async function(project: ApiProject, branch: MinardBranch) {
+      api.toApiBranch = async (project: ApiProject, branch: MinardBranch) => {
         expect(project.id).to.equal('1');
         return {
           id: '1-master',

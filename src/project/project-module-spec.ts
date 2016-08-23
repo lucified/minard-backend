@@ -288,9 +288,9 @@ describe('project-module', () => {
         `${host}${gitlabClient.apiPrefix}/projects/3/repository/branches`,
         gitlabBranchesResponse);
 
-      (<any> projectModule).getBranch = function(_projectId: number, name: string) {
+      (<any> projectModule).getBranch = (_projectId: number, name: string) => {
         return {
-          name: name,
+          name,
           commits: [],
         };
       };

@@ -16,8 +16,8 @@ interface Configs {
 const configs: Configs = {
   production,
   development,
-  'staging': production,
-  'test': development,
+  staging: production,
+  test: development,
 };
 
 // Load bindings that represent configuration

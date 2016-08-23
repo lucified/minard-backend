@@ -37,7 +37,7 @@ class DeploymentHapiPlugin {
 
   public register: HapiRegister = (server, _options, next) => {
 
-    server.ext('onRequest', function (request, reply) {
+    server.ext('onRequest', (request, reply) => {
       if (isRawDeploymentHostname(request.info.hostname)) {
         // prefix the url with /raw-deployment-handler
         // to allow hapi to internally route the request to

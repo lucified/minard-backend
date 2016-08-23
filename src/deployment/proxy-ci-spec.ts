@@ -36,7 +36,7 @@ describe('ci-proxy', () => {
   beforeEach(async () => {
     upstream = await provisionUpstream();
   });
-  afterEach(function () {
+  afterEach(() => {
     upstream.stop();
   });
 

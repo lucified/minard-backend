@@ -56,7 +56,7 @@ export default class OperationsModule {
       return;
     }
     const pending = projectIds.map((projectId: number) => ({
-      projectId: projectId,
+      projectId,
       deploymentsPromise: this.deploymentModule.getProjectDeployments(projectId),
     }));
 

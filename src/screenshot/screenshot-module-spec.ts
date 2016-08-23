@@ -29,7 +29,7 @@ describe('screenshot-module', () => {
       const bus = new LocalEventBus();
       const screenshotModule = new ScreenshotModule(bus, logger, host, port, {} as any, '', '');
       let called = false;
-      screenshotModule.takeScreenshot = async function(_projectId, _deploymentId) {
+      screenshotModule.takeScreenshot = async (_projectId, _deploymentId) => {
         expect(_projectId).to.equal(projectId);
         expect(_deploymentId).to.equal(_deploymentId);
         called = true;
@@ -49,7 +49,7 @@ describe('screenshot-module', () => {
       // Arrange
       const bus = new LocalEventBus();
       const screenshotModule = new ScreenshotModule(bus, logger, host, port, {} as any, '', '');
-      screenshotModule.takeScreenshot = async function(_projectId, _deploymentId) {
+      screenshotModule.takeScreenshot = async (_projectId, _deploymentId) => {
         expect.fail('Should not take screenshot');
       };
       // Act
@@ -66,7 +66,7 @@ describe('screenshot-module', () => {
       const bus = new LocalEventBus();
       const screenshotModule = new ScreenshotModule(bus, logger, host, port, {} as any, '', '');
       let called = false;
-      screenshotModule.takeScreenshot = async function(_projectId, _deploymentId) {
+      screenshotModule.takeScreenshot = async (_projectId, _deploymentId) => {
         if (_projectId === failProjectId) {
           throw Error('foo');
         }

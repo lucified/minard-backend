@@ -9,3 +9,9 @@ test:
   override:
     - npm run clean-test
     - npm run lint
+
+deployment:
+  staging:
+    branch: master
+    commands:
+      - npm run-script deploy

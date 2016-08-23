@@ -83,7 +83,7 @@ export default new KernelModule(bind => {
   bind(JsonApiModule.factoryInjectSymbol).toAutoFactory(JsonApiModule.injectSymbol);
   bind(OperationsModule.injectSymbol).to(OperationsModule);
   bind(ProjectModule.injectSymbol).to(ProjectModule).inSingletonScope();
-  bind(ScreenshotModule.injectSymbol).to(ScreenshotModule);
+  bind(ScreenshotModule.injectSymbol).to(ScreenshotModule).inSingletonScope();
   bind(StatusModule.injectSymbol).to(StatusModule);
   bind(SystemHookModule.injectSymbol).to(SystemHookModule);
   bind(UserModule.injectSymbol).to(UserModule);

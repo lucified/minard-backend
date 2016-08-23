@@ -29,6 +29,10 @@ import {
   ProjectModule,
 } from '../project/';
 
+import {
+  ScreenshotModule,
+} from '../screenshot';
+
 const deepcopy = require('deepcopy');
 
 @injectable()
@@ -40,14 +44,17 @@ export class JsonApiModule {
   private readonly deploymentModule: DeploymentModule;
   private readonly projectModule: ProjectModule;
   private readonly activityModule: ActivityModule;
+  private readonly screenshotModule: ScreenshotModule;
 
   constructor(
     @inject(DeploymentModule.injectSymbol) deploymentModule: DeploymentModule,
     @inject(ProjectModule.injectSymbol) projectModule: ProjectModule,
-    @inject(ActivityModule.injectSymbol) activityModule: ActivityModule) {
+    @inject(ActivityModule.injectSymbol) activityModule: ActivityModule,
+    @inject(ScreenshotModule.injectSymbol) screenshotModule: ScreenshotModule) {
       this.deploymentModule = deploymentModule;
       this.projectModule = projectModule;
       this.activityModule = activityModule;
+      this.screenshotModule = screenshotModule;
   }
 
   public async getCommit(projectId: number, hash: string): Promise<ApiCommit | null> {
@@ -104,8 +111,8 @@ export class JsonApiModule {
     const branch = await this.toApiBranch(project, activity.branch);
     return {
       type: 'activity',
-      branch: branch,
-      project: project,
+      branch,
+      project,
       id: `${activity.project.id}-${activity.deployment.id}`,
       timestamp: activity.timestamp,
       activityType: activity.activityType,
@@ -146,8 +153,15 @@ export class JsonApiModule {
     if (commit) {
       ret.commit = commit;
     } else if (deployment.commitRef) {
-      ret.commit = await this.toApiCommit(projectId,
-        this.projectModule.toMinardCommit(deployment.commitRef as Commit));
+      ret.commit = await this.toApiCommit(
+        projectId,
+        this.projectModule.toMinardCommit(deployment.commitRef as Commit)
+      );
+    }
+
+    const hasScreenshot = await this.screenshotModule.deploymentHasScreenshot(projectId, deployment.id);
+    if (hasScreenshot) {
+      ret.screenshot = this.screenshotModule.getPublicUrl(projectId, deployment.id);
     }
     return ret;
   }

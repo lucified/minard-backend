@@ -85,7 +85,7 @@ describe('activity-module', () => {
         projectModule,
         {} as DeploymentModule,
         {} as logger.Logger);
-      activityModule.getProjectActivity = async function(projectId: number) {
+      activityModule.getProjectActivity = async (projectId: number) => {
         if (projectId === 15) {
           return [
             {

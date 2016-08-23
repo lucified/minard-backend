@@ -23,21 +23,21 @@ interface RunnerStatus {
 }
 
 interface DetailedRunnerStatus {
-    id: number;
-    description: string;
-    active: boolean;
-    is_shared: boolean;
-    name: string;
-    tag_list: any[];
-    run_untagged: boolean;
-    locked: boolean;
-    version: string;
-    revision: string;
-    platform: string;
-    architecture: string;
-    contacted_at: Date;
-    token: string;
-    projects: any[];
+  id: number;
+  description: string;
+  active: boolean;
+  is_shared: boolean;
+  name: string;
+  tag_list: any[];
+  run_untagged: boolean;
+  locked: boolean;
+  version: string;
+  revision: string;
+  platform: string;
+  architecture: string;
+  contacted_at: Date;
+  token: string;
+  projects: any[];
 }
 
 @injectable()
@@ -97,7 +97,7 @@ export default class StatusModule {
         const diff = moment().diff(moment(runner.contacted_at), 'seconds');
         return {
           id: runner.id,
-          diff: diff,
+          diff,
         };
       });
       // gitlab does not seem to refresh the contacted_at time for every

@@ -9,9 +9,9 @@ import { FilterStream } from './utils';
 
 function requestFilter(data: any) {
   // ignore successfull requests
-  if (data.statusCode === 200) {
-    return false;
-  }
+  // if (data.statusCode === 200) {
+  //   return false;
+  // }
   if (data.path
       && data.path.indexOf('/ci/api/v1/builds/register.json') !== -1
       && data.statusCode === 404) {
@@ -46,7 +46,7 @@ const goodOptions = {
 const winstonOptions = {
   transports: [
     new winston.transports.Console({
-      level: 'error',
+      level: 'info',
       colorize: true,
       timestamp: true,
       prettyPrint: true,

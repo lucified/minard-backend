@@ -36,7 +36,7 @@ describe('ci-proxy', () => {
   beforeEach(async () => {
     upstream = await provisionUpstream();
   });
-  afterEach(function () {
+  afterEach(() => {
     upstream.stop();
   });
 
@@ -101,7 +101,7 @@ describe('ci-proxy', () => {
   it('Posts build started event' , async (done) => {
 
     const { proxy, bus, plugin } = await provisionProxy(`http://localhost:${upstream.info.port}`);
-    const path = plugin.routeNamespace + 'builds/register';
+    const path = plugin.routeNamespace + 'builds/register.json';
 
     upstream.route([{
       method: 'POST',
@@ -141,14 +141,15 @@ describe('ci-proxy', () => {
   it('Posts status updates' , async (done) => {
 
     const { proxy, bus, plugin } = await provisionProxy(`http://localhost:${upstream.info.port}`);
-    const path = plugin.routeNamespace + 'builds/register';
+
+    const path = plugin.routeNamespace + 'builds/1';
 
     upstream.route([{
       method: 'PUT',
       path,
       handler: (_req: any, rep: any) => {
         return rep({
-          status: 'cancelled',
+          state: 'cancelled',
           id: 1,
         });
       },
@@ -169,7 +170,7 @@ describe('ci-proxy', () => {
           'Content-Type': 'application/json',
         },
         payload: {
-          status: 'cancelled',
+          state: 'cancelled',
           id: 1,
         },
       });

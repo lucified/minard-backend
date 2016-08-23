@@ -11,7 +11,7 @@ import {
   DeploymentEvent,
   DeploymentModule,
   createDeploymentEvent,
-  getDeploymentKey,
+  getDeploymentKeyFromHost,
 } from './';
 
 import Authentication from '../authentication/authentication-module';
@@ -348,34 +348,34 @@ describe('deployment-module', () => {
   describe('getDeploymentKey()', () => {
 
     it('should match localhost hostname with single-digit ids', () => {
-      const ret = getDeploymentKey('fdlkasjs-4-1.localhost');
+      const ret = getDeploymentKeyFromHost('fdlkasjs-4-1.localhost');
       if (ret === null) { throw new Error(); }
       expect(ret.projectId).to.equal(4);
       expect(ret.deploymentId).to.equal(1);
     });
 
     it('should match localhost hostname with multi-digit ids', () => {
-      const ret = getDeploymentKey('fdlkasjs-523-2667.localhost');
+      const ret = getDeploymentKeyFromHost('fdlkasjs-523-2667.localhost');
       if (ret === null) { throw new Error(); }
       expect(ret.projectId).to.equal(523);
       expect(ret.deploymentId).to.equal(2667);
     });
 
     it('should match minard.io hostname with multi-digit ids', () => {
-      const ret = getDeploymentKey('fdlkasjs-145-3.minard.io');
+      const ret = getDeploymentKeyFromHost('fdlkasjs-145-3.minard.io');
       if (ret === null) { throw new Error(); }
       expect(ret.projectId).to.equal(145);
       expect(ret.deploymentId).to.equal(3);
     });
 
     it('should not match non-matching hostnames', () => {
-      const ret1 = getDeploymentKey('fdlkasjs-523-2667');
+      const ret1 = getDeploymentKeyFromHost('fdlkasjs-523-2667');
       expect(ret1).to.equal(null);
-      const ret2 = getDeploymentKey('fdlkasjs-525.localhost');
+      const ret2 = getDeploymentKeyFromHost('fdlkasjs-525.localhost');
       expect(ret2).to.equal(null);
-      const ret3 = getDeploymentKey('fdlkasjs525-52.localhost');
+      const ret3 = getDeploymentKeyFromHost('fdlkasjs525-52.localhost');
       expect(ret3).to.equal(null);
-      const ret4 = getDeploymentKey('fdlkasjs525-52.minard.io');
+      const ret4 = getDeploymentKeyFromHost('fdlkasjs525-52.minard.io');
       expect(ret4).to.equal(null);
     });
 

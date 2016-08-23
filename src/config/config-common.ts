@@ -19,8 +19,11 @@ import {
 
 import {
   GitlabClient,
-  fetchInjectSymbol,
 } from '../shared/gitlab-client';
+
+import {
+  fetchInjectSymbol,
+} from '../shared/types';
 
 import {
   JsonApiHapiPlugin,
@@ -29,9 +32,24 @@ import {
 } from '../json-api';
 
 import {
+  OperationsHapiPlugin,
+  OperationsModule,
+} from '../operations';
+
+import {
   ProjectHapiPlugin,
   ProjectModule,
 } from '../project';
+
+import {
+  ScreenshotHapiPlugin,
+  ScreenshotModule,
+  screenshotterInjectSymbol,
+} from '../screenshot';
+
+import {
+  RemoteScreenshotter,
+} from '../screenshot/screenshotter-remote';
 
 import { MinardServer } from '../server';
 
@@ -63,7 +81,9 @@ export default new KernelModule(bind => {
   bind(DeploymentModule.injectSymbol).to(DeploymentModule).inSingletonScope();
   bind(JsonApiModule.injectSymbol).to(MemoizedJsonApiModule);
   bind(JsonApiModule.factoryInjectSymbol).toAutoFactory(JsonApiModule.injectSymbol);
+  bind(OperationsModule.injectSymbol).to(OperationsModule);
   bind(ProjectModule.injectSymbol).to(ProjectModule).inSingletonScope();
+  bind(ScreenshotModule.injectSymbol).to(ScreenshotModule).inSingletonScope();
   bind(StatusModule.injectSymbol).to(StatusModule);
   bind(SystemHookModule.injectSymbol).to(SystemHookModule);
   bind(UserModule.injectSymbol).to(UserModule);
@@ -71,7 +91,9 @@ export default new KernelModule(bind => {
   // Bindings for hapi plugins
   bind(DeploymentHapiPlugin.injectSymbol).to(DeploymentHapiPlugin);
   bind(JsonApiHapiPlugin.injectSymbol).to(JsonApiHapiPlugin).inSingletonScope();
+  bind(OperationsHapiPlugin.injectSymbol).to(OperationsHapiPlugin);
   bind(ProjectHapiPlugin.injectSymbol).to(ProjectHapiPlugin);
+  bind(ScreenshotHapiPlugin.injectSymbol).to(ScreenshotHapiPlugin);
   bind(StatusHapiPlugin.injectSymbol).to(StatusHapiPlugin);
 
   // Other bindings
@@ -80,5 +102,8 @@ export default new KernelModule(bind => {
   bind(GitlabClient.injectSymbol).to(GitlabClient).inSingletonScope();
   bind(fetchInjectSymbol).toConstantValue(fetch);
   bind(MinardServer.injectSymbol).to(MinardServer).inSingletonScope();
+  bind(RemoteScreenshotter.injectSymbol).to(RemoteScreenshotter).inSingletonScope();
+
+  bind(screenshotterInjectSymbol).to(RemoteScreenshotter);
 
 });

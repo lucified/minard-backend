@@ -21,7 +21,7 @@ describe('json-api-hapi-plugin', () => {
     it('should correctly get project activity', async() => {
       // Arrange
       const mockFactory = () => ({
-        getProjectActivity: async function(projectId: number) {
+        getProjectActivity: async (projectId: number) => {
           return [
             {
               id: 'foo',
@@ -53,7 +53,7 @@ describe('json-api-hapi-plugin', () => {
     it('should correctly get team activity', async() => {
       // Arrange
       const mockFactory = () => ({
-        getTeamActivity: async function(projectId: number) {
+        getTeamActivity: async (projectId: number) => {
           return [
             {
               id: 'foo',

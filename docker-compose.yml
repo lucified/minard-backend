@@ -171,11 +171,13 @@ services:
       - gitlab
     ports:
       - "8000:8000"
-      - "5858:5858"
+    networks:
+      default:
+        aliases:
+         - charles.local
     environment:
       - HOST=0.0.0.0
       - PORT=8000
-      - DEPLOYMENT_FOLDER=gitlab-data/monolith/
       - GITLAB_HOST=gitlab
       - GITLAB_PORT=80
       - DB_ADAPTER=postgresql
@@ -185,4 +187,11 @@ services:
       - DB_PASS=password
       - DB_NAME=gitlabhq_production
       - SYSTEMHOOK_BASEURL=http://charles:8000
+      - SCREENSHOT_HOST=charles.internal
+      - SCREENSHOT_PORT=8000
+      - SCREENSHOTTER_BASEURL=http://screenshotter
+
+  # sudo ifconfig lo0 alias 192.168.0.254 up
+  screenshotter:
+    image: lucify/screenshotter
 

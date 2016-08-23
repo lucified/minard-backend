@@ -13,7 +13,23 @@ import {
   ProjectModule,
 } from '../project/';
 
-import { JsonApiModule } from './';
+import { ScreenshotModule } from '../screenshot';
+
+import { JsonApiModule } from './json-api-module';
+
+function id(arg: any) {
+  if (!arg || !arg.id) {
+    return '';
+  }
+  return arg.id;
+}
+
+function arrayIds(arr: any[]) {
+  if (!arr) {
+    return '';
+  }
+  return arr.map(item => item.id).join('-');
+}
 
 const memoizedMethods = [{
   name: 'getProject',
@@ -29,10 +45,10 @@ const memoizedMethods = [{
   normalizer: (args: any) => `${args[0].id}-${args[1].name}`,
 }, {
   name: 'toApiDeployment',
-  normalizer: (args: any) => `${args[0]}-${args[1].id}`,
+  normalizer: (args: any) => `${args[0]}-${args[1].id}-${id(args[2])}`,
 }, {
   name: 'toApiCommit',
-  normalizer: (args: any) => `${args[0]}-${args[1].id}`,
+  normalizer: (args: any) => `${args[0]}-${args[1].id}-${arrayIds(args[2])}`,
 }];
 
 export function memoizeApi(api: JsonApiModule) {
@@ -55,8 +71,9 @@ export class MemoizedJsonApiModule extends JsonApiModule {
   constructor(
     @inject(DeploymentModule.injectSymbol) deploymentModule: DeploymentModule,
     @inject(ProjectModule.injectSymbol) projectModule: ProjectModule,
-    @inject(ActivityModule.injectSymbol) activityModule: ActivityModule) {
-    super(deploymentModule, projectModule, activityModule);
+    @inject(ActivityModule.injectSymbol) activityModule: ActivityModule,
+    @inject(ScreenshotModule.injectSymbol) screenshotModule: ScreenshotModule) {
+    super(deploymentModule, projectModule, activityModule, screenshotModule);
     memoizeApi(this);
   }
 

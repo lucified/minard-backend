@@ -15,6 +15,10 @@ import {
 } from '../project/';
 
 import {
+  ScreenshotModule,
+} from '../screenshot';
+
+import {
   ApiBranch,
   ApiCommit,
   ApiDeployment,
@@ -39,6 +43,15 @@ describe('json-api-module', () => {
   });
 
   describe('toApiDeployment', () => {
+
+    const screenshotModule = {} as ScreenshotModule;
+    screenshotModule.getPublicUrl = () => {
+      return 'http://foobar.com';
+    };
+    screenshotModule.deploymentHasScreenshot = async () => {
+      return true;
+    };
+
     it('should work when commit is not passed', async () => {
       // Arrange
       const projectId = 5;
@@ -54,11 +67,16 @@ describe('json-api-module', () => {
       const projectModule = {} as ProjectModule;
       projectModule.toMinardCommit = ProjectModule.prototype.toMinardCommit;
 
-      const jsonApiModule = new JsonApiModule({} as any, projectModule, {} as any);
-      jsonApiModule.toApiCommit = async function(
+      const jsonApiModule = new JsonApiModule(
+        {} as any,
+        projectModule,
+        {} as any,
+        screenshotModule);
+
+      jsonApiModule.toApiCommit = async (
         _projectId: number,
         commit: MinardCommit,
-        deployments?: ApiDeployment[]) {
+        deployments?: ApiDeployment[]) => {
         expect(deployments).to.not.exist;
         expect(commit.id).to.equal(minardDeployment.commitRef.id);
         return {
@@ -85,7 +103,7 @@ describe('json-api-module', () => {
         id: 'foo-commit',
       } as ApiCommit;
 
-      const jsonApiModule = new JsonApiModule({} as any, {} as any, {} as any);
+      const jsonApiModule = new JsonApiModule({} as any, {} as any, {} as any, screenshotModule);
       const deployment = await jsonApiModule.toApiDeployment(projectId, minardDeployment, apiCommit);
       expect(deployment).to.exist;
       expect(deployment.commit.id).to.equal('foo-commit');
@@ -108,7 +126,7 @@ describe('json-api-module', () => {
 
       const api = {} as JsonApiModule;
       api.toApiProject = JsonApiModule.prototype.toApiProject.bind(api);
-      api.toApiBranch = async function(project: ApiProject, branch: MinardBranch) {
+      api.toApiBranch = async (project: ApiProject, branch: MinardBranch) => {
         expect(project.id).to.equal('1');
         return {
           id: '1-master',

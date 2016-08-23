@@ -4,11 +4,11 @@ import { inject, injectable } from 'inversify';
 
 import { AuthenticationModule } from '../authentication';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
+import { fetchInjectSymbol } from '../shared/types';
 
 const perfy = require('perfy');
 const randomstring = require('randomstring');
 
-export const fetchInjectSymbol = Symbol('fetch');
 export const gitlabHostInjectSymbol = Symbol('gitlab-host');
 
 const urljoin = require('url-join');

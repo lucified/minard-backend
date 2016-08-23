@@ -1,6 +1,10 @@
 #!/bin/bash
 
-source ./get-monolith-ip
-echo $MONOLITH_IP
+if [ -z $HOST_LOOPBACK_IP ]; then
+echo "HOST_LOOPBACK_IP is not defined. Exiting"
+exit 1
+fi
+
+echo $HOST_LOOPBACK_IP
 rm -f gitlab-data/runner/config.toml
-docker-compose --file=docker-compose-infra.yml up
+docker-compose --file=docker-compose.yml --file=docker-compose.override.yml --file=docker-compose-infra.yml up

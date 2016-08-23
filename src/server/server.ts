@@ -6,18 +6,22 @@ import * as stream from 'stream';
 import { CIProxy } from '../deployment';
 import { DeploymentHapiPlugin } from '../deployment';
 import { JsonApiHapiPlugin } from '../json-api';
+import { OperationsHapiPlugin } from '../operations';
 import { ProjectHapiPlugin } from '../project';
+import { ScreenshotHapiPlugin } from '../screenshot';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
-import { StatusHapiPlugin as StatusPlugin } from '../status';
+import { StatusHapiPlugin } from '../status';
 
 const hapiAsyncHandler = require('hapi-async-handler');
 const inert = require('inert');
 const h2o2 = require('h2o2');
 const good = require('good');
 
-export const hostInjectSymbol = Symbol('server-host');
-export const portInjectSymbol = Symbol('server-port');
-export const goodOptionsInjectSymbol = Symbol('good-options');
+import {
+  goodOptionsInjectSymbol,
+  hostInjectSymbol,
+  portInjectSymbol,
+} from './types';
 
 class FilterStream extends stream.Transform {
 
@@ -42,10 +46,12 @@ class FilterStream extends stream.Transform {
 export default class MinardServer {
   public static injectSymbol = Symbol('minard-server');
 
-  private statusPlugin: StatusPlugin;
+  private statusPlugin: StatusHapiPlugin;
   private projectPlugin: ProjectHapiPlugin;
   private deploymentPlugin: DeploymentHapiPlugin;
   private jsonApiPlugin: JsonApiHapiPlugin;
+  private screenshotPlugin: ScreenshotHapiPlugin;
+  private operationsPlugin: OperationsHapiPlugin;
   private ciProxy: CIProxy;
   private port: number;
   private host: string;
@@ -59,14 +65,18 @@ export default class MinardServer {
     @inject(CIProxy.injectSymbol) ciProxy: CIProxy,
     @inject(hostInjectSymbol) host: string,
     @inject(portInjectSymbol) port: number,
-    @inject(StatusPlugin.injectSymbol) statusPlugin: StatusPlugin,
+    @inject(StatusHapiPlugin.injectSymbol) statusPlugin: StatusHapiPlugin,
     @inject(goodOptionsInjectSymbol) goodOptions: any,
-    @inject(loggerInjectSymbol) logger: Logger) {
+    @inject(loggerInjectSymbol) logger: Logger,
+    @inject(ScreenshotHapiPlugin.injectSymbol) screenshotPlugin: ScreenshotHapiPlugin,
+    @inject(OperationsHapiPlugin.injectSymbol) operationsPlugin: OperationsHapiPlugin) {
     this.deploymentPlugin = deploymentPlugin;
     this.projectPlugin = projectPlugin;
     this.jsonApiPlugin = jsonApiPlugin;
     this.ciProxy = ciProxy;
     this.statusPlugin = statusPlugin;
+    this.screenshotPlugin = screenshotPlugin;
+    this.operationsPlugin = operationsPlugin;
     this.host = host;
     this.port = port;
     this.goodOptions = goodOptions;
@@ -112,14 +122,26 @@ export default class MinardServer {
       this.deploymentPlugin.register,
       this.projectPlugin.register,
       this.ciProxy.register,
-      this.statusPlugin.register]);
-
-    await (<any> server).register(this.jsonApiPlugin.register, {
-      routes: {
-        prefix: '/api',
+      this.statusPlugin.register,
+      {
+        register: this.jsonApiPlugin.register,
+        routes: {
+          prefix: '/api',
+        },
       },
-    });
-
+      {
+        register: this.screenshotPlugin.register,
+        routes: {
+          prefix: '/screenshot',
+        },
+      },
+      {
+        register: this.operationsPlugin.register,
+        routes: {
+          prefix: '/operations',
+        },
+      },
+    ]);
   }
 
 }

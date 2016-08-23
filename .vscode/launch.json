@@ -43,8 +43,8 @@
       "restart": true,
       "sourceMaps": true,
       "outDir": "${workspaceRoot}/dist",
-      "localRoot": "${workspaceRoot}",
-      "remoteRoot": null
+      "localRoot": "${workspaceRoot}/dist",
+      "remoteRoot": "/code/dist"
     },
     {
       "name": "Attach to Process",

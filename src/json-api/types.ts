@@ -53,6 +53,7 @@ export interface ApiBranch extends MinardBranch {
 export interface ApiDeployment extends MinardDeploymentPlain {
   id: string;
   commit: ApiCommit;
+  screenshot: string | null;
 }
 
 export interface ApiCommit extends MinardCommit {

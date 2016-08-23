@@ -1,0 +1,9 @@
+$ttl 5
+internal.	IN	SOA	b03ebf1ba507. ville.ucify.com. (
+			1471710012
+			10800
+			3600
+			604800
+			38400 )
+internal.	IN	NS	b03ebf1ba507.
+*.charles       IN CNAME   charles.local.

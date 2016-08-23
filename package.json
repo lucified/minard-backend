@@ -61,7 +61,8 @@
     "dev": "npm run transpile && node-dev --debug=${DEBUG_PORT:-5858} --nolazy dist/app.js",
     "start": "node dist/app.js",
     "transpile": "tsc",
-    "lint": "tslint --format=verbose 'src/**/*.ts'"
+    "lint": "tslint --format=verbose 'src/**/*.ts'",
+    "deploy": "ecs-upd8er"
   },
   "contributors": [
     {

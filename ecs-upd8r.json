@@ -1,0 +1,10 @@
+{
+  "REGION": "eu-west-1",
+  "CLUSTER": "minard",
+  "SERVICE": "minard-charles",
+  "CONTAINER": "charles",
+  "IMAGE": "charles",
+  "IMAGE_TAG": "",
+  "BUCKET": "lucify-configuration",
+  "KEY": "ecs_services/charles_tag"
+}

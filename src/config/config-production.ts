@@ -42,7 +42,7 @@ const goodOptions = {
         args: [
           {
             error: '*',
-            ops: '*', // log load
+            response: '*',
           },
         ],
       },

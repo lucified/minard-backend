@@ -3,8 +3,15 @@ dependencies:
   pre:
     - nvm install && nvm use && nvm alias default $(nvm current)
     - npm install typescript@beta tslint
+    - npm install ecs-upd8r
 
 test:
   override:
-    - npm run lint && npm run clean-test
+    - npm run clean-test
+    - npm run lint
 
+deployment:
+  staging:
+    branch: master
+    commands:
+      - npm run-script deploy

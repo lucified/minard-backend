@@ -9,13 +9,16 @@ const wreck = Wreck.defaults({
 const get = promisify<http.IncomingMessage>(wreck.get, wreck);
 const put = promisify<http.IncomingMessage>(wreck.put, wreck);
 
+// The IP below is the IP for the AWS metadata URL
 const ec2IpUrl = 'http://169.254.169.254/latest/meta-data/local-ipv4';
 
-const def = (key: string, otherwise: string) => process.env[key] ? process.env[key] : otherwise;
-
-const REGISTER_SERVICE = def('REGISTER_SERVICE', 'http://register-service:1234');
-
 export async function registerService(name = 'charles') {
+
+  const registerServiceBaseUrl = process.env.REGISTER_SERVICE;
+  if (!registerServiceBaseUrl) {
+    console.log('No REGISTER_SERVICE environment variable defined. Skipping registering of service');
+    return false;
+  }
 
   let check: http.IncomingMessage;
   try {
@@ -28,7 +31,7 @@ export async function registerService(name = 'charles') {
   }
 
   try {
-    check = await put(REGISTER_SERVICE + '/' + name);
+    check = await put(registerServiceBaseUrl + '/' + name);
   } catch (err) {
     return false;
   }

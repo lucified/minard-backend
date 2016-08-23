@@ -116,7 +116,6 @@ describe('screenshot-module', () => {
       expect(url).to.exist;
       expect(path).to.exist;
       expect(url).to.equal(`http://deploy-4-12.${host}:${port}`);
-      expect(path).to.equal(screenshotModule.getScreenshotPath(projectId, deploymentId));
       expect(publicUrl).to.equal(`${baseUrl}/screenshot/${projectId}/${deploymentId}`);
     });
     it('should post event', async () => {

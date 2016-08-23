@@ -67,17 +67,18 @@ const winstonOptions = {
 };
 
 const env = process.env;
+
 // General networking
 // ------------------
 
 const HOST = env.HOST ? env.HOST : '0.0.0.0';
-const PORT = env.PORT ? parseInt(env.PORT, 10) : 8000;
+const PORT = env.PORT ? parseInt(env.PORT, 10) : 8080;
 const GITLAB_HOST = env.GITLAB_HOST ? env.GITLAB_HOST : 'localhost';
 const GITLAB_PORT = env.GITLAB_PORT ? parseInt(env.GITLAB_PORT, 10) : 10080;
-const SYSTEMHOOK_BASEURL = env.SYSTEMHOOK_BASEURL ? env.SYSTEMHOOK_BASEURL : `http://charles:${PORT}`;
-const SCREENSHOT_HOST = env.SCREENSHOT_HOST ? env.SCREENSHOT_HOST : 'charles';
-const SCREENSHOT_PORT = env.SCREENSHOT_PORT ? env.SCREENSHOT_PORT : 8000;
-const SCREENSHOTTER_BASEURL = env.SCREENSHOTTER_BASEURL ? env.SCREENSHOTTER_BASEURL : 'http://screenshotter';
+const SYSTEMHOOK_BASEURL = env.SYSTEMHOOK_BASEURL ? env.SYSTEMHOOK_BASEURL : `http://charles.dev:${PORT}`;
+const SCREENSHOT_HOST = env.SCREENSHOT_HOST ? env.SCREENSHOT_HOST : 'charles.ldev';
+const SCREENSHOT_PORT = env.SCREENSHOT_PORT ? env.SCREENSHOT_PORT : 8080;
+const SCREENSHOTTER_BASEURL = env.SCREENSHOTTER_BASEURL ? env.SCREENSHOTTER_BASEURL : 'http://localhost:8002';
 const EXTERNAL_BASEURL = `http://localhost:${PORT}`;
 
 // Database configuration
@@ -108,8 +109,8 @@ const knex = Knex({
 // Filesystem configuration
 // ------------------------
 
-const DEPLOYMENT_FOLDER = env.DEPLOYMENT_FOLDER ? env.DEPLOYMENT_FOLDER : 'gitlab-data/deployments/';
-const SCREENSHOT_FOLDER = env.SCREENSHOT_FOLDER ? env.SCREENSHOT_FOLDER : 'gitlab-data/screenshots/';
+const DEPLOYMENT_FOLDER = env.DEPLOYMENT_FOLDER ? env.DEPLOYMENT_FOLDER : 'gitlab-data/charles/deployments/';
+const SCREENSHOT_FOLDER = env.SCREENSHOT_FOLDER ? env.SCREENSHOT_FOLDER : 'gitlab-data/charles/screenshots/';
 
 // Inversify kernel bindings
 // -------------------------

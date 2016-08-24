@@ -3,7 +3,11 @@ import { interfaces } from 'inversify';
 import * as Knex from 'knex';
 import * as winston from 'winston';
 
-import { deploymentFolderInjectSymbol } from '../deployment';
+import {
+  deploymentFolderInjectSymbol,
+  deploymentUrlPatternInjectSymbol,
+} from '../deployment';
+
 import { externalBaseUrlInjectSymbol, goodOptionsInjectSymbol, hostInjectSymbol, portInjectSymbol} from '../server';
 import { gitlabHostInjectSymbol } from '../shared/gitlab-client';
 import { loggerInjectSymbol } from '../shared/logger';
@@ -129,4 +133,5 @@ export default (kernel: interfaces.Kernel) => {
   kernel.bind(screenshotFolderInjectSymbol).toConstantValue(SCREENSHOT_FOLDER);
   kernel.bind(screenshotterBaseurlInjectSymbol).toConstantValue(SCREENSHOTTER_BASEURL);
   kernel.bind(externalBaseUrlInjectSymbol).toConstantValue(EXTERNAL_BASEURL);
+  kernel.bind(deploymentUrlPatternInjectSymbol).toConstantValue(DEPLOYMENT_URL_PATTERN);
 };

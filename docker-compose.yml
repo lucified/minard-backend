@@ -190,6 +190,7 @@ services:
       - SCREENSHOT_HOST=charles.internal
       - SCREENSHOT_PORT=8000
       - SCREENSHOTTER_BASEURL=http://screenshotter
+      - DEPLOYMENT_URL_PATTERN=https://deploy-%s.localhost:8000
 
   # sudo ifconfig lo0 alias 192.168.0.254 up
   screenshotter:

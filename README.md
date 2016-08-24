@@ -179,3 +179,14 @@ configured in your AWS credentials (`~/.aws/credentials`).
 A launch configuration for debugging in Visual Studio Code is included under `.vscode`.
 If the server has was started with `npm run dev`, the debugger should be able to attach
 to the process.
+
+## Monitoring
+
+A simple monitoring endpoint is available at `/status`.
+
+## Maintenance tasks
+
+You can trigger checking of screenshots by going to the url `/operations/screenshots`.
+This will make sure that all successful and extracted deployments have screenshots.
+Normally screenshots are generated after each deployment, but this maintenance task
+may sometimes be useful.

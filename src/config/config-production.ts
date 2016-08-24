@@ -74,13 +74,32 @@ const env = process.env;
 // General networking
 // ------------------
 
+// Host and port in which we are listening locally
 const HOST = env.HOST ? env.HOST : '0.0.0.0';
 const PORT = env.PORT ? parseInt(env.PORT, 10) : 8080;
+
+// Host and port from which charles can reach GitLab
 const GITLAB_HOST = env.GITLAB_HOST ? env.GITLAB_HOST : 'localhost';
 const GITLAB_PORT = env.GITLAB_PORT ? parseInt(env.GITLAB_PORT, 10) : 10080;
-const SYSTEMHOOK_BASEURL = env.SYSTEMHOOK_BASEURL ? env.SYSTEMHOOK_BASEURL : `http://charles.dev:${PORT}`;
+
+// Base URL for systemhooks registered to GitLab. This must be an URL from
+// which GitLab can reach charles.
+const SYSTEMHOOK_BASEURL = env.SYSTEMHOOK_BASEURL ? env.SYSTEMHOOK_BASEURL : `http://charles.ldev:${PORT}`;
+
+// Base URL for the screenshotter service
 const SCREENSHOTTER_BASEURL = env.SCREENSHOTTER_BASEURL ? env.SCREENSHOTTER_BASEURL : 'http://localhost:8002';
-const EXTERNAL_BASEURL = `http://localhost:${PORT}`;
+
+// Generic external base URL for charles
+const EXTERNAL_BASEURL = env.EXTERNAL_BASEURL ? env.EXTERNAL_BASEURL : `http://localhost:${PORT}`;
+
+// URL pattern used for composing external deployment URLs
+// Users access deployments via urls matching this pattern
+const DEPLOYMENT_URL_PATTERN = env.DEPLOYMENT_URL_PATTERN ? env.DEPLOYMENT_URL_PATTERN
+  : 'https://deploy-%s-charles.ldev';
+
+// URL pattern used for composing deployment URLs for screenshots
+const SCREENSHOT_URL_PATTERN = env.SCREENSHOT_URL_PATTERN ? env.SCREENSHOT_URL_PATTERN
+  : 'http://%s-charles.ldev';
 
 // Database configuration
 // ----------------------

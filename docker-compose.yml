@@ -149,7 +149,6 @@ services:
     - OAUTH_AZURE_API_SECRET=
     - OAUTH_AZURE_TENANT_ID=
 
-
   runner:
     restart: always
     image: lucify/gitlab-runner
@@ -187,6 +186,7 @@ services:
       - DB_PASS=password
       - DB_NAME=gitlabhq_production
       - SYSTEMHOOK_BASEURL=http://charles:8000
+      - EXTERNAL_BASEURL=http://localhost:8000
       - SCREENSHOT_URL_PATTERN=http://%s.charles.internal:8000
       - SCREENSHOTTER_BASEURL=http://screenshotter
       - DEPLOYMENT_URL_PATTERN=https://deploy-%s.localhost:8000

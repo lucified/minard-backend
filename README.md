@@ -152,6 +152,20 @@ To get continous transpilation, run the following in the project root (in anothe
 tsc -w
 ```
 
+## Deployment
+
+If not installed, install ecs-upd8r
+```bash
+npm install ecs-upd8r
+```
+
+Run the deployment with:
+```bash
+AWS_PROFILE=lucify-protected npm run-script deploy
+```
+For this to work, you must have the `lucify-protected` profile
+configured in your AWS credentials (`~/.aws/credentials`).
+
 ## Debugging
 
 A launch configuration for debugging in Visual Studio Code is included under `.vscode`.

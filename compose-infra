@@ -7,4 +7,5 @@ fi
 
 echo $HOST_LOOPBACK_IP
 rm -f gitlab-data/runner/config.toml
+docker-compose down
 docker-compose --file=docker-compose.yml --file=docker-compose.override.yml --file=docker-compose-infra.yml up

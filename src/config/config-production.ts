@@ -15,8 +15,7 @@ import { systemHookBaseUrlSymbol } from '../system-hook/system-hook-module';
 
 import {
   screenshotFolderInjectSymbol,
-  screenshotHostInjectSymbol,
-  screenshotPortInjectSymbol,
+  screenshotUrlPattern,
   screenshotterBaseurlInjectSymbol,
 } from '../screenshot';
 
@@ -80,8 +79,6 @@ const PORT = env.PORT ? parseInt(env.PORT, 10) : 8080;
 const GITLAB_HOST = env.GITLAB_HOST ? env.GITLAB_HOST : 'localhost';
 const GITLAB_PORT = env.GITLAB_PORT ? parseInt(env.GITLAB_PORT, 10) : 10080;
 const SYSTEMHOOK_BASEURL = env.SYSTEMHOOK_BASEURL ? env.SYSTEMHOOK_BASEURL : `http://charles.dev:${PORT}`;
-const SCREENSHOT_HOST = env.SCREENSHOT_HOST ? env.SCREENSHOT_HOST : 'charles.ldev';
-const SCREENSHOT_PORT = env.SCREENSHOT_PORT ? env.SCREENSHOT_PORT : 8080;
 const SCREENSHOTTER_BASEURL = env.SCREENSHOTTER_BASEURL ? env.SCREENSHOTTER_BASEURL : 'http://localhost:8002';
 const EXTERNAL_BASEURL = `http://localhost:${PORT}`;
 
@@ -128,10 +125,9 @@ export default (kernel: interfaces.Kernel) => {
   kernel.bind(systemHookBaseUrlSymbol).toConstantValue(SYSTEMHOOK_BASEURL);
   kernel.bind(deploymentFolderInjectSymbol).toConstantValue(DEPLOYMENT_FOLDER);
   kernel.bind('gitlab-knex').toConstantValue(knex);
-  kernel.bind(screenshotHostInjectSymbol).toConstantValue(SCREENSHOT_HOST);
-  kernel.bind(screenshotPortInjectSymbol).toConstantValue(SCREENSHOT_PORT);
   kernel.bind(screenshotFolderInjectSymbol).toConstantValue(SCREENSHOT_FOLDER);
   kernel.bind(screenshotterBaseurlInjectSymbol).toConstantValue(SCREENSHOTTER_BASEURL);
   kernel.bind(externalBaseUrlInjectSymbol).toConstantValue(EXTERNAL_BASEURL);
   kernel.bind(deploymentUrlPatternInjectSymbol).toConstantValue(DEPLOYMENT_URL_PATTERN);
+  kernel.bind(screenshotUrlPattern).toConstantValue(SCREENSHOT_URL_PATTERN);
 };

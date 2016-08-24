@@ -187,8 +187,7 @@ services:
       - DB_PASS=password
       - DB_NAME=gitlabhq_production
       - SYSTEMHOOK_BASEURL=http://charles:8000
-      - SCREENSHOT_HOST=charles.internal
-      - SCREENSHOT_PORT=8000
+      - SCREENSHOT_URL_PATTERN=http://%s.charles.internal:8000
       - SCREENSHOTTER_BASEURL=http://screenshotter
       - DEPLOYMENT_URL_PATTERN=https://deploy-%s.localhost:8000
 

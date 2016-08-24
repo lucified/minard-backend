@@ -187,9 +187,9 @@ services:
       - DB_NAME=gitlabhq_production
       - SYSTEMHOOK_BASEURL=http://charles:8000
       - EXTERNAL_BASEURL=http://localhost:8000
-      - SCREENSHOT_URL_PATTERN=http://%s.charles.internal:8000
+      - SCREENSHOT_URL_PATTERN=http://deploy-%s.charles.internal:8000
       - SCREENSHOTTER_BASEURL=http://screenshotter
-      - DEPLOYMENT_URL_PATTERN=https://deploy-%s.localhost:8000
+      - DEPLOYMENT_URL_PATTERN=http://deploy-%s.127.0.0.1.xip.io:8000
 
   # sudo ifconfig lo0 alias 192.168.0.254 up
   screenshotter:

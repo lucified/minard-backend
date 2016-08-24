@@ -95,11 +95,11 @@ const EXTERNAL_BASEURL = env.EXTERNAL_BASEURL ? env.EXTERNAL_BASEURL : `http://l
 // URL pattern used for composing external deployment URLs
 // Users access deployments via urls matching this pattern
 const DEPLOYMENT_URL_PATTERN = env.DEPLOYMENT_URL_PATTERN ? env.DEPLOYMENT_URL_PATTERN
-  : 'https://deploy-%s-charles.ldev';
+  : `http://deploy-%s.charles.ldev:${PORT}`;
 
 // URL pattern used for composing deployment URLs for screenshots
 const SCREENSHOT_URL_PATTERN = env.SCREENSHOT_URL_PATTERN ? env.SCREENSHOT_URL_PATTERN
-  : 'http://%s-charles.ldev';
+  : `http://deploy-%s.charles.ldev:${PORT}`;
 
 // Database configuration
 // ----------------------

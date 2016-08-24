@@ -1,0 +1,5 @@
+#!/bin/bash
+
+rm -f gitlab-data/runner/config.toml
+docker-compose down
+docker-compose up

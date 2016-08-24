@@ -23,6 +23,14 @@ Since it's all Docker, just run the following in the project root:
 docker-compose up
 ```
 
+Alternatively you can run the following script, which will take care
+of stopping any previous `docker-compose` and clean up some runner-related
+temporary files.
+
+```
+./compose-all
+```
+
 After the bootup process completes, which can take a while, you can login to GitLab at
 `http://localhost:10080`. Similarly, the git ssh backend for pushing and pulling repositories
 is at `http://localhost:10022`.

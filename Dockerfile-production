@@ -1,0 +1,11 @@
+FROM mhart/alpine-node:latest
+
+WORKDIR /code
+
+ENV NODE_ENV production
+COPY package.json /code/package.json
+RUN npm install
+COPY ./dist /code/dist
+
+
+CMD ["npm", "start"]

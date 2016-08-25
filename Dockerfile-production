@@ -2,10 +2,17 @@ FROM mhart/alpine-node:latest
 
 WORKDIR /code
 
-ENV NODE_ENV production
+
+
 COPY package.json /code/package.json
-RUN npm install
-COPY ./dist /code/dist
+RUN npm install typescript@beta
+RUN npm install && npm ls
+
+ENV NODE_ENV production
+
+COPY . /code
+RUN npm run transpile
+RUN npm prune
 
 
 CMD ["npm", "start"]

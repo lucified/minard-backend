@@ -3,7 +3,11 @@ import { interfaces } from 'inversify';
 import * as Knex from 'knex';
 import * as winston from 'winston';
 
-import { deploymentFolderInjectSymbol } from '../deployment';
+import {
+  deploymentFolderInjectSymbol,
+  deploymentUrlPatternInjectSymbol,
+} from '../deployment';
+
 import { externalBaseUrlInjectSymbol, goodOptionsInjectSymbol, hostInjectSymbol, portInjectSymbol} from '../server';
 import { gitlabHostInjectSymbol } from '../shared/gitlab-client';
 import { loggerInjectSymbol } from '../shared/logger';
@@ -11,8 +15,7 @@ import { systemHookBaseUrlSymbol } from '../system-hook/system-hook-module';
 
 import {
   screenshotFolderInjectSymbol,
-  screenshotHostInjectSymbol,
-  screenshotPortInjectSymbol,
+  screenshotUrlPattern,
   screenshotterBaseurlInjectSymbol,
 } from '../screenshot';
 
@@ -71,15 +74,32 @@ const env = process.env;
 // General networking
 // ------------------
 
+// Host and port in which we are listening locally
 const HOST = env.HOST ? env.HOST : '0.0.0.0';
 const PORT = env.PORT ? parseInt(env.PORT, 10) : 8080;
+
+// Host and port from which charles can reach GitLab
 const GITLAB_HOST = env.GITLAB_HOST ? env.GITLAB_HOST : 'localhost';
 const GITLAB_PORT = env.GITLAB_PORT ? parseInt(env.GITLAB_PORT, 10) : 10080;
-const SYSTEMHOOK_BASEURL = env.SYSTEMHOOK_BASEURL ? env.SYSTEMHOOK_BASEURL : `http://charles.dev:${PORT}`;
-const SCREENSHOT_HOST = env.SCREENSHOT_HOST ? env.SCREENSHOT_HOST : 'charles.ldev';
-const SCREENSHOT_PORT = env.SCREENSHOT_PORT ? env.SCREENSHOT_PORT : 8080;
+
+// Base URL for systemhooks registered to GitLab. This must be an URL from
+// which GitLab can reach charles.
+const SYSTEMHOOK_BASEURL = env.SYSTEMHOOK_BASEURL ? env.SYSTEMHOOK_BASEURL : `http://charles.ldev:${PORT}`;
+
+// Base URL for the screenshotter service
 const SCREENSHOTTER_BASEURL = env.SCREENSHOTTER_BASEURL ? env.SCREENSHOTTER_BASEURL : 'http://localhost:8002';
-const EXTERNAL_BASEURL = `http://localhost:${PORT}`;
+
+// Generic external base URL for charles
+const EXTERNAL_BASEURL = env.EXTERNAL_BASEURL ? env.EXTERNAL_BASEURL : `http://localhost:${PORT}`;
+
+// URL pattern used for composing external deployment URLs
+// Users access deployments via urls matching this pattern
+const DEPLOYMENT_URL_PATTERN = env.DEPLOYMENT_URL_PATTERN ? env.DEPLOYMENT_URL_PATTERN
+  : `http://deploy-%s.charles.ldev:${PORT}`;
+
+// URL pattern used for composing deployment URLs for screenshots
+const SCREENSHOT_URL_PATTERN = env.SCREENSHOT_URL_PATTERN ? env.SCREENSHOT_URL_PATTERN
+  : `http://deploy-%s.charles.ldev:${PORT}`;
 
 // Database configuration
 // ----------------------
@@ -124,9 +144,9 @@ export default (kernel: interfaces.Kernel) => {
   kernel.bind(systemHookBaseUrlSymbol).toConstantValue(SYSTEMHOOK_BASEURL);
   kernel.bind(deploymentFolderInjectSymbol).toConstantValue(DEPLOYMENT_FOLDER);
   kernel.bind('gitlab-knex').toConstantValue(knex);
-  kernel.bind(screenshotHostInjectSymbol).toConstantValue(SCREENSHOT_HOST);
-  kernel.bind(screenshotPortInjectSymbol).toConstantValue(SCREENSHOT_PORT);
   kernel.bind(screenshotFolderInjectSymbol).toConstantValue(SCREENSHOT_FOLDER);
   kernel.bind(screenshotterBaseurlInjectSymbol).toConstantValue(SCREENSHOTTER_BASEURL);
   kernel.bind(externalBaseUrlInjectSymbol).toConstantValue(EXTERNAL_BASEURL);
+  kernel.bind(deploymentUrlPatternInjectSymbol).toConstantValue(DEPLOYMENT_URL_PATTERN);
+  kernel.bind(screenshotUrlPattern).toConstantValue(SCREENSHOT_URL_PATTERN);
 };

@@ -41,11 +41,14 @@ const getClient = () => {
 const logger = Logger(undefined, true);
 const eventBus = new EventBus();
 
+const deploymentUrlPattern = 'http://%s.localhost:8000';
+
 const getDeploymentModule = (client: GitlabClient, path: string) => new DeploymentModule(
   client,
   path,
   eventBus,
-  logger
+  logger,
+  deploymentUrlPattern,
 );
 
 const gitLabBuildsResponse = [
@@ -72,7 +75,7 @@ const gitLabBuildsResponse = [
     'runner': null,
     'stage': 'test',
     'started_at': '2015-12-24T17:54:27.722Z',
-    'status': 'failed',
+    'status': 'success',
     'tag': false,
     'user': {
       'avatar_url': 'http://www.gravatar.com/avatar/e64c7d89f26bd1972efa854d13d7dd61?s=80&d=identicon',
@@ -208,7 +211,7 @@ describe('deployment-module', () => {
     });
   });
 
-  describe('getDeployments()', () => {
+  describe('getProjectDeployments()', () => {
     it('it should work with response returning two deployments', async () => {
       // Arrange
       const gitlabClient = getClient();
@@ -218,6 +221,8 @@ describe('deployment-module', () => {
       const deployments = await deploymentModule.getProjectDeployments(1);
       // Assert
       expect(deployments!.length).equals(2);
+      expect(deployments![0].url).equals(
+        `http://master-${gitLabBuildsResponse[0].commit.short_id}-${1}-${gitLabBuildsResponse[0].id}.localhost:8000`);
       expect(deployments![0].id).equals(gitLabBuildsResponse[0].id);
       expect(deployments![1].id).equals(gitLabBuildsResponse[1].id);
     });
@@ -403,7 +408,8 @@ describe('deployment-module', () => {
         gitlabClient,
         deploymentsDir,
         bus,
-        logger
+        logger,
+        deploymentUrlPattern,
       );
       expect(deploymentModule.getDeploymentPath(1, 1)).to.exist;
 

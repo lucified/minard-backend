@@ -23,6 +23,14 @@ Since it's all Docker, just run the following in the project root:
 docker-compose up
 ```
 
+Alternatively you can run the following script, which will take care
+of stopping any previous `docker-compose` and clean up some runner-related
+temporary files.
+
+```
+./compose-all
+```
+
 After the bootup process completes, which can take a while, you can login to GitLab at
 `http://localhost:10080`. Similarly, the git ssh backend for pushing and pulling repositories
 is at `http://localhost:10022`.
@@ -152,8 +160,33 @@ To get continous transpilation, run the following in the project root (in anothe
 tsc -w
 ```
 
+## Deployment
+
+If not installed, install ecs-upd8r
+```bash
+npm install ecs-upd8r
+```
+
+Run the deployment with:
+```bash
+AWS_PROFILE=lucify-protected npm run-script deploy
+```
+For this to work, you must have the `lucify-protected` profile
+configured in your AWS credentials (`~/.aws/credentials`).
+
 ## Debugging
 
 A launch configuration for debugging in Visual Studio Code is included under `.vscode`.
 If the server has was started with `npm run dev`, the debugger should be able to attach
 to the process.
+
+## Monitoring
+
+A simple monitoring endpoint is available at `/status`.
+
+## Maintenance tasks
+
+You can trigger checking of screenshots by going to the url `/operations/screenshots`.
+This will make sure that all successful and extracted deployments have screenshots.
+Normally screenshots are generated after each deployment, but this maintenance task
+may sometimes be useful.

@@ -18,8 +18,7 @@ const logger = Logger(undefined, true);
 
 describe('screenshot-module', () => {
 
-  const host = 'localhost';
-  const port = 80;
+  const screenshotUrlPattern = 'http://%s.localhost:8000';
   const projectId = 4;
   const deploymentId = 12;
 
@@ -27,7 +26,7 @@ describe('screenshot-module', () => {
     it('should take screenshot when receiving deployment event with status "extracted"', () => {
       // Arrange
       const bus = new LocalEventBus();
-      const screenshotModule = new ScreenshotModule(bus, logger, host, port, {} as any, '', '');
+      const screenshotModule = new ScreenshotModule(bus, logger, screenshotUrlPattern, {} as any, '', '');
       let called = false;
       screenshotModule.takeScreenshot = async (_projectId, _deploymentId) => {
         expect(_projectId).to.equal(projectId);
@@ -48,7 +47,7 @@ describe('screenshot-module', () => {
     it('should not take screenshot on other deployment events', () => {
       // Arrange
       const bus = new LocalEventBus();
-      const screenshotModule = new ScreenshotModule(bus, logger, host, port, {} as any, '', '');
+      const screenshotModule = new ScreenshotModule(bus, logger, screenshotUrlPattern, {} as any, '', '');
       screenshotModule.takeScreenshot = async (_projectId, _deploymentId) => {
         expect.fail('Should not take screenshot');
       };
@@ -64,7 +63,7 @@ describe('screenshot-module', () => {
       // Arrange
       const failProjectId = 5;
       const bus = new LocalEventBus();
-      const screenshotModule = new ScreenshotModule(bus, logger, host, port, {} as any, '', '');
+      const screenshotModule = new ScreenshotModule(bus, logger, screenshotUrlPattern, {} as any, '', '');
       let called = false;
       screenshotModule.takeScreenshot = async (_projectId, _deploymentId) => {
         if (_projectId === failProjectId) {
@@ -107,7 +106,7 @@ describe('screenshot-module', () => {
       } as Screenshotter;
 
       const bus = new LocalEventBus();
-      const screenshotModule = new ScreenshotModule(bus, logger, host, port, webshot, '', baseUrl);
+      const screenshotModule = new ScreenshotModule(bus, logger, screenshotUrlPattern, webshot, '', baseUrl);
 
       // Act
       const publicUrl = await screenshotModule.takeScreenshot(projectId, deploymentId);
@@ -115,7 +114,7 @@ describe('screenshot-module', () => {
       // Assert
       expect(url).to.exist;
       expect(path).to.exist;
-      expect(url).to.equal(`http://deploy-4-12.${host}:${port}`);
+      expect(url).to.equal(`http://4-12.localhost:8000`);
       expect(publicUrl).to.equal(`${baseUrl}/screenshot/${projectId}/${deploymentId}`);
     });
     it('should post event', async () => {
@@ -126,7 +125,7 @@ describe('screenshot-module', () => {
         },
       } as Screenshotter;
       const bus = new LocalEventBus();
-      const screenshotModule = new ScreenshotModule(bus, logger, host, port, webshot, '', baseUrl);
+      const screenshotModule = new ScreenshotModule(bus, logger, screenshotUrlPattern, webshot, '', baseUrl);
 
       // Act
       screenshotModule.takeScreenshot(projectId, deploymentId);
@@ -148,7 +147,7 @@ describe('screenshot-module', () => {
     it('should return true when screenshot exists', async () => {
       const bus = new LocalEventBus();
       const screenshotModule = new ScreenshotModule(
-        bus, {} as any, '', 0, {} as any, 'src/screenshot/test-data', '');
+        bus, {} as any, '', {} as any, 'src/screenshot/test-data', '');
       const has = await screenshotModule.deploymentHasScreenshot(2, 3);
       expect(has).to.equal(true);
     });
@@ -156,7 +155,7 @@ describe('screenshot-module', () => {
     it('should return false when screenshot does not exist', async () => {
       const bus = new LocalEventBus();
       const screenshotModule = new ScreenshotModule(
-        bus, {} as any, '', 0, {} as any, 'src/screenshot/test-data', '');
+        bus, {} as any, '', {} as any, 'src/screenshot/test-data', '');
       const has = await screenshotModule.deploymentHasScreenshot(2, 4);
       expect(has).to.equal(false);
     });

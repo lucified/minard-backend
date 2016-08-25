@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import { inject, injectable } from 'inversify';
 import * as os from 'os';
 import * as path from 'path';
+import { sprintf } from 'sprintf-js';
 
 import { EventBus, eventBusInjectSymbol } from '../event-bus';
 import { GitlabClient } from '../shared/gitlab-client';
@@ -17,6 +18,7 @@ import {
   DeploymentStatus,
   MinardDeployment,
   createDeploymentEvent,
+  deploymentUrlPatternInjectSymbol,
 } from './types';
 
 const mkpath = require('mkpath');
@@ -59,8 +61,9 @@ export default class DeploymentModule {
   private readonly gitlab: GitlabClient;
   private readonly deploymentFolder: string;
   private readonly logger: logger.Logger;
+  private readonly urlPattern: string;
+  private readonly eventBus: EventBus;
 
-  private eventBus: EventBus;
   private buildToProject = new Map<number, number>();
   private events: rx.Observable<DeploymentEvent>;
 
@@ -68,12 +71,13 @@ export default class DeploymentModule {
     @inject(GitlabClient.injectSymbol) gitlab: GitlabClient,
     @inject(deploymentFolderInjectSymbol) deploymentFolder: string,
     @inject(eventBusInjectSymbol) eventBus: EventBus,
-    @inject(logger.loggerInjectSymbol) logger: logger.Logger) {
+    @inject(logger.loggerInjectSymbol) logger: logger.Logger,
+    @inject(deploymentUrlPatternInjectSymbol) urlPattern: string) {
     this.gitlab = gitlab;
     this.deploymentFolder = deploymentFolder;
     this.logger = logger;
     this.eventBus = eventBus;
-
+    this.urlPattern = urlPattern;
     this.events = eventBus
       .filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
       .map(e => e.payload);
@@ -106,10 +110,10 @@ export default class DeploymentModule {
     return status === 'success' || status === 'failed' || status === 'canceled';
   }
 
-  private async getDeployments(url: string): Promise<MinardDeployment[]> {
+  private async getDeployments(projectId: number, url: string): Promise<MinardDeployment[]> {
     try {
       const res = await this.gitlab.fetchJson<Deployment[]>(url);
-      return res.map(this.toMinardModelDeployment);
+      return res.map(deployment => this.toMinardModelDeployment(deployment, projectId));
     } catch (err) {
       if (err.response && err.response.status === 404) {
         return [];
@@ -119,7 +123,7 @@ export default class DeploymentModule {
   }
 
   public async getProjectDeployments(projectId: number): Promise<MinardDeployment[]> {
-    return this.getDeployments(`projects/${projectId}/builds`);
+    return this.getDeployments(projectId, `projects/${projectId}/builds`);
   };
 
   public async getBranchDeployments(projectId: number, branchName: string): Promise<MinardDeployment[]> {
@@ -163,8 +167,9 @@ export default class DeploymentModule {
     ret.commitRef = deployment.commit;
     delete (<any> ret).commit;
     if (ret.status === 'success') {
-      (<any> ret).url = `http://${deployment.ref}-` +
-        `${deployment.commit.short_id}-${projectId}-${deployment.id}.localhost:8000`;
+      (<any> ret).url = sprintf(
+        this.urlPattern,
+        `${deployment.ref}-${deployment.commit.short_id}-${projectId}-${deployment.id}`);
     }
     return ret;
   }

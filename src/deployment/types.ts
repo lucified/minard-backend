@@ -1,6 +1,8 @@
 import { eventCreator } from '../shared/events';
 import { Deployment, DeploymentStatus } from '../shared/gitlab';
 
+export const deploymentUrlPatternInjectSymbol = Symbol('deployment-url-pattern');
+
 export type Deployment = Deployment;
 export type DeploymentStatus = DeploymentStatus;
 

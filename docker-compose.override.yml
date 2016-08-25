@@ -56,5 +56,3 @@ services:
       - PASS=newpass
     logging:
       driver: none
-
-

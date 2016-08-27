@@ -4,7 +4,7 @@ export interface ProjectCreatedEvent {
   projectId: number;
   teamId: number;
   name: string;
-  description: string;
+  description?: string;
 }
 
 export const PROJECT_CREATED_EVENT_TYPE = 'PROJECT_CREATED';

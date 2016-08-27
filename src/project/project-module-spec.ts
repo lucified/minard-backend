@@ -462,7 +462,6 @@ describe('project-module', () => {
           expect(event.payload.name).to.equal(name);
           called = true;
         });
-      console.log({ id: projectId, path });
       const projectModule = arrangeProjectModule(201, { id: projectId, path }, bus);
 
       // Act

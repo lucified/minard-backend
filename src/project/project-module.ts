@@ -17,6 +17,7 @@ import {
   MinardProject,
   projectCreated,
   projectDeleted,
+  projectEdited,
 } from './types';
 
 import { AuthenticationModule } from '../authentication';
@@ -233,6 +234,40 @@ export default class ProjectModule {
     }
   }
 
+  public async editGitLabProject(projectId: number, attributes: { name?: string, description?: string}) {
+    const params = {
+      name: attributes.name,
+      path: attributes.name,
+      description: attributes.description,
+    };
+    const res = await this.gitlab.fetchJsonAnyStatus<any>(
+      `projects/${projectId}`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params),
+      }
+    );
+    if (res.status === 404) {
+      this.logger.warn(`Attempted to edit project ${projectId} which does not exists (according to GitLab)`);
+      throw Boom.notFound('Project not found');
+    }
+    if (res.status !== 200) {
+      this.logger.error(`Unexpected status code ${res.status} when editing project ${projectId}`);
+      throw Boom.badGateway();
+    }
+    if (res.json.id !== projectId
+      || res.json.path !== attributes.name
+      || res.json.name !== attributes.name
+      || res.json.description !== attributes.description) {
+      this.logger.error(
+        `Unexpected status code ${res.status} when editing project ${projectId}`,
+        { projectId, attributes, res }
+      );
+      throw Boom.badGateway();
+    }
+  }
+
   public async deleteProject(projectId: number): Promise<void> {
     await this.deleteGitLabProject(projectId);
     this.eventBus.post(projectDeleted({
@@ -249,6 +284,15 @@ export default class ProjectModule {
       teamId,
     }));
     return project.id;
+  }
+
+  public async editProject(projectId: number, attributes: { name?: string, description?: string}) {
+    await this.editGitLabProject(projectId, attributes);
+    this.eventBus.post(projectEdited({
+      projectId,
+      name: attributes.name,
+      description: attributes.description,
+    }));
   }
 
 }

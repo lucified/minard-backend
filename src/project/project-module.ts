@@ -6,6 +6,7 @@ import * as moment from 'moment';
 
 import { GitlabClient } from '../shared/gitlab-client';
 import { Commit } from '../shared/gitlab.d.ts';
+import * as logger from '../shared/logger';
 import { MINARD_ERROR_CODE } from '../shared/minard-error';
 
 import {
@@ -16,11 +17,12 @@ import {
   projectCreated,
 } from './types';
 
-// only for types
 import { AuthenticationModule } from '../authentication';
 import { EventBus, eventBusInjectSymbol } from '../event-bus/';
 import { Project } from '../shared/gitlab.d.ts';
 import { SystemHookModule } from '../system-hook';
+
+const urlEncoded = require('form-urlencoded');
 
 export function findActiveCommitters(branches: MinardBranch[]): MinardCommitAuthor[] {
   const commits = flatMap(branches,
@@ -38,16 +40,19 @@ export default class ProjectModule {
   private systemHookModule: SystemHookModule;
   private eventBus: EventBus;
   private gitlab: GitlabClient;
+  private readonly logger: logger.Logger;
 
   constructor(
     @inject(AuthenticationModule.injectSymbol) authenticationModule: AuthenticationModule,
     @inject(SystemHookModule.injectSymbol) systemHookModule: SystemHookModule,
     @inject(eventBusInjectSymbol) eventBus: EventBus,
-    @inject(GitlabClient.injectSymbol) gitlab: GitlabClient) {
+    @inject(GitlabClient.injectSymbol) gitlab: GitlabClient,
+    @inject(logger.loggerInjectSymbol) logger: logger.Logger) {
     this.authenticationModule = authenticationModule;
     this.systemHookModule = systemHookModule;
     this.eventBus = eventBus;
     this.gitlab = gitlab;
+    this.logger = logger;
   }
 
   public toMinardCommit(gitlabCommit: Commit): MinardCommit {
@@ -178,6 +183,43 @@ export default class ProjectModule {
 
   private getSystemHookPath() {
     return `/project/hook`;
+  }
+
+  private async createGitlabProject(teamId: number, path: string, description?: string): Promise<Project> {
+    const params = {
+      name: path,
+      path,
+      public: false,
+      description,
+      // In GitLab, the namespace_id is either an user id or a group id
+      // those id's do not overlap. Here we set it as the teamId, which
+      // corresponds to GitLab teamId:s
+      namespace_id: teamId,
+    };
+
+    const res = await this.gitlab.fetchJsonAnyStatus<any>(`projects?${urlEncoded(params)}`, { method: 'POST' });
+    if (res.json && res.json.message && res.json.message.path[0] === 'has already been taken') {
+      throw Boom.badRequest('Name is already taken', 'name-already-taken');
+    }
+    if (res.status !== 201 || !res.json) {
+      this.logger.error('Project creation failed for unexpected reason', res);
+      throw Boom.badImplementation();
+    }
+    const project = res.json as Project;
+    if (!project.id) {
+      this.logger.error('Unexpected response from Gitlab when creating project: id is missing.', project);
+      throw Boom.badImplementation();
+    }
+    if (project.path !== path) {
+      this.logger.error('Unexpected response from Gitlab when creating project: project path is incorrect', project);
+      throw Boom.badImplementation();
+    }
+    return project;
+  }
+
+  public async createProject(teamId: number, path: string, description: string): Promise<number> {
+    const project = await this.createGitlabProject(teamId, path, description);
+    return project.id;
   }
 
 }

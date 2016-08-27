@@ -102,7 +102,7 @@ export class GitlabClient {
     const _options = await this.authenticate(options);
     this.log(`GitlabClient: sending request to ${url}`);
     const response = await this._fetch(url, _options);
-    if (response.status !== 200) {
+    if (response.status !== 200 && response.status !== 201) {
       throw Boom.create(response.status);
     }
     if (this._logging) {
@@ -112,5 +112,47 @@ export class GitlabClient {
     const json = await response.json<T>();
     return json;
   }
+
+  /*
+   * Fetch json and try to parse it regardless of status code
+   */
+  public async fetchJsonAnyStatus<T>(
+    path: string, options?:
+    RequestInit,
+    logErrors: boolean = true
+    ): Promise<{status: number, json: T | undefined}> {
+    const timerId = this._logging ? randomstring.generate() : null;
+    if (this._logging) {
+      perfy.start(timerId);
+    }
+    const url = this.url(path);
+    const _options = await this.authenticate(options);
+    this.log(`GitlabClient: sending request to ${url}`);
+
+    let res: IResponse;
+    try {
+      res = await this._fetch(url, _options);
+    } catch (err) {
+      if (logErrors) { this.logger.error(err.message, err); }
+      throw Boom.badImplementation();
+    }
+
+    if (this._logging) {
+      const timerResult = perfy.end(timerId);
+      this.log(`GitlabClient: received response ${res.status} from ${url} in ${timerResult.time} secs.`);
+    }
+
+    let json: T | undefined;
+    try {
+      json = await res.json();
+    } catch (err) {
+      json = undefined;
+    }
+    return {
+      status: res.status,
+      json,
+    };
+  }
+
 
 }

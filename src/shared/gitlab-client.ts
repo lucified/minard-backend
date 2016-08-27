@@ -117,8 +117,8 @@ export class GitlabClient {
    * Fetch json and try to parse it regardless of status code
    */
   public async fetchJsonAnyStatus<T>(
-    path: string, options?:
-    RequestInit,
+    path: string,
+    options?: RequestInit,
     logErrors: boolean = true
     ): Promise<{status: number, json: T | undefined}> {
     const timerId = this._logging ? randomstring.generate() : null;
@@ -153,6 +153,5 @@ export class GitlabClient {
       json,
     };
   }
-
 
 }

@@ -7,9 +7,18 @@ import { EventBus, LocalEventBus } from '../event-bus';
 import { GitlabClient } from '../shared/gitlab-client';
 import Logger from '../shared/logger';
 import SystemHookModule from '../system-hook/system-hook-module';
-import { MinardBranch, MinardCommit, MinardProject,
-  PROJECT_CREATED_EVENT_TYPE, ProjectModule, findActiveCommitters } from './';
+
 import { expect } from 'chai';
+
+import ProjectModule, { findActiveCommitters } from './project-module';
+
+import {
+  MinardBranch,
+  MinardCommit,
+  MinardProject,
+  PROJECT_CREATED_EVENT_TYPE,
+  ProjectCreatedEvent,
+} from './types';
 
 const fetchMock = require('fetch-mock');
 const urlEncoded = require('form-urlencoded');
@@ -28,36 +37,6 @@ const getClient = () => {
 };
 
 describe('project-module', () => {
-  it('receiveHook', (done) => {
-
-    const eventBus = new LocalEventBus();
-    const projectModule = new ProjectModule(
-      {} as AuthenticationModule,
-      {} as SystemHookModule,
-      eventBus,
-      {} as GitlabClient,
-      logger);
-
-    eventBus.subscribe(event => {
-      expect(event.type).to.equal(PROJECT_CREATED_EVENT_TYPE);
-      expect(event.payload.projectId).to.equal(74);
-      done();
-    });
-
-    const userCreated = {
-      'created_at': '2012-07-21T07:30:54Z',
-      'updated_at': '2012-07-21T07:38:22Z',
-      'event_name': 'project_create',
-      'name': 'StoreCloud',
-      'owner_email': 'johnsmith@gmail.com',
-      'owner_name': 'John Smith',
-      'path': 'storecloud',
-      'path_with_namespace': 'jsmith/storecloud',
-      'project_id': 74,
-      'project_visibility': 'private',
-    };
-    projectModule.receiveHook(userCreated);
-  });
 
   describe('toMinardCommit()', () => {
     it('should correctly convert commit with separate author and committer', () => {
@@ -473,7 +452,16 @@ describe('project-module', () => {
 
     it('should work when gitlab project creation is successful', async () => {
       // Arrange
+      let called = false;
       const bus = new LocalEventBus();
+      bus.filterEvents<ProjectCreatedEvent>(PROJECT_CREATED_EVENT_TYPE)
+        .subscribe(event => {
+          expect(event.payload.description).to.equal(description);
+          expect(event.payload.projectId).to.equal(projectId);
+          expect(event.payload.teamId).to.equal(teamId);
+          expect(event.payload.name).to.equal(name);
+          called = true;
+        });
       console.log({ id: projectId, path });
       const projectModule = arrangeProjectModule(201, { id: projectId, path }, bus);
 
@@ -482,9 +470,10 @@ describe('project-module', () => {
 
       // Assert
       expect(id).to.equal(projectId);
+      expect(called).to.equal(true);
     });
 
-    it('should throw server errow when gitlab response status is not 201', async () => {
+    it('should throw server error when gitlab response status is not 201', async () => {
       // Arrange
       const projectModule = arrangeProjectModule(200, { id: projectId, path });
 

@@ -173,12 +173,7 @@ export default class ProjectModule {
   }
 
   public receiveHook(payload: any) {
-    if (payload.event_name === 'project_create') {
-      this.eventBus.post(projectCreated({
-        projectId: payload.project_id,
-        pathWithNameSpace: payload.path_with_namespac,
-      }));
-    }
+    // TODO: handle push events
   }
 
   private getSystemHookPath() {
@@ -217,8 +212,14 @@ export default class ProjectModule {
     return project;
   }
 
-  public async createProject(teamId: number, path: string, description: string): Promise<number> {
-    const project = await this.createGitlabProject(teamId, path, description);
+  public async createProject(teamId: number, name: string, description: string): Promise<number> {
+    const project = await this.createGitlabProject(teamId, name, description);
+    this.eventBus.post(projectCreated({
+      projectId: project.id,
+      description,
+      name,
+      teamId,
+    }));
     return project.id;
   }
 

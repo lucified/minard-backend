@@ -38,9 +38,6 @@ function onPreResponse(request: Hapi.Request, reply: Hapi.IReply) {
     };
     applyHeaders(output);
   } else {
-    if (response.source) {
-      response.source.meta = { id: request.id };
-    }
     applyHeaders(response);
   }
   return reply.continue();

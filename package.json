@@ -5,6 +5,7 @@
   "main": "server.js",
   "dependencies": {
     "@reactivex/rxjs": "^5.0.0-beta.10",
+    "@types/hapi": "^13.0.34",
     "adm-zip": "^0.4.7",
     "bluebird": "^3.4.1",
     "boom": "^3.2.2",

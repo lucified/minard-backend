@@ -7,9 +7,17 @@ export interface ProjectCreatedEvent {
   description?: string;
 }
 
+export interface ProjectDeletedEvent {
+  projectId: number;
+}
+
 export const PROJECT_CREATED_EVENT_TYPE = 'PROJECT_CREATED';
 export const projectCreated =
   eventCreator<ProjectCreatedEvent>(PROJECT_CREATED_EVENT_TYPE);
+
+export const PROJECT_DELETED_EVENT_TYPE = 'PROJECT_DELETED';
+export const projectDeleted =
+  eventCreator<ProjectDeletedEvent>(PROJECT_DELETED_EVENT_TYPE);
 
 export interface MinardProjectPlain {
   name: string;

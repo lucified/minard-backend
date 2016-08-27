@@ -123,9 +123,21 @@ export class JsonApiHapiPlugin {
       config: {
         validate: {
           payload: {
-            name: Joi.string().regex(projectNameRegex).required(),
-            description: Joi.string(),
-            teamId: Joi.number(),
+            data: Joi.object({
+              type: Joi.string().equal('projects').required(),
+              attributes: Joi.object({
+                name: Joi.string().regex(projectNameRegex).required(),
+                description: Joi.string(),
+              }).required(),
+              relationships: Joi.object({
+                team: Joi.object({
+                  data: Joi.object({
+                    type: Joi.string().equal('teams').required(),
+                    id: Joi.number().required(),
+                  }).required(),
+                }).required(),
+              }).required(),
+            }).required(),
           },
         },
       },
@@ -208,7 +220,8 @@ export class JsonApiHapiPlugin {
   }
 
   private async postProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const { teamId, name, description } = request.payload;
+    const { name, description } = request.payload.data.attributes;
+    const teamId = request.payload.data.relationships.team.data.id;
     const project = await this.factory().createProject(teamId, name, description);
     return reply(serializeApiEntity('project', project))
       .created(`/api/projects/${project.id}`);

@@ -125,9 +125,18 @@ describe('json-api-hapi-plugin', () => {
         method: 'POST',
         url: 'http://foo.com/projects',
         payload: {
-          teamId,
-          name,
-          description,
+          data: {
+            type: 'projects',
+            attributes: {
+              name,
+              description,
+            },
+            relationships: {
+              team: {
+                data: { id: teamId, type: 'teams' },
+              },
+            },
+          },
         },
       };
       return await server.inject(options);

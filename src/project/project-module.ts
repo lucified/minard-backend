@@ -212,7 +212,7 @@ export default class ProjectModule {
     return project;
   }
 
-  public async createProject(teamId: number, name: string, description: string): Promise<number> {
+  public async createProject(teamId: number, name: string, description?: string): Promise<number> {
     const project = await this.createGitlabProject(teamId, name, description);
     this.eventBus.post(projectCreated({
       projectId: project.id,

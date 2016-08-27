@@ -141,6 +141,21 @@ export class JsonApiHapiPlugin {
     });
 
     server.route({
+      method: 'DELETE',
+      path: '/projects/{projectId}',
+      handler: {
+        async: this.deleteProjectHandler.bind(this),
+      },
+      config: {
+        validate: {
+          params: {
+            projectId: Joi.number().required(),
+          },
+        },
+      },
+    });
+
+    server.route({
       method: 'GET',
       path: '/teams/{teamId}/projects',
       handler: {
@@ -222,6 +237,12 @@ export class JsonApiHapiPlugin {
     const project = await this.factory().createProject(teamId, name, description);
     return reply(serializeApiEntity('project', project))
       .created(`/api/projects/${project.id}`);
+  }
+
+  private async deleteProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    const projectId = (<any> request.params).projectId;
+    await this.factory().deleteProject(projectId);
+    return reply({});
   }
 
   private async getDeploymentHandler(request: Hapi.Request, reply: Hapi.IReply) {

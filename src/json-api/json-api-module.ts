@@ -80,6 +80,10 @@ export class JsonApiModule {
     return project;
   }
 
+  public async deleteProject(projectId: number) {
+    await this.projectModule.deleteProject(projectId);
+  }
+
   public async getProjects(teamId: number): Promise<ApiProject[] | null> {
     const projects = await this.projectModule.getProjects(teamId);
     const promises = projects.map((project: MinardProject) => this.toApiProject(project));

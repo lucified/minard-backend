@@ -62,6 +62,8 @@ export function parseActivityFilter(filter: string | null) {
 
 type apiReturn = Promise<ApiEntity | ApiEntities | null>;
 
+const projectNameRegex = /^[\w|\-]+$/;
+
 @injectable()
 export class JsonApiHapiPlugin {
 
@@ -107,6 +109,23 @@ export class JsonApiHapiPlugin {
         validate: {
           params: {
             projectId: Joi.number().required(),
+          },
+        },
+      },
+    });
+
+    server.route({
+      method: 'POST',
+      path: '/projects',
+      handler: {
+        async: this.postProjectHandler.bind(this),
+      },
+      config: {
+        validate: {
+          payload: {
+            name: Joi.string().regex(projectNameRegex).required(),
+            description: Joi.string(),
+            teamId: Joi.number(),
           },
         },
       },
@@ -186,6 +205,13 @@ export class JsonApiHapiPlugin {
   private async getProjectsHandler(_request: Hapi.Request, reply: Hapi.IReply) {
     // TODO: parse team information
     return reply(this.getEntity('project', api => api.getProjects(1)));
+  }
+
+  private async postProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    const { teamId, name, description } = request.payload;
+    const project = await this.factory().createProject(teamId, name, description);
+    return reply(serializeApiEntity('project', project))
+      .created(`/api/projects/${project.id}`);
   }
 
   private async getDeploymentHandler(request: Hapi.Request, reply: Hapi.IReply) {

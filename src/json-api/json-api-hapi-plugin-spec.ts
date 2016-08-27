@@ -3,6 +3,7 @@ import { expect } from 'chai';
 import 'reflect-metadata';
 import Hapi = require('hapi');
 
+import { MINARD_ERROR_CODE } from '../shared/minard-error';
 import { JsonApiHapiPlugin, parseActivityFilter } from './json-api-hapi-plugin';
 
 const hapiAsyncHandler = require('hapi-async-handler');
@@ -103,6 +104,87 @@ describe('json-api-hapi-plugin', () => {
       const filterOptions = parseActivityFilter('');
       expect(filterOptions.projectId).to.equal(null);
     });
+  });
+
+  describe('POST "/projects"', () => {
+    const projectId = 4;
+    async function injectRequest(teamId: any, name: string, description: string | undefined) {
+      const mockFactory = () => ({
+        createProject: async (_teamId: number, _name: string, _description: string) => {
+          return {
+            id: projectId,
+            teamId: _teamId,
+            name: _name,
+            description: _description,
+          };
+        },
+      });
+      const plugin = new JsonApiHapiPlugin(mockFactory as any);
+      const server = await provisionServer(plugin);
+      const options: Hapi.IServerInjectOptions = {
+        method: 'POST',
+        url: 'http://foo.com/projects',
+        payload: {
+          teamId,
+          name,
+          description,
+        },
+      };
+      return await server.inject(options);
+    }
+
+    it('should create project with valid arguments', async() => {
+      // Arrange & Act
+      const teamId = 5;
+      const name = 'foo-bar';
+      const description = 'foo project';
+      const ret = await injectRequest(teamId, name, description);
+      // Assert
+      expect(ret).to.exist;
+      const parsed = JSON.parse(ret.payload);
+      expect(ret.statusCode).to.equal(201);
+      expect(parsed.data.type).to.equal('projects');
+      expect(parsed.data.id).to.equal(String(projectId));
+      expect(parsed.data.attributes.name).to.equal(name);
+      expect(parsed.data.attributes.description).to.equal(description);
+    });
+
+    it('should create project when no description is provided', async() => {
+      const ret = await injectRequest(5, 'foo-bar', undefined);
+      expect(ret).to.exist;
+      expect(ret.statusCode).to.equal(201);
+    });
+
+    it('should respond with BAD_REQUEST when project name has whitespace', async() => {
+      const ret = await injectRequest(5, 'foo bar', undefined);
+      expect(ret).to.exist;
+      expect(ret.statusCode).to.equal(MINARD_ERROR_CODE.BAD_REQUEST);
+    });
+
+    it('should respond with BAD_REQUEST when project name has a special character', async() => {
+      const ret = await injectRequest(5, 'foo%bar', undefined);
+      expect(ret).to.exist;
+      expect(ret.statusCode).to.equal(MINARD_ERROR_CODE.BAD_REQUEST);
+    });
+
+    it('should respond with BAD_REQUEST when project name is undefined', async() => {
+      const ret = await injectRequest(5, 'foo%bar', undefined);
+      expect(ret).to.exist;
+      expect(ret.statusCode).to.equal(MINARD_ERROR_CODE.BAD_REQUEST);
+    });
+
+    it('should respond with BAD_REQUEST when team id is undefined', async() => {
+      const ret = await injectRequest(undefined, 'foo%bar', undefined);
+      expect(ret).to.exist;
+      expect(ret.statusCode).to.equal(MINARD_ERROR_CODE.BAD_REQUEST);
+    });
+
+    it('should respond with BAD_REQUEST when team id is not a number', async() => {
+      const ret = await injectRequest('foo5', 'foo-bar', undefined);
+      expect(ret).to.exist;
+      expect(ret.statusCode).to.equal(MINARD_ERROR_CODE.BAD_REQUEST);
+    });
+
   });
 
 });

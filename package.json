@@ -37,6 +37,7 @@
   "devDependencies": {
     "@types/boom": "0.0.29",
     "@types/chai": "^3.4.28",
+    "@types/chalk": "^0.4.28",
     "@types/hapi": "^13.0.34",
     "@types/isomorphic-fetch": "0.0.27",
     "@types/joi": "^9.0.29",
@@ -47,18 +48,20 @@
     "@types/winston": "0.0.27",
     "@types/wreck": "^7.0.27",
     "chai": "^3.5.0",
+    "child_process": "^1.0.2",
     "fetch-mock": "^5.0.3",
     "inversify-dts": "^1.4.0",
     "mocha": "^2.5.3",
     "mocha-typescript": "^1.0.4",
     "rimraf": "^2.5.4",
     "sqlite3": "^3.1.4",
-    "ts-node": "^1.2.2",
-    "typescript": "^2.0.0"
+    "ts-node": "^1.2.2"
   },
   "scripts": {
     "clean-test": "rm -rf dist && npm run-script transpile && mocha ./dist/**/*-spec.js",
     "test": "mocha --opts mocha.opts",
+    "system-test-mocha": "mocha --opts mocha-integration.opts",
+    "system-test": "src/integration-test/system-integration-tests",
     "dot-test": "mocha --opts mocha.opts --reporter dot",
     "dev": "npm run transpile && node-dev --debug=${DEBUG_PORT:-5858} --nolazy dist/app.js",
     "start": "node dist/app.js",

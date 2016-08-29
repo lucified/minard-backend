@@ -82,9 +82,12 @@ const PORT = env.PORT ? parseInt(env.PORT, 10) : 8080;
 const GITLAB_HOST = env.GITLAB_HOST ? env.GITLAB_HOST : 'localhost';
 const GITLAB_PORT = env.GITLAB_PORT ? parseInt(env.GITLAB_PORT, 10) : 10080;
 
+// Host loopback IP, used only for local development to define other environment variables
+const HOST_LOOPBACK_IP = process.env.HOST_LOOPBACK_IP;
+
 // Base URL for systemhooks registered to GitLab. This must be an URL from
 // which GitLab can reach charles.
-const SYSTEMHOOK_BASEURL = env.SYSTEMHOOK_BASEURL ? env.SYSTEMHOOK_BASEURL : `http://charles.ldev:${PORT}`;
+const SYSTEMHOOK_BASEURL = env.SYSTEMHOOK_BASEURL ? env.SYSTEMHOOK_BASEURL : `http://${HOST_LOOPBACK_IP}:${PORT}`;
 
 // Base URL for the screenshotter service
 const SCREENSHOTTER_BASEURL = env.SCREENSHOTTER_BASEURL ? env.SCREENSHOTTER_BASEURL : 'http://localhost:8002';
@@ -95,11 +98,11 @@ const EXTERNAL_BASEURL = env.EXTERNAL_BASEURL ? env.EXTERNAL_BASEURL : `http://l
 // URL pattern used for composing external deployment URLs
 // Users access deployments via urls matching this pattern
 const DEPLOYMENT_URL_PATTERN = env.DEPLOYMENT_URL_PATTERN ? env.DEPLOYMENT_URL_PATTERN
-  : `http://deploy-%s.charles.ldev:${PORT}`;
+  : `http://deploy-%s.${HOST_LOOPBACK_IP}.xip.io:${PORT}`;
 
 // URL pattern used for composing deployment URLs for screenshots
 const SCREENSHOT_URL_PATTERN = env.SCREENSHOT_URL_PATTERN ? env.SCREENSHOT_URL_PATTERN
-  : `http://deploy-%s.charles.ldev:${PORT}`;
+  : `http://deploy-%s.${HOST_LOOPBACK_IP}.xip.io:${PORT}`;
 
 // Database configuration
 // ----------------------

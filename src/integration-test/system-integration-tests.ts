@@ -7,6 +7,7 @@ import 'isomorphic-fetch';
 
 import { expect } from 'chai';
 import { spawn } from 'child_process';
+import * as fs from 'fs';
 import { keys } from 'lodash';
 
 import { JsonApiEntity, JsonApiResponse } from '../json-api';
@@ -61,7 +62,7 @@ describe('system-integration', () => {
 
   it('status should be ok', async function() {
     logTitle('Checking that status is ok');
-    this.timeout(1000 * 60 * 5);
+    this.timeout(1000 * 60 * 15);
     const url = `${charles}/status`;
     log(`Requesting status from ${prettyUrl(url)}`);
     let statusOk = false;
@@ -157,10 +158,10 @@ describe('system-integration', () => {
     logTitle(`Committing code to repo`);
     const repoFolder = 'src/integration-test/blank';
     this.timeout(1000 * 20);
-    await runCommand('rm', '-rf', 'src/integration-test/blank/.git');
-    await runCommand('git', '-C', repoFolder, 'init');
-    await runCommand('git', '-C', repoFolder, 'add', '-A', '.');
-    await runCommand('git', '-C', repoFolder, 'commit', '-m', '"test commit"');
+
+    const credentialsFileContent = gitlab.replace(/:(\d+)$/gi, '%3a$1').replace('//', '//root:12345678@') + '\n';
+    fs.writeFileSync(`/tmp/git-credentials`, credentialsFileContent, 'utf-8');
+    await runCommand('src/integration-test/setup-repo');
     await runCommand('git', '-C', repoFolder, 'remote', 'add', 'minard', `${gitlab}/root/${projectName}.git`);
     await runCommand('git', '-C', repoFolder, 'push', 'minard', 'master');
   });
@@ -255,7 +256,7 @@ describe('system-integration', () => {
 
   it('cleanup repository', async function() {
     // not a real test, just cleaning up
-    await runCommand('rm', '-rf', 'src/integration-test/blank/.git');
+    // await runCommand('rm', '-rf', 'src/integration-test/blank/.git');
   });
 
 });

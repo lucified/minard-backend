@@ -17,7 +17,7 @@ RUN npm install -g node-gyp
 RUN npm install -g node-dev typescript@beta
 
 COPY package.json /code/package.json
-RUN npm install && npm link typescript && npm ls
+RUN npm install && npm link typescript
 
 COPY . /code
 RUN npm run transpile

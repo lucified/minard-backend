@@ -14,8 +14,8 @@ import { JsonApiEntity, JsonApiResponse } from '../json-api';
 
 import * as chalk from 'chalk';
 
-const charles = 'http://localhost:8000';
-const gitlab = 'http://localhost:10080'; // needed for pushing to repo
+const charles = process.env.CHARLES ? process.env.CHARLES : 'http://localhost:8000';
+const gitserver = process.env.MINARD_GIT_SERVER ? process.env.MINARD_GIT_SERVER : 'http://localhost:10080';
 
 function sleep(ms = 0) {
   return new Promise(r => setTimeout(r, ms));
@@ -159,10 +159,10 @@ describe('system-integration', () => {
     const repoFolder = 'src/integration-test/blank';
     this.timeout(1000 * 20);
 
-    const credentialsFileContent = gitlab.replace(/:(\d+)$/gi, '%3a$1').replace('//', '//root:12345678@') + '\n';
+    const credentialsFileContent = gitserver.replace(/:(\d+)$/gi, '%3a$1').replace('//', '//root:12345678@') + '\n';
     fs.writeFileSync(`/tmp/git-credentials`, credentialsFileContent, 'utf-8');
     await runCommand('src/integration-test/setup-repo');
-    await runCommand('git', '-C', repoFolder, 'remote', 'add', 'minard', `${gitlab}/root/${projectName}.git`);
+    await runCommand('git', '-C', repoFolder, 'remote', 'add', 'minard', `${gitserver}/root/${projectName}.git`);
     await runCommand('git', '-C', repoFolder, 'push', 'minard', 'master');
   });
 

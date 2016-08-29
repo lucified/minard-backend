@@ -180,6 +180,31 @@ A launch configuration for debugging in Visual Studio Code is included under `.v
 If the server has was started with `npm run dev`, the debugger should be able to attach
 to the process.
 
+## Tests
+
+Run unit tests with
+```
+npm test
+````
+
+Start all needed services locally and run system integration tests against them with
+```
+npm run-script system-test
+```
+
+Run system integration tests against an already running local backend with
+```
+npm run-script system-test-mocha
+```
+
+You can run system integration tests against a custom backend with
+```
+CHARLES=$CHARLES_BASEURL_QA MINARD_GIT_SERVER=$GIT_SERVER_QA npm run-script system-test-mocha
+```
+
+For this to work, you need to have `CHARLES_BASEURL_QA` and `MINARD_GIT_SERVER` environment
+variables set. `MINARD_GIT_SERVER` is the base url for the server hosting the Minard git repos.
+
 ## Monitoring
 
 A simple monitoring endpoint is available at `/status`.

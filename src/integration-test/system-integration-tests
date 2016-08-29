@@ -2,7 +2,7 @@
 
 set -e
 
-echo "Running system integration tests. Service logs are available at /tmp/system-test-compose.log"
+echo "Running system integration tests."
 
 rm -f gitlab-data/runner/config.toml
 docker-compose down

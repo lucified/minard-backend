@@ -18,7 +18,7 @@ const charles = process.env.CHARLES ? process.env.CHARLES : 'http://localhost:80
 const gitserver = process.env.MINARD_GIT_SERVER ? process.env.MINARD_GIT_SERVER : 'http://localhost:10080';
 
 function sleep(ms = 0) {
-  return new Promise(r => setTimeout(r, ms));
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 async function runCommand(command: string, ...args: string[]): Promise<boolean> {

@@ -18,7 +18,9 @@ import {
   MinardCommit,
   MinardProject,
   PROJECT_CREATED_EVENT_TYPE,
+  PROJECT_DELETED_EVENT_TYPE,
   ProjectCreatedEvent,
+  ProjectDeletedEvent,
 } from './types';
 
 const fetchMock = require('fetch-mock');
@@ -536,6 +538,91 @@ describe('project-module', () => {
       } catch (err) {
         expect((<Boom.BoomError> err).isBoom).to.equal(true);
         expect((<Boom.BoomError> err).isServer).to.equal(true);
+      }
+    });
+  });
+
+  describe('deleteProject()', () => {
+    const projectId = 10;
+    function arrangeProjectModule(status: number, body: any, eventBus?: EventBus, ) {
+      const bus = eventBus || new LocalEventBus();
+      const client = getClient();
+      const projectModule = new ProjectModule(
+        {} as AuthenticationModule,
+        {} as SystemHookModule,
+        bus,
+        client,
+        logger);
+      const mockUrl = `${host}${client.apiPrefix}/projects/${projectId}`;
+      fetchMock.restore().mock(
+        mockUrl,
+        {
+          status,
+          body,
+        },
+        {
+          method: 'DELETE',
+        }
+      );
+      return projectModule;
+    }
+
+    it('should create deleted event when gitlab project deletion is successful', async () => {
+      // Arrange
+      let called = false;
+      const bus = new LocalEventBus();
+      bus.filterEvents<ProjectDeletedEvent>(PROJECT_DELETED_EVENT_TYPE)
+        .subscribe(event => {
+          expect(event.payload.projectId).to.equal(projectId);
+          called = true;
+        });
+      const projectModule = arrangeProjectModule(200, 'true', bus);
+
+      // Act
+      await projectModule.deleteProject(projectId);
+
+      // Assert
+      expect(called).to.equal(true);
+    });
+
+    it('should throw when gitlab responds with invalid status code', async () => {
+      const projectModule = arrangeProjectModule(201, 'true');
+     // Act & Assert
+      try {
+        await projectModule.deleteProject(projectId);
+        expect.fail('should throw');
+      } catch (err) {
+        expect((<Boom.BoomError> err).isBoom).to.equal(true);
+        expect((<Boom.BoomError> err).isServer).to.equal(true);
+      }
+    });
+
+    it('should throw when gitlab responds with invalid response body', async () => {
+      const projectModule = arrangeProjectModule(200, 'foo');
+     // Act & Assert
+      try {
+        await projectModule.deleteProject(projectId);
+        expect.fail('should throw');
+      } catch (err) {
+        expect((<Boom.BoomError> err).isBoom).to.equal(true);
+        expect((<Boom.BoomError> err).isServer).to.equal(true);
+      }
+    });
+
+    it('should throw 404 when gitlab responds that project was not found', async () => {
+      const projectModule = arrangeProjectModule(404,
+        {
+          message: '404 Project Not Found',
+        }
+      );
+      // Act & Assert
+      try {
+        await projectModule.deleteProject(projectId);
+        expect.fail('should throw');
+      } catch (err) {
+        expect((<Boom.BoomError> err).isBoom).to.equal(true);
+        expect((<Boom.BoomError> err).isServer).to.equal(false);
+        expect((<Boom.BoomError> err).output.statusCode).to.equal(404);
       }
     });
 

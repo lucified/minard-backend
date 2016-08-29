@@ -16,6 +16,7 @@ import {
   MinardCommitAuthor,
   MinardProject,
   projectCreated,
+  projectDeleted,
 } from './types';
 
 import { AuthenticationModule } from '../authentication';
@@ -210,6 +211,33 @@ export default class ProjectModule {
       throw Boom.badImplementation();
     }
     return project;
+  }
+
+  public async deleteGitLabProject(projectId: number) {
+    const res = await this.gitlab.fetch(`projects/${projectId}`, { method: 'DELETE' });
+    if (res.status === 404) {
+      this.logger.warn(`Attempted to delete project ${projectId} which does not exists (according to GitLab)`);
+      throw Boom.notFound('Project not found');
+    }
+    if (res.status !== 200) {
+      this.logger.error(`Unexpected status code ${res.status} when deleting project ${projectId}`);
+      throw Boom.badGateway();
+    }
+    // GitLab responds with status code 200 and text 'true' on success
+    // the text 'true' is not documented, but it's probably still a good
+    // idea to check
+    const text = await res.text();
+    if (text !== 'true') {
+      this.logger.error(`Unexpected response from GitLab when deleting project ${projectId}: "${text}"`);
+      throw Boom.badGateway();
+    }
+  }
+
+  public async deleteProject(projectId: number): Promise<void> {
+    await this.deleteGitLabProject(projectId);
+    this.eventBus.post(projectDeleted({
+      projectId,
+    }));
   }
 
   public async createProject(teamId: number, name: string, description?: string): Promise<number> {

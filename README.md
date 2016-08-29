@@ -186,7 +186,7 @@ A simple monitoring endpoint is available at `/status`.
 
 ## Maintenance tasks
 
-You can trigger checking of screenshots by going to the url `/operations/screenshots`.
+You can trigger checking of screenshots by going to the url `/operations/check-screenshots`.
 This will make sure that all successful and extracted deployments have screenshots.
 Normally screenshots are generated after each deployment, but this maintenance task
 may sometimes be useful.

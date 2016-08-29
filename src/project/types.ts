@@ -1,8 +1,15 @@
 import { eventCreator } from '../shared/events';
 
+export interface ProjectCreatedEvent {
+  projectId: number;
+  teamId: number;
+  name: string;
+  description?: string;
+}
+
 export const PROJECT_CREATED_EVENT_TYPE = 'PROJECT_CREATED';
 export const projectCreated =
-  eventCreator<{projectId: number, pathWithNameSpace: string}>(PROJECT_CREATED_EVENT_TYPE);
+  eventCreator<ProjectCreatedEvent>(PROJECT_CREATED_EVENT_TYPE);
 
 export interface MinardProjectPlain {
   name: string;

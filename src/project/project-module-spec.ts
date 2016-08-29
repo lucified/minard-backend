@@ -1,15 +1,29 @@
 
+import * as Boom from 'boom';
 import 'reflect-metadata';
 
 import AuthenticationModule from '../authentication/authentication-module';
-import LocalEventBus from '../event-bus/local-event-bus';
+import { EventBus, LocalEventBus } from '../event-bus';
 import { GitlabClient } from '../shared/gitlab-client';
+import Logger from '../shared/logger';
 import SystemHookModule from '../system-hook/system-hook-module';
-import { MinardBranch, MinardCommit, MinardProject,
-  PROJECT_CREATED_EVENT_TYPE, ProjectModule, findActiveCommitters } from './';
+import * as queryString from 'querystring';
+
 import { expect } from 'chai';
 
+import ProjectModule, { findActiveCommitters } from './project-module';
+
+import {
+  MinardBranch,
+  MinardCommit,
+  MinardProject,
+  PROJECT_CREATED_EVENT_TYPE,
+  ProjectCreatedEvent,
+} from './types';
+
 const fetchMock = require('fetch-mock');
+
+const logger = Logger(undefined, true);
 
 const host = 'gitlab';
 const getClient = () => {
@@ -19,39 +33,10 @@ const getClient = () => {
     }
   }
   return new GitlabClient(host, fetchMock.fetchMock as IFetchStatic,
-    new MockAuthModule() as AuthenticationModule, {} as any);
+    new MockAuthModule() as AuthenticationModule, logger);
 };
 
 describe('project-module', () => {
-  it('receiveHook', (done) => {
-
-    const eventBus = new LocalEventBus();
-    const projectModule = new ProjectModule(
-      {} as AuthenticationModule,
-      {} as SystemHookModule,
-      eventBus,
-      {} as GitlabClient);
-
-    eventBus.subscribe(event => {
-      expect(event.type).to.equal(PROJECT_CREATED_EVENT_TYPE);
-      expect(event.payload.projectId).to.equal(74);
-      done();
-    });
-
-    const userCreated = {
-      'created_at': '2012-07-21T07:30:54Z',
-      'updated_at': '2012-07-21T07:38:22Z',
-      'event_name': 'project_create',
-      'name': 'StoreCloud',
-      'owner_email': 'johnsmith@gmail.com',
-      'owner_name': 'John Smith',
-      'path': 'storecloud',
-      'path_with_namespace': 'jsmith/storecloud',
-      'project_id': 74,
-      'project_visibility': 'private',
-    };
-    projectModule.receiveHook(userCreated);
-  });
 
   describe('toMinardCommit()', () => {
     it('should correctly convert commit with separate author and committer', () => {
@@ -82,7 +67,8 @@ describe('project-module', () => {
         {} as AuthenticationModule,
         {} as SystemHookModule,
         {} as LocalEventBus,
-        {} as GitlabClient);
+        {} as GitlabClient,
+        logger);
 
       // Act
       const commit = projectModule.toMinardCommit(gitlabCommit);
@@ -130,7 +116,8 @@ describe('project-module', () => {
         {} as AuthenticationModule,
         {} as SystemHookModule,
         {} as LocalEventBus,
-        gitlabClient);
+        gitlabClient,
+        logger);
 
       fetchMock.restore().mock(
         `${host}${gitlabClient.apiPrefix}/projects/3/repository/commits?per_page=1000&ref_name=master`,
@@ -278,7 +265,8 @@ describe('project-module', () => {
         {} as AuthenticationModule,
         {} as SystemHookModule,
         {} as LocalEventBus,
-        gitlabClient);
+        gitlabClient,
+        logger);
 
       fetchMock.restore();
       fetchMock.mock(
@@ -339,7 +327,8 @@ describe('project-module', () => {
         {} as AuthenticationModule,
         {} as SystemHookModule,
         {} as LocalEventBus,
-        gitlabClient);
+        gitlabClient,
+        logger);
 
       fetchMock.restore().mock(
         `${host}${gitlabClient.apiPrefix}/projects/3/repository/commits/6104942438c14ec7bd21c6cd5bd995272b3faff6`,
@@ -421,6 +410,135 @@ describe('project-module', () => {
       expect(committers[0].email).to.equal('jashkenas@example.com');
       expect(committers[0].timestamp).to.equal('2012-09-20T09:06:12+03:00');
     });
+  });
+
+  describe('createProject', () => {
+
+    const projectId = 10;
+    const teamId = 5;
+    const name = 'foo-project';
+    const path = name;
+    const description = 'my foo project';
+
+    function arrangeProjectModule(status: number, body: any, eventBus?: EventBus, ) {
+      const bus = eventBus || new LocalEventBus();
+      const client = getClient();
+      const projectModule = new ProjectModule(
+        {} as AuthenticationModule,
+        {} as SystemHookModule,
+        bus,
+        client,
+        logger);
+      const params = {
+        name,
+        path: name,
+        public: false,
+        description,
+        namespace_id: teamId,
+      };
+      const mockUrl = `${host}${client.apiPrefix}/projects?${queryString.stringify(params)}`;
+      fetchMock.restore().mock(
+        mockUrl,
+        {
+          status,
+          body,
+        },
+        {
+          method: 'POST',
+        }
+      );
+      return projectModule;
+    }
+
+    it('should work when gitlab project creation is successful', async () => {
+      // Arrange
+      const bus = new LocalEventBus();
+      const promise = bus.filterEvents<ProjectCreatedEvent>(PROJECT_CREATED_EVENT_TYPE)
+        .map(event => event.payload)
+        .take(1)
+        .toPromise();
+      const projectModule = arrangeProjectModule(201, { id: projectId, path }, bus);
+
+      // Act
+      const id = await projectModule.createProject(teamId, name, description);
+      const payload = await promise;
+
+      // Assert
+      expect(id).to.equal(projectId);
+      expect(payload.description).to.equal(description);
+      expect(payload.projectId).to.equal(projectId);
+      expect(payload.teamId).to.equal(teamId);
+      expect(payload.name).to.equal(name);
+    });
+
+    it('should throw server error when gitlab response status is not 201', async () => {
+      // Arrange
+      const projectModule = arrangeProjectModule(200, { id: projectId, path });
+
+      // Act & Assert
+      try {
+        await projectModule.createProject(teamId, name, description);
+        expect.fail('should throw');
+      } catch (err) {
+        expect((<Boom.BoomError> err).isBoom).to.equal(true);
+        expect((<Boom.BoomError> err).isServer).to.equal(true);
+      }
+    });
+
+    it('should throw correct error when project name already exists', async () => {
+      // Arrange
+      const response = {
+        'message': {
+          'name': [
+            'has already been taken',
+          ],
+          'path': [
+            'has already been taken',
+          ],
+          'limit_reached': [],
+        },
+      };
+      const projectModule = arrangeProjectModule(400, response);
+
+      // Act & Assert
+      try {
+        await projectModule.createProject(teamId, name, description);
+        expect.fail('should throw');
+      } catch (err) {
+        expect((<Boom.BoomError> err).isBoom).to.equal(true);
+        expect((<Boom.BoomError> err).isServer).to.equal(false);
+        expect((<Boom.BoomError> err).data).to.equal('name-already-taken');
+      }
+    });
+
+    it('should throw if gitlab response is missing project id', async () => {
+      // Arrange
+      const projectModule = arrangeProjectModule(201, { foo: 'bar', path });
+
+      // Act & Assert
+      try {
+        await projectModule.createProject(teamId, name, description);
+        expect.fail('should throw');
+      } catch (err) {
+        expect((<Boom.BoomError> err).isBoom).to.equal(true);
+        expect((<Boom.BoomError> err).isServer).to.equal(true);
+      }
+    });
+
+    it('should throw if gitlab response has invalid project path', async () => {
+      // Arrange
+      const projectModule = arrangeProjectModule(201, { foo: 'bar', path: 'foo' });
+
+      // Act & Assert
+      try {
+        await projectModule.createProject(teamId, name, description);
+        expect.fail('should throw');
+      } catch (err) {
+        expect((<Boom.BoomError> err).isBoom).to.equal(true);
+        expect((<Boom.BoomError> err).isServer).to.equal(true);
+      }
+    });
+
   });
 
 });

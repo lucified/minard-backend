@@ -62,6 +62,8 @@ export function parseActivityFilter(filter: string | null) {
 
 type apiReturn = Promise<ApiEntity | ApiEntities | null>;
 
+const projectNameRegex = /^[\w|\-]+$/;
+
 @injectable()
 export class JsonApiHapiPlugin {
 
@@ -107,6 +109,35 @@ export class JsonApiHapiPlugin {
         validate: {
           params: {
             projectId: Joi.number().required(),
+          },
+        },
+      },
+    });
+
+    server.route({
+      method: 'POST',
+      path: '/projects',
+      handler: {
+        async: this.postProjectHandler.bind(this),
+      },
+      config: {
+        validate: {
+          payload: {
+            data: Joi.object({
+              type: Joi.string().equal('projects').required(),
+              attributes: Joi.object({
+                name: Joi.string().regex(projectNameRegex).required(),
+                description: Joi.string(),
+              }).required(),
+              relationships: Joi.object({
+                team: Joi.object({
+                  data: Joi.object({
+                    type: Joi.string().equal('teams').required(),
+                    id: Joi.number().required(),
+                  }).required(),
+                }).required(),
+              }).required(),
+            }).required(),
           },
         },
       },
@@ -186,6 +217,14 @@ export class JsonApiHapiPlugin {
   private async getProjectsHandler(_request: Hapi.Request, reply: Hapi.IReply) {
     // TODO: parse team information
     return reply(this.getEntity('project', api => api.getProjects(1)));
+  }
+
+  private async postProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    const { name, description } = request.payload.data.attributes;
+    const teamId = request.payload.data.relationships.team.data.id;
+    const project = await this.factory().createProject(teamId, name, description);
+    return reply(serializeApiEntity('project', project))
+      .created(`/api/projects/${project.id}`);
   }
 
   private async getDeploymentHandler(request: Hapi.Request, reply: Hapi.IReply) {

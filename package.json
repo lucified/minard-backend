@@ -48,13 +48,10 @@
     "@types/winston": "0.0.27",
     "@types/wreck": "^7.0.27",
     "chai": "^3.5.0",
-    "child_process": "^1.0.2",
-    "cross-spawn": "^4.0.0",
     "fetch-mock": "^5.0.3",
     "inversify-dts": "^1.4.0",
     "mocha": "^2.5.3",
     "mocha-typescript": "^1.0.4",
-    "parse-spawn-args": "^1.0.2",
     "rimraf": "^2.5.4",
     "sqlite3": "^3.1.4",
     "ts-node": "^1.2.2"

@@ -452,24 +452,23 @@ describe('project-module', () => {
 
     it('should work when gitlab project creation is successful', async () => {
       // Arrange
-      let called = false;
       const bus = new LocalEventBus();
-      bus.filterEvents<ProjectCreatedEvent>(PROJECT_CREATED_EVENT_TYPE)
-        .subscribe(event => {
-          expect(event.payload.description).to.equal(description);
-          expect(event.payload.projectId).to.equal(projectId);
-          expect(event.payload.teamId).to.equal(teamId);
-          expect(event.payload.name).to.equal(name);
-          called = true;
-        });
+      const promise = bus.filterEvents<ProjectCreatedEvent>(PROJECT_CREATED_EVENT_TYPE)
+        .map(event => event.payload)
+        .take(1)
+        .toPromise();
       const projectModule = arrangeProjectModule(201, { id: projectId, path }, bus);
 
       // Act
       const id = await projectModule.createProject(teamId, name, description);
+      const payload = await promise;
 
       // Assert
       expect(id).to.equal(projectId);
-      expect(called).to.equal(true);
+      expect(payload.description).to.equal(description);
+      expect(payload.projectId).to.equal(projectId);
+      expect(payload.teamId).to.equal(teamId);
+      expect(payload.name).to.equal(name);
     });
 
     it('should throw server error when gitlab response status is not 201', async () => {

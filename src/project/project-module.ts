@@ -3,6 +3,7 @@ import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
 import { flatMap, uniqBy } from 'lodash';
 import * as moment from 'moment';
+import * as queryString from 'querystring';
 
 import { GitlabClient } from '../shared/gitlab-client';
 import { Commit } from '../shared/gitlab.d.ts';
@@ -21,8 +22,6 @@ import { AuthenticationModule } from '../authentication';
 import { EventBus, eventBusInjectSymbol } from '../event-bus/';
 import { Project } from '../shared/gitlab.d.ts';
 import { SystemHookModule } from '../system-hook';
-
-const urlEncoded = require('form-urlencoded');
 
 export function findActiveCommitters(branches: MinardBranch[]): MinardCommitAuthor[] {
   const commits = flatMap(branches,
@@ -192,7 +191,8 @@ export default class ProjectModule {
       namespace_id: teamId,
     };
 
-    const res = await this.gitlab.fetchJsonAnyStatus<any>(`projects?${urlEncoded(params)}`, { method: 'POST' });
+    const res = await this.gitlab.fetchJsonAnyStatus<any>(
+      `projects?${queryString.stringify(params)}`, { method: 'POST' });
     if (res.json && res.json.message && res.json.message.path[0] === 'has already been taken') {
       throw Boom.badRequest('Name is already taken', 'name-already-taken');
     }

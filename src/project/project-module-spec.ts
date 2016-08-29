@@ -7,6 +7,7 @@ import { EventBus, LocalEventBus } from '../event-bus';
 import { GitlabClient } from '../shared/gitlab-client';
 import Logger from '../shared/logger';
 import SystemHookModule from '../system-hook/system-hook-module';
+import * as queryString from 'querystring';
 
 import { expect } from 'chai';
 
@@ -21,7 +22,6 @@ import {
 } from './types';
 
 const fetchMock = require('fetch-mock');
-const urlEncoded = require('form-urlencoded');
 
 const logger = Logger(undefined, true);
 
@@ -436,7 +436,7 @@ describe('project-module', () => {
         description,
         namespace_id: teamId,
       };
-      const mockUrl = `${host}${client.apiPrefix}/projects?${urlEncoded(params)}`;
+      const mockUrl = `${host}${client.apiPrefix}/projects?${queryString.stringify(params)}`;
       fetchMock.restore().mock(
         mockUrl,
         {

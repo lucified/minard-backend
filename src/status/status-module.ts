@@ -120,7 +120,7 @@ export default class StatusModule {
 
   public async getGitlabStatus() {
     try {
-      await this.getRunnersStatus();
+      await this.gitlab.fetchJson<RunnerStatus[]>('runners/all/?scope=online');
       return {
         status: 'ok',
         statusCode: 200,

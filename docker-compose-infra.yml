@@ -4,25 +4,21 @@ version: '2'
 services:
 
   gitlab:
-    dns: ${HOST_LOOPBACK_IP}
     environment:
-    - MINARD_CI_YML_URL=http://charles.ldev:8080/ci/projects/%d/%s/%s/yml
+    - MINARD_CI_YML_URL=http://${HOST_LOOPBACK_IP}:8080/ci/projects/%d/%s/%s/yml
 
   runner:
-    dns: ${HOST_LOOPBACK_IP}
     environment:
-      - CI_SERVER_URL=http://charles.ldev:8080/ci/
+      - CI_SERVER_URL=http://${HOST_LOOPBACK_IP}:8080/ci/
 
   charles:
     command: /bin/true
 
   # sudo ifconfig lo0 alias 192.168.0.254 up
   screenshotter:
-    dns: ${HOST_LOOPBACK_IP}
     image: lucify/screenshotter
     ports:
      - "8002:80"
-
 
   bind:
     command: /bin/true

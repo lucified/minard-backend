@@ -1,0 +1,4 @@
+--require ts-node/register
+--watch-extensions ts
+--bail
+src/integration-test/system-integration-tests.ts

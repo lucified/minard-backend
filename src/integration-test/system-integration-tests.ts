@@ -229,11 +229,16 @@ describe('system-integration', () => {
     logTitle('Checking that deployment has accessible screenshot');
     let screenshot: string | undefined;
     while (!screenshot) {
-      const ret = await fetch(`${charles}/api/deployments/${deploymentId}`);
-      expect(ret.status).to.equal(200);
-      const json = await ret.json() as JsonApiResponse;
-      deployment = json.data as JsonApiEntity;
-      screenshot = deployment.attributes.screenshot;
+      try {
+        const ret = await fetch(`${charles}/api/deployments/${deploymentId}`);
+        expect(ret.status).to.equal(200);
+        const json = await ret.json() as JsonApiResponse;
+        deployment = json.data as JsonApiEntity;
+        screenshot = deployment.attributes.screenshot;
+      } catch (err) {
+        log(`Unexpected error fetching deployments: ${err.message}`);
+        console.log(err);
+      }
       if (!screenshot) {
         log(`Deployment does not yet have screenshot. Sleeping for 2 seconds`);
         await sleep(2000);

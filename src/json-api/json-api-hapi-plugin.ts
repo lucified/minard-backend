@@ -158,6 +158,30 @@ export class JsonApiHapiPlugin {
     });
 
     server.route({
+      method: 'PATCH',
+      path: '/projects/{projectId}',
+      handler: {
+        async: this.patchProjectHandler.bind(this),
+      },
+      config: {
+        validate: {
+          params: {
+            projectId: Joi.number().required(),
+          },
+          payload: {
+            data: Joi.object({
+              type: Joi.string().equal('projects').required(),
+              attributes: Joi.object({
+                name: Joi.string().regex(projectNameRegex),
+                description: Joi.string(),
+              }).required(),
+            }).required(),
+          },
+        },
+      },
+    });
+
+    server.route({
       method: 'GET',
       path: '/teams/{teamId}/projects',
       handler: {
@@ -239,6 +263,17 @@ export class JsonApiHapiPlugin {
     const project = await this.factory().createProject(teamId, name, description);
     return reply(serializeApiEntity('project', project))
       .created(`/api/projects/${project.id}`);
+  }
+
+  private async patchProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    const attributes = request.payload.data.attributes;
+    const projectId = (<any> request.params).projectId;
+    if (!attributes.name && !attributes.description) {
+      // Require that at least something is edited
+      throw Boom.badRequest();
+    }
+    const project = await this.factory().editProject(projectId, attributes);
+    return reply(serializeApiEntity('project', project));
   }
 
   private async deleteProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {

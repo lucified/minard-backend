@@ -2,10 +2,9 @@ FROM mhart/alpine-node:latest
 
 WORKDIR /code
 
-
-
 COPY package.json /code/package.json
-RUN npm install typescript@beta
+
+RUN npm install -g typescript@beta
 RUN npm install && npm ls
 
 ENV NODE_ENV production

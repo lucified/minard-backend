@@ -276,7 +276,6 @@ describe('system-integration', () => {
       body: JSON.stringify(editProjectPayload),
     });
     const json = await ret.json();
-    console.log(JSON.stringify(json));
     expect(ret.status).to.equal(200);
     expect(json.data.id).to.exist;
     expect(json.data.attributes.description).to.equal(editProjectPayload.data.attributes.description);

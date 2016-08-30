@@ -125,7 +125,7 @@ export class JsonApiHapiPlugin {
               type: Joi.string().equal('projects').required(),
               attributes: Joi.object({
                 name: Joi.string().regex(projectNameRegex).required(),
-                description: Joi.string(),
+                description: Joi.string().max(2000),
               }).required(),
               relationships: Joi.object({
                 team: Joi.object({
@@ -173,7 +173,7 @@ export class JsonApiHapiPlugin {
               type: Joi.string().equal('projects').required(),
               attributes: Joi.object({
                 name: Joi.string().regex(projectNameRegex),
-                description: Joi.string(),
+                description: Joi.string().max(2000),
               }).required(),
             }).required(),
           },

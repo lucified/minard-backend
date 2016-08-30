@@ -156,6 +156,7 @@ export default class ProjectModule {
         id: project.id,
         name: project.name,
         path: project.path,
+        description: project.description,
         branches: filteredBranches,
         activeCommitters: findActiveCommitters(filteredBranches),
       };

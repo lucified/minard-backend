@@ -294,7 +294,7 @@ describe('project-module', () => {
       expect(project.id).to.equal(3);
       expect(project.name).to.equal('Diaspora Project Site');
       expect(project.branches).to.have.length(2);
-
+      expect(project.description).to.equal(gitlabProjectResponse.description);
       expect(project.branches[0].name).to.equal('async');
       expect(project.branches[1].name).to.equal('gh-pages');
     });

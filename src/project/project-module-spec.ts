@@ -19,8 +19,10 @@ import {
   MinardProject,
   PROJECT_CREATED_EVENT_TYPE,
   PROJECT_DELETED_EVENT_TYPE,
+  PROJECT_EDITED_EVENT_TYPE,
   ProjectCreatedEvent,
   ProjectDeletedEvent,
+  ProjectEditedEvent,
 } from './types';
 
 const fetchMock = require('fetch-mock');
@@ -414,6 +416,29 @@ describe('project-module', () => {
     });
   });
 
+  function prepareProjectModule(status: number, body: any, url: string, method: string, eventBus?: EventBus) {
+    const bus = eventBus || new LocalEventBus();
+    const client = getClient();
+    const projectModule = new ProjectModule(
+      {} as AuthenticationModule,
+      {} as SystemHookModule,
+      bus,
+      client,
+      logger);
+    const mockUrl = `${host}${client.apiPrefix}${url}`;
+    fetchMock.restore().mock(
+      mockUrl,
+      {
+        status,
+        body,
+      },
+      {
+        method,
+      }
+    );
+    return projectModule;
+  }
+
   describe('createProject', () => {
 
     const projectId = 10;
@@ -423,14 +448,6 @@ describe('project-module', () => {
     const description = 'my foo project';
 
     function arrangeProjectModule(status: number, body: any, eventBus?: EventBus, ) {
-      const bus = eventBus || new LocalEventBus();
-      const client = getClient();
-      const projectModule = new ProjectModule(
-        {} as AuthenticationModule,
-        {} as SystemHookModule,
-        bus,
-        client,
-        logger);
       const params = {
         name,
         path: name,
@@ -438,18 +455,8 @@ describe('project-module', () => {
         description,
         namespace_id: teamId,
       };
-      const mockUrl = `${host}${client.apiPrefix}/projects?${queryString.stringify(params)}`;
-      fetchMock.restore().mock(
-        mockUrl,
-        {
-          status,
-          body,
-        },
-        {
-          method: 'POST',
-        }
-      );
-      return projectModule;
+      const url = `/projects?${queryString.stringify(params)}`;
+      return prepareProjectModule(status, body, url, 'POST', eventBus);
     }
 
     it('should work when gitlab project creation is successful', async () => {
@@ -624,6 +631,137 @@ describe('project-module', () => {
         expect((<Boom.BoomError> err).isServer).to.equal(false);
         expect((<Boom.BoomError> err).output.statusCode).to.equal(404);
       }
+    });
+
+  });
+
+  describe('editProject', () => {
+
+    const projectId = 10;
+    const name = 'foo-project';
+    const path = name;
+    const description = 'my foo project';
+    const oldName = 'old-foo-project';
+    const oldDescription = 'old-foo-project-description';
+
+    function arrangeProjectModule(
+      status: number,
+      params: any,
+      eventBus?: EventBus,
+      body?: any) {
+      const url = `/projects/${projectId}?${queryString.stringify(params)}`;
+      return prepareProjectModule(status, body, url, 'PUT', eventBus);
+    }
+
+    async function shouldSucceed(
+      attributes: { name?: string, description?: string },
+      resultingName: string, resultingDescription: string) {
+      const bus = new LocalEventBus();
+      const promise = bus.filterEvents<ProjectEditedEvent>(PROJECT_EDITED_EVENT_TYPE)
+        .map(event => event.payload)
+        .take(1)
+        .toPromise();
+      const params = {
+        name: attributes.name,
+        path: attributes.name,
+        description: attributes.description,
+      };
+      const body = {
+        id: projectId,
+        name: resultingName,
+        path: resultingName,
+        description: resultingDescription,
+      };
+      const projectModule = arrangeProjectModule(200, params, bus, body);
+
+      // Act
+      await projectModule.editProject(projectId, attributes);
+      const payload = await promise;
+
+      // Assert
+      expect(fetchMock.called()).to.equal(true);
+      expect(payload.description).to.equal(resultingDescription);
+      expect(payload.projectId).to.equal(projectId);
+      expect(payload.name).to.equal(resultingName);
+    }
+
+    it('should work when editing all editable fields', async () => {
+      await shouldSucceed({ name, description }, name, description);
+    });
+
+    it('should work when editing only project name', async () => {
+      await shouldSucceed({ name }, name, oldDescription);
+    });
+
+    it('should work when editing only project description', async () => {
+      await shouldSucceed({ description }, oldName, description);
+    });
+
+    it('should throw correct error when project name already exists', async () => {
+      // Arrange
+      const response = {
+        'message': {
+          'name': [
+            'has already been taken',
+          ],
+          'path': [
+            'has already been taken',
+          ],
+          'limit_reached': [],
+        },
+      };
+      const params = { name, path, description };
+      const projectModule = arrangeProjectModule(400, params, undefined, response);
+      // Act & Assert
+      try {
+        await projectModule.editProject(projectId, { name, description });
+        expect.fail('should throw');
+      } catch (err) {
+        expect((<Boom.BoomError> err).isBoom).to.equal(true);
+        expect((<Boom.BoomError> err).isServer).to.equal(false);
+        expect((<Boom.BoomError> err).data).to.equal('name-already-taken');
+      }
+    });
+
+    async function shouldThrowIfInvalid(status: number, invalidFieldName?: string) {
+      const bus = new LocalEventBus();
+      // Arrange
+      const response = {
+        id: projectId,
+        name,
+        path,
+        description,
+      } as any;
+      if (invalidFieldName) {
+        response[invalidFieldName] = 'foo-foo-foo';
+      }
+      const params = { name, path, description };
+      const projectModule = arrangeProjectModule(status, params, bus, response);
+      // Act & Assert
+      try {
+        await projectModule.editProject(projectId, { name, description });
+        expect.fail('should throw');
+      } catch (err) {
+        expect(fetchMock.called()).to.equal(true);
+        expect((<Boom.BoomError> err).isBoom).to.equal(true);
+        expect((<Boom.BoomError> err).isServer).to.equal(true);
+      }
+    }
+
+    it('should throw if gitlab response has invalid status code', async () => {
+      await shouldThrowIfInvalid(205, 'id');
+    });
+
+    it('should throw if gitlab response has invalid project id', async () => {
+      await shouldThrowIfInvalid(200, 'id');
+    });
+
+    it('should throw if gitlab response has invalid project name', async () => {
+      await shouldThrowIfInvalid(200, 'name');
+    });
+
+    it('should throw if gitlab response has invalid project path', async () => {
+      await shouldThrowIfInvalid(200, 'path');
     });
 
   });

@@ -118,6 +118,7 @@ export class JsonApiHapiPlugin {
         async: this.postProjectHandler.bind(this),
       },
       config: {
+        cors: true,
         validate: {
           payload: {
             data: Joi.object({
@@ -147,6 +148,7 @@ export class JsonApiHapiPlugin {
         async: this.deleteProjectHandler.bind(this),
       },
       config: {
+        cors: true,
         validate: {
           params: {
             projectId: Joi.number().required(),

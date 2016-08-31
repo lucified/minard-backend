@@ -196,4 +196,32 @@ describe('json-api-hapi-plugin', () => {
 
   });
 
+  describe('OPTIONS', () => {
+    async function shouldSupportCors(path: string, method: string) {
+      // Arrange
+      const plugin = new JsonApiHapiPlugin({} as any);
+      const server = await provisionServer(plugin);
+
+      // Act
+      const options: Hapi.IServerInjectOptions = {
+        method: 'OPTIONS',
+        url: 'http://foo.com/projects',
+        headers: {
+          'Origin': '*',
+          'Access-Control-Request-Method': method,
+        },
+      };
+      const ret = await server.inject(options);
+      expect(ret.headers['access-control-allow-origin']).to.equal('*');
+    }
+
+    it ('should support cors for POST /projects', async () => {
+      shouldSupportCors('/projects', 'POST');
+    });
+
+    it ('should support cors for DELETE /projects/:projectId', async () => {
+      shouldSupportCors('/projects/5', 'DELETE');
+    });
+  });
+
 });

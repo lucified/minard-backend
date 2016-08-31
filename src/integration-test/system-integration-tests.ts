@@ -17,19 +17,20 @@ import * as chalk from 'chalk';
 const charles = process.env.CHARLES ? process.env.CHARLES : 'http://localhost:8000';
 const gitserver = process.env.MINARD_GIT_SERVER ? process.env.MINARD_GIT_SERVER : 'http://localhost:10080';
 
+function sleep(ms = 0) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function fetchWithRetry(url: string, options?: any, retryCount = 5): Promise<IResponse> {
   for (let i = 0; i < retryCount; i++) {
     try {
       return await fetch(url, options);
     } catch (err) {
       this.log(`WARN: Fetch failed for url ${url}. Error message is '${err.message}'`);
+      await sleep(2000);
     }
   }
   throw Error(`Fetch failed ${retryCount} times for url ${url}`);
-}
-
-function sleep(ms = 0) {
-  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 async function runCommand(command: string, ...args: string[]): Promise<boolean> {

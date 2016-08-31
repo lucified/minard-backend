@@ -17,6 +17,17 @@ import * as chalk from 'chalk';
 const charles = process.env.CHARLES ? process.env.CHARLES : 'http://localhost:8000';
 const gitserver = process.env.MINARD_GIT_SERVER ? process.env.MINARD_GIT_SERVER : 'http://localhost:10080';
 
+async function fetchWithRetry(url: string, options?: any, retryCount = 5): Promise<IResponse> {
+  for (let i = 0; i < retryCount; i++) {
+    try {
+      return await fetch(url, options);
+    } catch (err) {
+      this.log(`WARN: Fetch failed for url ${url}. Error message is '${err.message}'`);
+    }
+  }
+  throw Error(`Fetch failed ${retryCount} times for url ${url}`);
+}
+
 function sleep(ms = 0) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -95,7 +106,7 @@ describe('system-integration', () => {
     this.timeout(1000 * 30);
     const url = `${charles}/api/teams/1/projects`;
     log(`Using URL ${prettyUrl(url)}`);
-    const ret = await fetch(url);
+    const ret = await fetchWithRetry(url);
     expect(ret.status).to.equal(200);
     const json = await ret.json();
     expect(json.data).to.exist;
@@ -111,7 +122,7 @@ describe('system-integration', () => {
     this.timeout(1000 * 30);
     if (oldProjectId) {
       logTitle(`Deleting old integration-test-project (${oldProjectId})`);
-      const ret = await fetch(`${charles}/api/projects/${oldProjectId}`, {
+      const ret = await fetchWithRetry(`${charles}/api/projects/${oldProjectId}`, {
         method: 'DELETE',
       });
       expect(ret.status).to.equal(200);
@@ -143,7 +154,7 @@ describe('system-integration', () => {
         },
       },
     };
-    const ret = await fetch(`${charles}/api/projects`, {
+    const ret = await fetchWithRetry(`${charles}/api/projects`, {
       method: 'POST',
       body: JSON.stringify(createProjectPayload),
     });
@@ -173,7 +184,7 @@ describe('system-integration', () => {
     const url = `${charles}/api/projects/${projectId}`;
     log(`Using URL ${prettyUrl(url)}`);
     while (!deploymentId) {
-      const ret = await fetch(url);
+      const ret = await fetchWithRetry(url);
       expect(ret.status).to.equal(200);
       const json = await ret.json() as JsonApiResponse;
       const data = json.data as JsonApiEntity;
@@ -200,7 +211,7 @@ describe('system-integration', () => {
     const url = `${charles}/api/deployments/${deploymentId}`;
     log(`Fetching information on deployment from ${prettyUrl(url)}`);
     while (!deployment || deployment.attributes.status !== 'success') {
-      const ret = await fetch(url);
+      const ret = await fetchWithRetry(url);
       expect(ret.status).to.equal(200);
       const json = await ret.json() as JsonApiResponse;
       deployment = json.data as JsonApiEntity;
@@ -220,7 +231,7 @@ describe('system-integration', () => {
     this.timeout(1000 * 30);
     expect(deployment.attributes.url).to.exist;
     log(`Fetching deployment from ${prettyUrl(deployment.attributes.url)}`);
-    const ret = await fetch(deployment.attributes.url);
+    const ret = await fetchWithRetry(deployment.attributes.url);
     expect(ret.status).to.equal(200);
   });
 
@@ -245,14 +256,14 @@ describe('system-integration', () => {
       }
     }
     log(`Fetching screenshot from ${prettyUrl(screenshot)}`);
-    const ret = await fetch(screenshot);
+    const ret = await fetchWithRetry(screenshot);
     expect(ret.status).to.equal(200);
   });
 
   it('should be able to delete project', async function() {
     this.timeout(1000 * 30);
     logTitle('Deleting the project');
-    const ret = await fetch(`${charles}/api/projects/${projectId}`, {
+    const ret = await fetchWithRetry(`${charles}/api/projects/${projectId}`, {
       method: 'DELETE',
     });
     expect(ret.status).to.equal(200);

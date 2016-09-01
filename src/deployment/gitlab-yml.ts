@@ -1,6 +1,6 @@
 
 import * as Boom from 'boom';
-import { merge, values } from 'lodash';
+import { merge, pickBy, values } from 'lodash';
 import * as YAML from 'yamljs';
 
 import {
@@ -70,7 +70,6 @@ function getValidationErrors(obj: any) {
 
 function isValidMinardJson(obj: any): boolean {
   const errors = getValidationErrors(obj);
-  console.log(errors);
   return errors.length === 0;
 }
 
@@ -80,7 +79,7 @@ export function getGitlabYml(spec: MinardJson) {
 }
 
 export function gitlabSpecToYml(spec: GitlabSpec) {
-  return YAML.stringify(spec, 5, 2);
+  return YAML.stringify(pickBy(spec), 5, 2);
 }
 
 export function getGitlabSpec(spec: MinardJson) {
@@ -142,6 +141,7 @@ function getGitlabSpecWithBuild(spec: MinardJson): GitlabSpec {
         spec.publicRoot,
       ],
     },
+    cache: spec.build.cache,
   };
 }
 

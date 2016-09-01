@@ -55,6 +55,7 @@ export interface MinardJsonBuild {
   variables?: {
   [key: string]: string;
   };
+  cache?: any;
 }
 
 export interface MinardJson {
@@ -72,6 +73,9 @@ export interface GitlabSpec {
   };
   artifacts?: {
     name: string,
-    paths: [string],
+    paths: string[],
+  };
+  cache?: {
+    paths: string[],
   };
 }

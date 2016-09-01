@@ -3,6 +3,7 @@ import { expect } from 'chai';
 
 import {
   getGitlabSpec,
+  gitlabSpecToYml,
 } from './gitlab-yml';
 
 import {
@@ -107,6 +108,24 @@ describe('gitlab-yml', () => {
       expectCorrectBuildSpec(spec, minardJson.publicRoot, defaultImage, command);
     });
 
+    it ('should return correct spec when cache settings are included', () => {
+      const minardJson = {
+        publicRoot: 'foo',
+        build: {
+          commands: [{
+            name: 'build',
+            command,
+          }],
+          cache: {
+          paths: 'node_modules',
+          },
+        },
+      };
+      const spec = getGitlabSpec(minardJson);
+      expectCorrectBuildSpec(spec, minardJson.publicRoot, defaultImage, command);
+      expect(spec.cache).to.deep.equal(minardJson.build.cache);
+    });
+
     function expectDoNotBuildSpec(spec: GitlabSpec) {
       expect(spec.build.when).to.exist;
       expect(spec.build.when).to.equal('manual');
@@ -162,7 +181,6 @@ describe('gitlab-yml', () => {
           commands: { name: 'foo', command: {} } as {} as MinardJsonBuildCommand,
         },
       };
-      console.log(getGitlabSpec(minardJson), null, 2);
       expectDoNotBuildSpec(getGitlabSpec(minardJson));
     });
 
@@ -175,6 +193,71 @@ describe('gitlab-yml', () => {
         },
       };
       expectDoNotBuildSpec(getGitlabSpec(minardJson));
+    });
+
+  });
+
+  describe('gitlabSpecToYaml', () => {
+    // no need for many tests as implementation
+    // simply calls stringify from yamljs
+    it('should produce correct yaml when all options are used', () => {
+      const spec = {
+        image: 'node:latest',
+        build: {
+          script: [
+            'npm install',
+            'npm run-script build',
+          ],
+        },
+        artifacts: {
+          name: 'artifact-name',
+          paths: [
+            'dist',
+          ],
+        },
+        cache: {
+          paths: ['node_modules'],
+        },
+      };
+      const yaml = gitlabSpecToYml(spec);
+      const expectedYaml =
+`image: 'node:latest'
+build:
+  script:
+    - 'npm install'
+    - 'npm run-script build'
+artifacts:
+  name: artifact-name
+  paths:
+    - dist
+cache:
+  paths:
+    - node_modules
+`;
+      expect(yaml).to.equal(expectedYaml);
+    });
+
+    it('should produce correct yaml when some options are undefined', () => {
+      const spec = {
+        image: 'node:latest',
+        build: {
+          script: [
+            'npm install',
+            'npm run-script build',
+          ],
+        },
+        artifacts: undefined,
+        cache: undefined,
+      };
+      const yaml = gitlabSpecToYml(spec);
+      const expectedYaml =
+`image: 'node:latest'
+build:
+  script:
+    - 'npm install'
+    - 'npm run-script build'
+`;
+      expect(yaml).to.equal(expectedYaml);
     });
 
   });

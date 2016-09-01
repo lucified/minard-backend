@@ -164,6 +164,7 @@ export class JsonApiHapiPlugin {
         async: this.patchProjectHandler.bind(this),
       },
       config: {
+        cors: true,
         validate: {
           params: {
             projectId: Joi.number().required(),

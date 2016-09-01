@@ -260,6 +260,27 @@ describe('system-integration', () => {
     expect(ret.status).to.equal(200);
   });
 
+  it('should be able to edit project', async function() {
+    logTitle('Editing project');
+    this.timeout(1000 * 30);
+    const editProjectPayload = {
+      'data': {
+        'type': 'projects',
+        'attributes': {
+          'description': 'foo bar bar bar',
+        },
+      },
+    };
+    const ret = await fetch(`${charles}/api/projects/${projectId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(editProjectPayload),
+    });
+    const json = await ret.json();
+    expect(ret.status).to.equal(200);
+    expect(json.data.id).to.exist;
+    expect(json.data.attributes.description).to.equal(editProjectPayload.data.attributes.description);
+  });
+
   it('should be able to delete project', async function() {
     this.timeout(1000 * 30);
     logTitle('Deleting the project');
@@ -272,7 +293,7 @@ describe('system-integration', () => {
 
   it('cleanup repository', async function() {
     // not a real test, just cleaning up
-    // await runCommand('rm', '-rf', 'src/integration-test/blank/.git');
+    await runCommand('rm', '-rf', 'src/integration-test/blank/.git');
   });
 
 });

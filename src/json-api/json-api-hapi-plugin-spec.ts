@@ -224,4 +224,86 @@ describe('json-api-hapi-plugin', () => {
     });
   });
 
+  describe('PATCH "/projects/:id"', () => {
+    async function injectRequest(
+      projectId: number,
+      name: string | undefined,
+      description: string | undefined) {
+      const mockFactory = () => ({
+        editProject: async (_projectId: number, attributes: { name: string, description: string}) => {
+          return {
+            id: _projectId,
+            name: attributes.name,
+            description: attributes.description,
+          };
+        },
+      });
+      const plugin = new JsonApiHapiPlugin(mockFactory as any);
+      const server = await provisionServer(plugin);
+      const options: Hapi.IServerInjectOptions = {
+        method: 'PATCH',
+        url: `http://foo.com/projects/${projectId}`,
+        payload: {
+          data: {
+            type: 'projects',
+            attributes: {
+              name,
+              description,
+            },
+          },
+        },
+      };
+      return await server.inject(options);
+    }
+
+    async function shouldSucceed(
+      name: string | undefined, description: string | undefined) {
+      // Arrange & Act
+      const projectId = 4;
+      const ret = await injectRequest(projectId, name, description);
+      // Assert
+      expect(ret).to.exist;
+      const parsed = JSON.parse(ret.payload);
+      expect(ret.statusCode).to.equal(200);
+      expect(parsed.data.type).to.equal('projects');
+      expect(parsed.data.id).to.equal(String(projectId));
+      return parsed;
+    }
+
+    it('should edit project when both name and description provided', async() => {
+      const name = 'foo-bar';
+      const description = 'foo description';
+      const ret = await shouldSucceed(name, description);
+      expect(ret.data.attributes.name).to.equal(name);
+      expect(ret.data.attributes.description).to.equal(description);
+    });
+
+    it('should edit project when only name provided', async() => {
+      await shouldSucceed('foo-bar', undefined);
+    });
+
+    it('should edit project when only description provided', async() => {
+      await shouldSucceed(undefined, 'foo description');
+    });
+
+    it('should respond with BAD_REQUEST when project name has whitespace', async() => {
+      const ret = await injectRequest(5, 'foo bar', undefined);
+      expect(ret).to.exist;
+      expect(ret.statusCode).to.equal(MINARD_ERROR_CODE.BAD_REQUEST);
+    });
+
+    it('should respond with BAD_REQUEST when project name has a special character', async() => {
+      const ret = await injectRequest(5, 'foo%bar', undefined);
+      expect(ret).to.exist;
+      expect(ret.statusCode).to.equal(MINARD_ERROR_CODE.BAD_REQUEST);
+    });
+
+    it('should respond with BAD_REQUEST when neither project name or description is provided', async() => {
+      const ret = await injectRequest(5, undefined, undefined);
+      expect(ret).to.exist;
+      expect(ret.statusCode).to.equal(MINARD_ERROR_CODE.BAD_REQUEST);
+    });
+
+  });
+
 });

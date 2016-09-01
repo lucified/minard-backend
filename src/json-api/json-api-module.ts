@@ -84,6 +84,19 @@ export class JsonApiModule {
     await this.projectModule.deleteProject(projectId);
   }
 
+  public async editProject(
+    projectId: number, attributes: { name?: string, description?: string }): Promise<ApiProject> {
+    await this.projectModule.editProject(projectId, attributes);
+    const project = await this.getProject(projectId);
+    if (!project) {
+      // createProject in projectModule will throw
+      // if there are errors, so we should always be
+      // able to get the project afterwards
+      throw Boom.badImplementation();
+    }
+    return project;
+  }
+
   public async getProjects(teamId: number): Promise<ApiProject[] | null> {
     const projects = await this.projectModule.getProjects(teamId);
     const promises = projects.map((project: MinardProject) => this.toApiProject(project));

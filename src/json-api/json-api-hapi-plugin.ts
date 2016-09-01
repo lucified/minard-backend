@@ -125,7 +125,7 @@ export class JsonApiHapiPlugin {
               type: Joi.string().equal('projects').required(),
               attributes: Joi.object({
                 name: Joi.string().regex(projectNameRegex).required(),
-                description: Joi.string(),
+                description: Joi.string().max(2000),
               }).required(),
               relationships: Joi.object({
                 team: Joi.object({
@@ -152,6 +152,31 @@ export class JsonApiHapiPlugin {
         validate: {
           params: {
             projectId: Joi.number().required(),
+          },
+        },
+      },
+    });
+
+    server.route({
+      method: 'PATCH',
+      path: '/projects/{projectId}',
+      handler: {
+        async: this.patchProjectHandler.bind(this),
+      },
+      config: {
+        cors: true,
+        validate: {
+          params: {
+            projectId: Joi.number().required(),
+          },
+          payload: {
+            data: Joi.object({
+              type: Joi.string().equal('projects').required(),
+              attributes: Joi.object({
+                name: Joi.string().regex(projectNameRegex),
+                description: Joi.string().max(2000),
+              }).required(),
+            }).required(),
           },
         },
       },
@@ -239,6 +264,17 @@ export class JsonApiHapiPlugin {
     const project = await this.factory().createProject(teamId, name, description);
     return reply(serializeApiEntity('project', project))
       .created(`/api/projects/${project.id}`);
+  }
+
+  private async patchProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    const attributes = request.payload.data.attributes;
+    const projectId = (<any> request.params).projectId;
+    if (!attributes.name && !attributes.description) {
+      // Require that at least something is edited
+      throw Boom.badRequest();
+    }
+    const project = await this.factory().editProject(projectId, attributes);
+    return reply(serializeApiEntity('project', project));
   }
 
   private async deleteProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {

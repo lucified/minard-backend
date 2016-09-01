@@ -17,6 +17,7 @@ import {
   MinardProject,
   projectCreated,
   projectDeleted,
+  projectEdited,
 } from './types';
 
 import { AuthenticationModule } from '../authentication';
@@ -155,6 +156,7 @@ export default class ProjectModule {
         id: project.id,
         name: project.name,
         path: project.path,
+        description: project.description,
         branches: filteredBranches,
         activeCommitters: findActiveCommitters(filteredBranches),
       };
@@ -233,6 +235,44 @@ export default class ProjectModule {
     }
   }
 
+  public async editGitLabProject(
+    projectId: number, attributes: { name?: string, description?: string}): Promise<Project> {
+    const params = {
+      name: attributes.name,
+      path: attributes.name,
+      description: attributes.description,
+    };
+    const res = await this.gitlab.fetchJsonAnyStatus<any>(
+      `projects/${projectId}?${queryString.stringify(params)}`,
+      { method: 'PUT' }
+    );
+    if (res.status === 404) {
+      this.logger.warn(`Attempted to edit project ${projectId} which does not exists (according to GitLab)`);
+      throw Boom.notFound('Project not found');
+    }
+    if (res.json && res.json.message && res.json.message.path[0] === 'has already been taken') {
+      throw Boom.badRequest('Name is already taken', 'name-already-taken');
+    }
+    if (res.status !== 200) {
+      this.logger.error(`Unexpected status code ${res.status} when editing project ${projectId}`);
+      throw Boom.badGateway();
+    }
+    const project = res.json as Project;
+    // Note: we don't check that the description matches the edited description,
+    // as GitLab might do some trimming of whitespace or other legit modifications
+    // to the description
+    if (project.id !== projectId
+      || (attributes.name && project.path !== attributes.name)
+      || (attributes.name && project.name !== attributes.name)) {
+      this.logger.error(
+        `Unexpected response payload from gitlab when editing project ${projectId}`,
+        { projectId, attributes, res }
+      );
+      throw Boom.badGateway();
+    }
+    return project;
+  }
+
   public async deleteProject(projectId: number): Promise<void> {
     await this.deleteGitLabProject(projectId);
     this.eventBus.post(projectDeleted({
@@ -249,6 +289,15 @@ export default class ProjectModule {
       teamId,
     }));
     return project.id;
+  }
+
+  public async editProject(projectId: number, attributes: { name?: string, description?: string}) {
+    const project = await this.editGitLabProject(projectId, attributes);
+    this.eventBus.post(projectEdited({
+      projectId,
+      name: project.name,
+      description: project.description,
+    }));
   }
 
 }

@@ -43,3 +43,35 @@ export interface MinardDeployment extends MinardDeploymentPlain {
   id: number;
   commitRef: CommitRef;
 }
+
+export interface MinardJsonBuildCommand {
+  name?: string;
+  command: string;
+}
+
+export interface MinardJsonBuild {
+  commands: MinardJsonBuildCommand[] | string[] | MinardJsonBuildCommand | string;
+  image?: string;
+  variables?: {
+  [key: string]: string;
+  };
+}
+
+export interface MinardJson {
+  publicRoot: string;
+  build?: MinardJsonBuild;
+}
+
+// gitlab-ci.yml represented as json
+export interface GitlabSpec {
+  image: string;
+  build: {
+    script: string[],
+    when?: string,
+    variables?: {[key: string]: string}
+  };
+  artifacts?: {
+    name: string,
+    paths: [string],
+  };
+}

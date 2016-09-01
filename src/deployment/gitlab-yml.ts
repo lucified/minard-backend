@@ -3,42 +3,16 @@ import * as Boom from 'boom';
 import { merge, values } from 'lodash';
 import * as YAML from 'yamljs';
 
-interface MinardJsonBuildCommand {
-  name?: string;
-  command: string;
-}
-
-interface MinardJsonBuild {
-  commands: MinardJsonBuildCommand[] | string[] | MinardJsonBuildCommand | string;
-  image?: string;
-  variables?: {
-  [key: string]: string;
-  };
-}
-
-interface MinardJson {
-  publicRoot: string;
-  build?: MinardJsonBuild;
-}
-
-// gitlab-ci.yml represented as json
-interface GitlabSpec {
-  image: string;
-  build: {
-    script: string[],
-    when?: string,
-    variables?: {[key: string]: string}
-  };
-  artifacts?: {
-    name: string,
-    paths: [string],
-  };
-}
+import {
+  GitlabSpec,
+  MinardJson,
+  MinardJsonBuildCommand,
+} from './types';
 
 function applyDefaults(spec: MinardJson) {
   const merged = merge({}, { publicRoot: '' }, spec);
   if (merged.build) {
-    merged.build.image = merged.build.image || 'node';
+    merged.build.image = merged.build.image || 'node:latest';
   }
   return merged;
 }
@@ -46,37 +20,42 @@ function applyDefaults(spec: MinardJson) {
 function getValidationErrors(obj: any) {
   const errors: string[] = [];
   if (obj.publicRoot) {
-    if (obj.publicRoot.indexOf('..')) {
+    if (obj.publicRoot.indexOf('..') !== -1) {
       errors.push('publicRoot should not contain ".."');
     }
     if (obj.publicRoot.startsWith('/')) {
-      errors.push('publicRoot should not start with /');
+      errors.push('publicRoot should not start with "/"');
     }
   }
   if (obj.build) {
     if (!obj.build.commands) {
       errors.push('build.commands should be defined');
     }
-    if (typeof obj.build.commands === 'object') {
+    if (typeof obj.build.commands === 'object' && !Array.isArray(obj.build.commands)) {
       if (!obj.build.commands.command) {
         errors.push('build.commands.command should be defined');
+      } else if (typeof obj.build.commands.command !== 'string') {
+        errors.push(`build.commands.command should be a string`);
       }
-    } else if (typeof obj.build.commands === 'array') {
+    } else if (typeof obj.build.commands === 'object' && Array.isArray(obj.build.commands)) {
       let count = 0;
-      obj.build.commands.forEach((command: MinardJsonBuildCommand | string) => {
-        if (typeof command === 'object') {
-          if (!obj.build.commands.command) {
+      obj.build.commands.forEach((item: MinardJsonBuildCommand | string) => {
+        if (typeof item === 'object') {
+          if (!item.command) {
             errors.push(`build.commands[${count}].command should be defined`);
+          }
+          if (typeof item.command !== 'string') {
+            errors.push(`build.commands[${count}].command is not a string`);
           }
         }
         count++;
       });
     } else if (typeof obj.build.commands !== 'string') {
-      errors.push('build.commands should be object, array or string');
+      errors.push('build.commands should be a string');
     }
   }
   if (obj.variables) {
-    if (typeof obj.variables !== 'object') {
+    if (typeof obj.variables !== 'object' && !Array.isArray(obj.variables)) {
       errors.push('obj.variables should be an object');
     }
     let count = 0;
@@ -90,7 +69,9 @@ function getValidationErrors(obj: any) {
 }
 
 function isValidMinardJson(obj: any): boolean {
-  return getValidationErrors(obj).length > 0;
+  const errors = getValidationErrors(obj);
+  console.log(errors);
+  return errors.length === 0;
 }
 
 export function getGitlabYml(spec: MinardJson) {
@@ -103,7 +84,7 @@ export function gitlabSpecToYml(spec: GitlabSpec) {
 }
 
 export function getGitlabSpec(spec: MinardJson) {
-  if (!isValidMinardJson) {
+  if (!isValidMinardJson(spec)) {
     return getGitlabSpecInvalidMinardJson();
   }
   const mergedSpec = applyDefaults(spec);
@@ -114,19 +95,23 @@ function getScripts(commands: MinardJsonBuildCommand[] | string[] | MinardJsonBu
   if (typeof commands === 'string') {
     return [commands];
   }
-  if (typeof commands === 'object') {
+  if (typeof commands === 'object' && !Array.isArray(commands)) {
     return [(<MinardJsonBuildCommand> commands).command];
   }
-  const cmds = commands as {} as [MinardJsonBuildCommand | string];
-  return (cmds).map(item => {
-    if (typeof item === 'object') {
+  const cmds = commands as any[];
+  const ret = cmds.map((item: MinardJsonBuildCommand | string) => {
+    if (typeof item === 'object' && !Array.isArray(item)) {
       return (<MinardJsonBuildCommand> item).command;
     }
-    return item;
+    if (typeof item === 'string') {
+      return item;
+    }
+    throw Boom.badImplementation();
   });
+  return ret;
 }
 
-export function getGitlabSpecInvalidMinardJson(): GitlabSpec {
+function getGitlabSpecInvalidMinardJson(): GitlabSpec {
   return {
     image: 'alpine:latest',
     build: {
@@ -141,7 +126,7 @@ export function getGitlabSpecInvalidMinardJson(): GitlabSpec {
  * a build as a json object, based on given minard.json
  * specification.
  */
-export function getGitlabSpecWithBuild(spec: MinardJson): GitlabSpec {
+function getGitlabSpecWithBuild(spec: MinardJson): GitlabSpec {
   if (!spec.build) {
     throw Boom.badImplementation();
   }
@@ -165,7 +150,7 @@ export function getGitlabSpecWithBuild(spec: MinardJson): GitlabSpec {
  * require a build as a json object, based on given
  * minard.json specification.
  */
-export function getGitlabSpecNoBuild(spec: MinardJson): GitlabSpec {
+function getGitlabSpecNoBuild(spec: MinardJson): GitlabSpec {
  return {
     image: 'alpine:latest',
     build: {

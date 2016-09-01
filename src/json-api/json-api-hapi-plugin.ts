@@ -171,6 +171,7 @@ export class JsonApiHapiPlugin {
           },
           payload: {
             data: Joi.object({
+              id: Joi.number(),
               type: Joi.string().equal('projects').required(),
               attributes: Joi.object({
                 name: Joi.string().regex(projectNameRegex),

@@ -245,6 +245,7 @@ describe('json-api-hapi-plugin', () => {
         url: `http://foo.com/projects/${projectId}`,
         payload: {
           data: {
+            id: projectId,
             type: 'projects',
             attributes: {
               name,

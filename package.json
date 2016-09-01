@@ -32,7 +32,8 @@
     "sprintf-js": "^1.0.3",
     "url-join": "^1.1.0",
     "winston": "^2.2.0",
-    "wreck": "^9.0.0"
+    "wreck": "^9.0.0",
+    "yamljs": "^0.2.8"
   },
   "devDependencies": {
     "@types/boom": "0.0.31",
@@ -45,6 +46,7 @@
     "@types/lodash": "^4.14.34",
     "@types/mocha": "^2.2.26-alpha",
     "@types/sprintf-js": "0.0.26",
+    "@types/yamljs": "^0.2.29",
     "@types/winston": "0.0.27",
     "@types/wreck": "^7.0.27",
     "chai": "^3.5.0",

@@ -10,7 +10,7 @@ dependencies:
     - sudo pip install docker-compose
     - nvm install && nvm use && nvm alias default $(nvm current)
     - npm install typescript@beta tslint
-    - npm install ecs-upd8r@~0.1.5
+    - npm install ecs-updater@~0.2.1
 
 test:
   override:

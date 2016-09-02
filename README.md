@@ -164,7 +164,7 @@ tsc -w
 
 If not installed, install ecs-upd8r
 ```bash
-npm install ecs-upd8r
+npm install ecs-updater
 ```
 
 Run the deployment with:

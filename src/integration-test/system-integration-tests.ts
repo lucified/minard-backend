@@ -206,8 +206,8 @@ describe('system-integration', () => {
     }
   });
 
-  it('deployment should succeed within two minutes', async function() {
-    this.timeout(1000 * 60 * 2);
+  it('deployment should succeed within five minutes', async function() {
+    this.timeout(1000 * 60 * 5);
     logTitle('Waiting for deployment to succeed');
     const url = `${charles}/api/deployments/${deploymentId}`;
     log(`Fetching information on deployment from ${prettyUrl(url)}`);
@@ -267,6 +267,7 @@ describe('system-integration', () => {
     const editProjectPayload = {
       'data': {
         'type': 'projects',
+        'id': projectId,
         'attributes': {
           'description': 'foo bar bar bar',
         },

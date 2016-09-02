@@ -14,7 +14,7 @@ dependencies:
 
 test:
   override:
-    - npm run clean-test && docker-compose build charles && npm run-script system-test
+    - npm run clean-test
     - npm run lint
   post:
     - docker-compose down

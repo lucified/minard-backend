@@ -26,7 +26,7 @@ async function fetchWithRetry(url: string, options?: any, retryCount = 5): Promi
     try {
       return await fetch(url, options);
     } catch (err) {
-      this.log(`WARN: Fetch failed for url ${url}. Error message is '${err.message}'`);
+      log(`WARN: Fetch failed for url ${url}. Error message is '${err.message}'`);
       await sleep(2000);
     }
   }

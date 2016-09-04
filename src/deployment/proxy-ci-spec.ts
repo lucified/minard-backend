@@ -40,12 +40,11 @@ describe('ci-proxy', () => {
     upstream.stop();
   });
 
-  it('registers itself without errors', async (done) => {
+  it('registers itself without errors', async () => {
     await provisionProxy();
-    done();
   });
 
-  it('proxies everything under routeNamespace', async (done) => {
+  it('proxies everything under routeNamespace', async () => {
     const { proxy, plugin } = await provisionProxy(`http://localhost:${upstream.info.port}`);
 
     const path = plugin.routeNamespace + 'foo/bar/';
@@ -56,24 +55,18 @@ describe('ci-proxy', () => {
         return rep('Ok!');
       },
     }]);
-    try {
-      await upstream.start();
+    await upstream.start();
 
-      const response = await proxy.inject({
-        method: 'GET',
-        url: path,
-      });
-      expect(response.statusCode).to.equal(200);
-      expect(response.payload).to.equal('Ok!');
-      await upstream.stop();
-      done();
-    } catch (err) {
-      done(err);
-    }
-
+    const response = await proxy.inject({
+      method: 'GET',
+      url: path,
+    });
+    expect(response.statusCode).to.equal(200);
+    expect(response.payload).to.equal('Ok!');
+    await upstream.stop();
   });
 
-  it('doesn\'t proxy weird paths' , async (done) => {
+  it('doesn\'t proxy weird paths' , async () => {
     const path = '/foo/bar';
     upstream.route([{
       method: 'PUT',
@@ -82,23 +75,17 @@ describe('ci-proxy', () => {
         return rep('Ok!');
       },
     }]);
-    try {
-      await upstream.start();
-      const { proxy } = await provisionProxy(`http://localhost:${upstream.info.port}`);
+    await upstream.start();
+    const { proxy } = await provisionProxy(`http://localhost:${upstream.info.port}`);
 
-      const response = await proxy.inject({
-        method: 'PUT',
-        url: path,
-      });
-      expect(response.statusCode).to.equal(404);
-      done();
-    } catch (err) {
-      done(err);
-    }
-
+    const response = await proxy.inject({
+      method: 'PUT',
+      url: path,
+    });
+    expect(response.statusCode).to.equal(404);
   });
 
-  it('Posts build started event' , async (done) => {
+  it('Posts build started event' , async () => {
 
     const { proxy, bus, plugin } = await provisionProxy(`http://localhost:${upstream.info.port}`);
     const path = plugin.routeNamespace + 'builds/register.json';
@@ -113,32 +100,25 @@ describe('ci-proxy', () => {
         }).code(201);
       },
     }]);
-    try {
-      await upstream.start();
+    await upstream.start();
 
-      const eventPromise = bus
-        .filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
-        .map(e => e.payload)
-        .take(1)
-        .toPromise();
+    const eventPromise = bus
+      .filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
+      .map(e => e.payload)
+      .take(1)
+      .toPromise();
 
-      const responsePromise = proxy.inject({
-        method: 'POST',
-        url: path,
-      });
+    const responsePromise = proxy.inject({
+      method: 'POST',
+      url: path,
+    });
 
-      const [event, response] = await Promise.all([eventPromise, responsePromise]);
-      expect(event.status).to.eq('running');
-      expect(response.statusCode).to.eq(201);
-      done();
-
-    } catch (err) {
-      done(err);
-    }
-
+    const [event, response] = await Promise.all([eventPromise, responsePromise]);
+    expect(event.status).to.eq('running');
+    expect(response.statusCode).to.eq(201);
   });
 
-  it('Posts status updates' , async (done) => {
+  it('Posts status updates' , async () => {
 
     const { proxy, bus, plugin } = await provisionProxy(`http://localhost:${upstream.info.port}`);
 
@@ -154,36 +134,29 @@ describe('ci-proxy', () => {
         });
       },
     }]);
-    try {
-      await upstream.start();
+    await upstream.start();
 
-      const eventPromise = bus
-        .filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
-        .map(e => e.payload)
-        .take(1)
-        .toPromise();
+    const eventPromise = bus
+      .filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
+      .map(e => e.payload)
+      .take(1)
+      .toPromise();
 
-      const responsePromise = proxy.inject({
-        method: 'PUT',
-        url: path,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        payload: {
-          state: 'cancelled',
-          id: 1,
-        },
-      });
+    const responsePromise = proxy.inject({
+      method: 'PUT',
+      url: path,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      payload: {
+        state: 'cancelled',
+        id: 1,
+      },
+    });
 
-      const [event, response] = await Promise.all([eventPromise, responsePromise]);
-      expect(event.status).to.eq('cancelled');
-      expect(response.statusCode).to.eq(200);
-      done();
-
-    } catch (err) {
-      done(err);
-    }
-
+    const [event, response] = await Promise.all([eventPromise, responsePromise]);
+    expect(event.status).to.eq('cancelled');
+    expect(response.statusCode).to.eq(200);
   });
 
 });

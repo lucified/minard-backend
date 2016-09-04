@@ -388,7 +388,7 @@ describe('deployment-module', () => {
 
   describe('deployment events', () => {
 
-    it('should post \'extracted\' event', async (done) => {
+    it('should post \'extracted\' event', async () => {
       // Arrange
       const bus = new EventBus();
       rimraf.sync(path.join(os.tmpdir(), 'minard'));
@@ -413,25 +413,20 @@ describe('deployment-module', () => {
       );
       expect(deploymentModule.getDeploymentPath(1, 1)).to.exist;
 
-      try {
-        const eventPromise = bus
-          .filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
-          .map(e => e.payload)
-          .filter(e => e.status === 'extracted')
-          .take(1)
-          .toPromise();
+      const eventPromise = bus
+        .filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
+        .map(e => e.payload)
+        .filter(e => e.status === 'extracted')
+        .take(1)
+        .toPromise();
 
-        bus.post(createDeploymentEvent({ status: 'running', id: 1, projectId: 1 }));
-        bus.post(createDeploymentEvent({ status: 'running', id: 2, projectId: 2 }));
-        bus.post(createDeploymentEvent({ status: 'success', id: 1 }));
+      bus.post(createDeploymentEvent({ status: 'running', id: 1, projectId: 1 }));
+      bus.post(createDeploymentEvent({ status: 'running', id: 2, projectId: 2 }));
+      bus.post(createDeploymentEvent({ status: 'success', id: 1 }));
 
-        const event = await eventPromise;
-        expect(event.status).to.eq('extracted');
-        expect(event.id).to.eq(1);
-        done();
-      } catch (err) {
-        done(err);
-      }
+      const event = await eventPromise;
+      expect(event.status).to.eq('extracted');
+      expect(event.id).to.eq(1);
     });
 
   });

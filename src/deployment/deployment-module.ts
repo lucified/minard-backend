@@ -294,10 +294,10 @@ export default class DeploymentModule {
    * with preparing the deployment.
    */
   public async prepareDeploymentForServing(projectId: number, deploymentId: number) {
-    return this.prepareQueue.add(() => this._prepareDeploymentForServing(projectId, deploymentId));
+    return this.prepareQueue.add(() => this.doPrepareDeploymentForServing(projectId, deploymentId));
   }
 
-  private async _prepareDeploymentForServing(projectId: number, deploymentId: number) {
+  public async doPrepareDeploymentForServing(projectId: number, deploymentId: number) {
     const deployment = await this.getDeployment(projectId, deploymentId);
     if (!deployment) {
       throw Boom.notFound(

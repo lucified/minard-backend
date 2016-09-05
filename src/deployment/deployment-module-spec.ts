@@ -366,7 +366,82 @@ describe('deployment-module', () => {
     expect(deploymentPath).to.equal('example/1/4');
   });
 
-  describe('prepareDeploymentForServing()', () => {
+  describe('prepareDeploymentForServing', () => {
+
+    function sleep(ms = 0) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function shouldQueueCalls(
+      resolveOrReject: (resolve: (arg: any) => void, reject: (arg: any) => void) => void) {
+
+      const deploymentModule = getDeploymentModule({} as any, '');
+      let resolve1: ((arg: any) => void) | undefined = undefined;
+      let reject1: ((arg: any) => void) | undefined = undefined;
+      let resolve2: ((arg: any) => void) | undefined = undefined;
+      const promise1 = new Promise((resolve, reject) => {
+        resolve1 = resolve;
+        reject1 = reject;
+      });
+      const promise2 = new Promise((resolve, reject) => {
+        resolve2 = resolve;
+      });
+      let firstCalled = false;
+      let secondCalled = false;
+      deploymentModule.doPrepareDeploymentForServing = (projectId, deploymentId) => {
+        if (projectId === 1 && deploymentId === 11) {
+          firstCalled = true;
+          return promise1;
+        }
+        if (projectId === 2 && deploymentId === 22) {
+          secondCalled = true;
+          return promise2;
+        }
+        throw Error('invalid projectId or deploymentId');
+      };
+      const retPromise1 = deploymentModule.prepareDeploymentForServing(1, 11);
+      const retPromise2 = deploymentModule.prepareDeploymentForServing(2, 22);
+      expect(firstCalled).to.equal(true);
+      expect(secondCalled).to.equal(false);
+      // sleep a moment to make sure that the second call
+      // is not made before we resolve the previous promise
+      await sleep(10);
+      expect(secondCalled).to.equal(false);
+      resolveOrReject(resolve1!, reject1!);
+      // now that the previous promise is resolved, the next
+      // one may be called. sleep a moment to give control to
+      // the queue, so it gets a change to call doPrepareDeploymentForServing
+      await sleep(10);
+      expect(secondCalled).to.equal(true);
+      resolve2!('bar');
+
+      return [retPromise1, retPromise2];
+    }
+
+    it('should queue calls to doPrepareDeploymentForServing', async () => {
+      const ret = await shouldQueueCalls((resolve: (arg: any) => void, reject: (arg: any) => void) => {
+        resolve('foo');
+      });
+      expect(await ret[0]).to.equal('foo');
+      expect(await ret[1]).to.equal('bar');
+    });
+
+    it('should queue calls to doPrepareDeploymentForServing after rejected promises', async () => {
+      const ret = await shouldQueueCalls((resolve: (arg: any) => void, reject: (arg: any) => void) => {
+        reject('foo');
+      });
+      try {
+        await ret[0];
+        expect.fail('should throw');
+      } catch (err) {
+        expect(err).to.equal('foo');
+      }
+      expect(await ret[1]).to.equal('bar');
+    });
+
+  });
+
+  describe('doPrepareDeploymentForServing()', () => {
 
     it('should throw error when deployment not found', async () => {
       const deploymentModule = getDeploymentModule({} as GitlabClient, '');
@@ -376,7 +451,7 @@ describe('deployment-module', () => {
         return null;
       };
       try {
-        await deploymentModule.prepareDeploymentForServing(2, 4);
+        await deploymentModule.doPrepareDeploymentForServing(2, 4);
         expect.fail('should throw exception');
       } catch (err) {
         expect(err.message).to.equal('No deployment found for: projectId 2, deploymentId 4');
@@ -391,7 +466,7 @@ describe('deployment-module', () => {
         };
       };
       try {
-        await deploymentModule.prepareDeploymentForServing(2, 4);
+        await deploymentModule.doPrepareDeploymentForServing(2, 4);
         expect.fail('should throw exception');
       } catch (err) {
         expect(err.message).to.equal('Deployment status is "failed" for: projectId 2, deploymentId 4');
@@ -417,7 +492,7 @@ describe('deployment-module', () => {
         expect(deploymentId).to.equal(4);
         moveCalled = true;
       };
-      await deploymentModule.prepareDeploymentForServing(2, 4);
+      await deploymentModule.doPrepareDeploymentForServing(2, 4);
       expect(called).to.equal(true);
       expect(moveCalled).to.equal(true);
     });
@@ -433,7 +508,7 @@ describe('deployment-module', () => {
         throw Error('some error');
       };
       try {
-        await deploymentModule.prepareDeploymentForServing(2, 4);
+        await deploymentModule.doPrepareDeploymentForServing(2, 4);
         expect.fail('should throw exception');
       } catch (err) {
         //

@@ -24,9 +24,9 @@ describe('gitlab-yml', () => {
         publicRoot: 'foo',
       };
       const spec = getGitlabSpec(minardJson);
-      expect(spec.artifacts).to.exist;
-      expect(spec.artifacts!.paths).to.have.length(1);
-      expect(spec.artifacts!.paths[0]).to.equal(minardJson.publicRoot);
+      expect(spec.build.artifacts).to.exist;
+      expect(spec.build.artifacts!.paths).to.have.length(1);
+      expect(spec.build.artifacts!.paths[0]).to.equal(minardJson.publicRoot);
       expect(spec.build.script).to.have.length(1);
       expect(spec.build.script[0]).to.equal(`echo 'Nothing to build'`);
     });
@@ -34,9 +34,9 @@ describe('gitlab-yml', () => {
     function expectCorrectBuildSpec(
       spec: GitlabSpec, expectedPublicRoot: string,
       expectedImage: string, expectedScript: string) {
-      expect(spec.artifacts).to.exist;
-      expect(spec.artifacts!.paths).to.have.length(1);
-      expect(spec.artifacts!.paths[0]).to.equal(expectedPublicRoot);
+      expect(spec.build.artifacts).to.exist;
+      expect(spec.build.artifacts!.paths).to.have.length(1);
+      expect(spec.build.artifacts!.paths[0]).to.equal(expectedPublicRoot);
       expect(spec.image).to.equal(expectedImage);
       expect(spec.build.script).to.have.length(1);
       expect(spec.build.script[0]).to.equal(expectedScript);
@@ -50,9 +50,9 @@ describe('gitlab-yml', () => {
         },
       };
       const spec = getGitlabSpec(minardJson);
-      expect(spec.artifacts).to.exist;
-      expect(spec.artifacts!.paths).to.have.length(1);
-      expect(spec.artifacts!.paths[0]).to.equal(minardJson.publicRoot);
+      expect(spec.build.artifacts).to.exist;
+      expect(spec.build.artifacts!.paths).to.have.length(1);
+      expect(spec.build.artifacts!.paths[0]).to.equal(minardJson.publicRoot);
       expect(spec.image).to.equal('node:latest');
       expect(spec.build.script).to.have.length(1);
       expect(spec.build.script[0]).to.equal(minardJson.build.commands);
@@ -201,35 +201,36 @@ describe('gitlab-yml', () => {
     // no need for many tests as implementation
     // simply calls stringify from yamljs
     it('should produce correct yaml when all options are used', () => {
-      const spec = {
+      const spec: GitlabSpec = {
         image: 'node:latest',
         build: {
           script: [
             'npm install',
             'npm run-script build',
           ],
-        },
-        artifacts: {
-          name: 'artifact-name',
-          paths: [
-            'dist',
-          ],
+          artifacts: {
+            name: 'artifact-name',
+            paths: [
+              'dist',
+            ],
+          },
         },
         cache: {
           paths: ['node_modules'],
         },
       };
       const yaml = gitlabSpecToYml(spec);
+      console.log(yaml);
       const expectedYaml =
 `image: 'node:latest'
 build:
   script:
     - 'npm install'
     - 'npm run-script build'
-artifacts:
-  name: artifact-name
-  paths:
-    - dist
+  artifacts:
+    name: artifact-name
+    paths:
+      - dist
 cache:
   paths:
     - node_modules

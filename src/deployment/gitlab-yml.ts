@@ -10,14 +10,14 @@ import {
 } from './types';
 
 function applyDefaults(spec: MinardJson) {
-  const merged = merge({}, { publicRoot: '' }, spec);
+  const merged = merge({}, { publicRoot: '.' }, spec);
   if (merged.build) {
     merged.build.image = merged.build.image || 'node:latest';
   }
   return merged;
 }
 
-function getValidationErrors(obj: any) {
+export function getValidationErrors(obj: any) {
   const errors: string[] = [];
   if (obj.publicRoot) {
     if (obj.publicRoot.indexOf('..') !== -1) {
@@ -71,6 +71,10 @@ function getValidationErrors(obj: any) {
 function isValidMinardJson(obj: any): boolean {
   const errors = getValidationErrors(obj);
   return errors.length === 0;
+}
+
+export function getGitlabYmlInvalidJson() {
+  return gitlabSpecToYml(getGitlabSpecInvalidMinardJson());
 }
 
 export function getGitlabYml(spec: MinardJson) {
@@ -134,12 +138,12 @@ function getGitlabSpecWithBuild(spec: MinardJson): GitlabSpec {
     build: {
       script: getScripts(spec.build.commands),
       variables: spec.build.variables!,
-    },
-    artifacts: {
-      name: 'artifact-name',
-      paths: [
-        spec.publicRoot,
-      ],
+      artifacts: {
+        name: 'artifact-name',
+        paths: [
+          spec.publicRoot!,
+        ],
+      },
     },
     cache: spec.build.cache,
   };
@@ -155,12 +159,12 @@ function getGitlabSpecNoBuild(spec: MinardJson): GitlabSpec {
     image: 'alpine:latest',
     build: {
       script: [`echo 'Nothing to build'`],
-    },
-    artifacts: {
-      name: 'artifact-name',
-      paths: [
-        spec.publicRoot,
-      ],
+      artifacts: {
+        name: 'artifact-name',
+        paths: [
+          spec.publicRoot!,
+        ],
+      },
     },
   };
 }

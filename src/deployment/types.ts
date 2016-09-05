@@ -59,7 +59,7 @@ export interface MinardJsonBuild {
 }
 
 export interface MinardJson {
-  publicRoot: string;
+  publicRoot?: string;
   build?: MinardJsonBuild;
 }
 
@@ -70,10 +70,10 @@ export interface GitlabSpec {
     script: string[],
     when?: string,
     variables?: {[key: string]: string}
-  };
-  artifacts?: {
-    name: string,
-    paths: string[],
+    artifacts?: {
+      name: string,
+      paths: string[],
+    };
   };
   cache?: {
     paths: string[],

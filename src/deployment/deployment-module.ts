@@ -32,10 +32,13 @@ import {
 
 import { promisify } from '../shared/promisify';
 
-const AdmZip = require('adm-zip'); // tslint:disable-line
 const deepcopy = require('deepcopy');
 const ncp = promisify(require('ncp'));
 const mkpath = promisify(require('mkpath'));
+const Queue = require('promise-queue'); // tslint:disable-line
+
+// this lib based on https://github.com/thejoshwolfe/yauzl
+const extract = promisify(require('extract-zip'));
 
 export const deploymentFolderInjectSymbol = Symbol('deployment-folder');
 
@@ -75,6 +78,7 @@ export default class DeploymentModule {
   private readonly logger: logger.Logger;
   private readonly urlPattern: string;
   private readonly eventBus: EventBus;
+  private readonly prepareQueue: any;
 
   private buildToProject = new Map<number, number>();
   private events: rx.Observable<DeploymentEvent>;
@@ -93,7 +97,7 @@ export default class DeploymentModule {
     this.events = eventBus
       .filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
       .map(e => e.payload);
-
+    this.prepareQueue = new Queue(1, Infinity);
     this.subscribeToEvents();
   }
 
@@ -290,6 +294,10 @@ export default class DeploymentModule {
    * with preparing the deployment.
    */
   public async prepareDeploymentForServing(projectId: number, deploymentId: number) {
+    return this.prepareQueue.add(() => this._prepareDeploymentForServing(projectId, deploymentId));
+  }
+
+  private async _prepareDeploymentForServing(projectId: number, deploymentId: number) {
     const deployment = await this.getDeployment(projectId, deploymentId);
     if (!deployment) {
       throw Boom.notFound(
@@ -319,7 +327,6 @@ export default class DeploymentModule {
     }
   }
 
-
   /*
    * Download artifact zip for a deployment from
    * GitLab and extract it into a a temporary path
@@ -341,10 +348,10 @@ export default class DeploymentModule {
       readableStream.resume();
     });
 
-    const zip = new AdmZip(tempFileName);
     const extractedTempPath = this.getTempArtifactsPath(projectId, deploymentId);
     await mkpath(extractedTempPath);
-    zip.extractAllTo(extractedTempPath, true);
+    await extract(tempFileName, { dir: extractedTempPath });
+
     return extractedTempPath;
   }
 

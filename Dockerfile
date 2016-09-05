@@ -22,4 +22,7 @@ RUN npm install && npm link typescript
 COPY . /code
 RUN npm run transpile
 
+# https://github.com/npm/npm/issues/4531
+RUN npm config set unsafe-perm true
+
 CMD ["npm", "start"]

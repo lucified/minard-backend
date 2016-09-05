@@ -1,6 +1,9 @@
 #!/bin/bash
 
-FOLDER=src/integration-test/blank
+PROJECT=${SYSTEM_TEST_PROJECT:-"blank"}
+FOLDER=src/integration-test/$PROJECT
+
+echo "Folder is $FOLDER"
 
 rm -rf $FOLDER/.git
 git -C $FOLDER init

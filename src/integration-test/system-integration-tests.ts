@@ -14,8 +14,13 @@ import { JsonApiEntity, JsonApiResponse } from '../json-api';
 
 import * as chalk from 'chalk';
 
+const projectFolder = process.env.SYSTEM_TEST_PROJECT ? process.env.SYSTEM_TEST_PROJECT : 'blank';
 const charles = process.env.CHARLES ? process.env.CHARLES : 'http://localhost:8000';
 const gitserver = process.env.MINARD_GIT_SERVER ? process.env.MINARD_GIT_SERVER : 'http://localhost:10080';
+
+console.log(`Project is ${projectFolder}`);
+console.log(`Charles is ${charles}`);
+console.log(`Git server is ${gitserver}`);
 
 function sleep(ms = 0) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -127,16 +132,15 @@ describe('system-integration', () => {
         method: 'DELETE',
       });
       expect(ret.status).to.equal(200);
-      log('Delete request OK, waiting for 10 seconds');
-      await sleep(10000);
-      log('Delete finished');
+      log('Delete request OK');
+      await sleep(500);
     } else {
       log('Nothing to delete');
     }
   });
 
   it('should successfully create project', async function() {
-    this.timeout(1000 * 30);
+    this.timeout(1000 * 60);
     logTitle('Creating project');
     const createProjectPayload = {
       'data': {
@@ -155,20 +159,27 @@ describe('system-integration', () => {
         },
       },
     };
-    const ret = await fetchWithRetry(`${charles}/api/projects`, {
-      method: 'POST',
-      body: JSON.stringify(createProjectPayload),
-    });
-    expect(ret.status).to.equal(201);
-    const json = await ret.json();
-    expect(json.data.id).to.exist;
-    projectId = json.data.id;
+    while (!projectId) {
+      const ret = await fetchWithRetry(`${charles}/api/projects`, {
+        method: 'POST',
+        body: JSON.stringify(createProjectPayload),
+      });
+      if (ret.status === 400) {
+        log('Project was not yet fully deleted. Sleeping for two seconds.');
+        await sleep(2000);
+      } else {
+        expect(ret.status).to.equal(201);
+        const json = await ret.json();
+        expect(json.data.id).to.exist;
+        projectId = json.data.id;
+      }
+    }
     log(`Project created (projectId: ${projectId})`);
   });
 
   it('should be able to commit code to repo', async function() {
     logTitle(`Committing code to repo`);
-    const repoFolder = 'src/integration-test/blank';
+    const repoFolder = `src/integration-test/${projectFolder}`;
     this.timeout(1000 * 20);
 
     const credentialsFileContent = gitserver.replace(/:(\d+)$/gi, '%3a$1').replace('//', '//root:12345678@') + '\n';
@@ -212,7 +223,7 @@ describe('system-integration', () => {
     const url = `${charles}/api/deployments/${deploymentId}`;
     log(`Fetching information on deployment from ${prettyUrl(url)}`);
     while (!deployment || deployment.attributes.status !== 'success') {
-      const ret = await fetchWithRetry(url);
+      const ret = await fetchWithRetry(url, undefined, 999);
       expect(ret.status).to.equal(200);
       const json = await ret.json() as JsonApiResponse;
       deployment = json.data as JsonApiEntity;
@@ -230,10 +241,18 @@ describe('system-integration', () => {
   it('deployment should have accessible web page', async function() {
     logTitle('Checking that deployment has accessible web page');
     this.timeout(1000 * 30);
-    expect(deployment.attributes.url).to.exist;
-    log(`Fetching deployment from ${prettyUrl(deployment.attributes.url)}`);
-    const ret = await fetchWithRetry(deployment.attributes.url);
-    expect(ret.status).to.equal(200);
+    await sleep(2000);
+    const url = deployment.attributes.url + '/index.html';
+    log(`Fetching deployment from ${prettyUrl(url)}`);
+    let status = 0;
+    while (status !== 200) {
+      const ret = await fetchWithRetry(url, 999);
+      status = ret.status;
+      if (status !== 200) {
+        log(`Charles responded with ${status} for deployment request. Waiting for two seconds.`);
+        await sleep(200);
+      }
+    }
   });
 
   it('deployment should have accessible screenshot', async function() {
@@ -295,7 +314,7 @@ describe('system-integration', () => {
 
   it('cleanup repository', async function() {
     // not a real test, just cleaning up
-    await runCommand('rm', '-rf', 'src/integration-test/blank/.git');
+    await runCommand('rm', '-rf', `src/integration-test/${projectFolder}/.git`);
   });
 
 });

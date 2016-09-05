@@ -1,0 +1,6 @@
+{
+  "publicRoot": "foo",
+  "build": {
+    "commands": ["npm install", "npm run-script build"]
+  }
+}

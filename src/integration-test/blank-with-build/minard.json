@@ -1,0 +1,6 @@
+{
+  "publicRoot": "foo",
+  "build": {
+    "commands": ["mkdir foo", "cp src/* foo/."]
+  }
+}

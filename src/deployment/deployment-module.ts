@@ -18,6 +18,8 @@ import {
   DeploymentEvent,
   DeploymentStatus,
   MinardDeployment,
+  MinardJson,
+  RepositoryObject,
   createDeploymentEvent,
   deploymentUrlPatternInjectSymbol,
 } from './types';
@@ -193,6 +195,26 @@ export default class DeploymentModule {
     return fs.existsSync(path);
   }
 
+  public async filesAtPath(projectId: number, shaOrBranchName: string, path: string) {
+    const url = `/projects/${projectId}/repository/tree?path=${path}`;
+    const ret = await this.gitlab.fetchJsonAnyStatus(url);
+    if (ret.status === 404) {
+      throw Boom.notFound();
+    }
+    if (!ret.json) {
+      this.logger.error(`Unexpected non-json response from Gitlab for ${url}`, ret);
+      throw Boom.badGateway();
+    }
+    if (!Array.isArray(ret.json)) {
+      this.logger.error(`Unexpected non-array response from Gitlab for ${url}`, ret);
+      throw Boom.badImplementation();
+    }
+    return (<RepositoryObject[]> ret.json).map(item => ({
+      type: item.type,
+      name: item.name,
+    }));
+  }
+
   public async getRawMinardJson(projectId: number, shaOrBranchName: string): Promise<any> {
     const query = querystring.stringify({
       filepath: 'minard.json',
@@ -219,23 +241,42 @@ export default class DeploymentModule {
 
   public async getGitlabYml(projectId: number, shaOrBranchName: string): Promise<string> {
     try {
-      const json = await this.getParsedMinardJson(projectId, shaOrBranchName);
-      return getGitlabYml(json || {});
+      const info = await this.getMinardJsonInfo(projectId, shaOrBranchName);
+      if (!info) {
+        return getGitlabYml({});
+      }
+      if (info.errors.length > 0) {
+        return getGitlabYmlInvalidJson();
+      }
+      return getGitlabYml(info.parsed);
     } catch (err) {
       return getGitlabYmlInvalidJson();
     }
   }
 
   public async getMinardJsonInfo(
-    projectId: number, shaOrBranchName: string): Promise<{errors: string[], content: string, parsed: any}> {
+    projectId: number, shaOrBranchName: string): Promise<{errors: string[], content: string, parsed: any} | null> {
     const content = await this.getRawMinardJson(projectId, shaOrBranchName);
-    const parsed = await this.getParsedMinardJson(projectId, shaOrBranchName);
+    if (!content) {
+      return null;
+    }
+    let parsed: MinardJson | null = null;
     let errors: string[];
     try {
-      const json = JSON.parse(content);
-      errors = getValidationErrors(json);
+      parsed = JSON.parse(content);
+      errors = getValidationErrors(parsed);
     } catch (err) {
       errors = [err.message];
+      return { content, errors, parsed };
+    }
+    // if the project does not have a built, we additionally
+    // check that the publicRoot exists
+    if (parsed && errors.length === 0 && parsed.publicRoot !== '.' && !parsed.build) {
+      const path = parsed.publicRoot;
+      const files = await this.filesAtPath(projectId, shaOrBranchName, path!);
+      if (files.length === 0) {
+        errors.push(`Repository does not have any any files at path ${path}`);
+      }
     }
     return { content, errors, parsed };
   }
@@ -277,6 +318,7 @@ export default class DeploymentModule {
       throw new Error(`Couldn't find projectId for build ${deploymentId}`);
     }
   }
+
 
   /*
    * Download artifact zip for a deployment from

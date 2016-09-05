@@ -523,4 +523,66 @@ describe('deployment-module', () => {
 
   });
 
+  describe('filesAtPath', () => {
+
+    const projectId = 2;
+    const branch = 'foo-branch';
+    const repoPath = 'foo';
+
+    const gitlabResponse = [
+      {
+        'id': 'cdbaeae40f0655455c8159ee34fc6749c8f8968e',
+        'name': 'src',
+        'type': 'tree',
+        'mode': '040000',
+      },
+      {
+        'id': '4b6793ae68a6587d28c23b11c1a09b5a6b923215',
+        'name': 'README.md',
+        'type': 'blob',
+        'mode': '100644',
+      },
+    ];
+
+    it ('should return correct response when two files are found', async () => {
+      // Arrange
+      const gitlabClient = getClient();
+      const response = {
+        status: 200,
+        body: gitlabResponse,
+      };
+      fetchMock.restore().mock(`${host}${gitlabClient.apiPrefix}` +
+        `/projects/${projectId}/repository/tree?path=${repoPath}`, response);
+      const deploymentModule = getDeploymentModule(gitlabClient, '');
+      // Act
+      const files = await deploymentModule.filesAtPath(2, branch, repoPath);
+      // Assert
+      expect(files).to.exist;
+      expect(files).to.have.length(2);
+      expect(files[0].name).to.equal(gitlabResponse[0].name);
+      expect(files[0].type).to.equal(gitlabResponse[0].type);
+    });
+
+    it ('should throw when project is not found', async () => {
+      // Arrange
+      const gitlabClient = getClient();
+      const response = {
+        status: 404,
+        body: gitlabResponse,
+      };
+      fetchMock.restore().mock(`${host}${gitlabClient.apiPrefix}` +
+        `/projects/${projectId}/repository/tree?path=${repoPath}`, response);
+      const deploymentModule = getDeploymentModule(gitlabClient, '');
+      // Act
+      try {
+        await deploymentModule.filesAtPath(2, branch, repoPath);
+        expect.fail('should throw');
+      } catch (err) {
+        expect((<Boom.BoomError> err).isBoom).to.equal(true);
+        expect((<Boom.BoomError> err).output.statusCode).to.equal(404);
+      }
+    });
+
+  });
+
 });

@@ -79,3 +79,10 @@ export interface GitlabSpec {
     paths: string[],
   };
 }
+
+export interface RepositoryObject {
+  id: string;
+  name: string;
+  type: string;
+  mode: string;
+}

@@ -220,7 +220,6 @@ describe('gitlab-yml', () => {
         },
       };
       const yaml = gitlabSpecToYml(spec);
-      console.log(yaml);
       const expectedYaml =
 `image: 'node:latest'
 build:

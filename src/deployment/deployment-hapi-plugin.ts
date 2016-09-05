@@ -122,10 +122,7 @@ class DeploymentHapiPlugin {
   }
 
   private distPath(projectId: number, deploymentId: number) {
-    // for now we only support projects that create the artifact in 'dist' folder
-    return path.join(this.deploymentModule
-      .getDeploymentPath(projectId, deploymentId), 'dist');
-
+    return path.join(this.deploymentModule.getDeploymentPath(projectId, deploymentId));
   }
 
   private parsePath(request: Hapi.Request, reply: Hapi.IReply) {

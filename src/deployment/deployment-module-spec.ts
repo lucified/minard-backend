@@ -1,6 +1,8 @@
 
 import 'reflect-metadata';
 
+import * as Boom from 'boom';
+
 import { expect } from 'chai';
 import * as fs from 'fs';
 import * as os from 'os';
@@ -20,9 +22,12 @@ import EventBus from '../event-bus/local-event-bus';
 import { IFetchStatic } from '../shared/fetch.d.ts';
 import { GitlabClient } from '../shared/gitlab-client';
 import Logger from '../shared/logger';
+import { promisify } from '../shared/promisify';
 
 const fetchMock = require('fetch-mock');
 const rimraf = require('rimraf');
+const ncp = promisify(require('ncp'));
+const mkpath = require('mkpath');
 
 const host = 'gitlab';
 const token = 'the-sercret';
@@ -284,16 +289,22 @@ describe('deployment-module', () => {
     const projectId = 3;
     const deploymentId = 4;
     const branchName = 'master';
-    const deploymentPath = path.join(os.tmpdir(), 'minard-test');
+    const deploymentPath = path.join(os.tmpdir(), 'minard-move', 'test-deployment');
+    const extractedPath = path.join(os.tmpdir(), 'minard-move', 'extracted');
+    console.log(deploymentPath);
 
-    function shouldMoveCorrectly(publicRoot: string, artifactFolder: string) {
+    async function shouldMoveCorrectly(publicRoot: string, artifactFolder: string) {
       // Arrange
       rimraf.sync(deploymentPath);
+      rimraf.sync(extractedPath);
+      mkpath.sync(extractedPath);
+      await ncp(path.join(__dirname, 'test-data'), extractedPath);
       const deploymentModule = {
+        logger,
         getTempArtifactsPath: (_projectId: number, _deploymentId: number) => {
           expect(_projectId).to.equal(projectId);
           expect(_deploymentId).to.equal(deploymentId);
-          return path.join(__dirname, 'test-data', 'test-extracted-artifact-1');
+          return path.join(extractedPath, artifactFolder);
         },
         getDeployment: async (_projectId: number, _deploymentId: number) => {
           expect(_projectId).to.equal(projectId);
@@ -302,14 +313,14 @@ describe('deployment-module', () => {
             ref: branchName,
           } as MinardDeployment;
         },
-        getMinardJson: async (_projectId: number, sha: string) => {
+        getParsedMinardJson: async (_projectId: number, sha: string) => {
           expect(_projectId).to.equal(projectId);
           expect(sha).to.equal(branchName);
           return {
-            publicRoot: 'dist',
+            publicRoot,
           };
         },
-        getDeploymentPath: async (_projectId: number, _deploymentId: number) => {
+        getDeploymentPath: (_projectId: number, _deploymentId: number) => {
           expect(_projectId).to.equal(projectId);
           expect(_deploymentId).to.equal(deploymentId);
           return deploymentPath;
@@ -319,22 +330,32 @@ describe('deployment-module', () => {
         .prototype.moveExtractedDeployment.bind(deploymentModule);
 
       // Act
-      deploymentModule.moveExtractedDeployment(3, 4);
+      await deploymentModule.moveExtractedDeployment(projectId, deploymentId);
 
       // Assert
-      fs.existsSync(path.join(deploymentPath, 'index.html'));
+      expect(fs.existsSync(path.join(deploymentPath, 'index.html'))).to.equal(true);
     }
 
-    it('should work when publicRoot is "foo"', () => {
-      shouldMoveCorrectly('foo', 'test-extracted-artifact-1');
+    it('should move files correctly when publicRoot is "foo"', async () => {
+      await shouldMoveCorrectly('foo', 'test-extracted-artifact-1');
     });
 
-    it('should work when publicRoot is "foo/bar"', () => {
-      shouldMoveCorrectly('foo', 'test-extracted-artifact-2');
+    it('should move files correctly when publicRoot is "foo/bar"', async () => {
+      await shouldMoveCorrectly('foo/bar', 'test-extracted-artifact-2');
     });
 
-    it('should work when publicRoot is "."', () => {
-      shouldMoveCorrectly('foo', 'test-extracted-artifact-3');
+    it('should move files correctly when publicRoot is "."', async () => {
+      await shouldMoveCorrectly('.', 'test-extracted-artifact-3');
+    });
+
+    it('should throw error when publicRoot does not exist in artifacts"', async () => {
+      try {
+        await shouldMoveCorrectly('bar', 'test-extracted-artifact-2');
+        expect.fail('should throw');
+      } catch (err) {
+        expect((<Boom.BoomError> err).isBoom).to.equal(true);
+        expect((<Boom.BoomError> err).data).to.equal('no-dir-at-public-root');
+      }
     });
 
   });
@@ -390,8 +411,15 @@ describe('deployment-module', () => {
         expect(deploymentId).to.equal(4);
         called = true;
       };
+      let moveCalled = false;
+      deploymentModule.moveExtractedDeployment = async (projectId, deploymentId) => {
+        expect(projectId).to.equal(2);
+        expect(deploymentId).to.equal(4);
+        moveCalled = true;
+      };
       await deploymentModule.prepareDeploymentForServing(2, 4);
       expect(called).to.equal(true);
+      expect(moveCalled).to.equal(true);
     });
 
     it('should report internal error', async () => {

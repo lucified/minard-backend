@@ -219,10 +219,7 @@ export default class DeploymentModule {
 
   public async getGitlabYml(projectId: number, shaOrBranchName: string): Promise<string> {
     try {
-      console.log(projectId);
-      console.log(shaOrBranchName);
       const json = await this.getParsedMinardJson(projectId, shaOrBranchName);
-      console.log(json);
       return getGitlabYml(json || {});
     } catch (err) {
       return getGitlabYmlInvalidJson();

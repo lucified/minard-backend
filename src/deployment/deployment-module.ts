@@ -33,7 +33,7 @@ import { promisify } from '../shared/promisify';
 const mkpath = require('mkpath');
 const AdmZip = require('adm-zip'); // tslint:disable-line
 const deepcopy = require('deepcopy');
-const mv = promisify(require('mv'));
+const ncp = promisify(require('ncp'));
 
 export const deploymentFolderInjectSymbol = Symbol('deployment-folder');
 
@@ -261,8 +261,10 @@ export default class DeploymentModule {
     }
     try {
       await this.downloadAndExtractDeployment(projectId, deploymentId);
+      return await this.moveExtractedDeployment(projectId, deploymentId);
     } catch (err) {
-      throw Boom.wrap(err);
+      this.logger.warn(`Failed to prepare deployment ${projectId}_${deploymentId} for serving`, err);
+      throw Boom.badImplementation();
     }
   }
 
@@ -274,7 +276,6 @@ export default class DeploymentModule {
     if (!_projectId) {
       throw new Error(`Couldn't find projectId for build ${deploymentId}`);
     }
-    // console.log(`Build ${_projectId}/${deploymentId}: ${state}`);
   }
 
   /*
@@ -283,8 +284,8 @@ export default class DeploymentModule {
    */
   public async downloadAndExtractDeployment(projectId: number, deploymentId: number) {
     const url = `/projects/${projectId}/builds/${deploymentId}/artifacts`;
-    const response = await this.gitlab.fetch(url);
 
+    const response = await this.gitlab.fetch(url);
     const tempDir = path.join(os.tmpdir(), 'minard');
     mkpath.sync(tempDir);
     let readableStream = (<any> response).body;
@@ -323,11 +324,16 @@ export default class DeploymentModule {
     const extractedTempPath = this.getTempArtifactsPath(projectId, deploymentId);
     const finalPath = this.getDeploymentPath(projectId, deploymentId);
     mkpath.sync(finalPath);
-    const sourcePath = minardJson.publicRoot = '.' ? extractedTempPath :
-    path.join(extractedTempPath, minardJson.publicRoot);
-
-    mv(sourcePath, this.getDeploymentPath(projectId, deploymentId));
-    return this.getDeploymentPath(projectId, deploymentId);
+    const sourcePath = minardJson.publicRoot === '.' ? extractedTempPath :
+      path.join(extractedTempPath, minardJson.publicRoot);
+    if (!fs.existsSync(sourcePath)) {
+      const msg = `Deployment "${projectId}_${deploymentId}" did not have directory at repo path ` +
+        `"${minardJson.publicRoot}". Local sourcePath was ${sourcePath}`;
+      this.logger.warn(msg);
+      throw Boom.badData(msg, 'no-dir-at-public-root');
+    }
+    await ncp(sourcePath, this.getDeploymentPath(projectId, deploymentId));
+    return finalPath;
   }
 
 };

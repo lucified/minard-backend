@@ -48,6 +48,7 @@ export interface ApiBranch extends MinardBranch {
   project: ApiProject;
   deployments: ApiDeployment[];
   commits: ApiCommit[];
+  minardJson: any;
 }
 
 export interface ApiDeployment extends MinardDeploymentPlain {

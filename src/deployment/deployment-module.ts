@@ -304,7 +304,7 @@ export default class DeploymentModule {
     const zip = new AdmZip(tempFileName);
     const extractedTempPath = this.getTempArtifactsPath(projectId, deploymentId);
     mkpath.sync(extractedTempPath);
-    zip.extractAllTo(tempDir, extractedTempPath);
+    zip.extractAllTo(extractedTempPath, true);
     return extractedTempPath;
   }
 

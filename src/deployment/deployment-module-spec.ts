@@ -255,7 +255,7 @@ describe('deployment-module', () => {
     it('should work with a simple artifact', async () => {
       // Arrange
       rimraf.sync(path.join(os.tmpdir(), 'minard'));
-      const thePath = path.join(__dirname, '../../src/deployment/test-artifact.zip');
+      const thePath = path.join(__dirname, '../../src/deployment/test-data/test-artifact.zip');
       const stream = fs.createReadStream(thePath);
       const opts = {
         status: 200,
@@ -293,7 +293,7 @@ describe('deployment-module', () => {
         getTempArtifactsPath: (_projectId: number, _deploymentId: number) => {
           expect(_projectId).to.equal(projectId);
           expect(_deploymentId).to.equal(deploymentId);
-          return path.join(__dirname, 'test-extracted-artifact-1');
+          return path.join(__dirname, 'test-data', 'test-extracted-artifact-1');
         },
         getDeployment: async (_projectId: number, _deploymentId: number) => {
           expect(_projectId).to.equal(projectId);
@@ -456,7 +456,7 @@ describe('deployment-module', () => {
       // Arrange
       const bus = new EventBus();
       rimraf.sync(path.join(os.tmpdir(), 'minard'));
-      const thePath = path.join(__dirname, '../../src/deployment/test-artifact.zip');
+      const thePath = path.join(__dirname, '../../src/deployment/test-data/test-artifact.zip');
       const stream = fs.createReadStream(thePath);
       const opts = {
         status: 200,

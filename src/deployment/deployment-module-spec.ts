@@ -10,6 +10,7 @@ import {
   DEPLOYMENT_EVENT_TYPE,
   DeploymentEvent,
   DeploymentModule,
+  MinardDeployment,
   createDeploymentEvent,
   getDeploymentKeyFromHost,
 } from './';
@@ -247,32 +248,95 @@ describe('deployment-module', () => {
     });
   });
 
-  it('downloadAndExtractDeployment()', async () => {
+  describe('downloadAndExtractDeployment()', () => {
     // Example URL for manual testing
     // http://localhost:10080/api/v3/projects/1/builds/3/artifacts\?private_token=BSKaHunLUSyxp_X-MK1a
 
-    // Arrange
-    rimraf.sync(path.join(os.tmpdir(), 'minard'));
-    const thePath = path.join(__dirname, '../../src/deployment/test-artifact.zip');
-    const stream = fs.createReadStream(thePath);
-    const opts = {
-      status: 200,
-      statusText: 'ok',
-    };
-    const response = new Response(stream, opts);
-    const gitlabClient = getClient();
-    const mockUrl = `${host}${gitlabClient.apiPrefix}/projects/1/builds/2/artifacts`;
-    fetchMock.restore().mock(mockUrl, response);
-    const deploymentsDir = path.join(os.tmpdir(), 'minard', 'deploys');
-    const deploymentModule = getDeploymentModule(gitlabClient, deploymentsDir);
+    it('should work with a simple artifact', async () => {
+      // Arrange
+      rimraf.sync(path.join(os.tmpdir(), 'minard'));
+      const thePath = path.join(__dirname, '../../src/deployment/test-artifact.zip');
+      const stream = fs.createReadStream(thePath);
+      const opts = {
+        status: 200,
+        statusText: 'ok',
+      };
+      const response = new Response(stream, opts);
+      const gitlabClient = getClient();
+      const mockUrl = `${host}${gitlabClient.apiPrefix}/projects/1/builds/2/artifacts`;
+      fetchMock.restore().mock(mockUrl, response);
+      const deploymentsDir = path.join(os.tmpdir(), 'minard', 'deploys');
+      const deploymentModule = getDeploymentModule(gitlabClient, deploymentsDir);
 
-    // Act
-    const deploymentPath = await deploymentModule.downloadAndExtractDeployment(1, 2);
+      // Act
+      const deploymentPath = await deploymentModule.downloadAndExtractDeployment(1, 2);
 
-    // Assert
-    const indexFilePath = path.join(deploymentPath, 'dist', 'index.html');
-    expect(fs.existsSync(indexFilePath)).to.equal(true);
-    expect(deploymentPath).to.equal(deploymentModule.getDeploymentPath(1, 2));
+      // Assert
+      const indexFilePath = path.join(deploymentPath, 'dist', 'index.html');
+      expect(fs.existsSync(indexFilePath)).to.equal(true);
+      expect(deploymentPath).to.equal(deploymentModule.getTempArtifactsPath(1, 2));
+    });
+
+  });
+
+  describe('moveExtractedDeployment()', () => {
+
+    const projectId = 3;
+    const deploymentId = 4;
+    const branchName = 'master';
+    const deploymentPath = path.join(os.tmpdir(), 'minard-test');
+
+    function shouldMoveCorrectly(publicRoot: string, artifactFolder: string) {
+      // Arrange
+      rimraf.sync(deploymentPath);
+      const deploymentModule = {
+        getTempArtifactsPath: (_projectId: number, _deploymentId: number) => {
+          expect(_projectId).to.equal(projectId);
+          expect(_deploymentId).to.equal(deploymentId);
+          return path.join(__dirname, 'test-extracted-artifact-1');
+        },
+        getDeployment: async (_projectId: number, _deploymentId: number) => {
+          expect(_projectId).to.equal(projectId);
+          expect(_deploymentId).to.equal(deploymentId);
+          return {
+            ref: branchName,
+          } as MinardDeployment;
+        },
+        getMinardJson: async (_projectId: number, sha: string) => {
+          expect(_projectId).to.equal(projectId);
+          expect(sha).to.equal(branchName);
+          return {
+            publicRoot: 'dist',
+          };
+        },
+        getDeploymentPath: async (_projectId: number, _deploymentId: number) => {
+          expect(_projectId).to.equal(projectId);
+          expect(_deploymentId).to.equal(deploymentId);
+          return deploymentPath;
+        },
+      } as {} as DeploymentModule;
+      deploymentModule.moveExtractedDeployment = DeploymentModule
+        .prototype.moveExtractedDeployment.bind(deploymentModule);
+
+      // Act
+      deploymentModule.moveExtractedDeployment(3, 4);
+
+      // Assert
+      fs.existsSync(path.join(deploymentPath, 'index.html'));
+    }
+
+    it('should work when publicRoot is "foo"', () => {
+      shouldMoveCorrectly('foo', 'test-extracted-artifact-1');
+    });
+
+    it('should work when publicRoot is "foo/bar"', () => {
+      shouldMoveCorrectly('foo', 'test-extracted-artifact-2');
+    });
+
+    it('should work when publicRoot is "."', () => {
+      shouldMoveCorrectly('foo', 'test-extracted-artifact-3');
+    });
+
   });
 
   it('getDeploymentPath()', () => {

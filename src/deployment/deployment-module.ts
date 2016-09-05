@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import { inject, injectable } from 'inversify';
 import * as os from 'os';
 import * as path from 'path';
+import * as querystring from 'querystring';
 import { sprintf } from 'sprintf-js';
 
 import { EventBus, eventBusInjectSymbol } from '../event-bus';
@@ -21,9 +22,18 @@ import {
   deploymentUrlPatternInjectSymbol,
 } from './types';
 
+import {
+  getGitlabYml,
+  getGitlabYmlInvalidJson,
+  getValidationErrors,
+} from './gitlab-yml';
+
+import { promisify } from '../shared/promisify';
+
 const mkpath = require('mkpath');
 const AdmZip = require('adm-zip'); // tslint:disable-line
 const deepcopy = require('deepcopy');
+const mv = promisify(require('mv'));
 
 export const deploymentFolderInjectSymbol = Symbol('deployment-folder');
 
@@ -183,6 +193,56 @@ export default class DeploymentModule {
     return fs.existsSync(path);
   }
 
+  public async getRawMinardJson(projectId: number, shaOrBranchName: string): Promise<any> {
+    const query = querystring.stringify({
+      filepath: 'minard.json',
+    });
+    const url = `/projects/${projectId}/repository/blobs/${shaOrBranchName}?${query}`;
+    const ret = await this.gitlab.fetch(url);
+    if (ret.status === 404) {
+      return null;
+    }
+    if (ret.status !== 200) {
+      this.logger.warn(`Unexpected response from GitLab when fetching minard.json from ${url}`);
+      throw Boom.badGateway();
+    }
+    return await ret.text();
+  }
+
+  public async getParsedMinardJson(projectId: number, shaOrBranchName: string): Promise<any> {
+    const raw = await this.getRawMinardJson(projectId, shaOrBranchName);
+    if (!raw) {
+      return null;
+    }
+    return JSON.parse(raw);
+  }
+
+  public async getGitlabYml(projectId: number, shaOrBranchName: string): Promise<string> {
+    try {
+      console.log(projectId);
+      console.log(shaOrBranchName);
+      const json = await this.getParsedMinardJson(projectId, shaOrBranchName);
+      console.log(json);
+      return getGitlabYml(json || {});
+    } catch (err) {
+      return getGitlabYmlInvalidJson();
+    }
+  }
+
+  public async getMinardJsonInfo(
+    projectId: number, shaOrBranchName: string): Promise<{errors: string[], content: string, parsed: any}> {
+    const content = await this.getRawMinardJson(projectId, shaOrBranchName);
+    const parsed = await this.getParsedMinardJson(projectId, shaOrBranchName);
+    let errors: string[];
+    try {
+      const json = JSON.parse(content);
+      errors = getValidationErrors(json);
+    } catch (err) {
+      errors = [err.message];
+    }
+    return { content, errors, parsed };
+  }
+
   /*
    * Attempt to prepare an already finished successfull deployment
    * so that it can be served
@@ -222,7 +282,7 @@ export default class DeploymentModule {
 
   /*
    * Download artifact zip for a deployment from
-   * GitLab and extract it into a local folder
+   * GitLab and extract it into a a temporary path
    */
   public async downloadAndExtractDeployment(projectId: number, deploymentId: number) {
     const url = `/projects/${projectId}/builds/${deploymentId}/artifacts`;
@@ -241,9 +301,35 @@ export default class DeploymentModule {
       readableStream.resume();
     });
 
-    mkpath.sync(this.getDeploymentPath(projectId, deploymentId));
     const zip = new AdmZip(tempFileName);
-    zip.extractAllTo(this.getDeploymentPath(projectId, deploymentId));
+    const extractedTempPath = this.getTempArtifactsPath(projectId, deploymentId);
+    mkpath.sync(extractedTempPath);
+    zip.extractAllTo(tempDir, extractedTempPath);
+    return extractedTempPath;
+  }
+
+  public getTempArtifactsPath(projectId: number, deploymentId: number) {
+    const tempDir = path.join(os.tmpdir(), 'minard');
+    return path.join(tempDir, `minard-${projectId}-${deploymentId}`);
+  }
+
+  public async moveExtractedDeployment(projectId: number, deploymentId: number) {
+    // fetch minard.json
+    const deployment = await this.getDeployment(projectId, deploymentId);
+    if (!deployment) {
+      this.logger.error('Could not get deployment in downloadAndExtractDeployment');
+      throw Boom.badImplementation();
+    }
+    const minardJson = await this.getParsedMinardJson(projectId, deployment.ref);
+
+    // move to final directory
+    const extractedTempPath = this.getTempArtifactsPath(projectId, deploymentId);
+    const finalPath = this.getDeploymentPath(projectId, deploymentId);
+    mkpath.sync(finalPath);
+    const sourcePath = minardJson.publicRoot = '.' ? extractedTempPath :
+    path.join(extractedTempPath, minardJson.publicRoot);
+
+    mv(sourcePath, this.getDeploymentPath(projectId, deploymentId));
     return this.getDeploymentPath(projectId, deploymentId);
   }
 

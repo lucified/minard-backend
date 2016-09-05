@@ -30,10 +30,10 @@ import {
 
 import { promisify } from '../shared/promisify';
 
-const mkpath = require('mkpath');
 const AdmZip = require('adm-zip'); // tslint:disable-line
 const deepcopy = require('deepcopy');
 const ncp = promisify(require('ncp'));
+const mkpath = promisify(require('mkpath'));
 
 export const deploymentFolderInjectSymbol = Symbol('deployment-folder');
 
@@ -287,7 +287,7 @@ export default class DeploymentModule {
 
     const response = await this.gitlab.fetch(url);
     const tempDir = path.join(os.tmpdir(), 'minard');
-    mkpath.sync(tempDir);
+    await mkpath(tempDir);
     let readableStream = (<any> response).body;
     const tempFileName = path.join(tempDir, `minard-${projectId}-${deploymentId}.zip`);
     const writeStream = fs.createWriteStream(tempFileName);
@@ -301,7 +301,7 @@ export default class DeploymentModule {
 
     const zip = new AdmZip(tempFileName);
     const extractedTempPath = this.getTempArtifactsPath(projectId, deploymentId);
-    mkpath.sync(extractedTempPath);
+    await mkpath(extractedTempPath);
     zip.extractAllTo(extractedTempPath, true);
     return extractedTempPath;
   }
@@ -323,10 +323,11 @@ export default class DeploymentModule {
     // move to final directory
     const extractedTempPath = this.getTempArtifactsPath(projectId, deploymentId);
     const finalPath = this.getDeploymentPath(projectId, deploymentId);
-    mkpath.sync(finalPath);
+    await mkpath(finalPath);
     const sourcePath = minardJson.publicRoot === '.' ? extractedTempPath :
       path.join(extractedTempPath, minardJson.publicRoot);
-    if (!fs.existsSync(sourcePath)) {
+    const exists = fs.existsSync(sourcePath);
+    if (!exists) {
       const msg = `Deployment "${projectId}_${deploymentId}" did not have directory at repo path ` +
         `"${minardJson.publicRoot}". Local sourcePath was ${sourcePath}`;
       this.logger.warn(msg);

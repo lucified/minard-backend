@@ -298,7 +298,7 @@ describe('deployment-module', () => {
       rimraf.sync(deploymentPath);
       rimraf.sync(extractedPath);
       mkpath.sync(extractedPath);
-      await ncp(path.join(__dirname, 'test-data'), extractedPath);
+      await ncp(path.join(__dirname, '../../src/deployment/test-data'), extractedPath);
       const deploymentModule = {
         logger,
         getTempArtifactsPath: (_projectId: number, _deploymentId: number) => {

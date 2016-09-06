@@ -387,7 +387,6 @@ export default class DeploymentModule {
     // move to final directory
     const extractedTempPath = this.getTempArtifactsPath(projectId, deploymentId);
     const finalPath = this.getDeploymentPath(projectId, deploymentId);
-    await mkpath(finalPath);
     const sourcePath = minardJson.publicRoot === '.' ? extractedTempPath :
       path.join(extractedTempPath, minardJson.publicRoot);
     const exists = fs.existsSync(sourcePath);
@@ -397,7 +396,18 @@ export default class DeploymentModule {
       this.logger.warn(msg);
       throw Boom.badData(msg, 'no-dir-at-public-root');
     }
-    await ncp(sourcePath, this.getDeploymentPath(projectId, deploymentId));
+    try {
+      await mkpath(finalPath);
+    } catch (err) {
+      this.logger.error(`Could not create directory ${finalPath}`, err);
+      throw Boom.badImplementation();
+    }
+    try {
+      await ncp(sourcePath, finalPath);
+    } catch (err) {
+      this.logger.error(`Could not copy extracted deployment from ${sourcePath} to  `, err);
+      throw Boom.badImplementation();
+    }
     return finalPath;
   }
 

@@ -106,9 +106,18 @@ export default class DeploymentModule {
     // On successfully completed deployments, download, extract and post an 'extracted' event
     this.completedDeployments()
       .filter(event => event.status === 'success')
-      .flatMap(event => this.downloadAndExtractDeployment(event.projectId, event.id).then(_ => event))
-      .subscribe(event =>
-        this.eventBus.post(createDeploymentEvent(Object.assign({}, event, {status: 'extracted'}))));
+      .delay(1000)
+      .flatMap(event => this.prepareDeploymentAndPostEvent(event), 1)
+      .subscribe();
+  }
+
+  private async prepareDeploymentAndPostEvent(event: any) {
+    try {
+      await this.prepareDeploymentForServing(event.projectId, event.id, false);
+      this.eventBus.post(createDeploymentEvent(Object.assign({}, event, {status: 'extracted'})));
+    } catch (err) {
+      this.logger.error(err.message, err);
+    }
   }
 
   private completedDeployments() {
@@ -293,20 +302,26 @@ export default class DeploymentModule {
    * is not ready or successfull, or if there is an internal error
    * with preparing the deployment.
    */
-  public async prepareDeploymentForServing(projectId: number, deploymentId: number) {
-    return this.prepareQueue.add(() => this.doPrepareDeploymentForServing(projectId, deploymentId));
+  public async prepareDeploymentForServing(projectId: number, deploymentId: number, checkStatus: boolean = true) {
+    return this.prepareQueue.add(() => this.doPrepareDeploymentForServing(projectId, deploymentId, checkStatus));
   }
 
-  public async doPrepareDeploymentForServing(projectId: number, deploymentId: number) {
-    const deployment = await this.getDeployment(projectId, deploymentId);
-    if (!deployment) {
-      throw Boom.notFound(
-        `No deployment found for: projectId ${projectId}, deploymentId ${deploymentId}`);
-    }
-    if (deployment.status !== 'success') {
-      throw Boom.notFound(
-        `Deployment status is "${deployment.status}" for: projectId ${projectId}, ` +
-        `deploymentId ${deploymentId}`);
+  public async doPrepareDeploymentForServing(projectId: number, deploymentId: number, checkStatus: boolean = true) {
+    if (checkStatus) {
+      const deployment = await this.getDeployment(projectId, deploymentId);
+      if (!deployment) {
+        throw Boom.notFound(
+          `No deployment found for: projectId ${projectId}, deploymentId ${deploymentId}`);
+      }
+      // GitLab will return status === 'running' for a while also after
+      // deployment has succeeded. if we know that the deployment is OK,
+      // it is okay to skip the status check
+      if (deployment.status !== 'success') {
+        this.logger.warn(`Tried to prepare deployment for serving while deployment status is ` +
+          `"${deployment.status}", projectId: ${projectId}, deploymentId: ${deploymentId}`);
+        throw Boom.notFound(`Deployment status is "${deployment.status}" for: projectId ${projectId}, ` +
+          `deploymentId ${deploymentId}`);
+      }
     }
     try {
       await this.downloadAndExtractDeployment(projectId, deploymentId);

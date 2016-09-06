@@ -553,33 +553,19 @@ describe('deployment-module', () => {
 
   });
 
-  describe('deployment events', () => {
+  describe('subscribeToEvents', () => {
 
-    it('should post \'extracted\' event', async () => {
+    it('should post \'extracted\' event', async function() { // tslint:disable-line
       // Arrange
       const bus = new EventBus();
-      rimraf.sync(path.join(os.tmpdir(), 'minard'));
-      const thePath = path.join(__dirname, '../../src/deployment/test-data/test-artifact.zip');
-      const stream = fs.createReadStream(thePath);
-      const opts = {
-        status: 200,
-        statusText: 'ok',
-      };
-      const response = new Response(stream, opts);
-      const gitlabClient = getClient();
-      const mockUrl = `${host}${gitlabClient.apiPrefix}/projects/1/builds/1/artifacts`;
-      fetchMock.restore().mock(mockUrl, response);
-      const deploymentsDir = path.join(os.tmpdir(), 'minard', 'deploys');
-
-      const deploymentModule = new DeploymentModule( /* ts-lint-disable-line */
-        gitlabClient,
-        deploymentsDir,
-        bus,
-        logger,
-        deploymentUrlPattern,
+      const deploymentModule = new DeploymentModule(
+        {} as any, '', bus, logger, '',
       );
       expect(deploymentModule.getDeploymentPath(1, 1)).to.exist;
-
+      deploymentModule.prepareDeploymentForServing = async (_projectId: number, _deploymentId: number) => {
+        expect(_projectId).to.equal(1);
+        expect(_deploymentId).to.equal(1);
+      };
       const eventPromise = bus
         .filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
         .map(e => e.payload)
@@ -587,11 +573,13 @@ describe('deployment-module', () => {
         .take(1)
         .toPromise();
 
+      // Act
       bus.post(createDeploymentEvent({ status: 'running', id: 1, projectId: 1 }));
       bus.post(createDeploymentEvent({ status: 'running', id: 2, projectId: 2 }));
       bus.post(createDeploymentEvent({ status: 'success', id: 1 }));
-
       const event = await eventPromise;
+
+      // Assert
       expect(event.status).to.eq('extracted');
       expect(event.id).to.eq(1);
     });

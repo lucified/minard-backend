@@ -100,6 +100,9 @@ export class JsonApiModule {
 
   public async getProjects(teamId: number): Promise<ApiProject[] | null> {
     const projects = await this.projectModule.getProjects(teamId);
+    if (!projects) {
+      return null;
+    }
     const promises = projects.map((project: MinardProject) => this.toApiProject(project));
     return await Promise.all<ApiProject>(promises);
   }
@@ -108,7 +111,7 @@ export class JsonApiModule {
     const project = await this.getProject(projectId);
     const branches = await this.projectModule.getProjectBranches(projectId);
     if (!branches || !project) {
-      throw Boom.notFound();
+      return null;
     }
     return branches.map(branch => this.toApiBranch(project, branch));
   }
@@ -125,10 +128,10 @@ export class JsonApiModule {
     if (!branchName) {
       throw Boom.badRequest('branchName is missing');
     }
-    const projectPromise = this.getProject(projectId);
-    const branchPromise = this.projectModule.getBranch(projectId, branchName);
-    const project = await projectPromise;
-    const branch = await branchPromise;
+    const [project, branch] = await Promise.all([
+      this.getProject(projectId),
+      this.projectModule.getBranch(projectId, branchName),
+    ]);
     if (!project || !branch) {
       return null;
     }
@@ -161,20 +164,19 @@ export class JsonApiModule {
   }
 
   public async toApiActivity(activity: MinardActivity): Promise<ApiActivity> {
-    const minardCommit = this.projectModule.toMinardCommit(activity.deployment.commitRef);
-    const commit = Object.assign({}, minardCommit, {
-      id: `${activity.project.id}-${minardCommit.id}`,
-      hash: minardCommit.id }
-    );
+    const commit = Object.assign({}, activity.commit, {
+      id: `${activity.project.id}-${activity.commit.id}`,
+      hash: activity.commit.id,
+    });
     const project = {
       id: activity.project.id,
       name: activity.project.name,
     };
     const branch = {
-      id: `${activity.project.id}-${activity.branch.name}`,
+      id: `${activity.project.id}-${activity.branch.id}`,
       name: activity.branch.name,
     };
-    const deployment = Object.assign({}, activity.deployment, { id: `${project}-${activity.deployment.id}`});
+    const deployment = Object.assign({}, activity.deployment, { id: `${project.id}-${activity.deployment.id}`});
     return {
       id: `${activity.project.id}-${activity.deployment.id}`,
       type: 'activity',

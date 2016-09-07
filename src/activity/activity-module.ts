@@ -28,6 +28,9 @@ export default class ActivityModule {
 
   public async getTeamActivity(teamId: number): Promise<MinardActivity[] | null> {
     const projects = await this.projectModule.getProjects(teamId);
+    if (!projects) {
+      return [];
+    }
     const nestedActivity = await Promise.all(projects.map(item => this.getProjectActivity(item.id)));
     const activity = flatMap<MinardActivity>(nestedActivity, (item) => item);
     const sortFunction = (a: any, b: any) => moment(b.timestamp).diff(moment(a.timestamp));
@@ -43,14 +46,19 @@ export default class ActivityModule {
     if (!project) {
       return null;
     }
-    return deployments.map((deployment: MinardDeployment) => {
+
+    return deployments
+      .filter((deployment: MinardDeployment) => deployment.status === 'success' || deployment.status === 'failed')
+      .map((deployment: MinardDeployment) => {
       const branch = {
         id: `projectId-${deployment.ref}`,
         name: deployment.ref,
       };
+      const commit = this.projectModule.toMinardCommit(deployment.commitRef);
       return {
         project,
         branch,
+        commit,
         projectId,
         timestamp: deployment.finished_at,
         activityType: 'deployment',

@@ -6,6 +6,7 @@ export interface MinardActivity extends MinardActivityPlain {
   deployment: MinardDeployment;
   project: MinardProject;
   branch: MinardActivityBranch;
+  commit: MinardCommit;
 }
 export interface MinardActivityBranch {
   id: string;

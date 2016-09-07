@@ -135,6 +135,7 @@ const exampleProject = {
   id: '1',
   name: 'example-project',
   path: 'sepo/example-project',
+  latestActivityTimestamp: '2015-18-24T17:55:31.198Z',
   branches: [exampleMasterBranch, exampleNewLayoutBranch],
 } as ApiProject;
 
@@ -167,6 +168,7 @@ describe('json-api serialization', () => {
 
     // attributes
     expect(data.attributes.name).to.equal('example-project');
+    expect(data.attributes['latest-activity-timestamp']).to.equal(project.latestActivityTimestamp);
 
     // branches relationship
     expect(data.relationships.branches).to.exist;

@@ -159,6 +159,7 @@ export default class ProjectModule {
         description: project.description,
         branches: filteredBranches,
         activeCommitters: findActiveCommitters(filteredBranches),
+        latestActivityTimestamp: project.last_activity_at,
       };
 
     } catch (err) {

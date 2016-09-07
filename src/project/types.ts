@@ -33,6 +33,7 @@ export interface MinardProjectPlain {
   name: string;
   path: string;
   description: string;
+  latestActivityTimestamp: string;
   branches: MinardBranch[];
   activeCommitters: MinardCommitAuthor[];
 }

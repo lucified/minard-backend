@@ -38,7 +38,7 @@ export const deploymentSerialization =  {
 };
 
 export const projectSerialization = {
-  attributes: ['name', 'description', 'branches', 'activeCommitters'],
+  attributes: ['name', 'description', 'branches', 'activeCommitters', 'latestActivityTimestamp'],
   branches: nonIncludedSerialization,
   ref: standardIdRef,
   included: true,

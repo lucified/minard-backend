@@ -119,7 +119,7 @@ export interface Project {
     snippets_enabled: boolean;
     container_registry_enabled: boolean;
     created_at: Date;
-    last_activity_at: Date;
+    last_activity_at: string;
     creator_id: number;
     namespace: Namespace;
     permissions: Permissions;

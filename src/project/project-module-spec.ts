@@ -297,6 +297,7 @@ describe('project-module', () => {
       expect(project.description).to.equal(gitlabProjectResponse.description);
       expect(project.branches[0].name).to.equal('async');
       expect(project.branches[1].name).to.equal('gh-pages');
+      expect(project.latestActivityTimestamp).to.equal(gitlabProjectResponse.last_activity_at);
     });
   });
 

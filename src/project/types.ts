@@ -64,7 +64,7 @@ export interface MinardBranch {
 export interface MinardProjectContributor {
   name: string;
   email: string;
-  commits: number;
-  additions: number;
-  deletions: number;
+  commits?: number;
+  additions?: number;
+  deletions?: number;
 }

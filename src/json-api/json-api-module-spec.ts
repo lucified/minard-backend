@@ -195,10 +195,73 @@ describe('json-api-module', () => {
     });
   });
 
-
   describe('getBranchCommits', () => {
-    it('should work with two deployments having', async () => {
-      //
+    const projectId = 5;
+    const branchName = 'master';
+    const minardCommits = [
+      {
+        id: 'foo-commit',
+      },
+      {
+        id: 'bar-commit',
+      },
+    ];
+    const minardDeployments = [
+      {
+        id: 'foo-deployment',
+        commitRef: minardCommits[0],
+      },
+      {
+        id: 'bar-deployment',
+        commitRef: minardCommits[1],
+      },
+      {
+        id: 'foo-two-deployment',
+        commitRef: minardCommits[0],
+      },
+    ];
+
+    it('should return commits correctly with two branches having three deployments', async () => {
+      // Arrange
+      const projectModule = {} as ProjectModule;
+      projectModule.getBranchCommits = async (_projectId: number, _branchName: string) => {
+        expect(_projectId).to.equal(projectId);
+        expect(_branchName).to.equal(branchName);
+        return minardCommits;
+      };
+      const deploymentModule = {} as DeploymentModule;
+      deploymentModule.getBranchDeployments = async (_projectId: number, _branchName: string) => {
+        expect(_projectId).to.equal(projectId);
+        expect(_branchName).to.equal(branchName);
+        return minardDeployments;
+      };
+      const jsonApiModule = new JsonApiModule(
+        deploymentModule,
+        projectModule,
+        {} as any,
+        {} as any);
+
+      jsonApiModule.toApiDeployment = async(_projectId: number, deployment: MinardDeployment) => {
+        return {
+          id: `${_projectId}-${deployment.id}-foo`,
+          commitHash: deployment.commitRef.id,
+        };
+      };
+
+      // Act
+      const commits = await jsonApiModule.getBranchCommits(projectId, branchName);
+
+      // Assert
+      expect(commits).to.exist;
+      expect(commits).to.have.length(2);
+      expect(commits![0].deployments).to.have.length(2);
+      expect(commits![0].id).to.equal(`${projectId}-${minardCommits[0].id}`);
+      expect(commits![0].hash).to.equal(minardCommits[0].id);
+      expect(commits![0].deployments[0].id).to.equal(`${projectId}-${minardDeployments[0].id}-foo`);
+      expect(commits![0].deployments[1].id).to.equal(`${projectId}-${minardDeployments[2].id}-foo`);
+      expect(commits![1].deployments).to.have.length(1);
+      expect(commits![1].id).to.equal(`${projectId}-${minardCommits[1].id}`);
+      expect(commits![1].deployments[0].id).to.equal(`${projectId}-${minardDeployments[1].id}-foo`);
     });
   });
 

@@ -51,6 +51,7 @@ export interface ApiBranch extends MinardBranch {
 
 export interface ApiDeployment extends MinardDeploymentPlain {
   id: string;
+  // this is not exposed in serialized responses, but it is internally helpful
   commitHash: string;
   screenshot: string | null;
 }

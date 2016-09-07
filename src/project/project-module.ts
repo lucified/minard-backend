@@ -1,20 +1,18 @@
 
 import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
-import { flatMap, uniqBy } from 'lodash';
-import * as moment from 'moment';
 import * as queryString from 'querystring';
 
 import { GitlabClient } from '../shared/gitlab-client';
-import { Commit } from '../shared/gitlab.d.ts';
+import { Branch, Commit } from '../shared/gitlab.d.ts';
 import * as logger from '../shared/logger';
 import { MINARD_ERROR_CODE } from '../shared/minard-error';
 
 import {
   MinardBranch,
   MinardCommit,
-  MinardCommitAuthor,
   MinardProject,
+  MinardProjectContributor,
   projectCreated,
   projectDeleted,
   projectEdited,
@@ -24,13 +22,6 @@ import { AuthenticationModule } from '../authentication';
 import { EventBus, eventBusInjectSymbol } from '../event-bus/';
 import { Project } from '../shared/gitlab.d.ts';
 import { SystemHookModule } from '../system-hook';
-
-export function findActiveCommitters(branches: MinardBranch[]): MinardCommitAuthor[] {
-  const commits = flatMap(branches,
-    (branch) => branch.commits.map(commit => commit.author));
-  commits.sort((a, b) => moment(a).diff(moment(b)));
-  return uniqBy(commits, commit => commit.email);
-}
 
 @injectable()
 export default class ProjectModule {
@@ -74,11 +65,40 @@ export default class ProjectModule {
     };
   }
 
+  public async getProjectContributors(projectId: number): Promise<MinardProjectContributor[] | null> {
+    try {
+      return await this.gitlab.fetchJson<MinardProjectContributor[]>(`projects/${projectId}/repository/contributors`);
+    } catch (err) {
+      if (err.isBoom && err.output.statusCode === MINARD_ERROR_CODE.NOT_FOUND) {
+        return null;
+      }
+      this.logger.error(`Unexpected response from GitLab when fetching project contributors for project ${projectId}`);
+      throw Boom.badGateway();
+    }
+  }
+
   public async getCommit(projectId: number, hash: string): Promise<MinardCommit | null> {
     try {
       const commit = await this.gitlab.fetchJson<Commit>(
         `projects/${projectId}/repository/commits/${encodeURIComponent(hash)}`);
       return this.toMinardCommit(commit);
+    } catch (err) {
+      if (err.isBoom && err.output.statusCode === MINARD_ERROR_CODE.NOT_FOUND) {
+        return null;
+      }
+      throw Boom.wrap(err);
+    }
+  }
+
+  public async getBranchCommits(projectId: number, branchName: string): Promise<MinardCommit[] | null> {
+    try {
+      const commitsPromise = await this.gitlab.fetchJson<any>(
+        `projects/${projectId}/repository/commits/?per_page=1000&ref_name=${encodeURIComponent(branchName)}`);
+      let commits = await commitsPromise;
+      if (!(commits instanceof Array)) {
+        commits = [commits];
+      }
+      return commits.map(this.toMinardCommit);
     } catch (err) {
       if (err.status === MINARD_ERROR_CODE.NOT_FOUND) {
         return null;
@@ -87,25 +107,23 @@ export default class ProjectModule {
     }
   }
 
+  public toMinardBranch(projectId: number, branch: Branch): MinardBranch {
+    return {
+      project: projectId,
+      name: branch.name,
+      latestCommit: this.toMinardCommit(branch.commit),
+    };
+  }
+
   public async getBranch(projectId: number, branchName: string): Promise<MinardBranch | null> {
     try {
-      const commitsPromise = await this.gitlab.fetchJson<any>(
-        `projects/${projectId}/repository/commits/?per_page=1000&ref_name=${encodeURIComponent(branchName)}`);
-      let commits = await commitsPromise;
-      if (!(commits instanceof Array)) {
-        commits = [commits];
-      }
-      return {
-        id: `${projectId}-${branchName}`,
-        name: branchName,
-        description: 'branch description',
-        commits: commits.map(this.toMinardCommit),
-      };
+      const branch = await this.gitlab.fetchJson<Branch>(`projects/${projectId}/repository/branches/${branchName}`);
+      return this.toMinardBranch(projectId, branch);
     } catch (err) {
-      if (err.status === MINARD_ERROR_CODE.NOT_FOUND) {
+      if (err.isBoom && err.output.statusCode === MINARD_ERROR_CODE.NOT_FOUND) {
         return null;
       }
-      throw Boom.wrap(err);
+      throw Boom.badImplementation();
     }
   }
 
@@ -117,53 +135,65 @@ export default class ProjectModule {
     return projects.map(item => item.id);
   }
 
-  public async getProjects(_teamId: number): Promise<MinardProject[]> {
+  public async getProjects(_teamId: number): Promise<MinardProject[] | null> {
     // TODO: for now this does not use the teamId for anything.
     // We just return all projects instead
-    const projects = await this.gitlab.fetchJson<Project[]>(`projects/all`);
-    if (!projects) {
-      return [];
+    try {
+      const projects = await this.gitlab.fetchJson<Project[]>(`projects/all`);
+      if (!projects) {
+        return [];
+      }
+      const jobs = projects.map(project => ({
+        project,
+        contributorsPromise: this.getProjectContributors(project.id),
+      }));
+      return Promise.all(jobs.map(async item =>
+        this.toMinardProject(item.project, await item.contributorsPromise || [])));
+
+    } catch (err) {
+      if (err.isBoom && err.output.statusCode === 404) {
+        return null;
+      }
+      this.logger.error('Unexpected error when getting projects', err);
+      throw Boom.badGateway();
     }
-    // Using getProject() here creates one extra http request for the
-    // project, compared to a more specialized implementation.
-    const promises = projects.map((project: Project) => this.getProject(project.id));
-    const returned = await Promise.all<MinardProject | null>(promises);
-    return returned.filter(item => item !== null) as MinardProject[];
+  }
+
+  public async getProjectBranches(projectId: number): Promise<MinardBranch[] | null> {
+    try {
+      const branchesPromise = this.gitlab.fetchJson<Branch[]>(`projects/${projectId}/repository/branches`);
+      const gitlabBranches = await branchesPromise;
+      return gitlabBranches.map((branch: Branch) => {
+        return this.toMinardBranch(projectId, branch);
+      });
+    } catch (err) {
+      if (err.isBoom && err.output.statusCode === MINARD_ERROR_CODE.NOT_FOUND) {
+        return null;
+      }
+      throw Boom.badGateway();
+    }
+  }
+
+  private toMinardProject(project: Project, activeCommitters: MinardProjectContributor[]) {
+    return {
+      id: project.id,
+      name: project.name,
+      path: project.path,
+      description: project.description,
+      activeCommitters,
+      latestActivityTimestamp: project.last_activity_at,
+    };
   }
 
   public async getProject(projectId: number): Promise<MinardProject | null> {
     try {
       const projectPromise = this.gitlab.fetchJson<Project>(`projects/${projectId}`);
-      const branchesPromise = this.gitlab.fetchJson<any>(`projects/${projectId}/repository/branches`);
-
-      // we need to await for the branchesPromise to be able
-      // to make requests for
-      const gitlabBranches = await branchesPromise;
-      const branchPromises = gitlabBranches.map((branch: any) => {
-        return this.getBranch(projectId, branch.name);
-      });
-
-      const branches = await Promise.all<MinardBranch | null>(branchPromises);
+      const contributorsPromise = this.getProjectContributors(projectId);
       const project = await projectPromise;
-
-      // in a super-rare edge-case a branch could be deleted after
-      // we have requested the branch list. in this case we might
-      // have null entries in the branches array, which we wish to
-      // filter out
-      const filteredBranches = branches.filter(item => item != null) as MinardBranch[];
-
-      return {
-        id: project.id,
-        name: project.name,
-        path: project.path,
-        description: project.description,
-        branches: filteredBranches,
-        activeCommitters: findActiveCommitters(filteredBranches),
-        latestActivityTimestamp: project.last_activity_at,
-      };
-
+      const activeCommitters = (await contributorsPromise) || [];
+      return this.toMinardProject(project, activeCommitters);
     } catch (err) {
-      if (err.response && err.response.status === 404) {
+      if (err.isBoom && err.output.statusCode === 404) {
         return null;
       }
       throw Boom.wrap(err);

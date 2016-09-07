@@ -16,30 +16,21 @@ export function standardIdRef(_: any, item: any) {
   return String(item.id);
 }
 
+export function directIdRef(_: any, item: any) {
+  return item;
+}
+
+export function linkRef(_: any, item: any) {
+  return 'dummy-id';
+}
+
 export const nonIncludedSerialization = {
   ref: standardIdRef,
   included: false,
 };
 
-export const branchSerialization = {
-  attributes: ['name', 'description', 'project', 'commits', 'project', 'deployments', 'minardJson'],
-  ref: standardIdRef,
-  commits: nonIncludedSerialization,
-  project: nonIncludedSerialization,
-  deployments: nonIncludedSerialization,
-  included: true,
-};
-
 export const deploymentSerialization =  {
   attributes: ['status', 'commit', 'url', 'creator', 'screenshot'],
-  ref: standardIdRef,
-  commit: nonIncludedSerialization,
-  included: true,
-};
-
-export const projectSerialization = {
-  attributes: ['name', 'description', 'branches', 'activeCommitters', 'latestActivityTimestamp'],
-  branches: nonIncludedSerialization,
   ref: standardIdRef,
   included: true,
 };
@@ -47,39 +38,86 @@ export const projectSerialization = {
 export const commitSerialization = {
   attributes: ['message', 'author', 'committer', 'hash', 'deployments'],
   ref: standardIdRef,
-  deployments: nonIncludedSerialization,
+  deployments: deploymentSerialization,
   included: true,
+};
+
+export const branchSerialization = (apiBaseUrl: string) => ({
+  attributes: [
+    'name',
+    'description',
+    'project',
+    'commits',
+    'project',
+    'latestCommit',
+    'latestSuccessfullyDeployedCommit',
+    'minardJson',
+  ],
+  ref: standardIdRef,
+  commits: {
+    ignoreRelationshipData: true,
+    ref: linkRef,
+    relationshipLinks: {
+      self: (record: any, current: any, parent: any) => `${apiBaseUrl}/branches/${parent.id}/commits`,
+    },
+  },
+  project: {
+    ref: directIdRef,
+  },
+  latestCommit: commitSerialization,
+  latestSuccessfullyDeployedCommit: commitSerialization,
+  included: true,
+  typeForAttribute: (attribute: string) => {
+    if (attribute === 'latestCommit') {
+      return 'commits';
+    }
+    return undefined;
+  },
+});
+
+export const projectSerialization = (apiBaseUrl: string) => {
+  return {
+    attributes: [
+      'name',
+      'description',
+      'branches',
+      'activeCommitters',
+      'latestActivityTimestamp',
+      'latestSuccessfullyDeployedCommit'],
+    branches: {
+      ignoreRelationshipData: true,
+      ref: linkRef,
+      relationshipLinks: {
+        self: (record: any, current: any, parent: any) => `${apiBaseUrl}/projects/${parent.id}/branches`,
+      },
+    },
+    ref: standardIdRef,
+    included: false,
+  };
 };
 
 export const activitySerialization = {
-  attributes: ['timestamp', 'activityType', 'deployment', 'project', 'branch'],
+  attributes: ['timestamp', 'activityType', 'deployment', 'project', 'branch', 'commit'],
   ref: standardIdRef,
-  deployment: nonIncludedSerialization,
-  branch: nonIncludedSerialization,
-  project: nonIncludedSerialization,
   included: true,
 };
 
-export const branchCompoundSerialization = deepcopy(branchSerialization);
-
-branchCompoundSerialization.commits = commitSerialization;
-branchCompoundSerialization.deployments = deploymentSerialization;
-branchCompoundSerialization.project = projectSerialization;
-
-export const projectCompoundSerialization = deepcopy(projectSerialization);
-projectCompoundSerialization.branches = branchSerialization;
+// export const branchCompoundSerialization = deepcopy(branchSerialization);
+// branchCompoundSerialization.commits = commitSerialization;
+// branchCompoundSerialization.deployments = deploymentSerialization;
+// branchCompoundSerialization.project = projectSerialization;
 
 export const deploymentCompoundSerialization = deepcopy(deploymentSerialization);
 deploymentCompoundSerialization.commit = commitSerialization;
 
-export const activityCompoundSerialization = deepcopy(activitySerialization);
-activityCompoundSerialization.deployment = deploymentCompoundSerialization;
-activityCompoundSerialization.branch = branchSerialization;
-activityCompoundSerialization.project = projectSerialization;
+// export const activityCompoundSerialization = deepcopy(activitySerialization);
+// activityCompoundSerialization.deployment = deploymentCompoundSerialization;
+// activityCompoundSerialization.branch = branchSerialization;
+// activityCompoundSerialization.project = projectSerialization;
 
 export function branchToJsonApi(branch: ApiBranch | ApiBranch[]) {
   const serialized = new Serializer('branch',
-    branchCompoundSerialization).serialize(branch);
+    branchSerialization).serialize(branch);
   return serialized;
 }
 
@@ -91,7 +129,7 @@ export function deploymentToJsonApi(deployment: ApiDeployment | ApiDeployment[])
 
 export function projectToJsonApi(project: ApiProject | ApiProject[]) {
   const serialized = new Serializer('project',
-    projectCompoundSerialization).serialize(project);
+    projectSerialization('moi')).serialize(project);
   return serialized;
 };
 
@@ -101,22 +139,44 @@ export function commitToJsonApi(commit: ApiCommit | ApiCommit[]) {
 }
 
 export function activityToJsonApi(activity: ApiActivity | ApiActivity[]) {
-  return new Serializer('activity', activityCompoundSerialization)
+  return new Serializer('activity', activitySerialization)
     .serialize(activity);
 }
 interface Serializers {
   [propName: string]: any;
 }
-const serializers: Serializers = {
-  'activity': new Serializer('activity', activityCompoundSerialization),
-  'commit': new Serializer('commit', commitSerialization),
-  'project': new Serializer('project', projectCompoundSerialization),
-  'deployment': new Serializer('deployment', deploymentCompoundSerialization),
-  'branch': new Serializer('branch', branchCompoundSerialization),
-};
 
-export function serializeApiEntity(type: string, entity: ApiEntity | ApiEntities) {
-  const serializer = serializers[type];
+function projectSerializer(apiBaseUrl: string) {
+  return {
+    serialize: (entity: ApiEntity | ApiEntities) => {
+      const serializer = new Serializer('project', projectSerialization(apiBaseUrl));
+      (<any> entity).branches = {};
+      return serializer.serialize(entity);
+    },
+  };
+}
+
+function branchSerializer(apiBaseUrl: string) {
+  return {
+    serialize: (entity: ApiEntity | ApiEntities) => {
+      const serializer = new Serializer('branch', branchSerialization(apiBaseUrl));
+      (<any> entity).commits = {};
+      return serializer.serialize(entity);
+    },
+  };
+}
+
+const serializers: (apiBaseUrl: string) => {[name: string]: any} = apiBaseUrl => ({
+  'activity': new Serializer('activity', activitySerialization),
+  'commit': new Serializer('commit', commitSerialization),
+  'project': projectSerializer(apiBaseUrl),
+  'deployment': new Serializer('deployment', deploymentCompoundSerialization),
+  'branch': branchSerializer(apiBaseUrl),
+});
+
+export function serializeApiEntity(type: string, entity: ApiEntity | ApiEntities, apiBaseUrl: string) {
+  const _serializers = serializers(apiBaseUrl);
+  const serializer = _serializers[type];
   if (!serializer) {
     throw new Error(`Can't serialize ${type}`);
   }

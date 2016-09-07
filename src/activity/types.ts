@@ -1,11 +1,15 @@
 
 import { MinardDeployment } from '../deployment';
-import { MinardBranch, MinardProject } from '../project';
+import { MinardProject } from '../project';
 
 export interface MinardActivity extends MinardActivityPlain {
   deployment: MinardDeployment;
   project: MinardProject;
-  branch: MinardBranch;
+  branch: MinardActivityBranch;
+}
+export interface MinardActivityBranch {
+  id: string;
+  name: string;
 }
 
 export interface MinardActivityPlain {

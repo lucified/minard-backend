@@ -4,7 +4,7 @@ import { flatMap } from 'lodash';
 import * as moment from 'moment';
 
 import { DeploymentModule, MinardDeployment } from '../deployment';
-import { MinardBranch, ProjectModule } from '../project';
+import { ProjectModule } from '../project';
 import * as logger from  '../shared/logger';
 import { MinardActivity } from './types';
 
@@ -36,16 +36,18 @@ export default class ActivityModule {
   }
 
   public async getProjectActivity(projectId: number): Promise<MinardActivity[] | null> {
-    const projectPromise = this.projectModule.getProject(projectId);
-    const deploymentsPromise = this.deploymentModule.getProjectDeployments(projectId);
-    const deployments = await deploymentsPromise;
-    const project = await projectPromise;
+    const [ project, deployments ] = await Promise.all([
+      this.projectModule.getProject(projectId),
+      this.deploymentModule.getProjectDeployments(projectId),
+    ]);
     if (!project) {
       return null;
     }
     return deployments.map((deployment: MinardDeployment) => {
-      const branch = project.branches.find(
-        branchItem => branchItem.name === deployment.ref) as MinardBranch;
+      const branch = {
+        id: `projectId-${deployment.ref}`,
+        name: deployment.ref,
+      };
       return {
         project,
         branch,

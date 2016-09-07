@@ -132,3 +132,11 @@ export interface Project {
     public_builds: boolean;
     shared_with_groups: SharedWithGroup[];
 }
+
+export interface Branch {
+  name: string;
+  protected: boolean;
+  developers_can_push: boolean;
+  developers_can_merge: boolean;
+  commit: Commit;
+}

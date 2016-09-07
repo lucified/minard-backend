@@ -6,6 +6,7 @@ import { Commit } from '../shared/gitlab.d.ts';
 
 import {
   ApiActivity,
+  ApiActivityCommit,
   ApiBranch,
   ApiCommit,
   ApiDeployment,
@@ -103,6 +104,15 @@ export class JsonApiModule {
     return await Promise.all<ApiProject>(promises);
   }
 
+  public async getProjectBranches(projectId: number) {
+    const project = await this.getProject(projectId);
+    const branches = await this.projectModule.getProjectBranches(projectId);
+    if (!branches || !project) {
+      throw Boom.notFound();
+    }
+    return branches.map(branch => this.toApiBranch(project, branch));
+  }
+
   public async getDeployment(projectId: number, deploymentId: number): Promise<ApiDeployment | null> {
      const deployment = await this.deploymentModule.getDeployment(projectId, deploymentId);
      if (!deployment) {
@@ -125,6 +135,21 @@ export class JsonApiModule {
     return await this.toApiBranch(project, branch);
   }
 
+  public async getBranchCommits(projectId: number, branchName: string): Promise<ApiCommit[] | null> {
+    const [ minardDeployments, minardCommits ] = await Promise.all([
+      this.deploymentModule.getBranchDeployments(projectId, branchName),
+      this.projectModule.getBranchCommits(projectId, branchName),
+    ]);
+    const deployments = await Promise.all(minardDeployments.map(item => this.toApiDeployment(projectId, item)));
+    if (!minardCommits) {
+      throw Boom.notFound('branch not found');
+    }
+    return Promise.all(minardCommits.map(commit => {
+      const commitDeployments = deployments.filter(deployment => deployment.commitHash === commit.id);
+      return this.toApiCommit(projectId, commit, commitDeployments);
+    }));
+  }
+
   public async getTeamActivity(teamId: number): Promise<ApiActivity[] | null> {
     const activity = await this.activityModule.getTeamActivity(teamId);
     return activity ? await Promise.all(activity.map(item => this.toApiActivity(item))) : null;
@@ -136,16 +161,29 @@ export class JsonApiModule {
   }
 
   public async toApiActivity(activity: MinardActivity): Promise<ApiActivity> {
-    const project = await this.toApiProject(activity.project);
-    const branch = await this.toApiBranch(project, activity.branch);
+    const minardCommit = this.projectModule.toMinardCommit(activity.deployment.commitRef);
+    const commit = Object.assign({}, minardCommit, {
+      id: `${activity.project.id}-${minardCommit.id}`,
+      hash: minardCommit.id }
+    );
+    const project = {
+      id: activity.project.id,
+      name: activity.project.name,
+    };
+    const branch = {
+      id: `${activity.project.id}-${activity.branch.name}`,
+      name: activity.branch.name,
+    };
+    const deployment = Object.assign({}, activity.deployment, { id: `${project}-${activity.deployment.id}`});
     return {
+      id: `${activity.project.id}-${activity.deployment.id}`,
       type: 'activity',
       branch,
+      commit,
       project,
-      id: `${activity.project.id}-${activity.deployment.id}`,
       timestamp: activity.timestamp,
       activityType: activity.activityType,
-      deployment: await this.toApiDeployment(Number(project.id), activity.deployment),
+      deployment,
     };
   }
 
@@ -165,7 +203,7 @@ export class JsonApiModule {
         ret.deployments = [];
       } else {
         ret.deployments = await Promise.all<ApiDeployment>(
-          minardDeployments.map(deployment => this.toApiDeployment(projectId, deployment, ret)));
+          minardDeployments.map(deployment => this.toApiDeployment(projectId, deployment)));
       }
     }
     ret.id = `${projectId}-${commit.id}`;
@@ -175,19 +213,10 @@ export class JsonApiModule {
 
   public async toApiDeployment(
     projectId: number,
-    deployment: MinardDeployment,
-    commit?: ApiCommit): Promise<ApiDeployment> {
+    deployment: MinardDeployment): Promise<ApiDeployment> {
     const ret = deepcopy(deployment) as ApiDeployment;
     ret.id = `${projectId}-${deployment.id}`;
-    if (commit) {
-      ret.commit = commit;
-    } else if (deployment.commitRef) {
-      ret.commit = await this.toApiCommit(
-        projectId,
-        this.projectModule.toMinardCommit(deployment.commitRef as Commit)
-      );
-    }
-
+    ret.commitHash = deployment.commitRef.id;
     const hasScreenshot = await this.screenshotModule.deploymentHasScreenshot(projectId, deployment.id);
     if (hasScreenshot) {
       ret.screenshot = this.screenshotModule.getPublicUrl(projectId, deployment.id);
@@ -195,57 +224,25 @@ export class JsonApiModule {
     return ret;
   }
 
-  public async toApiBranch(
-    project: ApiProject,
-    branch: MinardBranch,
-    deployments?: ApiDeployment[],
-    commits?: ApiCommit[]): Promise<ApiBranch> {
-
-    const ret = deepcopy(branch) as ApiBranch;
-    ret.project = project;
-    ret.id = `${ret.project.id}-${branch.name}`;
-
-    ret.minardJson = await this.deploymentModule.getMinardJsonInfo(Number(ret.project.id), branch.name);
-
-    if (deployments && commits) {
-      ret.deployments = deployments;
-      ret.commits = commits;
-    } else {
-      // We wish to avoid toApiDeployment() from fetching commits, since
-      // we have already fetched everything we need. However, we don't yet
-      // have the deployment references needed by ApiCommit ready. For that
-      // reason, we are passing a reference object, and later replacing them
-      // with references to proper ApiCommits.
-      const minardDeployments = await this.deploymentModule.getBranchDeployments(Number(ret.project.id), branch.name);
-      ret.deployments = await Promise.all<ApiDeployment>(minardDeployments.map(
-        (deployment: MinardDeployment) => this.toApiDeployment(
-          Number(ret.project.id), deployment, { hash: deployment.commitRef.id } as ApiCommit)));
-      ret.commits = await Promise.all<ApiCommit>(branch.commits.map(
-      (commit: MinardCommit) => {
-        const commitDeploys = ret.deployments.filter(
-          deployment => deployment.commit.hash === commit.id);
-        return this.toApiCommit(Number(ret.project.id), commit, commitDeploys);
-      }));
-      // Replace commit reference objects with proper
-      // ApiCommits that were just prepared
-      ret.deployments.forEach((deployment: ApiDeployment) => {
-      deployment.commit = ret.commits.find((commit: ApiCommit) =>
-        commit.hash === deployment.commit.hash) as ApiCommit;
-      });
-    }
-    return ret;
+  public async toApiBranch(project: ApiProject, branch: MinardBranch): Promise<ApiBranch> {
+    const [ minardJson, latestCommit ] = await Promise.all([
+      this.deploymentModule.getMinardJsonInfo(Number(project.id), branch.name),
+      this.toApiCommit(Number(project.id), branch.latestCommit),
+    ]);
+    return {
+      type: 'branch',
+      id: `${project.id}-${branch.name}`,
+      project: project.id,
+      name: branch.name,
+      minardJson,
+      latestCommit,
+    };
   }
 
-  public async toApiProject(project: MinardProject, branches?: ApiBranch[]): Promise<ApiProject> {
+  public async toApiProject(project: MinardProject): Promise<ApiProject> {
     const ret = deepcopy(project) as ApiProject;
     ret.type = 'project';
-    ret.id = String(project.id);
-    if (branches) {
-      ret.branches = branches;
-    } else {
-      ret.branches = await Promise.all<ApiBranch>(project.branches.map(branch => this
-        .toApiBranch(ret, branch)));
-    }
+    ret.id = project.id;
     return ret;
   }
 

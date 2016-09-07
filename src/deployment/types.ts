@@ -29,10 +29,6 @@ export interface MinardDeploymentPlain {
   creator: MinardDeploymentCreator;
 }
 
-interface CommitRef {
-  id: string;
-}
-
 export interface MinardDeploymentCreator {
   name: string;
   email: string;
@@ -41,7 +37,7 @@ export interface MinardDeploymentCreator {
 
 export interface MinardDeployment extends MinardDeploymentPlain {
   id: number;
-  commitRef: CommitRef;
+  commitRef: any;
 }
 
 export interface MinardJsonBuildCommand {

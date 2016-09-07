@@ -91,8 +91,15 @@ export const projectSerialization = (apiBaseUrl: string) => {
         self: (record: any, current: any, parent: any) => `${apiBaseUrl}/projects/${parent.id}/branches`,
       },
     },
+    latestSuccessfullyDeployedCommit: commitSerialization,
     ref: standardIdRef,
-    included: false,
+    included: true,
+    typeForAttribute: (attribute: string) => {
+      if (attribute === 'latestSuccessfullyDeployedCommit') {
+        return 'commits';
+      }
+      return undefined;
+    },
   };
 };
 

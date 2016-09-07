@@ -1,6 +1,6 @@
 
 import { MinardDeployment } from '../deployment';
-import { MinardProject } from '../project';
+import { MinardCommit, MinardProject } from '../project';
 
 export interface MinardActivity extends MinardActivityPlain {
   deployment: MinardDeployment;
@@ -8,6 +8,7 @@ export interface MinardActivity extends MinardActivityPlain {
   branch: MinardActivityBranch;
   commit: MinardCommit;
 }
+
 export interface MinardActivityBranch {
   id: string;
   name: string;

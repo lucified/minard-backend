@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import 'reflect-metadata';
 
 import { DeploymentModule, MinardDeployment } from '../deployment';
-import { MinardCommit, MinardProject, ProjectModule } from '../project';
+import { MinardProject, ProjectModule } from '../project';
 import * as logger from  '../shared/logger';
 import { ActivityModule, MinardActivity } from './';
 

@@ -140,7 +140,6 @@ const gitlabProjectResponse = {
   ],
 };
 
-
 describe('project-module', () => {
 
   describe('toMinardCommit()', () => {

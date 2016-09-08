@@ -9,7 +9,6 @@ import {
 } from '../deployment';
 
 import {
-  MinardBranch,
   MinardCommit,
   MinardProject,
   ProjectModule,
@@ -24,8 +23,6 @@ import {
 } from '../screenshot';
 
 import {
-  ApiBranch,
-  ApiCommit,
   ApiDeployment,
   ApiProject,
   JsonApiModule,

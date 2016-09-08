@@ -2,11 +2,8 @@
 import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
 
-import { Commit } from '../shared/gitlab.d.ts';
-
 import {
   ApiActivity,
-  ApiActivityCommit,
   ApiBranch,
   ApiCommit,
   ApiDeployment,

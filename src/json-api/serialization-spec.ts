@@ -124,47 +124,72 @@ const exampleActivity = {
 
 describe('json-api serialization', () => {
 
-  it('projectToJsonApi()', () => {
-    const project = exampleProject;
-    const converted = serializeApiEntity('project', project, apiBaseUrl);
-    const data = converted.data;
+  describe('projectToJsonApi()', () => {
 
-    // id and type
-    expect(data.id).to.equal('1');
-    expect(data.type).to.equal('projects');
+    it('should work with complex project', () => {
+      const project = exampleProject;
+      const converted = serializeApiEntity('project', project, apiBaseUrl);
+      const data = converted.data;
 
-    // attributes
-    expect(data.attributes.name).to.equal('example-project');
-    expect(data.attributes['latest-activity-timestamp']).to.equal(project.latestActivityTimestamp);
+      // id and type
+      expect(data.id).to.equal('1');
+      expect(data.type).to.equal('projects');
 
-    // branches relationship
-    expect(data.relationships).to.exist;
-    expect(data.relationships.branches).to.exist;
-    expect(data.relationships.branches.links).to.exist;
-    expect(data.relationships.branches.links.self).to.equal(`${apiBaseUrl}/projects/${project.id}/branches`);
-    expect(data.relationships.branches.data).to.not.exist;
+      // attributes
+      expect(data.attributes.name).to.equal('example-project');
+      expect(data.attributes['latest-activity-timestamp']).to.equal(project.latestActivityTimestamp);
 
-    // latest successfully deployed commit relationship
-    expect(data.relationships['latest-successfully-deployed-commit']).to.exist;
-    expect(data.relationships['latest-successfully-deployed-commit'].data).to.exist;
-    expect(data.relationships['latest-successfully-deployed-commit'].data.id)
-      .to.equal(exampleProject.latestSuccessfullyDeployedCommit!.id);
-    expect(data.relationships['latest-successfully-deployed-commit'].data.type).to.equal('commits');
+      // branches relationship
+      expect(data.relationships).to.exist;
+      expect(data.relationships.branches).to.exist;
+      expect(data.relationships.branches.links).to.exist;
+      expect(data.relationships.branches.links.self).to.equal(`${apiBaseUrl}/projects/${project.id}/branches`);
+      expect(data.relationships.branches.data).to.not.exist;
 
-    // included deployment
-    expect(converted.included).to.have.length(2);
-    const includedDeployment = (<any> converted.included).find((item: any) =>
-        item.id === project.latestSuccessfullyDeployedCommit!.deployments[0].id && item.type === 'deployments');
-    expect(includedDeployment).to.exist;
-    expect(includedDeployment.id).to.equal(project.latestSuccessfullyDeployedCommit!.deployments[0].id);
-    expect(includedDeployment.attributes.url).to.equal(project.latestSuccessfullyDeployedCommit!.deployments[0].url);
+      // latest successfully deployed commit relationship
+      expect(data.relationships['latest-successfully-deployed-commit']).to.exist;
+      expect(data.relationships['latest-successfully-deployed-commit'].data).to.exist;
+      expect(data.relationships['latest-successfully-deployed-commit'].data.id)
+        .to.equal(exampleProject.latestSuccessfullyDeployedCommit!.id);
+      expect(data.relationships['latest-successfully-deployed-commit'].data.type).to.equal('commits');
 
-    // included commit
-    const includedCommit = (<any> converted.included).find((item: any) =>
-        item.id === project.latestSuccessfullyDeployedCommit!.id && item.type === 'commits');
-    expect(includedCommit).to.exist;
-    expect(includedCommit.id).to.equal(project.latestSuccessfullyDeployedCommit!.id);
-    expect(includedCommit.attributes.message).to.equal(project.latestSuccessfullyDeployedCommit!.message);
+      // included deployment
+      expect(converted.included).to.have.length(2);
+      const includedDeployment = (<any> converted.included).find((item: any) =>
+          item.id === project.latestSuccessfullyDeployedCommit!.deployments[0].id && item.type === 'deployments');
+      expect(includedDeployment).to.exist;
+      expect(includedDeployment.id).to.equal(project.latestSuccessfullyDeployedCommit!.deployments[0].id);
+      expect(includedDeployment.attributes.url).to.equal(project.latestSuccessfullyDeployedCommit!.deployments[0].url);
+
+      // included commit
+      const includedCommit = (<any> converted.included).find((item: any) =>
+          item.id === project.latestSuccessfullyDeployedCommit!.id && item.type === 'commits');
+      expect(includedCommit).to.exist;
+      expect(includedCommit.id).to.equal(project.latestSuccessfullyDeployedCommit!.id);
+      expect(includedCommit.attributes.message).to.equal(project.latestSuccessfullyDeployedCommit!.message);
+    });
+
+    it('should work with minimal project', () => {
+      const project: ApiProject = {
+        'type': 'project',
+        'id': 125,
+        'name': 'adsflsafhjl',
+        'path': 'adsflsafhjl',
+        'latestActivityTimestamp': '2016-09-01T13:12:32.521+05:30',
+        'activeCommitters': [],
+        'description': 'dsafjdsahfj',
+      };
+      const converted = serializeApiEntity('project', project, apiBaseUrl);
+      const data = converted.data;
+
+      // id and type
+      expect(data.id).to.equal(String(project.id));
+      expect(data.type).to.equal('projects');
+      expect(data.attributes.name).to.equal(project.name);
+      expect(data.attributes['latest-activity-timestamp']).to.equal(project.latestActivityTimestamp);
+      expect(data.attributes.description).to.equal(project.description);
+    });
+
   });
 
   describe('deploymentToJsonApi()', () => {
@@ -212,6 +237,7 @@ describe('json-api serialization', () => {
       expect(data.relationships.project).to.exist;
       expect(data.relationships.project.data).to.exist;
       expect(data.relationships.project.data.id).to.equal(branch.project);
+      expect(data.relationships.project.data.type).to.equal('projects');
 
       // commits relationship
       expect(data.relationships.commits).to.exist;

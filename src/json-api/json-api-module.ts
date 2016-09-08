@@ -104,13 +104,13 @@ export class JsonApiModule {
     return await Promise.all<ApiProject>(promises);
   }
 
-  public async getProjectBranches(projectId: number) {
+  public async getProjectBranches(projectId: number): Promise<ApiBranch[] | null> {
     const project = await this.getProject(projectId);
     const branches = await this.projectModule.getProjectBranches(projectId);
     if (!branches || !project) {
       return null;
     }
-    return branches.map(branch => this.toApiBranch(project, branch));
+    return await Promise.all(branches.map(branch => this.toApiBranch(project, branch)));
   }
 
   public async getDeployment(projectId: number, deploymentId: number): Promise<ApiDeployment | null> {
@@ -170,10 +170,12 @@ export class JsonApiModule {
       name: activity.project.name,
     };
     const branch = {
-      id: `${activity.project.id}-${activity.branch.id}`,
+      id: `${activity.project.id}-${activity.branch.name}`,
       name: activity.branch.name,
     };
-    const deployment = Object.assign({}, activity.deployment, { id: `${project.id}-${activity.deployment.id}`});
+    const deployment = await this.toApiDeployment(activity.project.id, activity.deployment);
+    delete deployment.commitHash;
+    delete deployment.ref;
     return {
       id: `${activity.project.id}-${activity.deployment.id}`,
       type: 'activity',
@@ -213,14 +215,18 @@ export class JsonApiModule {
   public async toApiDeployment(
     projectId: number,
     deployment: MinardDeployment): Promise<ApiDeployment> {
-    const ret = deepcopy(deployment) as ApiDeployment;
-    ret.id = `${projectId}-${deployment.id}`;
-    ret.commitHash = deployment.commitRef.id;
     const hasScreenshot = await this.screenshotModule.deploymentHasScreenshot(projectId, deployment.id);
-    if (hasScreenshot) {
-      ret.screenshot = this.screenshotModule.getPublicUrl(projectId, deployment.id);
-    }
-    return ret;
+    const screenshot = hasScreenshot ? this.screenshotModule.getPublicUrl(projectId, deployment.id) : null;
+    return {
+      id: `${projectId}-${deployment.id}`,
+      commitHash: deployment.commitRef.id,
+      url: deployment.url,
+      screenshot,
+      creator: deployment.creator,
+      ref: deployment.ref,
+      status: deployment.status,
+      finished_at: deployment.finished_at,
+    };
   }
 
   public async toApiBranch(project: ApiProject, branch: MinardBranch): Promise<ApiBranch> {

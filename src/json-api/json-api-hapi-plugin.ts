@@ -206,7 +206,7 @@ export class JsonApiHapiPlugin {
 
     server.route({
       method: 'GET',
-      path: '/teams/{teamId}/projects',
+      path: '/teams/{teamId}/relationships/projects',
       handler: {
         async: this.getProjectsHandler.bind(this),
       },
@@ -297,7 +297,7 @@ export class JsonApiHapiPlugin {
 
   private async getProjectBranchesHandler(_request: Hapi.Request, reply: Hapi.IReply) {
     // TODO: parse team information
-    return reply(this.getEntity('branch', api => api.getProjects(1)));
+    return reply(this.getEntity('branch', api => api.getProjectBranches(1)));
   }
 
   private async getProjectsHandler(_request: Hapi.Request, reply: Hapi.IReply) {

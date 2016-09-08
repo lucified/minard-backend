@@ -178,5 +178,6 @@ export function serializeApiEntity(type: string, entity: ApiEntity | ApiEntities
   if (!serializer) {
     throw new Error(`Can't serialize ${type}`);
   }
-  return serializer.serialize(entity);
+  const pruned = JSON.parse(JSON.stringify(entity));
+  return serializer.serialize(pruned);
 }

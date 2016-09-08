@@ -116,9 +116,8 @@ describe('json-api-module', () => {
       const minardActivity: MinardActivity = {
         activityType: 'deployment',
         branch: {
-          id: 'foo-branch-id',
           name: 'foo-branch-name',
-        },
+        } as any,
         project: {
           id: 6,
           name: 'foo-project-name',
@@ -126,6 +125,9 @@ describe('json-api-module', () => {
         deployment: {
           id: 8,
           status: 'success',
+          commitRef: {
+            id: 'foo-commit-id',
+          },
         } as MinardDeployment,
         commit: {
           id: 'foo-commit-id',
@@ -137,18 +139,22 @@ describe('json-api-module', () => {
         } as MinardCommit,
         timestamp: '2012-09-20T09:06:12+03:00',
       };
+      const screenshotModule = {} as ScreenshotModule;
+      screenshotModule.deploymentHasScreenshot = async (projectId: number, deploymentId: number) => {
+        return false;
+      };
       const jsonApiModule = new JsonApiModule(
         {} as any,
         {} as any,
         {} as any,
-        {} as any);
+        screenshotModule);
 
       // Act
       const activity = await jsonApiModule.toApiActivity(minardActivity);
 
       // Assert
       expect(activity.activityType).to.equal('deployment');
-      expect(activity.branch.id).to.equal(`${minardActivity.project.id}-${minardActivity.branch.id}`);
+      expect(activity.branch.id).to.equal(`${minardActivity.project.id}-${minardActivity.branch.name}`);
       expect(activity.branch.name).to.equal(minardActivity.branch.name);
       expect(activity.project.id).to.equal(minardActivity.project.id);
       expect(activity.project.name).to.equal(minardActivity.project.name);

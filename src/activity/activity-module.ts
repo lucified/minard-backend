@@ -48,19 +48,20 @@ export default class ActivityModule {
     }
 
     return deployments
-      .filter((deployment: MinardDeployment) => deployment.status === 'success' || deployment.status === 'failed')
-      .map((deployment: MinardDeployment) => {
+      .filter((minardDeployment: MinardDeployment) =>
+        minardDeployment.status === 'success' || minardDeployment.status === 'failed')
+      .map((minardDeployment: MinardDeployment) => {
       const branch = {
-        id: `projectId-${deployment.ref}`,
-        name: deployment.ref,
-      };
-      const commit = this.projectModule.toMinardCommit(deployment.commitRef);
+        name: minardDeployment.ref,
+      } as any;
+      const commit = this.projectModule.toMinardCommit(minardDeployment.commitRef);
+      const deployment = minardDeployment;
       return {
         project,
         branch,
         commit,
         projectId,
-        timestamp: deployment.finished_at,
+        timestamp: minardDeployment.finished_at,
         activityType: 'deployment',
         deployment,
       };

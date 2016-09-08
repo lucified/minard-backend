@@ -109,18 +109,8 @@ export const activitySerialization = {
   included: true,
 };
 
-// export const branchCompoundSerialization = deepcopy(branchSerialization);
-// branchCompoundSerialization.commits = commitSerialization;
-// branchCompoundSerialization.deployments = deploymentSerialization;
-// branchCompoundSerialization.project = projectSerialization;
-
 export const deploymentCompoundSerialization = deepcopy(deploymentSerialization);
 deploymentCompoundSerialization.commit = commitSerialization;
-
-// export const activityCompoundSerialization = deepcopy(activitySerialization);
-// activityCompoundSerialization.deployment = deploymentCompoundSerialization;
-// activityCompoundSerialization.branch = branchSerialization;
-// activityCompoundSerialization.project = projectSerialization;
 
 export function branchToJsonApi(branch: ApiBranch | ApiBranch[]) {
   const serialized = new Serializer('branch',

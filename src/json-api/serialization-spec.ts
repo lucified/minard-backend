@@ -122,8 +122,6 @@ describe('json-api serialization', () => {
     const converted = serializeApiEntity('project', project, apiBaseUrl);
     const data = converted.data;
 
-    console.log(JSON.stringify(converted, null, 2));
-
     // id and type
     expect(data.id).to.equal('1');
     expect(data.type).to.equal('projects');

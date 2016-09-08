@@ -160,11 +160,15 @@ To get continous transpilation, run the following in the project root (in anothe
 tsc -w
 ```
 
-## Deployment
+## Deployments
 
-If not installed, install ecs-upd8r
+- staging: `https://charles-staging.lucify.com`
+
+### Locally
+
+If not installed, install ecs-updater
 ```bash
-npm install ecs-updater
+npm install -g ecs-updater
 ```
 
 Run the deployment with:
@@ -174,10 +178,17 @@ AWS_PROFILE=lucify-protected npm run-script deploy
 For this to work, you must have the `lucify-protected` profile
 configured in your AWS credentials (`~/.aws/credentials`).
 
+This will deploy charles to the staging endpoint.
+
+### Continuous integration
+
+Once pull requests are merged to master in GitHub, on the condition that the tests pass, CircleCI
+will deploy to staging automatically.
+
 ## Debugging
 
 A launch configuration for debugging in Visual Studio Code is included under `.vscode`.
-If the server has was started with `npm run dev`, the debugger should be able to attach
+If the server was started with `npm run dev`, the debugger should be able to attach
 to the process.
 
 ## Tests
@@ -207,7 +218,21 @@ variables set. `MINARD_GIT_SERVER` is the base url for the server hosting the Mi
 
 ## Monitoring
 
-A simple monitoring endpoint is available at `/status`.
+A simple status check of the services Charles depend on is available at `/status`.
+
+Additionally we use Datadog as our monitoring solution. The staging or Q/A dashboard
+can be viewed at https://p.datadoghq.com/sb/cc26c9abc-333b7040d3.
+
+## Logs
+
+All the logs get pushed to AWS CloudWatch Logs via Docker (native support). These can be viewed
+from the AWS Console, but a better alternative is using [awslogs](https://github.com/jorgebastida/awslogs)
+from the command line. As an example, to get auto-updating logs for charles (assuming authorization):
+
+```shell
+awslogs get minard-charles --start='2h ago' -w
+```
+
 
 ## Maintenance tasks
 

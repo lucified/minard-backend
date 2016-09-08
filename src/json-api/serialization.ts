@@ -52,6 +52,7 @@ export const branchSerialization = (apiBaseUrl: string) => ({
     'latestCommit',
     'latestSuccessfullyDeployedCommit',
     'minardJson',
+    'latestActivityTimestamp',
   ],
   ref: standardIdRef,
   commits: {
@@ -68,7 +69,7 @@ export const branchSerialization = (apiBaseUrl: string) => ({
   latestSuccessfullyDeployedCommit: commitSerialization,
   included: true,
   typeForAttribute: (attribute: string) => {
-    if (attribute === 'latestCommit') {
+    if (attribute === 'latestCommit' || attribute === 'latestSuccessfullyDeployedCommit') {
       return 'commits';
     }
     return undefined;

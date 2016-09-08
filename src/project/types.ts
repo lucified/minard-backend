@@ -58,6 +58,7 @@ export interface MinardCommit {
 export interface MinardBranch {
   project: number;
   name: string;
+  latestActivityTimestamp: string;
   latestCommit: MinardCommit;
 }
 

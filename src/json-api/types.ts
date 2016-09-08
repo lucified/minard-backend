@@ -39,7 +39,7 @@ export interface JsonApiResponse {
 export interface ApiProject extends MinardProjectPlain {
   type: 'project';
   id: number;
-  latestSuccessfullyDeployedCommit: ApiCommit;
+  latestSuccessfullyDeployedCommit?: ApiCommit;
 }
 
 export interface ApiBranch extends MinardBranch {
@@ -47,6 +47,7 @@ export interface ApiBranch extends MinardBranch {
   id: string;
   project: number;
   latestCommit: ApiCommit;
+  latestSuccessfullyDeployedCommit?: ApiCommit;
   minardJson: any;
 }
 

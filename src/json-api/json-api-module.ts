@@ -227,10 +227,13 @@ export class JsonApiModule {
   }
 
   public async toApiBranch(project: ApiProject, branch: MinardBranch): Promise<ApiBranch> {
-    const [ minardJson, latestCommit ] = await Promise.all([
+    const [ minardJson, latestCommit, minardDeployment ] = await Promise.all([
       this.deploymentModule.getMinardJsonInfo(Number(project.id), branch.name),
       this.toApiCommit(Number(project.id), branch.latestCommit),
+      this.deploymentModule.getLatestSuccessfulBranchDeployment(project.id, branch.name),
     ]);
+    const latestSuccessfullyDeployedCommit = minardDeployment ?
+      await this.minardDeploymentToApiCommit(project.id, minardDeployment) : undefined;
     return {
       type: 'branch',
       id: `${project.id}-${branch.name}`,
@@ -238,14 +241,31 @@ export class JsonApiModule {
       name: branch.name,
       minardJson,
       latestCommit,
+      latestSuccessfullyDeployedCommit,
+      latestActivityTimestamp: branch.latestActivityTimestamp,
     };
   }
 
+  private async minardDeploymentToApiCommit(projectId: number, minardDeployment: MinardDeployment): Promise<ApiCommit> {
+    const deployment = await this.toApiDeployment(projectId, minardDeployment);
+    const minardCommit = this.projectModule.toMinardCommit(minardDeployment.commitRef);
+    return await this.toApiCommit(projectId, minardCommit, [deployment]);
+  }
+
   public async toApiProject(project: MinardProject): Promise<ApiProject> {
-    const ret = deepcopy(project) as ApiProject;
-    ret.type = 'project';
-    ret.id = project.id;
-    return ret;
+    const minardDeployment = await this.deploymentModule.getLatestSuccessfulProjectDeployment(project.id);
+    const latestSuccessfullyDeployedCommit = minardDeployment ?
+      await this.minardDeploymentToApiCommit(project.id, minardDeployment) : undefined;
+    return {
+      type: 'project',
+      id: project.id,
+      name: project.name,
+      path: project.path,
+      latestActivityTimestamp: project.latestActivityTimestamp,
+      latestSuccessfullyDeployedCommit,
+      activeCommitters: project.activeCommitters,
+      description: project.description,
+    };
   }
 
 }

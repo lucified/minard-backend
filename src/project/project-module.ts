@@ -112,6 +112,7 @@ export default class ProjectModule {
       project: projectId,
       name: branch.name,
       latestCommit: this.toMinardCommit(branch.commit),
+      latestActivityTimestamp: branch.commit.created_at,
     };
   }
 

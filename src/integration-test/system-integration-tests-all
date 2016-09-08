@@ -10,5 +10,8 @@ docker-compose up -d
 SYSTEM_TEST_PROJECT=blank npm run-script system-test-mocha
 SYSTEM_TEST_PROJECT=blank-with-build npm run-script system-test-mocha
 SYSTEM_TEST_PROJECT=blank-with-npm npm run-script system-test-mocha
+SYSTEM_TEST_PROJECT=blanker npm run-script system-test-mocha
+SYSTEM_TEST_PROJECT=blankest npm run-script system-test-mocha
+
 
 docker-compose down

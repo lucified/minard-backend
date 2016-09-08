@@ -8,5 +8,8 @@
     "build": "mkdir foo && cp src/* foo/."
   },
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "lodash": "^4.15.0"
+  }
 }

@@ -9,6 +9,7 @@ gitlab-data/postgresql/*
 gitlab-data/runner/config.toml
 gitlab-data-backup
 gitlab-data/charles
+gitlab-data/gitlab-logs
 temp
 npm-debug.log
 src/config/config-local-override.ts

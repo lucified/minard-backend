@@ -63,6 +63,13 @@ export interface MinardJson {
   build?: MinardJsonBuild;
 }
 
+export interface MinardJsonInfo {
+  errors: string[];
+  parsed?: any;
+  effective?: MinardJson;
+  content?: string;
+}
+
 // gitlab-ci.yml represented as json
 export interface GitlabSpec {
   image: string;

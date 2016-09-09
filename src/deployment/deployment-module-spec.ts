@@ -13,9 +13,12 @@ import {
   DeploymentEvent,
   DeploymentModule,
   MinardDeployment,
+  MinardJsonInfo,
   createDeploymentEvent,
   getDeploymentKeyFromHost,
 } from './';
+
+import { applyDefaults } from './gitlab-yml';
 
 import Authentication from '../authentication/authentication-module';
 import EventBus from '../event-bus/local-event-bus';
@@ -313,11 +316,13 @@ describe('deployment-module', () => {
             ref: branchName,
           } as MinardDeployment;
         },
-        getParsedMinardJson: async (_projectId: number, sha: string) => {
+        getMinardJsonInfo: async (_projectId: number, sha: string) => {
           expect(_projectId).to.equal(projectId);
           expect(sha).to.equal(branchName);
           return {
-            publicRoot,
+            effective: {
+              publicRoot,
+            },
           };
         },
         getDeploymentPath: (_projectId: number, _deploymentId: number) => {
@@ -437,6 +442,152 @@ describe('deployment-module', () => {
         expect(err).to.equal('foo');
       }
       expect(await ret[1]).to.equal('bar');
+    });
+
+  });
+
+  describe('getMinardJsonInfo()', () => {
+    const projectId = 5;
+    const branchName = 'foo';
+
+    function arrangeDeploymentModule(rawMinardJson?: string) {
+      const deploymentModule = getDeploymentModule({} as any, '');
+      deploymentModule.getRawMinardJson = async (_projectId: number, shaOrBranchName: string) => {
+        expect(_projectId).to.equal(projectId);
+        expect(shaOrBranchName).to.equal(branchName);
+        return rawMinardJson;
+      };
+      return deploymentModule;
+    }
+
+    function expectDefaultInfo(info: MinardJsonInfo) {
+      expect(info.errors).to.exist;
+      expect(info.errors).to.have.length(0);
+      expect(info.effective).to.deep.equal(applyDefaults({}));
+    }
+
+    it('should return correct info when there is no minard.json', async () => {
+      // Arrange
+      const deploymentModule = arrangeDeploymentModule(undefined);
+
+      // Act
+      const info = await deploymentModule.getMinardJsonInfo(projectId, branchName);
+
+      // Assert
+      expectDefaultInfo(info);
+      expect(info.content).to.equal(undefined);
+      expect(info.parsed).to.equal(undefined);
+    });
+
+    it('should return correct info when minard.json does not parse', async () => {
+      // Arrange
+      const content = '{[';
+      const deploymentModule = arrangeDeploymentModule(content);
+
+      // Act
+      const info = await deploymentModule.getMinardJsonInfo(projectId, branchName);
+
+      // Assert
+      expect(info.content).to.equal(content);
+      expect(info.parsed).to.equal(undefined);
+      expect(info.errors).to.exist;
+      expect(info.errors).to.have.length(1);
+      expect(info.effective).to.equal(undefined);
+    });
+
+    it('should return correct info when minard.json is empty', async () => {
+      // Arrange
+      const content = '';
+      const deploymentModule = arrangeDeploymentModule(content);
+
+      // Act
+      const info = await deploymentModule.getMinardJsonInfo(projectId, branchName);
+
+      // Assert
+      expectDefaultInfo(info);
+      expect(info.parsed).to.equal(undefined);
+      expect(info.content).to.equal(content);
+    });
+
+    it('should return correct info when minard.json is empty object', async () => {
+      // Arrange
+      const content = '{}';
+      const deploymentModule = arrangeDeploymentModule(content);
+
+      // Act
+      const info = await deploymentModule.getMinardJsonInfo(projectId, branchName);
+
+      // Assert
+      expectDefaultInfo(info);
+      expect(info.parsed).to.deep.equal({});
+      expect(info.content).to.equal(content);
+    });
+
+    it('should return correct info when minard.json has publicRoot and repo has its path', async () => {
+      // Arrange
+      const minardJson = { publicRoot: 'foo' };
+      const content = JSON.stringify(minardJson);
+      const deploymentModule = arrangeDeploymentModule(content);
+
+      deploymentModule.filesAtPath = async (_projectId: number, shaOrBranchName: string, path: string) => {
+        expect(_projectId).to.equal(projectId);
+        expect(shaOrBranchName).to.equal(branchName);
+        expect(path).to.equal(minardJson.publicRoot);
+        return [{}];
+      };
+
+      // Act
+      const info = await deploymentModule.getMinardJsonInfo(projectId, branchName);
+
+      // Assert
+      expect(info).to.exist;
+      expect(info.content).to.equal(content);
+      expect(info.effective).to.exist;
+      expect(info.effective!.publicRoot).to.equal(minardJson.publicRoot);
+      expect(info.parsed!).to.deep.equal(minardJson);
+      expect(info.errors).to.have.length(0);
+    });
+
+    it('should return correctly when minard.json has publicRoot, no build, but repo is missing the path', async () => {
+      // Arrange
+      const minardJson = { publicRoot: 'foo' };
+      const content = JSON.stringify(minardJson);
+      const deploymentModule = arrangeDeploymentModule(content);
+
+      deploymentModule.filesAtPath = async (_projectId: number, shaOrBranchName: string, path: string) => {
+        expect(_projectId).to.equal(projectId);
+        expect(shaOrBranchName).to.equal(branchName);
+        expect(path).to.equal(minardJson.publicRoot);
+        return [];
+      };
+
+      // Act
+      const info = await deploymentModule.getMinardJsonInfo(projectId, branchName);
+
+      // Assert
+      expect(info).to.exist;
+      expect(info.content).to.equal(content);
+      expect(info.effective).to.exist;
+      expect(info.effective!.publicRoot).to.equal(minardJson.publicRoot);
+      expect(info.errors).to.have.length(1);
+    });
+
+    it('should return correctly when minard.json has publicRoot, a build and repo is missing the path', async () => {
+      // Arrange
+      const minardJson = { publicRoot: 'foo', build: { commands: ['foo-command'] }};
+      const content = JSON.stringify(minardJson);
+      const deploymentModule = arrangeDeploymentModule(content);
+
+      // Act
+      const info = await deploymentModule.getMinardJsonInfo(projectId, branchName);
+
+      // Assert
+      expect(info).to.exist;
+      expect(info.content).to.equal(content);
+      expect(info.effective).to.exist;
+      expect(info.effective!.publicRoot).to.equal(minardJson.publicRoot);
+      expect(info.effective!.build!.commands).to.deep.equal(minardJson.build.commands);
+      expect(info.errors).to.have.length(0);
     });
 
   });

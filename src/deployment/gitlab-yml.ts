@@ -9,7 +9,7 @@ import {
   MinardJsonBuildCommand,
 } from './types';
 
-function applyDefaults(spec: MinardJson) {
+export function applyDefaults(spec: MinardJson) {
   const merged = merge({}, { publicRoot: '.' }, spec);
   if (merged.build) {
     merged.build.image = merged.build.image || 'node:latest';

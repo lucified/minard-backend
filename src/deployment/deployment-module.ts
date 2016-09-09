@@ -19,12 +19,14 @@ import {
   DeploymentStatus,
   MinardDeployment,
   MinardJson,
+  MinardJsonInfo,
   RepositoryObject,
   createDeploymentEvent,
   deploymentUrlPatternInjectSymbol,
 } from './types';
 
 import {
+  applyDefaults,
   getGitlabYml,
   getGitlabYmlInvalidJson,
   getValidationErrors,
@@ -235,7 +237,7 @@ export default class DeploymentModule {
     const url = `/projects/${projectId}/repository/blobs/${shaOrBranchName}?${query}`;
     const ret = await this.gitlab.fetch(url);
     if (ret.status === 404) {
-      return null;
+      return undefined;
     }
     if (ret.status !== 200) {
       this.logger.warn(`Unexpected response from GitLab when fetching minard.json from ${url}`);
@@ -255,25 +257,26 @@ export default class DeploymentModule {
   public async getGitlabYml(projectId: number, shaOrBranchName: string): Promise<string> {
     try {
       const info = await this.getMinardJsonInfo(projectId, shaOrBranchName);
-      if (!info) {
-        return getGitlabYml({});
+      if (info.effective) {
+        return getGitlabYml(info.effective);
       }
-      if (info.errors.length > 0) {
-        return getGitlabYmlInvalidJson();
-      }
-      return getGitlabYml(info.parsed);
+      return getGitlabYmlInvalidJson();
     } catch (err) {
       return getGitlabYmlInvalidJson();
     }
   }
 
   public async getMinardJsonInfo(
-    projectId: number, shaOrBranchName: string): Promise<{errors: string[], content: string, parsed: any} | null> {
+    projectId: number, shaOrBranchName: string): Promise<MinardJsonInfo> {
     const content = await this.getRawMinardJson(projectId, shaOrBranchName);
     if (!content) {
-      return null;
+      return {
+        errors: [],
+        content,
+        effective: applyDefaults({}),
+      };
     }
-    let parsed: MinardJson | null = null;
+    let parsed: MinardJson | undefined = undefined;
     let errors: string[];
     try {
       parsed = JSON.parse(content);
@@ -282,16 +285,19 @@ export default class DeploymentModule {
       errors = [err.message];
       return { content, errors, parsed };
     }
+
+    const effective = errors.length === 0 ? applyDefaults(parsed!) : undefined;
+
     // if the project does not have a built, we additionally
     // check that the publicRoot exists
-    if (parsed && errors.length === 0 && parsed.publicRoot !== '.' && !parsed.build) {
-      const path = parsed.publicRoot;
+    if (effective && errors.length === 0 && effective.publicRoot !== '.' && !effective.build) {
+      const path = effective.publicRoot;
       const files = await this.filesAtPath(projectId, shaOrBranchName, path!);
       if (files.length === 0) {
         errors.push(`Repository does not have any any files at path ${path}`);
       }
     }
-    return { content, errors, parsed };
+    return { content, errors, parsed, effective };
   }
 
   /*
@@ -382,17 +388,24 @@ export default class DeploymentModule {
       this.logger.error('Could not get deployment in downloadAndExtractDeployment');
       throw Boom.badImplementation();
     }
-    const minardJson = await this.getParsedMinardJson(projectId, deployment.ref);
+    const minardJson = await this.getMinardJsonInfo(projectId, deployment.ref);
+
+    if (!minardJson.effective) {
+      // this should never happen as projects are not build if they don't
+      // have an effective minard.json
+      this.logger.error(`Detected invalid minard.json when moving extracted deployment.`);
+      throw Boom.badImplementation();
+    }
 
     // move to final directory
     const extractedTempPath = this.getTempArtifactsPath(projectId, deploymentId);
     const finalPath = this.getDeploymentPath(projectId, deploymentId);
-    const sourcePath = minardJson.publicRoot === '.' ? extractedTempPath :
-      path.join(extractedTempPath, minardJson.publicRoot);
+    const sourcePath = minardJson.effective.publicRoot === '.' ? extractedTempPath :
+      path.join(extractedTempPath, minardJson.effective.publicRoot);
     const exists = fs.existsSync(sourcePath);
     if (!exists) {
       const msg = `Deployment "${projectId}_${deploymentId}" did not have directory at repo path ` +
-        `"${minardJson.publicRoot}". Local sourcePath was ${sourcePath}`;
+        `"${minardJson.effective.publicRoot}". Local sourcePath was ${sourcePath}`;
       this.logger.warn(msg);
       throw Boom.badData(msg, 'no-dir-at-public-root');
     }

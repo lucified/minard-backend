@@ -18,6 +18,8 @@ const projectFolder = process.env.SYSTEM_TEST_PROJECT ? process.env.SYSTEM_TEST_
 const charles = process.env.CHARLES ? process.env.CHARLES : 'http://localhost:8000';
 const gitserver = process.env.MINARD_GIT_SERVER ? process.env.MINARD_GIT_SERVER : 'http://localhost:10080';
 
+const skipDeleteProject = process.env.SKIP_DELETE_PROJECT ? true : false;
+
 console.log(`Project is ${projectFolder}`);
 console.log(`Charles is ${charles}`);
 console.log(`Git server is ${gitserver}`);
@@ -303,6 +305,10 @@ describe('system-integration', () => {
   });
 
   it('should be able to delete project', async function() {
+    if (skipDeleteProject) {
+      log('Skipping deletion of project');
+      return;
+    }
     this.timeout(1000 * 30);
     logTitle('Deleting the project');
     const ret = await fetchWithRetry(`${charles}/api/projects/${projectId}`, {

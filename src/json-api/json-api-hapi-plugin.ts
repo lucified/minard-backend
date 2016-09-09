@@ -295,9 +295,9 @@ export class JsonApiHapiPlugin {
     return reply(this.getEntity('project', api => api.getProject(projectId)));
   }
 
-  private async getProjectBranchesHandler(_request: Hapi.Request, reply: Hapi.IReply) {
-    // TODO: parse team information
-    return reply(this.getEntity('branch', api => api.getProjectBranches(1)));
+  private async getProjectBranchesHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    const projectId = (<any> request.params).projectId;
+    return reply(this.getEntity('branch', api => api.getProjectBranches(projectId)));
   }
 
   private async getProjectsHandler(_request: Hapi.Request, reply: Hapi.IReply) {

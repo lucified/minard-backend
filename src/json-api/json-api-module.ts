@@ -166,7 +166,7 @@ export class JsonApiModule {
       hash: activity.commit.id,
     });
     const project = {
-      id: activity.project.id,
+      id: String(activity.project.id),
       name: activity.project.name,
     };
     const branch = {

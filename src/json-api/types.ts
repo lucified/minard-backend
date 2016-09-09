@@ -64,7 +64,7 @@ export interface ApiCommit extends MinardCommit {
 }
 
 export interface ApiActivityProject {
-  id: number;
+  id: string;
   name: string;
 }
 

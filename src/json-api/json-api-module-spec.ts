@@ -156,7 +156,7 @@ describe('json-api-module', () => {
       expect(activity.activityType).to.equal('deployment');
       expect(activity.branch.id).to.equal(`${minardActivity.project.id}-${minardActivity.branch.name}`);
       expect(activity.branch.name).to.equal(minardActivity.branch.name);
-      expect(activity.project.id).to.equal(minardActivity.project.id);
+      expect(activity.project.id).to.equal(String(minardActivity.project.id));
       expect(activity.project.name).to.equal(minardActivity.project.name);
       expect(activity.timestamp).to.equal(minardActivity.timestamp);
       expect(activity.commit.id).to.equal(`${minardActivity.project.id}-${minardActivity.commit.id}`);

@@ -114,7 +114,7 @@ exampleCommitTwo.deployments = [exampleDeploymentTwo];
 const exampleActivity = {
   type: 'activity',
   id: 'dasfsa',
-  project: { id: 3, name: 'foo' },
+  project: { id: '3', name: 'foo' },
   branch: { id: '3-master', name: 'master' },
   activityType: 'deployment',
   deployment: exampleDeploymentOne,

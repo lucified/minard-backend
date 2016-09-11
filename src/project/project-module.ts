@@ -8,6 +8,7 @@ import { GitlabClient } from '../shared/gitlab-client';
 import { Branch, Commit } from '../shared/gitlab.d.ts';
 import * as logger from '../shared/logger';
 import { MINARD_ERROR_CODE } from '../shared/minard-error';
+import { toGitlabStamp } from '../shared/time-conversion';
 
 import {
   MinardBranch,
@@ -100,7 +101,7 @@ export default class ProjectModule {
       const params = {
         per_page: count,
         ref_name: branchName,
-        until,
+        until: until ? toGitlabStamp(until) : undefined,
       };
       let commits = await this.gitlab.fetchJson<any>(
         `projects/${projectId}/repository/commits?${queryString.stringify(params)}`);

@@ -1,6 +1,7 @@
 
 import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
+import * as moment from 'moment';
 
 import {
   ApiActivity,
@@ -138,7 +139,7 @@ export class JsonApiModule {
   public async getBranchCommits(
     projectId: number,
     branchName: string,
-    until?: string,
+    until?: moment.Moment,
     count: number = 10): Promise<ApiCommit[] | null> {
     const [ minardDeployments, minardCommits ] = await Promise.all([
       this.deploymentModule.getBranchDeployments(projectId, branchName),

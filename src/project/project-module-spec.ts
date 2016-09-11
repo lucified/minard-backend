@@ -1,5 +1,6 @@
 
 import * as Boom from 'boom';
+import * as moment from 'moment';
 import 'reflect-metadata';
 
 import AuthenticationModule from '../authentication/authentication-module';
@@ -497,7 +498,7 @@ describe('project-module', () => {
       },
     ];
 
-    const until = '2012-09-20T11:50:22+03:00';
+    const until = moment('2012-09-20T11:50:22+03:00');
     const count = 2;
     const params = {
       per_page: count,
@@ -544,14 +545,13 @@ describe('project-module', () => {
 
   });
 
-
   describe('getBranchCommits', () => {
 
     const projectId = 5;
     const branchName = 'foo';
     const count = 2;
     const extraCount = 2;
-    const until = 'foo-until';
+    const until = moment();
 
     function arrangeProjectModule(fetchResult: any[]) {
       const projectModule = new ProjectModule(
@@ -563,12 +563,12 @@ describe('project-module', () => {
       let called = false;
 
       projectModule.fetchBranchCommits = async (
-        _projectId: number, _branchName: string, _until: string, _count: number) => {
+        _projectId: number, _branchName: string, _until: moment.Moment, _count: number) => {
         expect(called).to.equal(false, 'fetchBranchCommits should only be called once');
         expect(_projectId).to.equal(projectId);
         expect(_branchName).to.equal(branchName);
         expect(_count).to.equal(count + extraCount);
-        expect(_until).to.equal(_until);
+        expect(_until.isSame(until)).to.equal(true);
         called = true;
         return fetchResult;
       };
@@ -577,19 +577,19 @@ describe('project-module', () => {
 
     it('should work when fetch returns single commit with a matching timestamp and 3 others', async () => {
       const fetchResult = [
-          {
-            created_at: until,
-          },
-          {
-            created_at: 'foo',
-          },
-          {
-            created_at: 'bar',
-          },
-          {
-            created_at: 'foo-bar',
-          },
-        ];
+        {
+          created_at: until,
+        },
+        {
+          created_at: moment().add(1, 'days'),
+        },
+        {
+          created_at: moment().add(2, 'days'),
+        },
+        {
+          created_at: moment().add(3, 'days'),
+        },
+      ];
       const projectModule = arrangeProjectModule(fetchResult);
 
       // Act
@@ -608,10 +608,10 @@ describe('project-module', () => {
             created_at: until,
           },
           {
-            created_at: 'bar',
+            created_at: moment().add(1, 'days'),
           },
           {
-            created_at: 'foo-bar',
+            created_at: moment().add(2, 'days'),
           },
         ];
       const projectModule = arrangeProjectModule(fetchResult);
@@ -632,7 +632,7 @@ describe('project-module', () => {
             created_at: until,
           },
           {
-            created_at: 'bar',
+            created_at: moment().add(1, 'days'),
           },
         ];
       const projectModule = arrangeProjectModule(fetchResult);
@@ -656,7 +656,7 @@ describe('project-module', () => {
             created_at: until,
           },
           {
-            created_at: 'foo',
+            created_at: moment().add(1, 'days'),
           },
         ];
       const fetchResult2 = [
@@ -670,16 +670,16 @@ describe('project-module', () => {
             created_at: until,
           },
           {
-            created_at: 'foo',
+            created_at: moment().add(1, 'days'),
           },
           {
-            created_at: 'foo',
+            created_at: moment().add(2, 'days'),
           },
           {
-            created_at: 'foo',
+            created_at: moment().add(3, 'days'),
           },
           {
-            created_at: 'foo',
+            created_at: moment().add(4, 'days'),
           },
         ];
       const projectModule = new ProjectModule(
@@ -689,7 +689,7 @@ describe('project-module', () => {
         {} as any,
         {} as any);
       projectModule.fetchBranchCommits = async (
-        _projectId: number,_branchName: string, _until: string, _count: number) => {
+        _projectId: number, _branchName: string, _until: moment.Moment, _count: number) => {
         expect(_projectId).to.equal(projectId);
         expect(_branchName).to.equal(branchName);
         if (_count === count + extraCount) {
@@ -707,7 +707,6 @@ describe('project-module', () => {
       expect(commits).to.exist;
       expect(commits).to.have.length(5);
     });
-
 
   });
 

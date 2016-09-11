@@ -3,6 +3,7 @@ import * as Boom from 'boom';
 import * as Hapi from 'hapi';
 import { inject, injectable, interfaces } from 'inversify';
 import * as Joi from 'joi';
+import * as moment from 'moment';
 
 import { HapiRegister } from '../server/hapi-register';
 import { JsonApiModule } from './json-api-module';
@@ -349,9 +350,12 @@ export class JsonApiHapiPlugin {
   private async getBranchCommitsHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const projectId = Number((<any> request.params).projectId);
     const branchName = String((<any> request.params).branchName);
-    const until = String(request.query.until);
-    const count = Number(request.query.count);
-    return reply(this.getEntity('commit', api => api.getBranchCommits(projectId, branchName, until, count)));
+    const { until, count } = request.query;
+    const untilMoment = moment(until);
+    if (!untilMoment.isValid) {
+      throw Boom.badRequest('Until is not in valid format');
+    }
+    return reply(this.getEntity('commit', api => api.getBranchCommits(projectId, branchName, untilMoment, count)));
   }
 
   private async getCommitHandler(request: Hapi.Request, reply: Hapi.IReply) {

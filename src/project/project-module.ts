@@ -1,6 +1,7 @@
 
 import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
+import * as moment from 'moment';
 import * as queryString from 'querystring';
 
 import { GitlabClient } from '../shared/gitlab-client';
@@ -93,7 +94,7 @@ export default class ProjectModule {
   public async fetchBranchCommits(
     projectId: number,
     branchName: string,
-    until?: string,
+    until?: moment.Moment,
     count: number = 10): Promise<Commit[] | null> {
     try {
       const params = {
@@ -118,7 +119,7 @@ export default class ProjectModule {
   public async getBranchCommits(
     projectId: number,
     branchName: string,
-    until?: string,
+    until?: moment.Moment,
     count: number = 10,
     extraCount: number = 5): Promise<MinardCommit[] | null> {
     const fetchAmount = count + extraCount;
@@ -126,7 +127,14 @@ export default class ProjectModule {
     if (!commits) {
       return null;
     }
-    const atUntilCount = commits.filter((commit: Commit) => commit.created_at === until).length;
+    const atUntilCount = commits.filter((commit: Commit) => {
+     const createdAtMoment = moment(commit.created_at);
+     if (!createdAtMoment.isValid()) {
+       this.logger.error(`Commit had invalid created_at in getBranchCommits`, commit);
+       return true;
+     }
+     return until && createdAtMoment.isSame(until);
+    }).length;
     const maxReturnedCount = commits.length - atUntilCount;
     if (commits.length >= fetchAmount && maxReturnedCount < count) {
       // If we get a lot of commits where the timestamp equal until

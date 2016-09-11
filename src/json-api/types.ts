@@ -6,10 +6,6 @@ import {
 } from '../project/';
 
 import {
-  MinardActivityPlain,
-} from '../activity';
-
-import {
   MinardDeploymentPlain,
 } from '../deployment/';
 
@@ -81,9 +77,10 @@ export interface ApiActivityCommit extends MinardCommit {
   hash: string;
 }
 
-export interface ApiActivity extends MinardActivityPlain {
+export interface ApiActivity {
   type: 'activity';
   id: string;
+  timestamp: string;
   deployment: ApiActivityDeployment;
   project: ApiActivityProject;
   branch: ApiActivityBranch;

@@ -76,7 +76,7 @@ export default new KernelModule(bind => {
 //  -- JO 25.6.2016
 
   // Bindings for modules
-  bind(ActivityModule.injectSymbol).to(ActivityModule);
+  bind(ActivityModule.injectSymbol).to(ActivityModule).inSingletonScope();
   bind(AuthenticationModule.injectSymbol).to(AuthenticationModule);
   bind(DeploymentModule.injectSymbol).to(DeploymentModule).inSingletonScope();
   bind(JsonApiModule.injectSymbol).to(MemoizedJsonApiModule);

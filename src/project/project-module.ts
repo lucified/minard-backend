@@ -90,21 +90,52 @@ export default class ProjectModule {
     }
   }
 
-  public async getBranchCommits(projectId: number, branchName: string): Promise<MinardCommit[] | null> {
+  public async fetchBranchCommits(
+    projectId: number,
+    branchName: string,
+    until?: string,
+    count: number = 10): Promise<Commit[] | null> {
     try {
-      const commitsPromise = await this.gitlab.fetchJson<any>(
-        `projects/${projectId}/repository/commits/?per_page=1000&ref_name=${encodeURIComponent(branchName)}`);
-      let commits = await commitsPromise;
+      const params = {
+        perPage: count + 5,
+        ref_name: branchName,
+        until,
+      };
+      let commits = await this.gitlab.fetchJson<any>(
+        `projects/${projectId}/repository/commits/${queryString.stringify(params)}`);
       if (!(commits instanceof Array)) {
         commits = [commits];
       }
-      return commits.map(this.toMinardCommit);
+      return commits;
     } catch (err) {
       if (err.status === MINARD_ERROR_CODE.NOT_FOUND) {
         return null;
       }
       throw Boom.wrap(err);
     }
+  }
+
+  public async getBranchCommits(
+    projectId: number,
+    branchName: string,
+    until?: string,
+    count: number = 10,
+    extraCount: number = 5): Promise<MinardCommit[] | null> {
+    const fetchAmount = count + 5;
+    const commits = await this.fetchBranchCommits(projectId, branchName, until, fetchAmount);
+    if (!commits) {
+      return null;
+    }
+    const atUntilCount = commits.filter((commit: Commit) => commit.created_at !== until).length;
+    const maxReturnedCount = commits.length - atUntilCount;
+    if (commits.length >= fetchAmount && maxReturnedCount < count) {
+      // If we get a lot of commits where the timestamp equal until
+      // we try to fetch again, this time with more extra commits.
+      // This should be rare.
+      return this.getBranchCommits(projectId, branchName, until, fetchAmount + 100);
+    }
+    return commits.slice(0, Math.min(count, maxReturnedCount))
+      .map((commit: Commit) => this.toMinardCommit(commit));
   }
 
   public toMinardBranch(projectId: number, branch: Branch): MinardBranch {

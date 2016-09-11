@@ -97,21 +97,21 @@ export default class ProjectModule {
     count: number = 10): Promise<Commit[] | null> {
     try {
       const params = {
-        perPage: count + 5,
+        per_page: count,
         ref_name: branchName,
         until,
       };
       let commits = await this.gitlab.fetchJson<any>(
-        `projects/${projectId}/repository/commits/${queryString.stringify(params)}`);
+        `projects/${projectId}/repository/commits?${queryString.stringify(params)}`);
       if (!(commits instanceof Array)) {
         commits = [commits];
       }
       return commits;
     } catch (err) {
-      if (err.status === MINARD_ERROR_CODE.NOT_FOUND) {
+      if (err.isBoom && err.output.statusCode === MINARD_ERROR_CODE.NOT_FOUND) {
         return null;
       }
-      throw Boom.wrap(err);
+      throw Boom.badGateway();
     }
   }
 
@@ -121,20 +121,20 @@ export default class ProjectModule {
     until?: string,
     count: number = 10,
     extraCount: number = 5): Promise<MinardCommit[] | null> {
-    const fetchAmount = count + 5;
+    const fetchAmount = count + extraCount;
     const commits = await this.fetchBranchCommits(projectId, branchName, until, fetchAmount);
     if (!commits) {
       return null;
     }
-    const atUntilCount = commits.filter((commit: Commit) => commit.created_at !== until).length;
+    const atUntilCount = commits.filter((commit: Commit) => commit.created_at === until).length;
     const maxReturnedCount = commits.length - atUntilCount;
     if (commits.length >= fetchAmount && maxReturnedCount < count) {
       // If we get a lot of commits where the timestamp equal until
       // we try to fetch again, this time with more extra commits.
       // This should be rare.
-      return this.getBranchCommits(projectId, branchName, until, fetchAmount + 100);
+      return this.getBranchCommits(projectId, branchName, until, count, extraCount + 100);
     }
-    return commits.slice(0, Math.min(count, maxReturnedCount))
+    return commits.slice(0, Math.min(commits.length, count + atUntilCount))
       .map((commit: Commit) => this.toMinardCommit(commit));
   }
 

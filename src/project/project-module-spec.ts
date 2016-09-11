@@ -7,6 +7,7 @@ import AuthenticationModule from '../authentication/authentication-module';
 import { EventBus, LocalEventBus } from '../event-bus';
 import { GitlabClient } from '../shared/gitlab-client';
 import Logger from '../shared/logger';
+import { toGitlabStamp } from '../shared/time-conversion';
 import SystemHookModule from '../system-hook/system-hook-module';
 import * as queryString from 'querystring';
 
@@ -498,12 +499,12 @@ describe('project-module', () => {
       },
     ];
 
-    const until = moment('2012-09-20T11:50:22+03:00');
+    const until = moment();
     const count = 2;
     const params = {
       per_page: count,
       ref_name: branchName,
-      until,
+      until: toGitlabStamp(until),
     };
 
     function arrangeProjectModule(status: number, body: any) {

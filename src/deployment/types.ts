@@ -89,3 +89,21 @@ export interface RepositoryObject {
   type: string;
   mode: string;
 }
+
+export interface BuildCreated {
+  id: number;
+  ref: string;
+  tag: boolean;
+  sha: string;
+  status: DeploymentStatus;
+  name: string;
+  token: string;
+  stage: string;
+  project_id: number;
+  project_name: string;
+  commands: string;
+  repo_url: string;
+  before_sha: string;
+  allow_git_fetch: boolean;
+  options: any;
+}

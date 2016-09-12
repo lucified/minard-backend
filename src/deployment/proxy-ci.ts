@@ -9,7 +9,7 @@ import { EventBus, eventBusInjectSymbol } from '../event-bus';
 import { HapiRegister } from '../server/hapi-register';
 import { gitlabHostInjectSymbol } from '../shared/gitlab-client';
 import * as logger from '../shared/logger';
-import { createDeploymentEvent } from './types';
+import { BuildCreated, createDeploymentEvent } from './types';
 
 @injectable()
 export class CIProxy {
@@ -94,7 +94,7 @@ export class CIProxy {
 
   private putRequestHandler(request: Hapi.Request, reply: Hapi.IReply) {
     try {
-      const id = request.paramsArray[0];
+      const id = parseInt(request.paramsArray[0], 10);
       this.collectStream(request.payload)
         .then(JSON.parse)
         .then(payload => this.postEvent(id, payload.state))
@@ -107,11 +107,11 @@ export class CIProxy {
     reply.proxy(this.proxyOptions);
   }
 
-  private postEvent(deploymentId: string, status: string, projectId?: string) {
+  private postEvent(deploymentId: number, status: string, projectId?: number) {
     const event = createDeploymentEvent({
-      id: parseInt(deploymentId, 10),
+      id: deploymentId,
       status,
-      projectId: projectId ? parseInt(projectId, 10) : undefined,
+      projectId: projectId || undefined,
     } as any);
     this.eventBus.post(event);
     return event;
@@ -143,7 +143,8 @@ export class CIProxy {
     try {
       return this.collectStream(response)
         .then(JSON.parse)
-        .then(payload => {
+        .then(_payload => {
+          const payload = _payload as BuildCreated;
           this.postEvent(payload.id, payload.status, payload.project_id);
           return reply(payload).charset('').code(201);
         })

@@ -94,6 +94,7 @@ export default class ProjectModule {
 
   /*
    * Fetch commits for a given branch from GitLab
+   * (internal method)
    */
   public async fetchBranchCommits(
     projectId: number,

@@ -92,6 +92,9 @@ export default class ProjectModule {
     }
   }
 
+  /*
+   * Fetch commits for a given branch from GitLab
+   */
   public async fetchBranchCommits(
     projectId: number,
     branchName: string,
@@ -117,6 +120,21 @@ export default class ProjectModule {
     }
   }
 
+  /*
+   * Get commits for a given branch
+   *
+   * - projectId: id for the project
+   * - branchName: name of the branch
+   * - until: timestamp for latest commits that should be included
+   * - count: desired number of commits that have a later timestamp than until (defaults to 10)
+   * - extraCount: amount of extra commits to fetch internally (advanced option, defaults to 5)
+   *
+   * Given that the count parameter defines the desired amount of commits with a later timestamp
+   * than the one specified, and there may be multiple commits with the same timestamp, we need
+   * to fetch some extra commits to be able to deliver the requested amount. The amount of extra
+   * commits to fetch is controlled by the extraCount parameter. It is used internally for recursive
+   * calls when it turns out that the amount of extra commits was too small.
+   */
   public async getBranchCommits(
     projectId: number,
     branchName: string,

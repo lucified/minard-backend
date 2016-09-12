@@ -1,6 +1,7 @@
 
 import * as events from 'events';
 import * as Hapi from 'hapi';
+import * as Joi from 'joi';
 import * as http from 'http';
 import { inject, injectable } from 'inversify';
 import * as url from 'url';
@@ -73,7 +74,13 @@ export class CIProxy {
       method: 'PUT',
       path: this.routeNamespace + 'builds/{id}',
       handler: this.putRequestHandler.bind(this),
-      config,
+      config: Object.assign({}, config, {
+        validate: {
+          params: {
+            id: Joi.number().required(),
+          },
+        },
+      })
     });
 
     server.route({

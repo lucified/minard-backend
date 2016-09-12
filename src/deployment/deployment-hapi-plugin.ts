@@ -2,6 +2,7 @@
 import * as Boom from 'boom';
 import * as Hapi from 'hapi';
 import { inject, injectable } from 'inversify';
+import * as Joi from 'joi';
 
 import { HapiRegister } from '../server/hapi-register';
 import DeploymentModule, {
@@ -91,32 +92,27 @@ class DeploymentHapiPlugin {
 
     server.route({
       method: 'GET',
-      path: '/ci/projects/{id}/{ref}/{sha}/{action}',
-      handler: (request: Hapi.Request, reply: Hapi.IReply) => {
-        const actionKey = 'action';
-        if (request.params[actionKey] !== 'yml') {
-          return reply(404);
-        }
-        return reply(`
-image: node:latest
-cache:
-  paths:
-  - node_modules/
-my_job:
-  script:
-   - echo MONOLITH
-   - npm install
-   - npm run-script build
-  artifacts:
-    name: "artifact-name"
-    paths:
-      - dist/
-      `);
+      path: '/ci/projects/{projectId}/{ref}/{sha}/yml',
+      handler: this.getGitlabYmlRequestHandler.bind(this),
+      config: {
+        validate: {
+          params: {
+            projectId: Joi.number().required(),
+            ref: Joi.string().required(),
+            sha: Joi.string(),
+          },
+        },
       },
     });
 
     next();
   };
+
+  private async getGitlabYmlRequestHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    const { projectId, ref } = (<any> request.params);
+    return reply(this.deploymentModule.getGitlabYml(projectId, ref))
+      .header('content-type', 'text/plain');
+  }
 
   private serveDirectory(request: Hapi.Request) {
     const pre = <any> request.pre;
@@ -126,10 +122,7 @@ my_job:
   }
 
   private distPath(projectId: number, deploymentId: number) {
-    // for now we only support projects that create the artifact in 'dist' folder
-    return path.join(this.deploymentModule
-      .getDeploymentPath(projectId, deploymentId), 'dist');
-
+    return path.join(this.deploymentModule.getDeploymentPath(projectId, deploymentId));
   }
 
   private parsePath(request: Hapi.Request, reply: Hapi.IReply) {

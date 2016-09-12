@@ -109,7 +109,7 @@ const SCREENSHOT_URL_PATTERN = env.SCREENSHOT_URL_PATTERN ? env.SCREENSHOT_URL_P
 
 const DB_ADAPTER = env.DB_ADAPTER ? env.DB_ADAPTER : 'postgresql';
 const DB_HOST = env.DB_HOST ? env.DB_HOST : 'localhost';
-const DB_PORT = env.DB_PORT ? parseInt(env.DB_PORT, 10) : 5432;
+const DB_PORT = env.DB_PORT ? parseInt(env.DB_PORT, 10) : 15432;
 const DB_USER = env.DB_USER ? env.DB_USER : 'gitlab';
 const DB_PASS = env.DB_PASS ? env.DB_PASS : 'password';
 const DB_NAME = env.DB_NAME ? env.DB_NAME : 'gitlabhq_production';

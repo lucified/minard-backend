@@ -22,7 +22,7 @@ export const nonIncludedSerialization = {
 };
 
 export const branchSerialization = {
-  attributes: ['name', 'description', 'project', 'commits', 'project', 'deployments'],
+  attributes: ['name', 'description', 'project', 'commits', 'project', 'deployments', 'minardJson'],
   ref: standardIdRef,
   commits: nonIncludedSerialization,
   project: nonIncludedSerialization,

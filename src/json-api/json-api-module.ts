@@ -205,6 +205,8 @@ export class JsonApiModule {
     ret.project = project;
     ret.id = `${ret.project.id}-${branch.name}`;
 
+    ret.minardJson = await this.deploymentModule.getMinardJsonInfo(Number(ret.project.id), branch.name);
+
     if (deployments && commits) {
       ret.deployments = deployments;
       ret.commits = commits;

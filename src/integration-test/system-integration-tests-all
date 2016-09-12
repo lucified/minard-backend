@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# Runs the system-integration tests three times,
+# each time with a different type of project
+
+rm -f gitlab-data/runner/config.toml
+docker-compose down
+docker-compose up -d
+
+SYSTEM_TEST_PROJECT=blank npm run-script system-test-mocha
+SYSTEM_TEST_PROJECT=blank-with-build npm run-script system-test-mocha
+SYSTEM_TEST_PROJECT=blank-with-npm npm run-script system-test-mocha
+SYSTEM_TEST_PROJECT=blank-with-empty npm run-script system-test-mocha
+SYSTEM_TEST_PROJECT=blank-with-missing npm run-script system-test-mocha
+
+docker-compose down

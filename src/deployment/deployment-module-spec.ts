@@ -1,6 +1,8 @@
 
 import 'reflect-metadata';
 
+import * as Boom from 'boom';
+
 import { expect } from 'chai';
 import * as fs from 'fs';
 import * as os from 'os';
@@ -10,18 +12,25 @@ import {
   DEPLOYMENT_EVENT_TYPE,
   DeploymentEvent,
   DeploymentModule,
+  MinardDeployment,
+  MinardJsonInfo,
   createDeploymentEvent,
   getDeploymentKeyFromHost,
 } from './';
+
+import { applyDefaults } from './gitlab-yml';
 
 import Authentication from '../authentication/authentication-module';
 import EventBus from '../event-bus/local-event-bus';
 import { IFetchStatic } from '../shared/fetch.d.ts';
 import { GitlabClient } from '../shared/gitlab-client';
 import Logger from '../shared/logger';
+import { promisify } from '../shared/promisify';
 
 const fetchMock = require('fetch-mock');
 const rimraf = require('rimraf');
+const ncp = promisify(require('ncp'));
+const mkpath = require('mkpath');
 
 const host = 'gitlab';
 const token = 'the-sercret';
@@ -247,32 +256,113 @@ describe('deployment-module', () => {
     });
   });
 
-  it('downloadAndExtractDeployment()', async () => {
+  describe('downloadAndExtractDeployment()', () => {
     // Example URL for manual testing
     // http://localhost:10080/api/v3/projects/1/builds/3/artifacts\?private_token=BSKaHunLUSyxp_X-MK1a
 
-    // Arrange
-    rimraf.sync(path.join(os.tmpdir(), 'minard'));
-    const thePath = path.join(__dirname, '../../src/deployment/test-artifact.zip');
-    const stream = fs.createReadStream(thePath);
-    const opts = {
-      status: 200,
-      statusText: 'ok',
-    };
-    const response = new Response(stream, opts);
-    const gitlabClient = getClient();
-    const mockUrl = `${host}${gitlabClient.apiPrefix}/projects/1/builds/2/artifacts`;
-    fetchMock.restore().mock(mockUrl, response);
-    const deploymentsDir = path.join(os.tmpdir(), 'minard', 'deploys');
-    const deploymentModule = getDeploymentModule(gitlabClient, deploymentsDir);
+    it('should work with a simple artifact', async () => {
+      // Arrange
+      rimraf.sync(path.join(os.tmpdir(), 'minard'));
+      const thePath = path.join(__dirname, '../../src/deployment/test-data/test-artifact.zip');
+      const stream = fs.createReadStream(thePath);
+      const opts = {
+        status: 200,
+        statusText: 'ok',
+      };
+      const response = new Response(stream, opts);
+      const gitlabClient = getClient();
+      const mockUrl = `${host}${gitlabClient.apiPrefix}/projects/1/builds/2/artifacts`;
+      fetchMock.restore().mock(mockUrl, response);
+      const deploymentsDir = path.join(os.tmpdir(), 'minard', 'deploys');
+      const deploymentModule = getDeploymentModule(gitlabClient, deploymentsDir);
 
-    // Act
-    const deploymentPath = await deploymentModule.downloadAndExtractDeployment(1, 2);
+      // Act
+      const deploymentPath = await deploymentModule.downloadAndExtractDeployment(1, 2);
 
-    // Assert
-    const indexFilePath = path.join(deploymentPath, 'dist', 'index.html');
-    expect(fs.existsSync(indexFilePath)).to.equal(true);
-    expect(deploymentPath).to.equal(deploymentModule.getDeploymentPath(1, 2));
+      // Assert
+      const indexFilePath = path.join(deploymentPath, 'dist', 'index.html');
+      expect(fs.existsSync(indexFilePath)).to.equal(true);
+      expect(deploymentPath).to.equal(deploymentModule.getTempArtifactsPath(1, 2));
+    });
+
+  });
+
+  describe('moveExtractedDeployment()', () => {
+
+    const projectId = 3;
+    const deploymentId = 4;
+    const branchName = 'master';
+    const deploymentPath = path.join(os.tmpdir(), 'minard-move', 'test-deployment');
+    const extractedPath = path.join(os.tmpdir(), 'minard-move', 'extracted');
+    console.log(deploymentPath);
+
+    async function shouldMoveCorrectly(publicRoot: string, artifactFolder: string) {
+      // Arrange
+      rimraf.sync(deploymentPath);
+      rimraf.sync(extractedPath);
+      mkpath.sync(extractedPath);
+      await ncp(path.join(__dirname, '../../src/deployment/test-data'), extractedPath);
+      const deploymentModule = {
+        logger,
+        getTempArtifactsPath: (_projectId: number, _deploymentId: number) => {
+          expect(_projectId).to.equal(projectId);
+          expect(_deploymentId).to.equal(deploymentId);
+          return path.join(extractedPath, artifactFolder);
+        },
+        getDeployment: async (_projectId: number, _deploymentId: number) => {
+          expect(_projectId).to.equal(projectId);
+          expect(_deploymentId).to.equal(deploymentId);
+          return {
+            ref: branchName,
+          } as MinardDeployment;
+        },
+        getMinardJsonInfo: async (_projectId: number, sha: string) => {
+          expect(_projectId).to.equal(projectId);
+          expect(sha).to.equal(branchName);
+          return {
+            effective: {
+              publicRoot,
+            },
+          };
+        },
+        getDeploymentPath: (_projectId: number, _deploymentId: number) => {
+          expect(_projectId).to.equal(projectId);
+          expect(_deploymentId).to.equal(deploymentId);
+          return deploymentPath;
+        },
+      } as {} as DeploymentModule;
+      deploymentModule.moveExtractedDeployment = DeploymentModule
+        .prototype.moveExtractedDeployment.bind(deploymentModule);
+
+      // Act
+      await deploymentModule.moveExtractedDeployment(projectId, deploymentId);
+
+      // Assert
+      expect(fs.existsSync(path.join(deploymentPath, 'index.html'))).to.equal(true);
+    }
+
+    it('should move files correctly when publicRoot is "foo"', async () => {
+      await shouldMoveCorrectly('foo', 'test-extracted-artifact-1');
+    });
+
+    it('should move files correctly when publicRoot is "foo/bar"', async () => {
+      await shouldMoveCorrectly('foo/bar', 'test-extracted-artifact-2');
+    });
+
+    it('should move files correctly when publicRoot is "."', async () => {
+      await shouldMoveCorrectly('.', 'test-extracted-artifact-3');
+    });
+
+    it('should throw error when publicRoot does not exist in artifacts"', async () => {
+      try {
+        await shouldMoveCorrectly('bar', 'test-extracted-artifact-2');
+        expect.fail('should throw');
+      } catch (err) {
+        expect((<Boom.BoomError> err).isBoom).to.equal(true);
+        expect((<Boom.BoomError> err).data).to.equal('no-dir-at-public-root');
+      }
+    });
+
   });
 
   it('getDeploymentPath()', () => {
@@ -281,7 +371,228 @@ describe('deployment-module', () => {
     expect(deploymentPath).to.equal('example/1/4');
   });
 
-  describe('prepareDeploymentForServing()', () => {
+  describe('prepareDeploymentForServing', () => {
+
+    function sleep(ms = 0) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function shouldQueueCalls(
+      resolveOrReject: (resolve: (arg: any) => void, reject: (arg: any) => void) => void) {
+
+      const deploymentModule = getDeploymentModule({} as any, '');
+      let resolve1: ((arg: any) => void) | undefined = undefined;
+      let reject1: ((arg: any) => void) | undefined = undefined;
+      let resolve2: ((arg: any) => void) | undefined = undefined;
+      const promise1 = new Promise((resolve, reject) => {
+        resolve1 = resolve;
+        reject1 = reject;
+      });
+      const promise2 = new Promise((resolve, reject) => {
+        resolve2 = resolve;
+      });
+      let firstCalled = false;
+      let secondCalled = false;
+      deploymentModule.doPrepareDeploymentForServing = (projectId, deploymentId) => {
+        if (projectId === 1 && deploymentId === 11) {
+          firstCalled = true;
+          return promise1;
+        }
+        if (projectId === 2 && deploymentId === 22) {
+          secondCalled = true;
+          return promise2;
+        }
+        throw Error('invalid projectId or deploymentId');
+      };
+      const retPromise1 = deploymentModule.prepareDeploymentForServing(1, 11);
+      const retPromise2 = deploymentModule.prepareDeploymentForServing(2, 22);
+      expect(firstCalled).to.equal(true);
+      expect(secondCalled).to.equal(false);
+      // sleep a moment to make sure that the second call
+      // is not made before we resolve the previous promise
+      await sleep(10);
+      expect(secondCalled).to.equal(false);
+      resolveOrReject(resolve1!, reject1!);
+      // now that the previous promise is resolved, the next
+      // one may be called. sleep a moment to give control to
+      // the queue, so it gets a change to call doPrepareDeploymentForServing
+      await sleep(10);
+      expect(secondCalled).to.equal(true);
+      resolve2!('bar');
+
+      return [retPromise1, retPromise2];
+    }
+
+    it('should queue calls to doPrepareDeploymentForServing', async () => {
+      const ret = await shouldQueueCalls((resolve: (arg: any) => void, reject: (arg: any) => void) => {
+        resolve('foo');
+      });
+      expect(await ret[0]).to.equal('foo');
+      expect(await ret[1]).to.equal('bar');
+    });
+
+    it('should queue calls to doPrepareDeploymentForServing after rejected promises', async () => {
+      const ret = await shouldQueueCalls((resolve: (arg: any) => void, reject: (arg: any) => void) => {
+        reject('foo');
+      });
+      try {
+        await ret[0];
+        expect.fail('should throw');
+      } catch (err) {
+        expect(err).to.equal('foo');
+      }
+      expect(await ret[1]).to.equal('bar');
+    });
+
+  });
+
+  describe('getMinardJsonInfo()', () => {
+    const projectId = 5;
+    const branchName = 'foo';
+
+    function arrangeDeploymentModule(rawMinardJson?: string) {
+      const deploymentModule = getDeploymentModule({} as any, '');
+      deploymentModule.getRawMinardJson = async (_projectId: number, shaOrBranchName: string) => {
+        expect(_projectId).to.equal(projectId);
+        expect(shaOrBranchName).to.equal(branchName);
+        return rawMinardJson;
+      };
+      return deploymentModule;
+    }
+
+    function expectDefaultInfo(info: MinardJsonInfo) {
+      expect(info.errors).to.exist;
+      expect(info.errors).to.have.length(0);
+      expect(info.effective).to.deep.equal(applyDefaults({}));
+    }
+
+    it('should return correct info when there is no minard.json', async () => {
+      // Arrange
+      const deploymentModule = arrangeDeploymentModule(undefined);
+
+      // Act
+      const info = await deploymentModule.getMinardJsonInfo(projectId, branchName);
+
+      // Assert
+      expectDefaultInfo(info);
+      expect(info.content).to.equal(undefined);
+      expect(info.parsed).to.equal(undefined);
+    });
+
+    it('should return correct info when minard.json does not parse', async () => {
+      // Arrange
+      const content = '{[';
+      const deploymentModule = arrangeDeploymentModule(content);
+
+      // Act
+      const info = await deploymentModule.getMinardJsonInfo(projectId, branchName);
+
+      // Assert
+      expect(info.content).to.equal(content);
+      expect(info.parsed).to.equal(undefined);
+      expect(info.errors).to.exist;
+      expect(info.errors).to.have.length(1);
+      expect(info.effective).to.equal(undefined);
+    });
+
+    it('should return correct info when minard.json is empty', async () => {
+      // Arrange
+      const content = '';
+      const deploymentModule = arrangeDeploymentModule(content);
+
+      // Act
+      const info = await deploymentModule.getMinardJsonInfo(projectId, branchName);
+
+      // Assert
+      expectDefaultInfo(info);
+      expect(info.parsed).to.equal(undefined);
+      expect(info.content).to.equal(content);
+    });
+
+    it('should return correct info when minard.json is empty object', async () => {
+      // Arrange
+      const content = '{}';
+      const deploymentModule = arrangeDeploymentModule(content);
+
+      // Act
+      const info = await deploymentModule.getMinardJsonInfo(projectId, branchName);
+
+      // Assert
+      expectDefaultInfo(info);
+      expect(info.parsed).to.deep.equal({});
+      expect(info.content).to.equal(content);
+    });
+
+    it('should return correct info when minard.json has publicRoot and repo has its path', async () => {
+      // Arrange
+      const minardJson = { publicRoot: 'foo' };
+      const content = JSON.stringify(minardJson);
+      const deploymentModule = arrangeDeploymentModule(content);
+
+      deploymentModule.filesAtPath = async (_projectId: number, shaOrBranchName: string, path: string) => {
+        expect(_projectId).to.equal(projectId);
+        expect(shaOrBranchName).to.equal(branchName);
+        expect(path).to.equal(minardJson.publicRoot);
+        return [{}];
+      };
+
+      // Act
+      const info = await deploymentModule.getMinardJsonInfo(projectId, branchName);
+
+      // Assert
+      expect(info).to.exist;
+      expect(info.content).to.equal(content);
+      expect(info.effective).to.exist;
+      expect(info.effective!.publicRoot).to.equal(minardJson.publicRoot);
+      expect(info.parsed!).to.deep.equal(minardJson);
+      expect(info.errors).to.have.length(0);
+    });
+
+    it('should return correctly when minard.json has publicRoot, no build, but repo is missing the path', async () => {
+      // Arrange
+      const minardJson = { publicRoot: 'foo' };
+      const content = JSON.stringify(minardJson);
+      const deploymentModule = arrangeDeploymentModule(content);
+
+      deploymentModule.filesAtPath = async (_projectId: number, shaOrBranchName: string, path: string) => {
+        expect(_projectId).to.equal(projectId);
+        expect(shaOrBranchName).to.equal(branchName);
+        expect(path).to.equal(minardJson.publicRoot);
+        return [];
+      };
+
+      // Act
+      const info = await deploymentModule.getMinardJsonInfo(projectId, branchName);
+
+      // Assert
+      expect(info).to.exist;
+      expect(info.content).to.equal(content);
+      expect(info.effective).to.exist;
+      expect(info.effective!.publicRoot).to.equal(minardJson.publicRoot);
+      expect(info.errors).to.have.length(1);
+    });
+
+    it('should return correctly when minard.json has publicRoot, a build and repo is missing the path', async () => {
+      // Arrange
+      const minardJson = { publicRoot: 'foo', build: { commands: ['foo-command'] }};
+      const content = JSON.stringify(minardJson);
+      const deploymentModule = arrangeDeploymentModule(content);
+
+      // Act
+      const info = await deploymentModule.getMinardJsonInfo(projectId, branchName);
+
+      // Assert
+      expect(info).to.exist;
+      expect(info.content).to.equal(content);
+      expect(info.effective).to.exist;
+      expect(info.effective!.publicRoot).to.equal(minardJson.publicRoot);
+      expect(info.effective!.build!.commands).to.deep.equal(minardJson.build.commands);
+      expect(info.errors).to.have.length(0);
+    });
+
+  });
+
+  describe('doPrepareDeploymentForServing()', () => {
 
     it('should throw error when deployment not found', async () => {
       const deploymentModule = getDeploymentModule({} as GitlabClient, '');
@@ -291,7 +602,7 @@ describe('deployment-module', () => {
         return null;
       };
       try {
-        await deploymentModule.prepareDeploymentForServing(2, 4);
+        await deploymentModule.doPrepareDeploymentForServing(2, 4);
         expect.fail('should throw exception');
       } catch (err) {
         expect(err.message).to.equal('No deployment found for: projectId 2, deploymentId 4');
@@ -306,7 +617,7 @@ describe('deployment-module', () => {
         };
       };
       try {
-        await deploymentModule.prepareDeploymentForServing(2, 4);
+        await deploymentModule.doPrepareDeploymentForServing(2, 4);
         expect.fail('should throw exception');
       } catch (err) {
         expect(err.message).to.equal('Deployment status is "failed" for: projectId 2, deploymentId 4');
@@ -326,8 +637,15 @@ describe('deployment-module', () => {
         expect(deploymentId).to.equal(4);
         called = true;
       };
-      await deploymentModule.prepareDeploymentForServing(2, 4);
+      let moveCalled = false;
+      deploymentModule.moveExtractedDeployment = async (projectId, deploymentId) => {
+        expect(projectId).to.equal(2);
+        expect(deploymentId).to.equal(4);
+        moveCalled = true;
+      };
+      await deploymentModule.doPrepareDeploymentForServing(2, 4);
       expect(called).to.equal(true);
+      expect(moveCalled).to.equal(true);
     });
 
     it('should report internal error', async () => {
@@ -341,7 +659,7 @@ describe('deployment-module', () => {
         throw Error('some error');
       };
       try {
-        await deploymentModule.prepareDeploymentForServing(2, 4);
+        await deploymentModule.doPrepareDeploymentForServing(2, 4);
         expect.fail('should throw exception');
       } catch (err) {
         //
@@ -386,33 +704,19 @@ describe('deployment-module', () => {
 
   });
 
-  describe('deployment events', () => {
+  describe('subscribeToEvents', () => {
 
-    it('should post \'extracted\' event', async () => {
+    it('should post \'extracted\' event', async function() { // tslint:disable-line
       // Arrange
       const bus = new EventBus();
-      rimraf.sync(path.join(os.tmpdir(), 'minard'));
-      const thePath = path.join(__dirname, '../../src/deployment/test-artifact.zip');
-      const stream = fs.createReadStream(thePath);
-      const opts = {
-        status: 200,
-        statusText: 'ok',
-      };
-      const response = new Response(stream, opts);
-      const gitlabClient = getClient();
-      const mockUrl = `${host}${gitlabClient.apiPrefix}/projects/1/builds/1/artifacts`;
-      fetchMock.restore().mock(mockUrl, response);
-      const deploymentsDir = path.join(os.tmpdir(), 'minard', 'deploys');
-
-      const deploymentModule = new DeploymentModule( /* ts-lint-disable-line */
-        gitlabClient,
-        deploymentsDir,
-        bus,
-        logger,
-        deploymentUrlPattern,
+      const deploymentModule = new DeploymentModule(
+        {} as any, '', bus, logger, '',
       );
       expect(deploymentModule.getDeploymentPath(1, 1)).to.exist;
-
+      deploymentModule.prepareDeploymentForServing = async (_projectId: number, _deploymentId: number) => {
+        expect(_projectId).to.equal(1);
+        expect(_deploymentId).to.equal(1);
+      };
       const eventPromise = bus
         .filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
         .map(e => e.payload)
@@ -420,13 +724,77 @@ describe('deployment-module', () => {
         .take(1)
         .toPromise();
 
+      // Act
       bus.post(createDeploymentEvent({ status: 'running', id: 1, projectId: 1 }));
       bus.post(createDeploymentEvent({ status: 'running', id: 2, projectId: 2 }));
       bus.post(createDeploymentEvent({ status: 'success', id: 1 }));
-
       const event = await eventPromise;
+
+      // Assert
       expect(event.status).to.eq('extracted');
       expect(event.id).to.eq(1);
+    });
+
+  });
+
+  describe('filesAtPath', () => {
+
+    const projectId = 2;
+    const branch = 'foo-branch';
+    const repoPath = 'foo';
+
+    const gitlabResponse = [
+      {
+        'id': 'cdbaeae40f0655455c8159ee34fc6749c8f8968e',
+        'name': 'src',
+        'type': 'tree',
+        'mode': '040000',
+      },
+      {
+        'id': '4b6793ae68a6587d28c23b11c1a09b5a6b923215',
+        'name': 'README.md',
+        'type': 'blob',
+        'mode': '100644',
+      },
+    ];
+
+    it ('should return correct response when two files are found', async () => {
+      // Arrange
+      const gitlabClient = getClient();
+      const response = {
+        status: 200,
+        body: gitlabResponse,
+      };
+      fetchMock.restore().mock(`${host}${gitlabClient.apiPrefix}` +
+        `/projects/${projectId}/repository/tree?path=${repoPath}`, response);
+      const deploymentModule = getDeploymentModule(gitlabClient, '');
+      // Act
+      const files = await deploymentModule.filesAtPath(2, branch, repoPath);
+      // Assert
+      expect(files).to.exist;
+      expect(files).to.have.length(2);
+      expect(files[0].name).to.equal(gitlabResponse[0].name);
+      expect(files[0].type).to.equal(gitlabResponse[0].type);
+    });
+
+    it ('should throw when project is not found', async () => {
+      // Arrange
+      const gitlabClient = getClient();
+      const response = {
+        status: 404,
+        body: gitlabResponse,
+      };
+      fetchMock.restore().mock(`${host}${gitlabClient.apiPrefix}` +
+        `/projects/${projectId}/repository/tree?path=${repoPath}`, response);
+      const deploymentModule = getDeploymentModule(gitlabClient, '');
+      // Act
+      try {
+        await deploymentModule.filesAtPath(2, branch, repoPath);
+        expect.fail('should throw');
+      } catch (err) {
+        expect((<Boom.BoomError> err).isBoom).to.equal(true);
+        expect((<Boom.BoomError> err).output.statusCode).to.equal(404);
+      }
     });
 
   });

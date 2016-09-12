@@ -117,6 +117,7 @@ export default class ProjectModule {
       if (err.isBoom && err.output.statusCode === MINARD_ERROR_CODE.NOT_FOUND) {
         return null;
       }
+      this.logger.error(`Unexpected error when fetching branch commits`, err);
       throw Boom.badGateway();
     }
   }

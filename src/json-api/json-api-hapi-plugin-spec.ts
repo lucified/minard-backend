@@ -1,5 +1,7 @@
 
 import { expect } from 'chai';
+import * as moment from 'moment';
+import * as queryString from 'querystring';
 import 'reflect-metadata';
 import Hapi = require('hapi');
 
@@ -304,6 +306,68 @@ describe('json-api-hapi-plugin', () => {
     it('should respond with BAD_REQUEST when neither project name or description is provided', async() => {
       const ret = await injectRequest(5, undefined, undefined);
       expect(ret).to.exist;
+      expect(ret.statusCode).to.equal(MINARD_ERROR_CODE.BAD_REQUEST);
+    });
+
+  });
+
+  describe('GET "/branches/:id/relationships/commits"', () => {
+    async function injectRequest(
+      projectId: number,
+      branchName: string,
+      params: { until?: string, count?: number }) {
+      const mockFactory = () => ({
+        getBranchCommits: async (_projectId: number, _branchName: string, _until: moment.Moment, _count: number) => {
+          try {
+            expect(_projectId).to.equal(projectId);
+            expect(_branchName).to.equal(branchName);
+            if (!params.until) {
+              expect(_until).to.equal(params.until);
+            } else {
+              expect(_until.isSame(moment(params.until)));
+            }
+            expect(_count).to.equal(params.count);
+          } catch (err) {
+            // log here as these expect clauses cause hapi to return
+            // a server error, which can be misleading
+            console.log(err);
+            throw err;
+          }
+          return [{}, {}];
+        },
+      });
+      const plugin = new JsonApiHapiPlugin(mockFactory as any, baseUrl);
+      const server = await provisionServer(plugin);
+      const options: Hapi.IServerInjectOptions = {
+        method: 'GET',
+        url: `http://foo.com/branches/${projectId}-${branchName}/relationships/commits` +
+          `?${queryString.stringify(params)}`,
+      };
+      return await server.inject(options);
+    }
+
+    it('should return 200 when request is valid and includes all params', async () => {
+      const projectId = 10;
+      const count = 5;
+      const until = '2012-09-20T08:50:22.000Z';
+      const ret = await injectRequest(projectId, 'foo', { until, count });
+      expect(ret.statusCode).to.equal(200);
+      expect(JSON.parse(ret.payload).data).to.have.length(2);
+    });
+
+    it('should return 200 when request is valid and does not include count', async () => {
+      const projectId = 10;
+      const until = '2012-09-20T08:50:22.000Z';
+      const ret = await injectRequest(projectId, 'foo', { until });
+      expect(ret.statusCode).to.equal(200);
+      expect(JSON.parse(ret.payload).data).to.have.length(2);
+    });
+
+    it('should return BAD_REQUEST when request has invalid until', async () => {
+      const projectId = 10;
+      const count = 5;
+      const until = '2012-0-20:50:22.000Z';
+      const ret = await injectRequest(projectId, 'foo', { until, count });
       expect(ret.statusCode).to.equal(MINARD_ERROR_CODE.BAD_REQUEST);
     });
 

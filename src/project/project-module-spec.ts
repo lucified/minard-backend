@@ -1,11 +1,13 @@
 
 import * as Boom from 'boom';
+import * as moment from 'moment';
 import 'reflect-metadata';
 
 import AuthenticationModule from '../authentication/authentication-module';
 import { EventBus, LocalEventBus } from '../event-bus';
 import { GitlabClient } from '../shared/gitlab-client';
 import Logger from '../shared/logger';
+import { toGitlabStamp } from '../shared/time-conversion';
 import SystemHookModule from '../system-hook/system-hook-module';
 import * as queryString from 'querystring';
 
@@ -466,6 +468,245 @@ describe('project-module', () => {
 
       // Act & Assert
       await expectServerError(async () => projectModule.getProjectBranches(projectId));
+    });
+
+  });
+
+  describe('fetchBranchCommits', () => {
+
+    const projectId = 5;
+    const branchName = 'foo';
+    const gitlabResponse = [
+      {
+        'id': 'ed899a2f4b50b4370feeea94676502b42383c746',
+        'short_id': 'ed899a2f4b5',
+        'title': 'Replace sanitize with escape once',
+        'author_name': 'Dmitriy Zaporozhets',
+        'author_email': 'dzaporozhets@sphereconsultinginc.com',
+        'created_at': '2012-09-20T11:50:22+03:00',
+        'message': 'Replace sanitize with escape once',
+        'allow_failure': false,
+      },
+      {
+        'id': '6104942438c14ec7bd21c6cd5bd995272b3faff6',
+        'short_id': '6104942438c',
+        'title': 'Sanitize for network graph',
+        'author_name': 'randx',
+        'author_email': 'dmitriy.zaporozhets@gmail.com',
+        'created_at': '2012-09-20T09:06:12+03:00',
+        'message': 'Sanitize for network graph',
+        'allow_failure': false,
+      },
+    ];
+
+    const until = moment();
+    const count = 2;
+    const params = {
+      per_page: count,
+      ref_name: branchName,
+      until: toGitlabStamp(until),
+    };
+
+    function arrangeProjectModule(status: number, body: any) {
+      return genericArrangeProjectModule(status, gitlabResponse,
+        `/projects/${projectId}/repository/commits?${queryString.stringify(params)}`);
+    }
+
+    it('should work when gitlab responds with two commits', async () => {
+      // Arrange
+      const projectModule = arrangeProjectModule(200, gitlabResponse);
+
+      // Act
+      const commits = await projectModule.fetchBranchCommits(projectId, branchName, until, count);
+
+      // Assert
+      expect(commits).to.exist;
+      expect(commits).to.have.length(2);
+      expect(commits![0].id).to.equal(gitlabResponse[0].id);
+    });
+
+    it('should return null if gitlab responds 404', async () => {
+      // Arrange
+      const projectModule = arrangeProjectModule(404, { msg: 'not found'} );
+
+      // Act
+      const commits = await projectModule.fetchBranchCommits(projectId, branchName, until, count);
+
+      // Assert
+      expect(commits).to.equal(null);
+    });
+
+    it('should throw if gitlab responds 500', async () => {
+      // Arrange
+      const projectModule = arrangeProjectModule(500, { msg: 'not found'} );
+
+      // Act & Assert
+      await expectServerError(async () => await projectModule.fetchBranchCommits(projectId, branchName, until, count));
+    });
+
+  });
+
+  describe('getBranchCommits', () => {
+
+    const projectId = 5;
+    const branchName = 'foo';
+    const count = 2;
+    const extraCount = 2;
+    const until = moment();
+
+    function arrangeProjectModule(fetchResult: any[]) {
+      const projectModule = new ProjectModule(
+        {} as any,
+        {} as any,
+        {} as any,
+        {} as any,
+        {} as any);
+      let called = false;
+
+      projectModule.fetchBranchCommits = async (
+        _projectId: number, _branchName: string, _until: moment.Moment, _count: number) => {
+        expect(called).to.equal(false, 'fetchBranchCommits should only be called once');
+        expect(_projectId).to.equal(projectId);
+        expect(_branchName).to.equal(branchName);
+        expect(_count).to.equal(count + extraCount);
+        expect(_until.isSame(until)).to.equal(true);
+        called = true;
+        return fetchResult;
+      };
+      return projectModule;
+    }
+
+    it('should work when fetch returns single commit with a matching timestamp and 3 others', async () => {
+      const fetchResult = [
+        {
+          created_at: until,
+        },
+        {
+          created_at: moment().add(1, 'days'),
+        },
+        {
+          created_at: moment().add(2, 'days'),
+        },
+        {
+          created_at: moment().add(3, 'days'),
+        },
+      ];
+      const projectModule = arrangeProjectModule(fetchResult);
+
+      // Act
+      const commits = await projectModule.getBranchCommits(projectId, branchName, until, count, extraCount);
+
+      expect(commits).to.exist;
+      expect(commits).to.have.length(3);
+    });
+
+    it('should work when fetch returns two commits with a matching timestamp and 2 others', async () => {
+      const fetchResult = [
+          {
+            created_at: until,
+          },
+          {
+            created_at: until,
+          },
+          {
+            created_at: moment().add(1, 'days'),
+          },
+          {
+            created_at: moment().add(2, 'days'),
+          },
+        ];
+      const projectModule = arrangeProjectModule(fetchResult);
+
+      // Act
+      const commits = await projectModule.getBranchCommits(projectId, branchName, until, count, extraCount);
+
+      expect(commits).to.exist;
+      expect(commits).to.have.length(4);
+    });
+
+    it('should work when fetch returns only one extra commit', async () => {
+      const fetchResult = [
+          {
+            created_at: until,
+          },
+          {
+            created_at: until,
+          },
+          {
+            created_at: moment().add(1, 'days'),
+          },
+        ];
+      const projectModule = arrangeProjectModule(fetchResult);
+
+      // Act
+      const commits = await projectModule.getBranchCommits(projectId, branchName, until, count, extraCount);
+
+      expect(commits).to.exist;
+      expect(commits).to.have.length(3);
+    });
+
+    it('should work when first fetch has three commit with timestamp matching until and one extra', async () => {
+      const fetchResult1 = [
+          {
+            created_at: until,
+          },
+          {
+            created_at: until,
+          },
+          {
+            created_at: until,
+          },
+          {
+            created_at: moment().add(1, 'days'),
+          },
+        ];
+      const fetchResult2 = [
+          {
+            created_at: until,
+          },
+          {
+            created_at: until,
+          },
+          {
+            created_at: until,
+          },
+          {
+            created_at: moment().add(1, 'days'),
+          },
+          {
+            created_at: moment().add(2, 'days'),
+          },
+          {
+            created_at: moment().add(3, 'days'),
+          },
+          {
+            created_at: moment().add(4, 'days'),
+          },
+        ];
+      const projectModule = new ProjectModule(
+        {} as any,
+        {} as any,
+        {} as any,
+        {} as any,
+        {} as any);
+      projectModule.fetchBranchCommits = async (
+        _projectId: number, _branchName: string, _until: moment.Moment, _count: number) => {
+        expect(_projectId).to.equal(projectId);
+        expect(_branchName).to.equal(branchName);
+        if (_count === count + extraCount) {
+          return fetchResult1;
+        }
+        if (_count === count + extraCount + 100) {
+          return fetchResult2;
+        }
+        throw Error(`Unexpected _count in call to fetchBranchCommits: ${_count}`);
+      };
+
+      // Act
+      const commits = await projectModule.getBranchCommits(projectId, branchName, until, count, extraCount);
+
+      expect(commits).to.exist;
+      expect(commits).to.have.length(5);
     });
 
   });

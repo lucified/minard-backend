@@ -1,12 +1,14 @@
 
 import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
+import * as moment from 'moment';
 import * as queryString from 'querystring';
 
 import { GitlabClient } from '../shared/gitlab-client';
 import { Branch, Commit } from '../shared/gitlab.d.ts';
 import * as logger from '../shared/logger';
 import { MINARD_ERROR_CODE } from '../shared/minard-error';
+import { toGitlabStamp } from '../shared/time-conversion';
 
 import {
   MinardBranch,
@@ -90,21 +92,78 @@ export default class ProjectModule {
     }
   }
 
-  public async getBranchCommits(projectId: number, branchName: string): Promise<MinardCommit[] | null> {
+  /*
+   * Fetch commits for a given branch from GitLab
+   * (internal method)
+   */
+  public async fetchBranchCommits(
+    projectId: number,
+    branchName: string,
+    until?: moment.Moment,
+    count: number = 10): Promise<Commit[] | null> {
     try {
-      const commitsPromise = await this.gitlab.fetchJson<any>(
-        `projects/${projectId}/repository/commits/?per_page=1000&ref_name=${encodeURIComponent(branchName)}`);
-      let commits = await commitsPromise;
+      const params = {
+        per_page: count,
+        ref_name: branchName,
+        until: until ? toGitlabStamp(until) : undefined,
+      };
+      let commits = await this.gitlab.fetchJson<any>(
+        `projects/${projectId}/repository/commits?${queryString.stringify(params)}`);
       if (!(commits instanceof Array)) {
         commits = [commits];
       }
-      return commits.map(this.toMinardCommit);
+      return commits;
     } catch (err) {
-      if (err.status === MINARD_ERROR_CODE.NOT_FOUND) {
+      if (err.isBoom && err.output.statusCode === MINARD_ERROR_CODE.NOT_FOUND) {
         return null;
       }
-      throw Boom.wrap(err);
+      throw Boom.badGateway();
     }
+  }
+
+  /*
+   * Get commits for a given branch
+   *
+   * - projectId: id for the project
+   * - branchName: name of the branch
+   * - until: timestamp for latest commits that should be included
+   * - count: desired number of commits that have a later timestamp than until (defaults to 10)
+   * - extraCount: amount of extra commits to fetch internally (advanced option, defaults to 5)
+   *
+   * Given that the count parameter defines the desired amount of commits with a later timestamp
+   * than the one specified, and there may be multiple commits with the same timestamp, we need
+   * to fetch some extra commits to be able to deliver the requested amount. The amount of extra
+   * commits to fetch is controlled by the extraCount parameter. It is used internally for recursive
+   * calls when it turns out that the amount of extra commits was too small.
+   */
+  public async getBranchCommits(
+    projectId: number,
+    branchName: string,
+    until?: moment.Moment,
+    count: number = 10,
+    extraCount: number = 5): Promise<MinardCommit[] | null> {
+    const fetchAmount = count + extraCount;
+    const commits = await this.fetchBranchCommits(projectId, branchName, until, fetchAmount);
+    if (!commits) {
+      return null;
+    }
+    const atUntilCount = commits.filter((commit: Commit) => {
+     const createdAtMoment = moment(commit.created_at);
+     if (!createdAtMoment.isValid()) {
+       this.logger.error(`Commit had invalid created_at in getBranchCommits`, commit);
+       return true;
+     }
+     return until && createdAtMoment.isSame(until);
+    }).length;
+    const maxReturnedCount = commits.length - atUntilCount;
+    if (commits.length >= fetchAmount && maxReturnedCount < count) {
+      // If we get a lot of commits where the timestamp equal until
+      // we try to fetch again, this time with more extra commits.
+      // This should be rare.
+      return this.getBranchCommits(projectId, branchName, until, count, extraCount + 100);
+    }
+    return commits.slice(0, Math.min(commits.length, count + atUntilCount))
+      .map((commit: Commit) => this.toMinardCommit(commit));
   }
 
   public toMinardBranch(projectId: number, branch: Branch): MinardBranch {

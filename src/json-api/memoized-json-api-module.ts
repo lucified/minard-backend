@@ -17,13 +17,6 @@ import { ScreenshotModule } from '../screenshot';
 
 import { JsonApiModule } from './json-api-module';
 
-function id(arg: any) {
-  if (!arg || !arg.id) {
-    return '';
-  }
-  return arg.id;
-}
-
 function arrayIds(arr: any[]) {
   if (!arr) {
     return '';
@@ -45,7 +38,7 @@ const memoizedMethods = [{
   normalizer: (args: any) => `${args[0].id}-${args[1].name}`,
 }, {
   name: 'toApiDeployment',
-  normalizer: (args: any) => `${args[0]}-${args[1].id}-${id(args[2])}`,
+  normalizer: (args: any) => `${args[0]}-${args[1].id}`,
 }, {
   name: 'toApiCommit',
   normalizer: (args: any) => `${args[0]}-${args[1].id}-${arrayIds(args[2])}`,

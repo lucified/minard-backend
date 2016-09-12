@@ -10,22 +10,43 @@ import { ActivityModule, MinardActivity } from './';
 describe('activity-module', () => {
 
   describe('getProjectActivity(...)', () => {
+
+    const minardDeployments = [
+      {
+        id: 9,
+        finished_at: '2015-12-24T19:51:12.802Z',
+        ref: 'master',
+        commitRef: {
+          id: 'foo-commit-id',
+        },
+        status: 'success',
+      } as MinardDeployment,
+      {
+        id: 10,
+        finished_at: '2015-13-24T19:51:12.802Z',
+        ref: 'foo-branch',
+        commitRef: {
+          id: 'bar-commit-id',
+        },
+        status: 'failed',
+      } as MinardDeployment,
+      {
+        id: 11,
+        finished_at: '2015-13-24T19:51:12.802Z',
+        ref: 'foo-branch',
+        commitRef: {
+          id: 'foo-bar-commit-id',
+        },
+        status: 'running',
+      } as MinardDeployment,
+    ];
+
     it('should assemble activity correctly for two deployments', async () => {
+      // Arrange
       class MockDeploymentModule {
         public async getProjectDeployments(projectId: number, teamId?: number): Promise<MinardDeployment[]> {
           expect(projectId).to.equal(5);
-          return [
-            {
-              id: 9,
-              finished_at: '',
-              ref: 'master',
-            } as MinardDeployment,
-            {
-              id: 10,
-              finished_at: '',
-              ref: 'foo-branch',
-            } as MinardDeployment,
-          ];
+          return minardDeployments;
         }
       }
       class MockProjectModule {
@@ -33,31 +54,34 @@ describe('activity-module', () => {
           expect(projectId).to.equal(5);
           return {
             id: 5,
-            branches: [
-              {
-                name: 'master',
-              },
-              {
-                name: 'foo-branch',
-              },
-            ],
+            name: 'foo',
           } as MinardProject;
         }
       }
       const projectModule = new MockProjectModule() as ProjectModule;
+      projectModule.toMinardCommit = ProjectModule.prototype.toMinardCommit;
       const deploymentModule = new MockDeploymentModule() as DeploymentModule;
       const activityModule = new ActivityModule(
         projectModule,
         deploymentModule,
         {} as logger.Logger);
+
+      // Act
       const activity = await activityModule.getProjectActivity(5) as MinardActivity[];
+
+      // Assert
       expect(activity).to.exist;
       expect(activity).to.have.length(2);
+
       expect(activity[0].activityType).to.equal('deployment');
       expect(activity[0].project.id).to.equal(5);
       expect(activity[0].branch.name).to.equal('master');
       expect(activity[0].deployment).to.exist;
       expect(activity[0].deployment.id).to.equal(9);
+      expect(activity[0].commit).to.exist;
+      expect(activity[0].commit.id).to.equal(minardDeployments[0].commitRef.id);
+      expect(activity[0].timestamp).to.equal(minardDeployments[0].finished_at);
+
       expect(activity[1].activityType).to.equal('deployment');
       expect(activity[1].deployment.id).to.equal(10);
       expect(activity[1].branch.name).to.equal('foo-branch');
@@ -81,6 +105,8 @@ describe('activity-module', () => {
         }
       }
       const projectModule = new MockProjectModule() as ProjectModule;
+      projectModule.toMinardCommit = () => ({}) as any;
+
       const activityModule = new ActivityModule(
         projectModule,
         {} as DeploymentModule,

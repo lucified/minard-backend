@@ -16,6 +16,8 @@ const provisionServer = async (plugin: JsonApiHapiPlugin) => {
   return server;
 };
 
+const baseUrl = 'http://localhost:8000';
+
 describe('json-api-hapi-plugin', () => {
 
   describe('activity route', () => {
@@ -33,7 +35,7 @@ describe('json-api-hapi-plugin', () => {
           ];
         },
       });
-      const plugin = new JsonApiHapiPlugin(mockFactory as any);
+      const plugin = new JsonApiHapiPlugin(mockFactory as any, baseUrl);
       const server = await provisionServer(plugin);
 
       // Act
@@ -65,7 +67,7 @@ describe('json-api-hapi-plugin', () => {
           ];
         },
       });
-      const plugin = new JsonApiHapiPlugin(mockFactory as any);
+      const plugin = new JsonApiHapiPlugin(mockFactory as any, baseUrl);
       const server = await provisionServer(plugin);
 
       // Act
@@ -119,7 +121,7 @@ describe('json-api-hapi-plugin', () => {
           };
         },
       });
-      const plugin = new JsonApiHapiPlugin(mockFactory as any);
+      const plugin = new JsonApiHapiPlugin(mockFactory as any, baseUrl);
       const server = await provisionServer(plugin);
       const options: Hapi.IServerInjectOptions = {
         method: 'POST',
@@ -199,7 +201,7 @@ describe('json-api-hapi-plugin', () => {
   describe('OPTIONS', () => {
     async function shouldSupportCors(path: string, method: string) {
       // Arrange
-      const plugin = new JsonApiHapiPlugin({} as any);
+      const plugin = new JsonApiHapiPlugin({} as any, baseUrl);
       const server = await provisionServer(plugin);
 
       // Act
@@ -238,7 +240,7 @@ describe('json-api-hapi-plugin', () => {
           };
         },
       });
-      const plugin = new JsonApiHapiPlugin(mockFactory as any);
+      const plugin = new JsonApiHapiPlugin(mockFactory as any, baseUrl);
       const server = await provisionServer(plugin);
       const options: Hapi.IServerInjectOptions = {
         method: 'PATCH',

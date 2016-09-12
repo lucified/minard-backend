@@ -119,7 +119,7 @@ export interface Project {
     snippets_enabled: boolean;
     container_registry_enabled: boolean;
     created_at: Date;
-    last_activity_at: Date;
+    last_activity_at: string;
     creator_id: number;
     namespace: Namespace;
     permissions: Permissions;
@@ -131,4 +131,12 @@ export interface Project {
     runners_token: string;
     public_builds: boolean;
     shared_with_groups: SharedWithGroup[];
+}
+
+export interface Branch {
+  name: string;
+  protected: boolean;
+  developers_can_push: boolean;
+  developers_can_merge: boolean;
+  commit: Commit;
 }

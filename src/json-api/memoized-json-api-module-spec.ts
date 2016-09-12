@@ -61,10 +61,10 @@ describe('memoized-json-api-module', () => {
     it('should return memoized copy when passed an identical object as parameters', async () => {
       const api = memoizeApi(new MockInternalJsonApi());
       const ret1 = await api.toApiBranch(
-        { id: '1', name: 'foo' } as ApiProject,
+        { id: '1', name: 'foo' } as {} as ApiProject,
         { name: 'foo' } as MinardBranch);
       const ret2 = await api.toApiBranch(
-        { id: '1', name: 'foo' } as ApiProject,
+        { id: '1', name: 'foo' } as {} as ApiProject,
         { name: 'foo' } as MinardBranch);
       expect(ret1).to.equal(ret2);
     });
@@ -72,10 +72,10 @@ describe('memoized-json-api-module', () => {
     it('should not return memoized copy when project has different id', async () => {
       const api = memoizeApi(new MockInternalJsonApi());
       const ret1 = await api.toApiBranch(
-        { id: '1', name: 'foo' } as ApiProject,
+        { id: '1', name: 'foo' } as {} as ApiProject,
         { name: 'foo' } as MinardBranch);
       const ret2 = await api.toApiBranch(
-        { id: '2', name: 'foo' } as ApiProject,
+        { id: '2', name: 'foo' } as {} as ApiProject,
         { name: 'foo' } as MinardBranch);
       expect(ret1).to.not.equal(ret2);
     });
@@ -83,10 +83,10 @@ describe('memoized-json-api-module', () => {
     it('should not return memoized copy when branch has different name', async () => {
       const api = memoizeApi(new MockInternalJsonApi());
       const ret1 = await api.toApiBranch(
-        { id: '1', name: 'foo' } as ApiProject,
+        { id: '1', name: 'foo' } as {} as ApiProject,
         { name: 'foo' } as MinardBranch);
       const ret2 = await api.toApiBranch(
-        { id: '1', name: 'foo' } as ApiProject,
+        { id: '1', name: 'foo' } as {} as ApiProject,
         { name: 'bar' } as MinardBranch);
       expect(ret1).to.not.equal(ret2);
     });

@@ -4,7 +4,7 @@ import { flatMap } from 'lodash';
 import * as moment from 'moment';
 
 import { DeploymentModule, MinardDeployment } from '../deployment';
-import { MinardBranch, ProjectModule } from '../project';
+import { ProjectModule } from '../project';
 import * as logger from  '../shared/logger';
 import { MinardActivity } from './types';
 
@@ -28,6 +28,9 @@ export default class ActivityModule {
 
   public async getTeamActivity(teamId: number): Promise<MinardActivity[] | null> {
     const projects = await this.projectModule.getProjects(teamId);
+    if (!projects) {
+      return [];
+    }
     const nestedActivity = await Promise.all(projects.map(item => this.getProjectActivity(item.id)));
     const activity = flatMap<MinardActivity>(nestedActivity, (item) => item);
     const sortFunction = (a: any, b: any) => moment(b.timestamp).diff(moment(a.timestamp));
@@ -36,21 +39,29 @@ export default class ActivityModule {
   }
 
   public async getProjectActivity(projectId: number): Promise<MinardActivity[] | null> {
-    const projectPromise = this.projectModule.getProject(projectId);
-    const deploymentsPromise = this.deploymentModule.getProjectDeployments(projectId);
-    const deployments = await deploymentsPromise;
-    const project = await projectPromise;
+    const [ project, deployments ] = await Promise.all([
+      this.projectModule.getProject(projectId),
+      this.deploymentModule.getProjectDeployments(projectId),
+    ]);
     if (!project) {
       return null;
     }
-    return deployments.map((deployment: MinardDeployment) => {
-      const branch = project.branches.find(
-        branchItem => branchItem.name === deployment.ref) as MinardBranch;
+
+    return deployments
+      .filter((minardDeployment: MinardDeployment) =>
+        minardDeployment.status === 'success' || minardDeployment.status === 'failed')
+      .map((minardDeployment: MinardDeployment) => {
+      const branch = {
+        name: minardDeployment.ref,
+      } as any;
+      const commit = this.projectModule.toMinardCommit(minardDeployment.commitRef);
+      const deployment = minardDeployment;
       return {
         project,
         branch,
+        commit,
         projectId,
-        timestamp: deployment.finished_at,
+        timestamp: minardDeployment.finished_at,
         activityType: 'deployment',
         deployment,
       };

@@ -9,6 +9,8 @@ import { JsonApiModule } from './json-api-module';
 import { serializeApiEntity }  from './serialization';
 import { ApiEntities, ApiEntity } from './types';
 
+import { externalBaseUrlInjectSymbol } from '../server/types';
+
 function onPreResponse(request: Hapi.Request, reply: Hapi.IReply) {
   const response = request.response;
 
@@ -66,14 +68,18 @@ export class JsonApiHapiPlugin {
 
   public static injectSymbol = Symbol('json-api-hapi-plugin');
 
+  private baseUrl: string;
   private factory: () => JsonApiModule;
 
-  constructor(@inject(JsonApiModule.factoryInjectSymbol) factory: interfaces.Factory<JsonApiModule>) {
+  constructor(
+    @inject(JsonApiModule.factoryInjectSymbol) factory: interfaces.Factory<JsonApiModule>,
+    @inject(externalBaseUrlInjectSymbol) baseUrl: string) {
     this.factory = factory as () => JsonApiModule;
     this.register.attributes = {
       name: 'json-api-plugin',
       version: '1.0.0',
     };
+    this.baseUrl = baseUrl + '/api';
   }
 
   public register: HapiRegister = (server, _options, next) => {
@@ -185,7 +191,22 @@ export class JsonApiHapiPlugin {
 
     server.route({
       method: 'GET',
-      path: '/teams/{teamId}/projects',
+      path: '/projects/{projectId}/relationships/branches',
+      handler: {
+        async: this.getProjectBranchesHandler.bind(this),
+      },
+      config: {
+        validate: {
+          params: {
+            projectId: Joi.number().required(),
+          },
+        },
+      },
+    });
+
+    server.route({
+      method: 'GET',
+      path: '/teams/{teamId}/relationships/projects',
       handler: {
         async: this.getProjectsHandler.bind(this),
       },
@@ -203,6 +224,22 @@ export class JsonApiHapiPlugin {
       path: '/branches/{projectId}-{branchName}',
       handler: {
         async: this.getBranchHandler.bind(this),
+      },
+      config: {
+        validate: {
+          params: {
+            projectId: Joi.number().required(),
+            branchName: Joi.string().alphanum().min(1).required(),
+          },
+        },
+      },
+    });
+
+    server.route({
+      method: 'GET',
+      path: '/branches/{projectId}-{branchName}/relationships/commits',
+      handler: {
+        async: this.getBranchCommitsHandler.bind(this),
       },
       config: {
         validate: {
@@ -241,17 +278,26 @@ export class JsonApiHapiPlugin {
     next();
   };
 
+  private serializeApiEntity(type: string, entity: any) {
+    return serializeApiEntity(type, entity, this.baseUrl);
+  }
+
   private async getEntity(type: string, entityFetcher: (api: JsonApiModule) => apiReturn) {
     const entity = await entityFetcher(this.factory());
     if (!entity) {
       throw Boom.notFound(`${type} not found`);
     }
-    return serializeApiEntity(type, entity);
+    return this.serializeApiEntity(type, entity);
   }
 
   private async getProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const projectId = (<any> request.params).projectId;
     return reply(this.getEntity('project', api => api.getProject(projectId)));
+  }
+
+  private async getProjectBranchesHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    const projectId = (<any> request.params).projectId;
+    return reply(this.getEntity('branch', api => api.getProjectBranches(projectId)));
   }
 
   private async getProjectsHandler(_request: Hapi.Request, reply: Hapi.IReply) {
@@ -263,7 +309,7 @@ export class JsonApiHapiPlugin {
     const { name, description } = request.payload.data.attributes;
     const teamId = request.payload.data.relationships.team.data.id;
     const project = await this.factory().createProject(teamId, name, description);
-    return reply(serializeApiEntity('project', project))
+    return reply(this.serializeApiEntity('project', project))
       .created(`/api/projects/${project.id}`);
   }
 
@@ -275,7 +321,7 @@ export class JsonApiHapiPlugin {
       throw Boom.badRequest();
     }
     const project = await this.factory().editProject(projectId, attributes);
-    return reply(serializeApiEntity('project', project));
+    return reply(this.serializeApiEntity('project', project));
   }
 
   private async deleteProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {
@@ -294,6 +340,12 @@ export class JsonApiHapiPlugin {
     const projectId = Number((<any> request.params).projectId);
     const branchName = (<any> request.params).branchName as string;
     return reply(this.getEntity('branch', api => api.getBranch(projectId, branchName)));
+  }
+
+  private async getBranchCommitsHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    const projectId = Number((<any> request.params).projectId);
+    const branchName = (<any> request.params).branchName as string;
+    return reply(this.getEntity('commit', api => api.getBranchCommits(projectId, branchName)));
   }
 
   private async getCommitHandler(request: Hapi.Request, reply: Hapi.IReply) {

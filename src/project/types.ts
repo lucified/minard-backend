@@ -33,8 +33,8 @@ export interface MinardProjectPlain {
   name: string;
   path: string;
   description: string;
-  branches: MinardBranch[];
-  activeCommitters: MinardCommitAuthor[];
+  latestActivityTimestamp: string;
+  activeCommitters: MinardProjectContributor[];
 }
 
 export interface MinardProject extends MinardProjectPlain {
@@ -56,6 +56,16 @@ export interface MinardCommit {
 }
 
 export interface MinardBranch {
+  project: number;
   name: string;
-  commits: MinardCommit[];
+  latestActivityTimestamp: string;
+  latestCommit: MinardCommit;
+}
+
+export interface MinardProjectContributor {
+  name: string;
+  email: string;
+  commits?: number;
+  additions?: number;
+  deletions?: number;
 }

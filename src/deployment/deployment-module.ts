@@ -158,6 +158,20 @@ export default class DeploymentModule {
     return projectDeployments.filter(item => item.ref === branchName);
   };
 
+  // these are highly unoptimized solutions
+  // we can do better later by pluggin into
+  // persisted deployment events or similar
+  public async getLatestSuccessfulProjectDeployment(projectId: number): Promise<MinardDeployment | undefined> {
+    const deployments = await this.getProjectDeployments(projectId);
+    return deployments.find((deployment: MinardDeployment) => deployment.status === 'success');
+  }
+
+  public async getLatestSuccessfulBranchDeployment(
+    projectId: number, branchName: string): Promise<MinardDeployment | undefined> {
+    const deployments = await this.getBranchDeployments(projectId, branchName);
+    return deployments.find((deployment: MinardDeployment) => deployment.status === 'success');
+  }
+
   public async getCommitDeployments(projectId: number, sha: string) {
     try {
       const deployments = await this.gitlab.fetchJson<Deployment[]>(

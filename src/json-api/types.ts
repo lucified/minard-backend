@@ -38,22 +38,23 @@ export interface JsonApiResponse {
 
 export interface ApiProject extends MinardProjectPlain {
   type: 'project';
-  id: string;
-  branches: ApiBranch[];
+  id: number;
+  latestSuccessfullyDeployedCommit?: ApiCommit;
 }
 
 export interface ApiBranch extends MinardBranch {
   type: 'branch';
   id: string;
-  project: ApiProject;
-  deployments: ApiDeployment[];
-  commits: ApiCommit[];
+  project: number;
+  latestCommit: ApiCommit;
+  latestSuccessfullyDeployedCommit?: ApiCommit;
   minardJson: any;
 }
 
 export interface ApiDeployment extends MinardDeploymentPlain {
   id: string;
-  commit: ApiCommit;
+  // this is not exposed in serialized responses, but it is internally helpful
+  commitHash: string;
   screenshot: string | null;
 }
 
@@ -62,12 +63,31 @@ export interface ApiCommit extends MinardCommit {
   deployments: ApiDeployment[];
 }
 
+export interface ApiActivityProject {
+  id: string;
+  name: string;
+}
+
+export interface ApiActivityBranch {
+  id: string;
+  name: string;
+}
+
+export interface ApiActivityDeployment extends MinardDeploymentPlain {
+  id: string;
+}
+
+export interface ApiActivityCommit extends MinardCommit {
+  hash: string;
+}
+
 export interface ApiActivity extends MinardActivityPlain {
   type: 'activity';
   id: string;
-  deployment: ApiDeployment;
-  project: ApiProject;
-  branch: ApiBranch;
+  deployment: ApiActivityDeployment;
+  project: ApiActivityProject;
+  branch: ApiActivityBranch;
+  commit: ApiActivityCommit;
 }
 
 export type ApiEntity = ApiActivity | ApiProject | ApiCommit | ApiDeployment | ApiBranch;

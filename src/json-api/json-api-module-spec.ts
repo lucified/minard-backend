@@ -2,6 +2,7 @@
 import 'reflect-metadata';
 
 import { expect } from 'chai';
+import * as moment from 'moment';
 
 import {
   DeploymentModule,
@@ -134,7 +135,7 @@ describe('json-api-module', () => {
             timestamp: '2022-09-20T09:06:12+03:00',
           },
         } as MinardCommit,
-        timestamp: 5454,
+        timestamp: moment(),
       };
       const jsonApiModule = new JsonApiModule(
         {} as any,

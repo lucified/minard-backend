@@ -3,10 +3,9 @@ import { expect } from 'chai';
 import * as moment from 'moment';
 import 'reflect-metadata';
 
-import { DeploymentModule, MinardDeployment } from '../deployment';
+import { DeploymentModule } from '../deployment';
 import { LocalEventBus } from '../event-bus';
-import { MinardProject, ProjectModule } from '../project';
-import * as logger from  '../shared/logger';
+import { ProjectModule } from '../project';
 
 import {
   createDeploymentEvent,
@@ -44,7 +43,7 @@ describe('activity-module', () => {
     return knex;
   }
 
-  const activity: MinardActivity[] = [
+  const activities: MinardActivity[] = [
     {
       activityType: 'deployment',
       branch: 'foo',
@@ -109,7 +108,7 @@ describe('activity-module', () => {
 
   async function arrangeActivityModule() {
     const knex = await setupKnex();
-    await Promise.all(activity.map(item => knex('activity').insert(toDbActivity(item))));
+    await Promise.all(activities.map(item => knex('activity').insert(toDbActivity(item))));
     const activityModule = new ActivityModule(
       {} as any,
       {} as any,
@@ -128,13 +127,13 @@ describe('activity-module', () => {
       const projectActivity = await activityModule.getProjectActivity(15);
 
       // Assert
-      expect(projectActivity[0].branch).to.equal(activity[2].branch);
-      expect(projectActivity[0].timestamp.isSame(activity[2].timestamp)).to.equal(true);
-      expect(projectActivity[0].commit).to.deep.equal(activity[2].commit);
-      expect(projectActivity[0].deployment).to.deep.equal(activity[2].deployment);
-      expect(projectActivity[0].activityType).to.equal(activity[2].activityType);
-      expect(projectActivity[0].teamId).to.equal(activity[2].teamId);
-      expect(projectActivity[0].projectName).to.equal(activity[2].projectName);
+      expect(projectActivity[0].branch).to.equal(activities[2].branch);
+      expect(projectActivity[0].timestamp.isSame(activities[2].timestamp)).to.equal(true);
+      expect(projectActivity[0].commit).to.deep.equal(activities[2].commit);
+      expect(projectActivity[0].deployment).to.deep.equal(activities[2].deployment);
+      expect(projectActivity[0].activityType).to.equal(activities[2].activityType);
+      expect(projectActivity[0].teamId).to.equal(activities[2].teamId);
+      expect(projectActivity[0].projectName).to.equal(activities[2].projectName);
       expect(projectActivity[0].id).to.exist;
     });
 
@@ -148,8 +147,8 @@ describe('activity-module', () => {
       // Assert
       expect(projectActivity).to.exist;
       expect(projectActivity).to.have.length(2);
-      expect(projectActivity[0].branch).to.equal(activity[1].branch);
-      expect(projectActivity[1].branch).to.equal(activity[0].branch);
+      expect(projectActivity[0].branch).to.equal(activities[1].branch);
+      expect(projectActivity[1].branch).to.equal(activities[0].branch);
     });
 
     it('should consider count correctly', async() => {
@@ -162,7 +161,7 @@ describe('activity-module', () => {
       // Assert
       expect(projectActivity).to.exist;
       expect(projectActivity).to.have.length(1);
-      expect(projectActivity[0].branch).to.equal(activity[1].branch);
+      expect(projectActivity[0].branch).to.equal(activities[1].branch);
     });
 
     it('should consider until parameter correctly', async() => {
@@ -170,12 +169,12 @@ describe('activity-module', () => {
       const projectActivity = await arrangeActivityModule();
 
       // Act
-      const teamActivity = await projectActivity.getProjectActivity(14, activity[0].timestamp, 1);
+      const teamActivity = await projectActivity.getProjectActivity(14, activities[0].timestamp, 1);
 
       // Assert
       expect(teamActivity).to.exist;
       expect(teamActivity).to.have.length(1);
-      expect(teamActivity[0].branch).to.equal(activity[0].branch);
+      expect(teamActivity[0].branch).to.equal(activities[0].branch);
     });
   });
 
@@ -188,7 +187,7 @@ describe('activity-module', () => {
       const teamActivity = await activityModule.getTeamActivity(5);
 
       // Assert
-      expect(teamActivity[0].branch).to.equal(activity[3].branch);
+      expect(teamActivity[0].branch).to.equal(activities[3].branch);
     });
 
     it('should return three projects in correct order', async () => {
@@ -201,9 +200,9 @@ describe('activity-module', () => {
       // Assert
       expect(teamActivity).to.exist;
       expect(teamActivity).to.have.length(3);
-      expect(teamActivity[0].branch).to.equal(activity[1].branch);
-      expect(teamActivity[1].branch).to.equal(activity[2].branch);
-      expect(teamActivity[2].branch).to.equal(activity[0].branch);
+      expect(teamActivity[0].branch).to.equal(activities[1].branch);
+      expect(teamActivity[1].branch).to.equal(activities[2].branch);
+      expect(teamActivity[2].branch).to.equal(activities[0].branch);
     });
 
     it('should consider count correctly', async() => {
@@ -216,8 +215,8 @@ describe('activity-module', () => {
       // Assert
       expect(teamActivity).to.exist;
       expect(teamActivity).to.have.length(2);
-      expect(teamActivity[0].branch).to.equal(activity[1].branch);
-      expect(teamActivity[1].branch).to.equal(activity[2].branch);
+      expect(teamActivity[0].branch).to.equal(activities[1].branch);
+      expect(teamActivity[1].branch).to.equal(activities[2].branch);
     });
 
     it('should consider until parameter correctly', async() => {
@@ -225,13 +224,13 @@ describe('activity-module', () => {
       const activityModule = await arrangeActivityModule();
 
       // Act
-      const teamActivity = await activityModule.getTeamActivity(4, activity[2].timestamp);
+      const teamActivity = await activityModule.getTeamActivity(4, activities[2].timestamp);
 
       // Assert
       expect(teamActivity).to.exist;
       expect(teamActivity).to.have.length(2);
-      expect(teamActivity[0].branch).to.equal(activity[2].branch);
-      expect(teamActivity[1].branch).to.equal(activity[0].branch);
+      expect(teamActivity[0].branch).to.equal(activities[2].branch);
+      expect(teamActivity[1].branch).to.equal(activities[0].branch);
     });
   });
 

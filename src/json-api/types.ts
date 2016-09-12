@@ -79,6 +79,7 @@ export interface ApiActivityCommit extends MinardCommit {
 
 export interface ApiActivity {
   type: 'activity';
+  activityType: string;
   id: string;
   timestamp: string;
   deployment: ApiActivityDeployment;

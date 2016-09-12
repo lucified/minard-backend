@@ -157,13 +157,14 @@ export class JsonApiModule {
     }));
   }
 
-  public async getTeamActivity(teamId: number, since: string, count: number): Promise<ApiActivity[] | null> {
-    const activity = await this.activityModule.getTeamActivity(teamId, toMoment(since), count);
+  public async getTeamActivity(teamId: number, since?: string, count?: number): Promise<ApiActivity[] | null> {
+    const activity = await this.activityModule.getTeamActivity(teamId, since ? toMoment(since) : undefined, count);
     return activity ? await Promise.all(activity.map(item => this.toApiActivity(item))) : null;
   }
 
-  public async getProjectActivity(projectId: number, since: string, count: number): Promise<ApiActivity[] | null> {
-    const activity = await this.activityModule.getProjectActivity(projectId, toMoment(since), count);
+  public async getProjectActivity(projectId: number, since?: string, count?: number): Promise<ApiActivity[] | null> {
+    const activity = await this.activityModule.getProjectActivity(
+      projectId, since ? toMoment(since) : undefined, count);
     return activity ? await Promise.all(activity.map(item => this.toApiActivity(item))) : null;
   }
 

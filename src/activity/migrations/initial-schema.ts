@@ -7,13 +7,14 @@ exports.up = (knexObj: knex) => {
   return knexObj.schema
     .createTable('activity', (table) => {
       table.increments('id').primary();
-      table.integer('timestamp');
+      table.dateTime('timestamp');
       table.integer('teamId').unsigned().index();
       table.integer('projectId').unsigned().index();
       table.string('projectName').unsigned();
       table.string('branch');
-      table.jsonb('commit');
-      table.jsonb('deployment');
+      table.string('activityType');
+      table.json('commit');
+      table.json('deployment');
       table.index(['teamId', 'timestamp']);
       table.index(['projectId', 'timestamp']);
     });

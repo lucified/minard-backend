@@ -1,156 +1,377 @@
 
 import { expect } from 'chai';
+import * as moment from 'moment';
 import 'reflect-metadata';
 
 import { DeploymentModule, MinardDeployment } from '../deployment';
+import { LocalEventBus } from '../event-bus';
 import { MinardProject, ProjectModule } from '../project';
 import * as logger from  '../shared/logger';
-import { ActivityModule, MinardActivity } from './';
+
+import {
+  createDeploymentEvent,
+} from '../deployment';
+
+import {
+  createScreenshotEvent,
+} from '../screenshot';
+
+import ActivityModule, {
+  toDbActivity,
+} from './activity-module';
+
+import {
+  MinardActivity,
+} from './types';
+
+import * as Knex from 'knex';
+
+function getEventBus() {
+  return new LocalEventBus();
+}
 
 describe('activity-module', () => {
 
-  describe('getProjectActivity(...)', () => {
+  async function setupKnex() {
+    const knex = Knex({
+      client: 'sqlite3',
+      connection: { filename: ':memory:' },
+      useNullAsDefault: true,
+    });
+    await knex.migrate.latest({
+      directory: 'dist/activity/migrations',
+    });
+    return knex;
+  }
 
-    const minardDeployments = [
-      {
-        id: 9,
-        finished_at: '2015-12-24T19:51:12.802Z',
-        ref: 'master',
-        commitRef: {
-          id: 'foo-commit-id',
-        },
+  const activity: MinardActivity[] = [
+    {
+      activityType: 'deployment',
+      branch: 'foo',
+      projectId: 14,
+      teamId: 4,
+      projectName: 'bar',
+      deployment: {
+        id: 'foo',
         status: 'success',
-      } as MinardDeployment,
-      {
-        id: 10,
-        finished_at: '2015-13-24T19:51:12.802Z',
-        ref: 'foo-branch',
-        commitRef: {
-          id: 'bar-commit-id',
-        },
+      } as any,
+      commit: {
+        id: 'foo',
+      } as any,
+      timestamp: moment(),
+    },
+    {
+      activityType: 'deployment',
+      branch: 'bar',
+      projectId: 14,
+      teamId: 4,
+      projectName: 'bar',
+      deployment: {
+        id: 'foo',
         status: 'failed',
-      } as MinardDeployment,
-      {
-        id: 11,
-        finished_at: '2015-13-24T19:51:12.802Z',
-        ref: 'foo-branch',
-        commitRef: {
-          id: 'foo-bar-commit-id',
-        },
-        status: 'running',
-      } as MinardDeployment,
-    ];
+      } as any,
+      commit: {
+        id: 'foo',
+      } as any,
+      timestamp: moment().add(1, 'days'),
+    },
+    {
+      activityType: 'deployment',
+      branch: 'foo-bar',
+      projectId: 15,
+      teamId: 4,
+      projectName: 'bar',
+      deployment: {
+        id: 'foo',
+        status: 'success',
+      } as any,
+      commit: {
+        id: 'foo',
+      } as any,
+      timestamp: moment().add(1, 'minutes'),
+    },
+    {
+      activityType: 'deployment',
+      branch: 'foo-foo-bar',
+      projectId: 16,
+      teamId: 5,
+      projectName: 'bar',
+      deployment: {
+        id: 'foo',
+        status: 'success',
+      } as any,
+      commit: {
+        id: 'foo',
+      } as any,
+      timestamp: moment(),
+    },
+  ];
 
-    it('should assemble activity correctly for two deployments', async () => {
+  async function arrangeActivityModule() {
+    const knex = await setupKnex();
+    await Promise.all(activity.map(item => knex('activity').insert(toDbActivity(item))));
+    const activityModule = new ActivityModule(
+      {} as any,
+      {} as any,
+      {} as any,
+      getEventBus(),
+      knex);
+    return activityModule;
+  }
+
+  describe('getProjectActivity(...)', () => {
+    it('should return a single project correcly', async () => {
       // Arrange
-      class MockDeploymentModule {
-        public async getProjectDeployments(projectId: number, teamId?: number): Promise<MinardDeployment[]> {
-          expect(projectId).to.equal(5);
-          return minardDeployments;
-        }
-      }
-      class MockProjectModule {
-        public async getProject(projectId: number): Promise<MinardProject> {
-          expect(projectId).to.equal(5);
-          return {
-            id: 5,
-            name: 'foo',
-          } as MinardProject;
-        }
-      }
-      const projectModule = new MockProjectModule() as ProjectModule;
-      projectModule.toMinardCommit = ProjectModule.prototype.toMinardCommit;
-      const deploymentModule = new MockDeploymentModule() as DeploymentModule;
-      const activityModule = new ActivityModule(
-        projectModule,
-        deploymentModule,
-        {} as logger.Logger);
+      const activityModule = await arrangeActivityModule();
 
       // Act
-      const activity = await activityModule.getProjectActivity(5) as MinardActivity[];
+      const projectActivity = await activityModule.getProjectActivity(15);
 
       // Assert
-      expect(activity).to.exist;
-      expect(activity).to.have.length(2);
+      expect(projectActivity[0].branch).to.equal(activity[2].branch);
+      expect(projectActivity[0].timestamp.isSame(activity[2].timestamp)).to.equal(true);
+      expect(projectActivity[0].commit).to.deep.equal(activity[2].commit);
+      expect(projectActivity[0].deployment).to.deep.equal(activity[2].deployment);
+      expect(projectActivity[0].activityType).to.equal(activity[2].activityType);
+      expect(projectActivity[0].teamId).to.equal(activity[2].teamId);
+      expect(projectActivity[0].projectName).to.equal(activity[2].projectName);
+      expect(projectActivity[0].id).to.exist;
+    });
 
-      expect(activity[0].activityType).to.equal('deployment');
-      expect(activity[0].project.id).to.equal(5);
-      expect(activity[0].branch.name).to.equal('master');
-      expect(activity[0].deployment).to.exist;
-      expect(activity[0].deployment.id).to.equal(9);
-      expect(activity[0].commit).to.exist;
-      expect(activity[0].commit.id).to.equal(minardDeployments[0].commitRef.id);
-      expect(activity[0].timestamp).to.equal(minardDeployments[0].finished_at);
+    it('should return two projects in correct order', async () => {
+      // Arrange
+      const activityModule = await arrangeActivityModule();
 
-      expect(activity[1].activityType).to.equal('deployment');
-      expect(activity[1].deployment.id).to.equal(10);
-      expect(activity[1].branch.name).to.equal('foo-branch');
+      // Act
+      const projectActivity = await activityModule.getProjectActivity(14);
+
+      // Assert
+      expect(projectActivity).to.exist;
+      expect(projectActivity).to.have.length(2);
+      expect(projectActivity[0].branch).to.equal(activity[1].branch);
+      expect(projectActivity[1].branch).to.equal(activity[0].branch);
+    });
+
+    it('should consider count correctly', async() => {
+      // Arrange
+      const activityModule = await arrangeActivityModule();
+
+      // Act
+      const projectActivity = await activityModule.getProjectActivity(14, undefined, 1);
+
+      // Assert
+      expect(projectActivity).to.exist;
+      expect(projectActivity).to.have.length(1);
+      expect(projectActivity[0].branch).to.equal(activity[1].branch);
+    });
+
+    it('should consider until parameter correctly', async() => {
+      // Arrange
+      const projectActivity = await arrangeActivityModule();
+
+      // Act
+      const teamActivity = await projectActivity.getProjectActivity(14, activity[0].timestamp, 1);
+
+      // Assert
+      expect(teamActivity).to.exist;
+      expect(teamActivity).to.have.length(1);
+      expect(teamActivity[0].branch).to.equal(activity[0].branch);
     });
   });
 
   describe('getTeamActivity(...)', () => {
-    it('should assemble activity correctly for a team with two projects', async () => {
+    it('should return a single project correcly', async () => {
       // Arrange
-      class MockProjectModule {
-        public async getProjects(teamId: number): Promise<MinardProject[]> {
-          expect(teamId).to.equal(1);
-          return [
-            {
-              id: 15,
-            } as MinardProject,
-            {
-              id: 16,
-            } as MinardProject,
-          ];
-        }
-      }
-      const projectModule = new MockProjectModule() as ProjectModule;
-      projectModule.toMinardCommit = () => ({}) as any;
+      const activityModule = await arrangeActivityModule();
+
+      // Act
+      const teamActivity = await activityModule.getTeamActivity(5);
+
+      // Assert
+      expect(teamActivity[0].branch).to.equal(activity[3].branch);
+    });
+
+    it('should return three projects in correct order', async () => {
+      // Arrange
+      const activityModule = await arrangeActivityModule();
+
+      // Act
+      const teamActivity = await activityModule.getTeamActivity(4);
+
+      // Assert
+      expect(teamActivity).to.exist;
+      expect(teamActivity).to.have.length(3);
+      expect(teamActivity[0].branch).to.equal(activity[1].branch);
+      expect(teamActivity[1].branch).to.equal(activity[2].branch);
+      expect(teamActivity[2].branch).to.equal(activity[0].branch);
+    });
+
+    it('should consider count correctly', async() => {
+      // Arrange
+      const activityModule = await arrangeActivityModule();
+
+      // Act
+      const teamActivity = await activityModule.getTeamActivity(4, undefined, 2);
+
+      // Assert
+      expect(teamActivity).to.exist;
+      expect(teamActivity).to.have.length(2);
+      expect(teamActivity[0].branch).to.equal(activity[1].branch);
+      expect(teamActivity[1].branch).to.equal(activity[2].branch);
+    });
+
+    it('should consider until parameter correctly', async() => {
+      // Arrange
+      const activityModule = await arrangeActivityModule();
+
+      // Act
+      const teamActivity = await activityModule.getTeamActivity(4, activity[2].timestamp);
+
+      // Assert
+      expect(teamActivity).to.exist;
+      expect(teamActivity).to.have.length(2);
+      expect(teamActivity[0].branch).to.equal(activity[2].branch);
+      expect(teamActivity[1].branch).to.equal(activity[0].branch);
+    });
+  });
+
+
+  describe('subscribeForFailedDeployments', () => {
+
+    const projectId = 5;
+    const deploymentId = 6;
+    const url = 'foo';
+
+    it('should create activity for failed deployment', async () => {
+      // Arrange
+      const bus = getEventBus();
 
       const activityModule = new ActivityModule(
-        projectModule,
-        {} as DeploymentModule,
-        {} as logger.Logger);
-      activityModule.getProjectActivity = async (projectId: number) => {
-        if (projectId === 15) {
-          return [
-            {
-              deployment: { id: '15-1' },
-              timestamp: '2015-12-24T19:51:11.802Z', // first
-            },
-            {
-              deployment: { id: '15-2' },
-              timestamp: '2015-12-24T19:51:14.802Z', // fourth
-            },
-          ];
-        }
-        if (projectId === 16) {
-          return [
-            {
-              deployment: { id: '16-1' },
-              timestamp: '2015-12-24T19:51:12.802Z', // second
-            },
-            {
-              deployment: { id: '16-2' },
-              timestamp: '2015-12-24T19:51:13.802Z', // third
-            },
-          ];
-        }
-        expect.fail('called getProjectId with wrong projectId');
-        return [];
+        {} as any,
+        {} as any,
+        {} as any,
+        bus,
+        {} as any);
+
+      activityModule.createDeploymentActivity = async (_projectId: number, _deploymentId: number) => {
+        return {
+          projectId: _projectId,
+          deployment: {
+            id: _deploymentId,
+            url,
+          },
+        };
+      };
+
+      const promise = new Promise((resolve, reject) => {
+        activityModule.addActivity = async (_activity: MinardActivity) => {
+          try {
+            expect(_activity.projectId).to.equal(projectId);
+            expect(_activity.deployment.id).to.equal(deploymentId);
+            expect(_activity.deployment.url).to.equal(url);
+            expect(_activity.deployment.status).to.equal('failed');
+          } catch (err) {
+            reject(err);
+          }
+          resolve();
+        };
+      });
+
+      // Act
+      const event = createDeploymentEvent({
+        projectId,
+        id: deploymentId,
+        status: 'failed',
+      });
+      bus.post(event);
+
+      // Assert
+      await promise;
+    });
+
+    it('should not create activity for succesfull deployment', async () => {
+      // Arrange
+      const bus = getEventBus();
+      const activityModule = new ActivityModule(
+        {} as any,
+        {} as any,
+        {} as any,
+        bus,
+        {} as any);
+
+      let called: string | null = null;
+      activityModule.createDeploymentActivity = async (_projectId: number, _deploymentId: number) => {
+       called = 'createDeploymentActivity was called';
+      };
+
+      activityModule.addActivity = async (_activity: MinardActivity) => {
+       called = 'addActivity was called';
       };
 
       // Act
-      const activity = await activityModule.getTeamActivity(1) as MinardActivity[];
+      const event = createDeploymentEvent({
+        projectId,
+        id: deploymentId,
+        status: 'success',
+      });
+      bus.post(event);
+
+      if (called) {
+        expect.fail(null, null, called!);
+      }
+    });
+
+  });
+
+  describe('subscribeForSuccessfulDeployments', () => {
+    it('should create activity for screenshot event', async () => {
+      // Arrange
+      const projectId = 5;
+      const deploymentId = 6;
+      const screenshot = 'http://foo-bar.com';
+      const bus = getEventBus();
+      const activityModule = new ActivityModule(
+        {} as any,
+        {} as any,
+        {} as any,
+        bus,
+        {} as any);
+
+      activityModule.createDeploymentActivity = async (_projectId: number, _deploymentId: number) => {
+        return {
+          projectId: _projectId,
+          deployment: {
+            id: _deploymentId,
+          },
+        };
+      };
+
+      const promise = new Promise((resolve, reject) => {
+        activityModule.addActivity = async (_activity: MinardActivity) => {
+          try {
+            expect(_activity.projectId).to.equal(projectId);
+            expect(_activity.deployment.id).to.equal(deploymentId);
+            expect(_activity.deployment.screenshot).to.equal(screenshot);
+            expect(_activity.deployment.status).to.equal('success');
+          } catch (err) {
+            reject(err);
+          }
+          resolve();
+        };
+      });
+
+      // Act
+      const event = createScreenshotEvent({
+        projectId,
+        deploymentId,
+        url: screenshot,
+      });
+      bus.post(event);
 
       // Assert
-      expect(activity).to.have.length(4);
-      // note that should be in descending (most-recent-first) order
-      expect(activity[3].deployment.id).to.equal('15-1');
-      expect(activity[2].deployment.id).to.equal('16-1');
-      expect(activity[1].deployment.id).to.equal('16-2');
-      expect(activity[0].deployment.id).to.equal('15-2');
+      await promise;
     });
+
   });
 
 });

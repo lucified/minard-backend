@@ -57,7 +57,7 @@ describe('operations-module', () => {
         new MockProjectModule() as ProjectModule,
         new MockDeploymentModule() as any,
         new MockScreenshotModule() as any,
-        eventBus, logger);
+        eventBus, logger, {} as any);
     }
 
     it('should create missing screenshot for extracted deployment', async () => {
@@ -119,7 +119,7 @@ describe('operations-module', () => {
         new MockProjectModule() as ProjectModule,
         new MockDeploymentModule() as any,
         new MockScreenshotModule() as ScreenshotModule,
-        eventBus, logger);
+        eventBus, logger, {} as any);
 
       // Act
       await operationsModule.assureScreenshotsGenerated();
@@ -168,7 +168,7 @@ describe('operations-module', () => {
         new MockProjectModule() as ProjectModule,
         new MockDeploymentModule() as any,
         new MockScreenshotModule() as ScreenshotModule,
-        eventBus, logger);
+        eventBus, logger, {} as any);
 
       // Act
       await operationsModule.assureScreenshotsGenerated();

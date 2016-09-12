@@ -8,10 +8,10 @@ import { DeploymentHapiPlugin } from '../deployment';
 import { JsonApiHapiPlugin } from '../json-api';
 import { OperationsHapiPlugin } from '../operations';
 import { ProjectHapiPlugin } from '../project';
+import { RealtimeHapiPlugin } from '../realtime';
 import { ScreenshotHapiPlugin } from '../screenshot';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
 import { StatusHapiPlugin } from '../status';
-import { RealtimeHapiPlugin } from '../realtime';
 
 const hapiAsyncHandler = require('hapi-async-handler');
 const inert = require('inert');

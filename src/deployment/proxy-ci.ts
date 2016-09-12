@@ -1,10 +1,12 @@
 
 import * as events from 'events';
+import * as http from 'http';
+import * as url from 'url';
+
 import * as Hapi from 'hapi';
 import * as Joi from 'joi';
-import * as http from 'http';
+
 import { inject, injectable } from 'inversify';
-import * as url from 'url';
 
 import { EventBus, eventBusInjectSymbol } from '../event-bus';
 import { HapiRegister } from '../server/hapi-register';
@@ -80,7 +82,7 @@ export class CIProxy {
             id: Joi.number().required(),
           },
         },
-      })
+      }),
     });
 
     server.route({

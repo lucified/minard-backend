@@ -374,4 +374,55 @@ describe('activity-module', () => {
 
   });
 
+  describe('createDeploymentActivity', () => {
+    const projectId = 5;
+    const deploymentId = 6;
+    const projectName = 'foo';
+    const branchName = 'master';
+    const finishedAt = '2016-08-11T07:36:40.222Z';
+    const commitRef = {
+      'id': '6104942438c14ec7bd21c6cd5bd995272b3faff6',
+      'author_name': 'randx',
+      'author_email': 'dmitriy.zaporozhets@gmail.com',
+    };
+
+    it('should return correct activity when fetching related data succeeds', async () => {
+      const projectModule = {} as ProjectModule;
+      projectModule.toMinardCommit = ProjectModule.prototype.toMinardCommit;
+      projectModule.getProject = async (_projectId: number) => {
+        return {
+          id: _projectId,
+          name: projectName,
+        };
+      };
+      const deploymentModule = {} as DeploymentModule;
+      deploymentModule.getDeployment = async (_projectId: number, _deploymentId: number) => {
+        return {
+          id: _deploymentId,
+          ref: branchName,
+          finished_at: finishedAt,
+          commitRef,
+        };
+      };
+
+      const activityModule = new ActivityModule(
+        projectModule,
+        deploymentModule,
+        {} as any,
+        getEventBus(),
+        {} as any);
+
+      const activity = await activityModule.createDeploymentActivity(projectId, deploymentId);
+      expect(activity.activityType).to.equal('deployment');
+      expect(activity.projectId).to.equal(projectId);
+      expect(activity.projectName).to.equal(projectName);
+      expect(activity.branch).to.equal(branchName);
+      expect(activity.teamId).to.equal(1);
+      expect(activity.deployment.id).to.equal(deploymentId);
+      expect(activity.timestamp.isSame(moment(finishedAt))).to.equal(true);
+      expect(activity.commit.author.name).to.equal(commitRef.author_name);
+    });
+
+  });
+
 });

@@ -109,7 +109,6 @@ export default class ActivityModule {
   }
 
   public async createDeploymentActivity(projectId: number, deploymentId: number): Promise<MinardActivity> {
-    console.log('in createDeploymentActivity');
     const [ project, deployment ] = await Promise.all([
       this.projectModule.getProject(projectId),
       this.deploymentModule.getDeployment(projectId, deploymentId),

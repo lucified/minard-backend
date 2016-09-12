@@ -32,6 +32,7 @@
     "randomstring": "^1.1.5",
     "reflect-metadata": "^0.1.3",
     "sprintf-js": "^1.0.3",
+    "susie": "^2.0.0",
     "url-join": "^1.1.0",
     "winston": "^2.2.0",
     "wreck": "^9.0.0",

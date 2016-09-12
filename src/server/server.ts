@@ -11,6 +11,7 @@ import { ProjectHapiPlugin } from '../project';
 import { ScreenshotHapiPlugin } from '../screenshot';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
 import { StatusHapiPlugin } from '../status';
+import { RealtimeHapiPlugin } from '../realtime';
 
 const hapiAsyncHandler = require('hapi-async-handler');
 const inert = require('inert');
@@ -52,6 +53,7 @@ export default class MinardServer {
   private jsonApiPlugin: JsonApiHapiPlugin;
   private screenshotPlugin: ScreenshotHapiPlugin;
   private operationsPlugin: OperationsHapiPlugin;
+  private realtimePlugin: RealtimeHapiPlugin;
   private ciProxy: CIProxy;
   private port: number;
   private host: string;
@@ -69,7 +71,8 @@ export default class MinardServer {
     @inject(goodOptionsInjectSymbol) goodOptions: any,
     @inject(loggerInjectSymbol) logger: Logger,
     @inject(ScreenshotHapiPlugin.injectSymbol) screenshotPlugin: ScreenshotHapiPlugin,
-    @inject(OperationsHapiPlugin.injectSymbol) operationsPlugin: OperationsHapiPlugin) {
+    @inject(OperationsHapiPlugin.injectSymbol) operationsPlugin: OperationsHapiPlugin,
+    @inject(RealtimeHapiPlugin.injectSymbol) realtimePlugin: RealtimeHapiPlugin) {
     this.deploymentPlugin = deploymentPlugin;
     this.projectPlugin = projectPlugin;
     this.jsonApiPlugin = jsonApiPlugin;
@@ -77,6 +80,7 @@ export default class MinardServer {
     this.statusPlugin = statusPlugin;
     this.screenshotPlugin = screenshotPlugin;
     this.operationsPlugin = operationsPlugin;
+    this.realtimePlugin = realtimePlugin;
     this.host = host;
     this.port = port;
     this.goodOptions = goodOptions;
@@ -123,6 +127,7 @@ export default class MinardServer {
       this.projectPlugin.register,
       this.ciProxy.register,
       this.statusPlugin.register,
+      this.realtimePlugin.register,
       {
         register: this.jsonApiPlugin.register,
         routes: {

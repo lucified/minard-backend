@@ -53,6 +53,10 @@ import {
   RemoteScreenshotter,
 } from '../screenshot/screenshotter-remote';
 
+import {
+  RealtimeHapiPlugin,
+} from '../realtime';
+
 import { MinardServer } from '../server';
 
 import {
@@ -97,6 +101,7 @@ export default new KernelModule(bind => {
   bind(ProjectHapiPlugin.injectSymbol).to(ProjectHapiPlugin);
   bind(ScreenshotHapiPlugin.injectSymbol).to(ScreenshotHapiPlugin);
   bind(StatusHapiPlugin.injectSymbol).to(StatusHapiPlugin);
+  bind(RealtimeHapiPlugin.injectSymbol).to(RealtimeHapiPlugin);
 
   // Other bindings
   bind(eventBusInjectSymbol).toConstantValue(new LocalEventBus());

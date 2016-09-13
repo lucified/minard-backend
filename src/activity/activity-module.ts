@@ -4,7 +4,7 @@ import { inject, injectable } from 'inversify';
 import * as Knex from 'knex';
 import * as moment from 'moment';
 
-import { toGitlabStamp, toMoment } from '../shared/time-conversion';
+import { toGitlabTimestamp, toMoment } from '../shared/time-conversion';
 
 import {
   DEPLOYMENT_EVENT_TYPE,
@@ -125,7 +125,7 @@ export default class ActivityModule {
     // This is a bit clumsy, but gitlab may not have yet updated its finished_at info
     // when we are creating this event. Thus we set the field to the current date
     // if the info is not included in the deployment
-    const finishedAt = deployment.finished_at = deployment.finished_at || toGitlabStamp(moment());
+    const finishedAt = deployment.finished_at = deployment.finished_at || toGitlabTimestamp(moment());
     return {
       activityType: 'deployment',
       projectId,

@@ -7,7 +7,7 @@ import AuthenticationModule from '../authentication/authentication-module';
 import { EventBus, LocalEventBus } from '../event-bus';
 import { GitlabClient } from '../shared/gitlab-client';
 import Logger from '../shared/logger';
-import { toGitlabStamp } from '../shared/time-conversion';
+import { toGitlabTimestamp } from '../shared/time-conversion';
 import SystemHookModule from '../system-hook/system-hook-module';
 import * as queryString from 'querystring';
 
@@ -504,7 +504,7 @@ describe('project-module', () => {
     const params = {
       per_page: count,
       ref_name: branchName,
-      until: toGitlabStamp(until),
+      until: toGitlabTimestamp(until),
     };
 
     function arrangeProjectModule(status: number, body: any) {

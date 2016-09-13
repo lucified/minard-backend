@@ -3,7 +3,7 @@ import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
 import * as moment from 'moment';
 
-import { toGitlabStamp, toMoment } from '../shared/time-conversion';
+import { toGitlabTimestamp, toMoment } from '../shared/time-conversion';
 
 import {
   ApiActivity,
@@ -187,7 +187,7 @@ export class JsonApiModule {
       id: `${activity.projectId}-${activity.deployment.id}`,
     });
     delete deployment.ref;
-    const timestamp = toGitlabStamp(activity.timestamp);
+    const timestamp = toGitlabTimestamp(activity.timestamp);
     return {
       id: `${activity.projectId}-${activity.deployment.id}`,
       type: 'activity',

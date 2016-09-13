@@ -1,10 +1,10 @@
 
 import * as moment from 'moment';
 
-export function toGitlabStamp(time: moment.Moment) {
+export function toGitlabTimestamp(time: moment.Moment) {
   return time.toISOString();
 }
 
-export function toMoment(gitlabStamp: string) {
-  return moment(gitlabStamp);
+export function toMoment(gitlabTimestamp: string) {
+  return moment(gitlabTimestamp);
 }

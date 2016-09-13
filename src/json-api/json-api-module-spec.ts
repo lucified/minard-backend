@@ -29,7 +29,7 @@ import {
   JsonApiModule,
 } from './';
 
-import { toGitlabStamp } from '../shared/time-conversion';
+import { toGitlabTimestamp } from '../shared/time-conversion';
 
 describe('json-api-module', () => {
 
@@ -154,7 +154,7 @@ describe('json-api-module', () => {
       expect(activity.branch.name).to.equal(minardActivity.branch);
       expect(activity.project.id).to.equal(String(minardActivity.projectId));
       expect(activity.project.name).to.equal(minardActivity.projectName);
-      expect(activity.timestamp).to.equal(toGitlabStamp(minardActivity.timestamp));
+      expect(activity.timestamp).to.equal(toGitlabTimestamp(minardActivity.timestamp));
       expect(activity.commit.id).to.equal(`${minardActivity.projectId}-${minardActivity.commit.id}`);
       expect(activity.commit.author).to.deep.equal(minardActivity.commit.author);
       expect(activity.deployment.id).to.equal(`${minardActivity.projectId}-${minardActivity.deployment.id}`);

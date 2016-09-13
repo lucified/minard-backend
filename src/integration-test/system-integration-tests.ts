@@ -280,6 +280,25 @@ describe('system-integration', () => {
     expect(ret.status).to.equal(200);
   });
 
+  it('project should have activity', async function() {
+    logTitle('Fetching project activity');
+    this.timeout(1000 * 10);
+    await sleep(500);
+    const url = `${charles}/api/activity?filter=project[${projectId}]`;
+    log(`Fetching activity from ${prettyUrl(url)}`);
+    const ret = await fetch(url);
+    expect(ret.status).to.equal(200);
+    const json = await ret.json();
+    expect(json.data).to.exist;
+    expect(json.data).to.have.length(1);
+    expect(json.data[0].attributes['activity-type']).to.equal('deployment');
+    expect(json.data[0].attributes.deployment.status).to.equal('success');
+    expect(json.data[0].attributes.project.id).to.equal(String(projectId));
+    expect(json.data[0].attributes.project.name).to.equal(projectName);
+    expect(json.data[0].attributes.commit).to.exist;
+    expect(json.data[0].attributes.branch.name).to.equal('master');
+  });
+
   it('should be able to edit project', async function() {
     logTitle('Editing project');
     this.timeout(1000 * 30);

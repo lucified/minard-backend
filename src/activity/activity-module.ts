@@ -59,7 +59,7 @@ export default class ActivityModule {
     @inject(DeploymentModule.injectSymbol) deploymentModule: DeploymentModule,
     @inject(logger.loggerInjectSymbol) logger: logger.Logger,
     @inject(eventBusInjectSymbol) eventBus: EventBus,
-    @inject('') knex: Knex) {
+    @inject('charles-knex') knex: Knex) {
     this.projectModule = projectModule;
     this.deploymentModule = deploymentModule;
     this.logger = logger;

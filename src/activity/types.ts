@@ -21,7 +21,7 @@ export interface MinardActivityDeployment extends MinardDeployment {
 export interface MinardActivityPlain {
   id?: number;
   timestamp: moment.Moment;
-  activityType: string;
+  activityType: 'deployment';
   teamId: number;
   projectId: number;
   projectName: string;

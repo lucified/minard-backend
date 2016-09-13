@@ -28,10 +28,14 @@ import * as logger from  '../shared/logger';
 import { MinardActivity } from './types';
 
 export function toMinardActivity(activity: any): MinardActivity {
+  // when using postgres driver, we get objects,
+  // when using nosql, we get strings
+  const deployment = activity.deployment instanceof Object ? activity.deployment : JSON.parse(activity.deployment);
+  const commit = activity.commit instanceof Object ? activity.commit : JSON.parse(activity.commit);
   return Object.assign({}, activity, {
-    deployment: JSON.parse(activity.deployment),
-    commit: JSON.parse(activity.commit),
-    timestamp: moment(activity.timestamp),
+    deployment,
+    commit,
+    timestamp: moment(Number(activity.timestamp)),
   }) as MinardActivity;
 }
 

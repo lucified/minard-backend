@@ -146,7 +146,7 @@ export class RealtimeHapiPlugin {
       });
 
     } catch (err) {
-      console.log(err);
+      this.logger.error('Error handling a SSE request', err);
     }
   }
 

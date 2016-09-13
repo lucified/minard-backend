@@ -12,7 +12,7 @@ export class ObservableWrapper extends Readable {
     this.stream = stream;
 
     this.on('end', () => this.subscription && this.subscription.unsubscribe());
-    this.on('error', (err: any) => console.log(err));
+    this.on('error', (err: any) => { throw err; });
   }
 
   private sseEvent(event: Event<any>) {

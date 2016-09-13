@@ -157,14 +157,16 @@ export class JsonApiModule {
     }));
   }
 
-  public async getTeamActivity(teamId: number, since?: string, count?: number): Promise<ApiActivity[] | null> {
-    const activity = await this.activityModule.getTeamActivity(teamId, since ? toMoment(since) : undefined, count);
+  public async getTeamActivity(
+    teamId: number, until?: string, count: number = 10): Promise<ApiActivity[] | null> {
+    const activity = await this.activityModule.getTeamActivity(teamId, until ? toMoment(until) : undefined, count);
     return activity ? await Promise.all(activity.map(item => this.toApiActivity(item))) : null;
   }
 
-  public async getProjectActivity(projectId: number, since?: string, count?: number): Promise<ApiActivity[] | null> {
+  public async getProjectActivity(
+    projectId: number, until?: string, count: number = 10): Promise<ApiActivity[] | null> {
     const activity = await this.activityModule.getProjectActivity(
-      projectId, since ? toMoment(since) : undefined, count);
+      projectId, until ? toMoment(until) : undefined, count);
     return activity ? await Promise.all(activity.map(item => this.toApiActivity(item))) : null;
   }
 
@@ -185,7 +187,7 @@ export class JsonApiModule {
       id: `${activity.projectId}-${activity.deployment.id}`,
     });
     delete deployment.ref;
-    const timestamp = toGitlabStamp(moment(activity.timestamp));
+    const timestamp = toGitlabStamp(activity.timestamp);
     return {
       id: `${activity.projectId}-${activity.deployment.id}`,
       type: 'activity',

@@ -58,5 +58,3 @@ export interface GitlabPushEvent {
   commits: GitlabPushEventCommit[];
   total_commits_count: number;
 }
-
-

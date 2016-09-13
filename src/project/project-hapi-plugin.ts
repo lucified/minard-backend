@@ -32,6 +32,15 @@ export default class ProjectHapiPlugin {
       },
     });
 
+    server.route({
+      method: 'POST',
+      path: '/project/project-hook',
+      handler: (request: any, reply: any) => {
+        this.projectModule.receiveProjectHook(request.payload);
+        return reply('ok');
+      },
+    });
+
     next();
   };
 

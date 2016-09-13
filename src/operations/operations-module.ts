@@ -117,7 +117,7 @@ export default class OperationsModule {
       this.logger.error('Could not get project ids for assureDeploymentActivity');
       return;
     }
-    return Promise.all(projectIds.map((item: number) => this.assureDeploymentActivityForProject(item)));
+    return Promise.all(projectIds.map(item => this.assureDeploymentActivityForProject(item)));
   }
 
   public async getMissingDeploymentActivityForProject(projectId: number) {

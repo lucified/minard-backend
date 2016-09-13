@@ -11,11 +11,15 @@ import { MINARD_ERROR_CODE } from '../shared/minard-error';
 import { sleep } from '../shared/sleep';
 import { toGitlabTimestamp } from '../shared/time-conversion';
 
+import { GitlabPushEvent } from './gitlab-push-hook-types';
+
 import {
+  CodePushedEvent,
   MinardBranch,
   MinardCommit,
   MinardProject,
   MinardProjectContributor,
+  codePushed,
   projectCreated,
   projectDeleted,
   projectEdited,
@@ -282,6 +286,36 @@ export default class ProjectModule {
     // TODO: handle push events
   }
 
+  public async receiveProjectHook(payload: GitlabPushEvent) {
+    if (payload.object_kind !== 'push') {
+      return;
+    }
+
+    const projectId = payload.project_id;
+    const matches = payload.ref.match(/^refs\/heads\/(\S+)$/);
+    if (!matches) {
+      this.logger.error(`Could not parse ref ${payload.ref}`, payload);
+      return;
+    }
+    const ref = matches[1];
+
+    const [ after, before, commits ] = await Promise.all([
+      payload.after ? this.getCommit(projectId, payload.after) : Promise.resolve(undefined),
+      payload.before ? this.getCommit(projectId, payload.before) : Promise.resolve(undefined),
+      Promise.all(payload.commits.map(commit => this.getCommit(projectId, commit.id))),
+    ]);
+
+    const event: CodePushedEvent = {
+      projectId: payload.project_id,
+      ref,
+      after,
+      before,
+      commits,
+    };
+    this.logger.info(`Received code push`, { payload, event });
+    this.eventBus.post(codePushed(event));
+  }
+
   private getSystemHookPath() {
     return `/project/hook`;
   }
@@ -431,7 +465,7 @@ export default class ProjectModule {
 
   // internal method
   public getProjectHookUrl() {
-    return this.systemHookModule.getUrl('/projects/project-hook');
+    return this.systemHookModule.getUrl('/project/project-hook');
   }
 
   // internal method

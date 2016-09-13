@@ -16,6 +16,8 @@ import { expect } from 'chai';
 import ProjectModule from './project-module';
 
 import {
+  CODE_PUSHED_EVENT_TYPE,
+  CodePushedEvent,
   MinardCommit,
   MinardProject,
   PROJECT_CREATED_EVENT_TYPE,
@@ -25,6 +27,10 @@ import {
   ProjectDeletedEvent,
   ProjectEditedEvent,
 } from './types';
+
+import {
+  GitlabPushEvent,
+} from './gitlab-push-hook-types';
 
 const fetchMock = require('fetch-mock');
 
@@ -1218,7 +1224,7 @@ describe('project-module', () => {
     const projectId = 5;
     const gitlabResponse = {
       'id': 41,
-      'url': 'http://foo-bar.com/projects/project-hook',
+      'url': 'http://foo-bar.com/project/project-hook',
       'created_at': '2016-09-13T17:38:15.494+05:30',
       'project_id': projectId,
       'push_events': true,
@@ -1456,6 +1462,61 @@ describe('project-module', () => {
       await projectModule.assureProjectHooksRegistered();
       expect(callCount).to.equal(2);
     });
+  });
+
+  describe('receiveProjectHook', () => {
+
+    const gitlabPayload = {
+      'object_kind': 'push',
+      'before': 'before-commit-hash',
+      'after': 'after-commit-hash',
+      'ref': 'refs/heads/master',
+      'project_id': 15,
+      'commits': [
+        {
+          'id': 'first-commit-hash',
+        },
+        {
+          'id': 'second-commit-hash',
+        },
+      ],
+    } as GitlabPushEvent;
+
+    it('should produce correct event', async () => {
+      // Arrange
+      const bus = new LocalEventBus();
+      const projectModule = new ProjectModule(
+        {} as any,
+        {} as any,
+        bus,
+        {} as any,
+        logger);
+
+      projectModule.getCommit = async (_projectId: number, sha: string) => {
+        expect(_projectId).to.equal(gitlabPayload.project_id);
+        return {
+          id: sha,
+        };
+      };
+
+      const promise = bus.filterEvents<CodePushedEvent>(CODE_PUSHED_EVENT_TYPE)
+        .map(event => event.payload)
+        .take(1)
+        .toPromise();
+
+      // Act
+      await projectModule.receiveProjectHook(gitlabPayload);
+      const event = await promise;
+
+      // Assert
+      expect(event.projectId).to.equal(gitlabPayload.project_id);
+      expect(event.ref).to.equal('master');
+      expect(event.after!.id).to.equal(gitlabPayload.after);
+      expect(event.before!.id).to.equal(gitlabPayload.before);
+      expect(event.commits[0]!.id).to.equal(gitlabPayload.commits[0].id);
+      expect(event.commits[1]!.id).to.equal(gitlabPayload.commits[1].id);
+    });
+
   });
 
 });

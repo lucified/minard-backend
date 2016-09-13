@@ -75,7 +75,7 @@ describe('system-integration', () => {
 
   const projectName = 'integration-test-project';
   let projectId: number | undefined;
-  let deploymentId: number | undefined;
+  let deploymentId: string | undefined;
   let deployment: any;
   let oldProjectId: number | undefined;
 
@@ -112,7 +112,7 @@ describe('system-integration', () => {
   it('should successfully respond to request for team projects', async function() {
     logTitle('Requesting team projects');
     this.timeout(1000 * 30);
-    const url = `${charles}/api/teams/1/projects`;
+    const url = `${charles}/api/teams/1/relationships/projects`;
     log(`Using URL ${prettyUrl(url)}`);
     const ret = await fetchWithRetry(url);
     expect(ret.status).to.equal(200);
@@ -191,25 +191,23 @@ describe('system-integration', () => {
     await runCommand('git', '-C', repoFolder, 'push', 'minard', 'master');
   });
 
-  it('project information should include information on deployment', async function() {
+  it('branch information should include information on deployment', async function() {
     logTitle(`Fetching info on project`);
     this.timeout(1000 * 30);
     // sleep a to give some time got GitLab
-    const url = `${charles}/api/projects/${projectId}`;
+    const url = `${charles}/api/projects/${projectId}/relationships/branches`;
     log(`Using URL ${prettyUrl(url)}`);
     while (!deploymentId) {
       const ret = await fetchWithRetry(url);
       expect(ret.status).to.equal(200);
       const json = await ret.json() as JsonApiResponse;
-      const data = json.data as JsonApiEntity;
-      expect(data.id).to.equal(projectId);
+      const data = json.data as JsonApiEntity[];
+      expect(data[0].id).to.equal(`${projectId}-master`);
       const included = json.included as JsonApiEntity[];
       expect(included).to.exist;
-      const master = included.find((item: JsonApiEntity) => item.type === 'branches');
-      expect(master).to.exist;
-      if (master!.relationships.deployments && master!.relationships.deployments.data[0]) {
-        deploymentId = master!.relationships.deployments.data[0].id;
-        expect(deploymentId).to.exist;
+      const includedDeployment = included.find((item: JsonApiEntity) => item.type === 'deployments');
+      if (includedDeployment) {
+        deploymentId = includedDeployment.id;
         log(`Deployment id is ${deploymentId}`);
       }
       if (!deploymentId) {
@@ -280,6 +278,25 @@ describe('system-integration', () => {
     log(`Fetching screenshot from ${prettyUrl(screenshot)}`);
     const ret = await fetchWithRetry(screenshot);
     expect(ret.status).to.equal(200);
+  });
+
+  it('project should have activity', async function() {
+    logTitle('Fetching project activity');
+    this.timeout(1000 * 10);
+    await sleep(500);
+    const url = `${charles}/api/activity?filter=project[${projectId}]`;
+    log(`Fetching activity from ${prettyUrl(url)}`);
+    const ret = await fetch(url);
+    expect(ret.status).to.equal(200);
+    const json = await ret.json();
+    expect(json.data).to.exist;
+    expect(json.data).to.have.length(1);
+    expect(json.data[0].attributes['activity-type']).to.equal('deployment');
+    expect(json.data[0].attributes.deployment.status).to.equal('success');
+    expect(json.data[0].attributes.project.id).to.equal(String(projectId));
+    expect(json.data[0].attributes.project.name).to.equal(projectName);
+    expect(json.data[0].attributes.commit).to.exist;
+    expect(json.data[0].attributes.branch.name).to.equal('master');
   });
 
   it('should be able to edit project', async function() {

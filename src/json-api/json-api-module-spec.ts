@@ -2,6 +2,7 @@
 import 'reflect-metadata';
 
 import { expect } from 'chai';
+import * as moment from 'moment';
 
 import {
   DeploymentModule,
@@ -27,6 +28,8 @@ import {
   ApiProject,
   JsonApiModule,
 } from './';
+
+import { toGitlabTimestamp } from '../shared/time-conversion';
 
 describe('json-api-module', () => {
 
@@ -115,13 +118,10 @@ describe('json-api-module', () => {
       // Arrange
       const minardActivity: MinardActivity = {
         activityType: 'deployment',
-        branch: {
-          name: 'foo-branch-name',
-        } as any,
-        project: {
-          id: 6,
-          name: 'foo-project-name',
-        } as MinardProject,
+        branch: 'foo-branch-name',
+        teamId: 1,
+        projectId: 6,
+        projectName: 'foo-project-name',
         deployment: {
           id: 8,
           status: 'success',
@@ -137,31 +137,27 @@ describe('json-api-module', () => {
             timestamp: '2022-09-20T09:06:12+03:00',
           },
         } as MinardCommit,
-        timestamp: '2012-09-20T09:06:12+03:00',
-      };
-      const screenshotModule = {} as ScreenshotModule;
-      screenshotModule.deploymentHasScreenshot = async (projectId: number, deploymentId: number) => {
-        return false;
+        timestamp: moment(),
       };
       const jsonApiModule = new JsonApiModule(
         {} as any,
         {} as any,
         {} as any,
-        screenshotModule);
+        {} as any);
 
       // Act
       const activity = await jsonApiModule.toApiActivity(minardActivity);
 
       // Assert
       expect(activity.activityType).to.equal('deployment');
-      expect(activity.branch.id).to.equal(`${minardActivity.project.id}-${minardActivity.branch.name}`);
-      expect(activity.branch.name).to.equal(minardActivity.branch.name);
-      expect(activity.project.id).to.equal(String(minardActivity.project.id));
-      expect(activity.project.name).to.equal(minardActivity.project.name);
-      expect(activity.timestamp).to.equal(minardActivity.timestamp);
-      expect(activity.commit.id).to.equal(`${minardActivity.project.id}-${minardActivity.commit.id}`);
+      expect(activity.branch.id).to.equal(`${minardActivity.projectId}-${minardActivity.branch}`);
+      expect(activity.branch.name).to.equal(minardActivity.branch);
+      expect(activity.project.id).to.equal(String(minardActivity.projectId));
+      expect(activity.project.name).to.equal(minardActivity.projectName);
+      expect(activity.timestamp).to.equal(toGitlabTimestamp(minardActivity.timestamp));
+      expect(activity.commit.id).to.equal(`${minardActivity.projectId}-${minardActivity.commit.id}`);
       expect(activity.commit.author).to.deep.equal(minardActivity.commit.author);
-      expect(activity.deployment.id).to.equal(`${minardActivity.project.id}-${minardActivity.deployment.id}`);
+      expect(activity.deployment.id).to.equal(`${minardActivity.projectId}-${minardActivity.deployment.id}`);
       expect(activity.deployment.status).to.equal(minardActivity.deployment.status);
     });
   });

@@ -1,11 +1,11 @@
 
 import { MinardDeployment } from '../deployment';
-import { MinardCommit, MinardProject } from '../project';
+import { MinardCommit } from '../project';
+
+import * as moment from 'moment';
 
 export interface MinardActivity extends MinardActivityPlain {
-  deployment: MinardDeployment;
-  project: MinardProject;
-  branch: MinardActivityBranch;
+  deployment: MinardActivityDeployment;
   commit: MinardCommit;
 }
 
@@ -14,7 +14,16 @@ export interface MinardActivityBranch {
   name: string;
 }
 
+export interface MinardActivityDeployment extends MinardDeployment {
+  screenshot?: string;
+}
+
 export interface MinardActivityPlain {
-  timestamp: string;
-  activityType: string;
+  id?: number;
+  timestamp: moment.Moment;
+  activityType: 'deployment';
+  teamId: number;
+  projectId: number;
+  projectName: string;
+  branch: string;
 }

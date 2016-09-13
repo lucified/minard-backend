@@ -34,7 +34,6 @@ import {
 
 import { promisify } from '../shared/promisify';
 
-const deepcopy = require('deepcopy');
 const ncp = promisify(require('ncp'));
 const mkpath = promisify(require('mkpath'));
 const Queue = require('promise-queue'); // tslint:disable-line
@@ -198,21 +197,24 @@ export default class DeploymentModule {
   }
 
   private toMinardModelDeployment(deployment: Deployment, projectId: number): MinardDeployment {
-    let ret = deepcopy(deployment) as MinardDeployment;
-    ret.creator = {
+    const creator = {
       name: deployment.commit.author_name,
       email: deployment.commit.author_email,
       timestamp: deployment.finished_at || deployment.started_at || deployment.finished_at,
     };
-    // rename the commit variable
-    ret.commitRef = deployment.commit;
-    delete (<any> ret).commit;
-    if (ret.status === 'success') {
-      (<any> ret).url = sprintf(
-        this.urlPattern,
-        `${deployment.ref}-${deployment.commit.short_id}-${projectId}-${deployment.id}`);
-    }
-    return ret;
+    const url = deployment.status === 'success' ? sprintf(
+      this.urlPattern,
+      `${deployment.ref}-${deployment.commit.short_id}-${projectId}-${deployment.id}`) : undefined;
+    const commitRef = deployment.commit;
+    return {
+      id: deployment.id,
+      creator,
+      url,
+      commitRef,
+      status: deployment.status,
+      finished_at: deployment.finished_at,
+      ref: deployment.ref,
+    };
   }
 
   public getDeploymentPath(projectId: number, deploymentId: number) {

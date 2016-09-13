@@ -278,6 +278,15 @@ export class JsonApiHapiPlugin {
       handler: {
         async: this.getActivityHandler.bind(this),
       },
+      config: {
+        validate: {
+          query: {
+            until: Joi.date(),
+            count: Joi.number(),
+            filter: Joi.string(),
+          },
+        },
+      },
     });
 
     next();
@@ -368,15 +377,16 @@ export class JsonApiHapiPlugin {
     const filter = request.query.filter as string;
     const filterOptions = parseActivityFilter(filter);
     const projectId = filterOptions.projectId;
+    const { until, count } = request.query;
     if (projectId !== null) {
-      return reply(this.getEntity('activity', api => api.getProjectActivity(projectId)));
+      return reply(this.getEntity('activity', api => api.getProjectActivity(projectId, until, count)));
     }
     if (filter && !filterOptions.projectId) {
       // if filter is specified it should be valid
       throw Boom.badRequest('Invalid filter');
     }
     // for now any team id returns all activity
-    return reply(this.getEntity('activity', api => api.getTeamActivity(1)));
+    return reply(this.getEntity('activity', api => api.getTeamActivity(1, until, count)));
   }
 
 }

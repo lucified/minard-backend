@@ -1,12 +1,51 @@
 
+import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
-import { flatMap } from 'lodash';
+import * as Knex from 'knex';
 import * as moment from 'moment';
 
-import { DeploymentModule, MinardDeployment } from '../deployment';
+import { toGitlabTimestamp, toMoment } from '../shared/time-conversion';
+
+import {
+  DEPLOYMENT_EVENT_TYPE,
+  DeploymentEvent,
+  DeploymentModule,
+} from '../deployment';
+
+import {
+  SCREENSHOT_EVENT_TYPE,
+  ScreenshotEvent,
+} from '../screenshot';
+
+import {
+  Event,
+  EventBus,
+  eventBusInjectSymbol,
+} from '../event-bus';
+
 import { ProjectModule } from '../project';
 import * as logger from  '../shared/logger';
 import { MinardActivity } from './types';
+
+export function toMinardActivity(activity: any): MinardActivity {
+  // when using postgres driver, we get objects,
+  // when using nosql, we get strings
+  const deployment = activity.deployment instanceof Object ? activity.deployment : JSON.parse(activity.deployment);
+  const commit = activity.commit instanceof Object ? activity.commit : JSON.parse(activity.commit);
+  return Object.assign({}, activity, {
+    deployment,
+    commit,
+    timestamp: moment(Number(activity.timestamp)),
+  }) as MinardActivity;
+}
+
+export function toDbActivity(activity: MinardActivity) {
+  return Object.assign({}, activity, {
+    deployment: JSON.stringify(activity.deployment),
+    commit: JSON.stringify(activity.commit),
+    timestamp: activity.timestamp.valueOf(),
+  });
+}
 
 @injectable()
 export default class ActivityModule {
@@ -16,56 +55,119 @@ export default class ActivityModule {
   private readonly projectModule: ProjectModule;
   private readonly deploymentModule: DeploymentModule;
   private readonly logger: logger.Logger;
+  private readonly knex: Knex;
+  private readonly eventBus: EventBus;
 
   public constructor(
     @inject(ProjectModule.injectSymbol) projectModule: ProjectModule,
     @inject(DeploymentModule.injectSymbol) deploymentModule: DeploymentModule,
-    @inject(logger.loggerInjectSymbol) logger: logger.Logger) {
+    @inject(logger.loggerInjectSymbol) logger: logger.Logger,
+    @inject(eventBusInjectSymbol) eventBus: EventBus,
+    @inject('charles-knex') knex: Knex) {
     this.projectModule = projectModule;
     this.deploymentModule = deploymentModule;
     this.logger = logger;
+    this.eventBus = eventBus;
+    this.knex = knex;
+    this.subscribeForFailedDeployments();
+    this.subscribeForSuccessfulDeployments();
   }
 
-  public async getTeamActivity(teamId: number): Promise<MinardActivity[] | null> {
-    const projects = await this.projectModule.getProjects(teamId);
-    if (!projects) {
-      return [];
+  public async subscribeForFailedDeployments() {
+    this.eventBus.filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
+      .filter(event => event.payload.status === 'failed')
+      .flatMap(event => this.handleFailedDeployment(event))
+      .subscribe();
+  }
+
+  private async handleFailedDeployment(event: Event<DeploymentEvent>) {
+    try {
+      const projectId = event.payload.projectId;
+      const deploymentId = event.payload.id;
+      if (!projectId) {
+        throw Boom.badImplementation();
+      }
+      const activity = await this.createDeploymentActivity(projectId, deploymentId);
+      activity.deployment.status = 'failed';
+      await this.addActivity(activity);
+    } catch (err) {
+      this.logger.error('Failed to add activity based on failed deployment event', err);
     }
-    const nestedActivity = await Promise.all(projects.map(item => this.getProjectActivity(item.id)));
-    const activity = flatMap<MinardActivity>(nestedActivity, (item) => item);
-    const sortFunction = (a: any, b: any) => moment(b.timestamp).diff(moment(a.timestamp));
-    activity.sort(sortFunction);
-    return activity;
   }
 
-  public async getProjectActivity(projectId: number): Promise<MinardActivity[] | null> {
-    const [ project, deployments ] = await Promise.all([
+  public async subscribeForSuccessfulDeployments() {
+    this.eventBus.filterEvents<ScreenshotEvent>(SCREENSHOT_EVENT_TYPE)
+      .flatMap(event => this.handleSuccessfulDeployment(event))
+      .subscribe();
+  }
+
+  private async handleSuccessfulDeployment(event: Event<ScreenshotEvent>) {
+    try {
+      const activity = await this.createDeploymentActivity(event.payload.projectId, event.payload.deploymentId);
+      activity.deployment.status = 'success';
+      activity.deployment.screenshot = event.payload.url;
+      await this.addActivity(activity);
+    } catch (err) {
+      this.logger.error('Failed to add activity based on screenshot event', err);
+    }
+  }
+
+  public async createDeploymentActivity(projectId: number, deploymentId: number): Promise<MinardActivity> {
+    const [ project, deployment ] = await Promise.all([
       this.projectModule.getProject(projectId),
-      this.deploymentModule.getProjectDeployments(projectId),
+      this.deploymentModule.getDeployment(projectId, deploymentId),
     ]);
-    if (!project) {
-      return null;
+    if (!project || !deployment) {
+      throw Boom.badImplementation();
     }
+    const branch = deployment.ref;
+    const commit = this.projectModule.toMinardCommit(deployment.commitRef);
+    // This is a bit clumsy, but gitlab may not have yet updated its finished_at info
+    // when we are creating this event. Thus we set the field to the current date
+    // if the info is not included in the deployment
+    const finishedAt = deployment.finished_at = deployment.finished_at || toGitlabTimestamp(moment());
+    return {
+      activityType: 'deployment',
+      projectId,
+      projectName: project.name,
+      branch,
+      commit,
+      timestamp: toMoment(finishedAt),
+      deployment,
+      teamId: 1,
+    };
+  }
 
-    return deployments
-      .filter((minardDeployment: MinardDeployment) =>
-        minardDeployment.status === 'success' || minardDeployment.status === 'failed')
-      .map((minardDeployment: MinardDeployment) => {
-      const branch = {
-        name: minardDeployment.ref,
-      } as any;
-      const commit = this.projectModule.toMinardCommit(minardDeployment.commitRef);
-      const deployment = minardDeployment;
-      return {
-        project,
-        branch,
-        commit,
-        projectId,
-        timestamp: minardDeployment.finished_at,
-        activityType: 'deployment',
-        deployment,
-      };
-    });
+  public addActivity(activity: MinardActivity): Promise<void> {
+    return this.knex('activity').insert(toDbActivity(activity));
+  }
+
+  public async getTeamActivity(teamId: number, until?: moment.Moment, count?: number): Promise<MinardActivity[]> {
+    const select = this.knex.select('*')
+      .from('activity')
+      .where('teamId', teamId);
+    if (until) {
+      select.andWhere('timestamp', '<=', until.valueOf());
+    }
+    select.orderBy('timestamp', 'DESC');
+    if (count) {
+      select.limit(count);
+    }
+    return (await select).map(toMinardActivity);
+  }
+
+  public async getProjectActivity(projectId: number, until?: moment.Moment, count?: number): Promise<MinardActivity[]> {
+    const select = this.knex.select('*')
+      .from('activity')
+      .where('projectId', projectId);
+    if (until) {
+      select.andWhere('timestamp', '<=', until.valueOf());
+    }
+    select.orderBy('timestamp', 'DESC');
+    if (count) {
+      select.limit(count);
+    }
+    return (await select).map(toMinardActivity);
   }
 
 }

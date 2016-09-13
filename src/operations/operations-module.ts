@@ -1,5 +1,7 @@
 
+import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
+import { differenceBy } from 'lodash';
 
 import { EventBus, eventBusInjectSymbol } from '../event-bus';
 import * as logger from '../shared/logger';
@@ -17,6 +19,10 @@ import {
   MinardDeployment,
 } from '../deployment';
 
+import {
+  ActivityModule,
+} from '../activity';
+
 @injectable()
 export default class OperationsModule {
 
@@ -26,18 +32,21 @@ export default class OperationsModule {
   private readonly projectModule: ProjectModule;
   private readonly deploymentModule: DeploymentModule;
   private readonly screenshotModule: ScreenshotModule;
+  private readonly activityModule: ActivityModule;
 
   constructor(
     @inject(ProjectModule.injectSymbol) projectModule: ProjectModule,
     @inject(DeploymentModule.injectSymbol) deploymentModule: DeploymentModule,
     @inject(ScreenshotModule.injectSymbol) screenshotModule: ScreenshotModule,
     @inject(eventBusInjectSymbol) eventBus: EventBus,
-    @inject(logger.loggerInjectSymbol) logger: logger.Logger) {
+    @inject(logger.loggerInjectSymbol) logger: logger.Logger,
+    @inject(ActivityModule.injectSymbol) activityModule: ActivityModule) {
     this.projectModule = projectModule;
     this.deploymentModule = deploymentModule;
     this.screenshotModule = screenshotModule;
     this.eventBus = eventBus;
     this.logger = logger;
+    this.activityModule = activityModule;
   }
 
   public async runBasicMaintenceTasks() {
@@ -95,6 +104,72 @@ export default class OperationsModule {
         }
       }
     }
+  }
+
+  /*
+   * Assure that all finished deployments have a corresponding activity item
+   */
+  public async assureDeploymentActivity() {
+    let projectIds: number[];
+    try {
+      projectIds = await this.projectModule.getAllProjectIds();
+    } catch (err) {
+      this.logger.error('Could not get project ids for assureDeploymentActivity');
+      return;
+    }
+    return Promise.all(projectIds.map(item => this.assureDeploymentActivityForProject(item)));
+  }
+
+  public async getMissingDeploymentActivityForProject(projectId: number) {
+    const [ expected, existing ] = await Promise.all([
+      await this.getProjectDeploymentActivity(projectId),
+      await this.activityModule.getProjectActivity(projectId),
+    ]);
+    if (expected === null) {
+      this.logger.error(`Project ${projectId} not found in getMissingDeploymentActivity.`);
+      throw Boom.badGateway();
+    }
+    const mappedExisting = existing.map(item => ({
+      projectId: item.projectId,
+      deploymentId: item.deployment.id,
+    }));
+    return differenceBy(expected, mappedExisting, JSON.stringify);
+  }
+
+  public async assureDeploymentActivityForProject(projectId: number): Promise<void> {
+    try {
+      const missing = await this.getMissingDeploymentActivityForProject(projectId);
+      await Promise.all(missing.map(async item => {
+        this.logger.info(`Creating missing deployment activity for ${item.projectId}-${item.deploymentId}`);
+        const activity = await this.activityModule.createDeploymentActivity(item.projectId, item.deploymentId);
+        const hasScreenshot = await this.screenshotModule.deploymentHasScreenshot(projectId, item.deploymentId);
+        activity.deployment.screenshot = hasScreenshot ? this.screenshotModule
+          .getPublicUrl(projectId, item.deploymentId) : undefined;
+        await this.activityModule.addActivity(activity);
+      }));
+    } catch (err) {
+      this.logger.error(
+        `Failed to create missing deployment activity for ${projectId}`, err);
+    }
+  }
+
+  public async getProjectDeploymentActivity(projectId: number) {
+    const [ project, deployments ] = await Promise.all([
+      this.projectModule.getProject(projectId),
+      this.deploymentModule.getProjectDeployments(projectId),
+    ]);
+    if (!project) {
+      return null;
+    }
+    return deployments
+      .filter((minardDeployment: MinardDeployment) =>
+        minardDeployment.status === 'success' || minardDeployment.status === 'failed')
+      .map((minardDeployment: MinardDeployment) => {
+      return {
+        projectId,
+        deploymentId: minardDeployment.id,
+      };
+    });
   }
 
 }

@@ -3,6 +3,8 @@ import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
 import * as moment from 'moment';
 
+import { toGitlabTimestamp, toMoment } from '../shared/time-conversion';
+
 import {
   ApiActivity,
   ApiBranch,
@@ -155,39 +157,44 @@ export class JsonApiModule {
     }));
   }
 
-  public async getTeamActivity(teamId: number): Promise<ApiActivity[] | null> {
-    const activity = await this.activityModule.getTeamActivity(teamId);
+  public async getTeamActivity(
+    teamId: number, until?: string, count: number = 10): Promise<ApiActivity[] | null> {
+    const activity = await this.activityModule.getTeamActivity(teamId, until ? toMoment(until) : undefined, count);
     return activity ? await Promise.all(activity.map(item => this.toApiActivity(item))) : null;
   }
 
-  public async getProjectActivity(projectId: number): Promise<ApiActivity[] | null> {
-    const activity = await this.activityModule.getProjectActivity(projectId);
+  public async getProjectActivity(
+    projectId: number, until?: string, count: number = 10): Promise<ApiActivity[] | null> {
+    const activity = await this.activityModule.getProjectActivity(
+      projectId, until ? toMoment(until) : undefined, count);
     return activity ? await Promise.all(activity.map(item => this.toApiActivity(item))) : null;
   }
 
   public async toApiActivity(activity: MinardActivity): Promise<ApiActivity> {
     const commit = Object.assign({}, activity.commit, {
-      id: `${activity.project.id}-${activity.commit.id}`,
+      id: `${activity.projectId}-${activity.commit.id}`,
       hash: activity.commit.id,
     });
     const project = {
-      id: String(activity.project.id),
-      name: activity.project.name,
+      id: String(activity.projectId),
+      name: activity.projectName,
     };
     const branch = {
-      id: `${activity.project.id}-${activity.branch.name}`,
-      name: activity.branch.name,
+      id: `${activity.projectId}-${activity.branch}`,
+      name: activity.branch,
     };
-    const deployment = await this.toApiDeployment(activity.project.id, activity.deployment);
-    delete deployment.commitHash;
+    const deployment = Object.assign({}, activity.deployment, {
+      id: `${activity.projectId}-${activity.deployment.id}`,
+    });
     delete deployment.ref;
+    const timestamp = toGitlabTimestamp(activity.timestamp);
     return {
-      id: `${activity.project.id}-${activity.deployment.id}`,
+      id: `${activity.projectId}-${activity.deployment.id}`,
       type: 'activity',
       branch,
       commit,
       project,
-      timestamp: activity.timestamp,
+      timestamp,
       activityType: activity.activityType,
       deployment,
     };

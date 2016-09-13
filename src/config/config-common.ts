@@ -31,6 +31,8 @@ import {
   MemoizedJsonApiModule,
 } from '../json-api';
 
+import Migrations from '../migrations';
+
 import {
   OperationsHapiPlugin,
   OperationsModule,
@@ -76,7 +78,7 @@ export default new KernelModule(bind => {
 //  -- JO 25.6.2016
 
   // Bindings for modules
-  bind(ActivityModule.injectSymbol).to(ActivityModule);
+  bind(ActivityModule.injectSymbol).to(ActivityModule).inSingletonScope();
   bind(AuthenticationModule.injectSymbol).to(AuthenticationModule);
   bind(DeploymentModule.injectSymbol).to(DeploymentModule).inSingletonScope();
   bind(JsonApiModule.injectSymbol).to(MemoizedJsonApiModule);
@@ -103,6 +105,7 @@ export default new KernelModule(bind => {
   bind(fetchInjectSymbol).toConstantValue(fetch);
   bind(MinardServer.injectSymbol).to(MinardServer).inSingletonScope();
   bind(RemoteScreenshotter.injectSymbol).to(RemoteScreenshotter).inSingletonScope();
+  bind(Migrations.injectSymbol).to(Migrations);
 
   bind(screenshotterInjectSymbol).to(RemoteScreenshotter);
 

@@ -21,6 +21,7 @@ export default class ProjectHapiPlugin {
 
   public register: HapiRegister = (server, _options, next) => {
     this.projectModule.assureSystemHookRegistered();
+    this.projectModule.assureProjectHooksRegistered();
 
     server.route({
       method: 'GET',

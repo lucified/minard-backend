@@ -41,7 +41,7 @@ const getClient = () => {
     new MockAuthModule() as AuthenticationModule, logger);
 };
 
-function genericArrangeProjectModule(status: number, body: any, path: string) {
+function genericArrangeProjectModule(status: number, body: any, path: string, options?: any) {
     const gitlabClient = getClient();
     const projectModule = new ProjectModule(
       {} as AuthenticationModule,
@@ -53,7 +53,7 @@ function genericArrangeProjectModule(status: number, body: any, path: string) {
     fetchMock.restore();
     fetchMock.mock(
       `${host}${gitlabClient.apiPrefix}${path}`,
-      { status, body });
+      { status, body }, options);
     return projectModule;
 }
 
@@ -1189,6 +1189,273 @@ describe('project-module', () => {
       await shouldThrowIfInvalid(200, 'path');
     });
 
+  });
+
+  function arrangeProjectModuleForProjectHookTest(
+    status: number, body: any, path: string, options?: any) {
+    const gitlabClient = getClient();
+    const systemHookModule = {} as SystemHookModule;
+    systemHookModule.getUrl = (_path: string) => `http://foo-bar.com${_path}`;
+    const projectModule = new ProjectModule(
+      {} as AuthenticationModule,
+      systemHookModule,
+      {} as LocalEventBus,
+      gitlabClient,
+      logger);
+    fetchMock.restore();
+    fetchMock.mock(
+      `${host}${gitlabClient.apiPrefix}${path}`,
+      {
+        status,
+        body,
+      },
+      options,
+    );
+    return projectModule;
+  }
+
+  describe('registerProjectHook', () => {
+    const projectId = 5;
+    const gitlabResponse = {
+      'id': 41,
+      'url': 'http://foo-bar.com/projects/project-hook',
+      'created_at': '2016-09-13T17:38:15.494+05:30',
+      'project_id': projectId,
+      'push_events': true,
+      'issues_events': false,
+      'merge_requests_events': false,
+      'tag_push_events': false,
+      'note_events': false,
+      'build_events': true,
+      'enable_ssl_verification': true,
+    };
+
+    function arrangeProjectModule(status: number) {
+      const params = {
+        url: gitlabResponse.url,
+        push_events: true,
+      };
+      const path = `/projects/${projectId}/hooks?${queryString.stringify(params)}`;
+      return arrangeProjectModuleForProjectHookTest(201, gitlabResponse, path, { method: 'POST' });
+    }
+
+    it('should succeed', async () => {
+      // Arrange
+      const projectModule = arrangeProjectModule(201);
+
+      // Act
+      await projectModule.registerProjectHook(projectId);
+
+      // Assert
+      expect(fetchMock.called()).to.equal(true);
+    });
+
+    it('should throw if gitlab responds 404', async () => {
+      // Arrange
+      const projectModule = arrangeProjectModule(404);
+      projectModule.registerProjectHook(projectId).then(
+        () => expect.fail('should throw'),
+        (err) => {
+          expect(<Boom.BoomError> err.isBoom).to.equal(true);
+          expect(<Boom.BoomError> err.isServer).to.equal(false);
+        });
+    });
+
+    it('should throw if gitlab responds 500', async () => {
+      // Arrange
+      const projectModule = arrangeProjectModule(500);
+      projectModule.registerProjectHook(projectId).then(
+        () => expect.fail('should throw'),
+        (err) => {
+          expect(<Boom.BoomError> err.isBoom).to.equal(true);
+          expect(<Boom.BoomError> err.isServer).to.equal(true);
+        });
+    });
+  });
+
+  describe('fetchProjectHooks', () => {
+    const projectId = 5;
+    const gitlabResponse = [
+      {
+        'id': 41,
+        'url': 'http://foobar.com',
+        'created_at': '2016-09-13T17:38:15.494+05:30',
+        'project_id': 2,
+        'push_events': true,
+        'issues_events': false,
+        'merge_requests_events': false,
+        'tag_push_events': false,
+        'note_events': false,
+        'build_events': true,
+        'enable_ssl_verification': true,
+      },
+      {
+        'id': 40,
+        'url': 'http://foobar.com',
+        'created_at': '2016-09-13T17:26:42.043+05:30',
+        'project_id': 2,
+        'push_events': true,
+        'issues_events': false,
+        'merge_requests_events': false,
+        'tag_push_events': false,
+        'note_events': false,
+        'build_events': true,
+        'enable_ssl_verification': true,
+      },
+    ];
+
+    function arrangeProjectModule(status: number, body: any) {
+      const path = `/projects/${projectId}/hooks`;
+      return arrangeProjectModuleForProjectHookTest(201, body, path);
+    }
+
+    it('should return hooks when gitlab responds with two hooks', async () => {
+      // Arrange
+      const projectModule = arrangeProjectModule(200, gitlabResponse);
+
+      // Act
+      const hooks = await projectModule.fetchProjectHooks(projectId);
+
+      // Assert
+      expect(hooks).to.exist;
+      expect(hooks).to.have.length(2);
+      expect(hooks).to.deep.equal(gitlabResponse);
+    });
+
+    it('should throw if response is not array', async () => {
+      // Arrange
+      const projectModule = arrangeProjectModule(404, gitlabResponse[0]);
+
+      // Act & Assert
+      projectModule.fetchProjectHooks(projectId).then(
+        () => expect.fail('should throw'),
+        (err) => {
+          expect(<Boom.BoomError> err.isBoom).to.equal(true);
+          expect(<Boom.BoomError> err.isServer).to.equal(true);
+        });
+    });
+
+    it('should throw if gitlab responds 404', async () => {
+      // Arrange
+      const projectModule = arrangeProjectModule(404, gitlabResponse);
+
+      // Act & Assert
+      projectModule.fetchProjectHooks(projectId).then(
+        () => expect.fail('should throw'),
+        (err) => {
+          expect(<Boom.BoomError> err.isBoom).to.equal(true);
+          expect(<Boom.BoomError> err.isServer).to.equal(false);
+        });
+    });
+
+    it('should throw if gitlab responds 500', async () => {
+      // Arrange
+      const projectModule = arrangeProjectModule(500, gitlabResponse);
+
+      // Act & Assert
+      projectModule.fetchProjectHooks(projectId).then(
+        () => expect.fail('should throw'),
+        (err) => {
+          expect(<Boom.BoomError> err.isBoom).to.equal(true);
+          expect(<Boom.BoomError> err.isServer).to.equal(true);
+        });
+    });
+
+  });
+
+  describe('assureProjectHookRegistered', () => {
+    const projectId = 5;
+    const gitlabResponse = [{
+      'id': 41,
+      'url': 'http://foo-bar.com/projects/project-hook',
+      'created_at': '2016-09-13T17:38:15.494+05:30',
+      'project_id': projectId,
+      'push_events': true,
+      'issues_events': false,
+      'merge_requests_events': false,
+      'tag_push_events': false,
+      'note_events': false,
+      'build_events': true,
+      'enable_ssl_verification': true,
+    }];
+
+    it('should not register project hook if one does already exists for this project and corrrect url', async () => {
+      // Arrange
+      const path = `/projects/${projectId}/hooks`;
+      const projectModule = arrangeProjectModuleForProjectHookTest(200, gitlabResponse, path);
+
+      // Act & Assert
+      projectModule.registerProjectHook = async (_projectId: number) => {
+        expect.fail('should not be called');
+      };
+      await projectModule.assureProjectHookRegistered(projectId);
+    });
+
+    it('should register project hook if existing one differs by webhook url', async () => {
+      // Arrange
+      const path = `/projects/${projectId}/hooks`;
+      const body = gitlabResponse.map(item => Object.assign({}, item, { url: 'foo' }));
+      const projectModule = arrangeProjectModuleForProjectHookTest(200, body, path);
+
+      // Act & Assert
+      const promise = new Promise((resolve, reject) => {
+        projectModule.registerProjectHook = async (_projectId: number) => {
+          expect(_projectId).to.equal(projectId);
+          resolve();
+        };
+      });
+      await projectModule.assureProjectHookRegistered(projectId);
+      await promise;
+    });
+  });
+
+  describe('assureProjectHooksRegistered', () => {
+    it('should call assureProjectHooksRegistered for all projectIds', async () => {
+      const projectIds = [2, 3];
+      const projectModule = new ProjectModule(
+        {} as any,
+        {} as any,
+        {} as any,
+        {} as any,
+        logger,
+      );
+      projectModule.getAllProjectIds = async () => projectIds;
+
+      let callCount = 0;
+      projectModule.assureProjectHookRegistered = async (projectId: number) => {
+        expect(projectId).to.equal(projectIds[callCount]);
+        callCount++;
+      };
+
+      await projectModule.assureProjectHooksRegistered();
+      expect(callCount).to.equal(2);
+    });
+
+    it('should retry if assureProjectHooksRegistered fails', async () => {
+      // Arrange
+      const projectIds = [2];
+      const projectModule = new ProjectModule(
+        {} as any,
+        {} as any,
+        {} as any,
+        {} as any,
+        logger,
+      );
+      projectModule.failSleepTime = 10;
+      projectModule.getAllProjectIds = async () => projectIds;
+
+      // Act & Assert
+      let callCount = 0;
+      projectModule.assureProjectHookRegistered = async (projectId: number) => {
+        expect(projectId).to.equal(projectIds[0]);
+        callCount++;
+        if (callCount === 1) {
+          throw Error();
+        }
+      };
+      await projectModule.assureProjectHooksRegistered();
+      expect(callCount).to.equal(2);
+    });
   });
 
 });

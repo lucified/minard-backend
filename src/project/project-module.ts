@@ -8,6 +8,7 @@ import { GitlabClient, gitBaseUrlInjectSymbol } from '../shared/gitlab-client';
 import { Branch, Commit } from '../shared/gitlab.d.ts';
 import * as logger from '../shared/logger';
 import { MINARD_ERROR_CODE } from '../shared/minard-error';
+import { sleep } from '../shared/sleep';
 import { toGitlabTimestamp } from '../shared/time-conversion';
 
 import {
@@ -22,7 +23,12 @@ import {
 
 import { AuthenticationModule } from '../authentication';
 import { EventBus, eventBusInjectSymbol } from '../event-bus/';
-import { Project } from '../shared/gitlab.d.ts';
+
+import {
+  Project,
+  ProjectHook,
+} from '../shared/gitlab.d.ts';
+
 import { SystemHookModule } from '../system-hook';
 
 @injectable()
@@ -36,6 +42,7 @@ export default class ProjectModule {
   private gitlab: GitlabClient;
   private readonly logger: logger.Logger;
   private readonly gitBaseUrl: string;
+  public failSleepTime = 2000;
 
   constructor(
     @inject(AuthenticationModule.injectSymbol) authenticationModule: AuthenticationModule,
@@ -395,6 +402,70 @@ export default class ProjectModule {
       name: project.name,
       description: project.description,
     }));
+  }
+
+  public async assureProjectHooksRegistered() {
+    const ids = await this.getAllProjectIds();
+    let success = false;
+    while (!success) {
+      try {
+        await Promise.all(ids.map(id => this.assureProjectHookRegistered(id)));
+        success = true;
+        this.logger.info('Project hooks registered for all projects.');
+      } catch (err) {
+        this.logger.error(
+          `Failed to register project hook for all projects. Sleeping for ${this.failSleepTime} ms.`, err);
+        await sleep(this.failSleepTime);
+      }
+    }
+  }
+
+  // internal method
+  public async fetchProjectHooks(projectId: number): Promise<ProjectHook[]> {
+    const hooks = await this.gitlab.fetchJson<ProjectHook[]>(`/projects/${projectId}/hooks`);
+    if (!Array.isArray(hooks)) {
+      throw Boom.badGateway();
+    }
+    return hooks;
+  }
+
+  // internal method
+  public getProjectHookUrl() {
+    return this.systemHookModule.getUrl('/projects/project-hook');
+  }
+
+  // internal method
+  public async assureProjectHookRegistered(projectId: number) {
+    try {
+      const hooks = await this.fetchProjectHooks(projectId);
+      const found = hooks.find(item =>
+        item.project_id === projectId
+        && item.url === this.getProjectHookUrl()
+        && item.push_events);
+      if (!found) {
+        this.registerProjectHook(projectId);
+      }
+    } catch (err) {
+      this.logger.error(`Failed to register project hook for project ${projectId}`, err);
+      throw err;
+    }
+  }
+
+  // internal method
+  public async registerProjectHook(projectId: number) {
+    const params = {
+      url: this.getProjectHookUrl(),
+      push_events: true,
+    };
+    const ret = await this.gitlab.fetchJsonAnyStatus(
+      `projects/${projectId}/hooks?${queryString.stringify(params)}`,
+      { method: 'POST' });
+    if (ret.status === 404) {
+      throw Boom.notFound();
+    }
+    if (ret.status !== 201) {
+      throw Boom.badGateway();
+    }
   }
 
 }

@@ -113,21 +113,29 @@ const DB_PORT = env.DB_PORT ? parseInt(env.DB_PORT, 10) : 15432;
 const DB_USER = env.DB_USER ? env.DB_USER : 'gitlab';
 const DB_PASS = env.DB_PASS ? env.DB_PASS : 'password';
 const DB_NAME = env.DB_NAME ? env.DB_NAME : 'gitlabhq_production';
-const knex = Knex({
-  client: DB_ADAPTER,
-  connection: {
-    host     : DB_HOST,
-    user     : DB_USER,
-    password : DB_PASS,
-    database : DB_NAME,
-    port: DB_PORT,
-  },
-  pool: {
-    min: 2,
-    max: 10,
-    bailAfter: 10 * 60 * 1000,
-  } as any,
-});
+const CHARLES_DB_NAME = env.CHARLES_DB_NAME ? env.CHARLES_DB_NAME : 'charles';
+
+function getKnex(dbName: string) {
+  return Knex({
+    client: DB_ADAPTER,
+    connection: {
+      host     : DB_HOST,
+      user     : DB_USER,
+      password : DB_PASS,
+      database : dbName,
+      port: DB_PORT,
+    },
+    pool: {
+      min: 2,
+      max: 10,
+      bailAfter: 10 * 60 * 1000,
+    } as any,
+  });
+}
+
+const gitlabKnex = getKnex(DB_NAME);
+const charlesKnex = getKnex(CHARLES_DB_NAME);
+const postgresKnex = getKnex('postgres');
 
 // Filesystem configuration
 // ------------------------
@@ -146,7 +154,10 @@ export default (kernel: interfaces.Kernel) => {
   kernel.bind(gitlabHostInjectSymbol).toConstantValue(`http://${GITLAB_HOST}:${GITLAB_PORT}`);
   kernel.bind(systemHookBaseUrlSymbol).toConstantValue(SYSTEMHOOK_BASEURL);
   kernel.bind(deploymentFolderInjectSymbol).toConstantValue(DEPLOYMENT_FOLDER);
-  kernel.bind('gitlab-knex').toConstantValue(knex);
+  kernel.bind('gitlab-knex').toConstantValue(gitlabKnex);
+  kernel.bind('charles-knex').toConstantValue(charlesKnex);
+  kernel.bind('charles-db-name').toConstantValue(CHARLES_DB_NAME);
+  kernel.bind('postgres-knex').toConstantValue(postgresKnex);
   kernel.bind(screenshotFolderInjectSymbol).toConstantValue(SCREENSHOT_FOLDER);
   kernel.bind(screenshotterBaseurlInjectSymbol).toConstantValue(SCREENSHOTTER_BASEURL);
   kernel.bind(externalBaseUrlInjectSymbol).toConstantValue(EXTERNAL_BASEURL);

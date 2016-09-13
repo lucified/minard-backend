@@ -1,23 +1,26 @@
 
-import * as knex from 'knex';
+import * as Knex from 'knex';
 
-/* eslint-disable arrow-body-style */
-
-exports.up = (knexObj: knex) => {
-  return knexObj.schema
-    .createTable('activity', (table) => {
+exports.up = (knex: Knex) => {
+  return Promise.all([
+    knex.schema.createTable('activity', table => {
       table.increments('id').primary();
-      table.dateTime('timestamp');
+      table.bigInteger('timestamp');
       table.integer('teamId').unsigned().index();
       table.integer('projectId').unsigned().index();
       table.string('projectName').unsigned();
       table.string('branch');
       table.string('activityType');
-      table.json('commit');
-      table.json('deployment');
+      table.jsonb('commit');
+      table.jsonb('deployment');
       table.index(['teamId', 'timestamp']);
       table.index(['projectId', 'timestamp']);
-    });
+    }),
+  ]);
 };
 
-exports.down = (knexObj: knex) => knexObj.schema.dropTableIfExists('activity');
+exports.down = (knex: Knex) => {
+  return Promise.all([
+    knex.schema.dropTableIfExists('activity'),
+  ]);
+};

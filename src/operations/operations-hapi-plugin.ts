@@ -29,11 +29,26 @@ export default class OperationsHapiPlugin {
         async: this.checkScreenshotsHandler.bind(this),
       },
     });
+    server.route({
+      method: 'GET',
+      path: '/check-deployment-activity',
+      handler: {
+        async: this.checkDeploymentActivityHandler.bind(this),
+      },
+    });
     next();
   };
 
   public async checkScreenshotsHandler(request: Hapi.Request, reply: Hapi.IReply) {
     this.operationsModule.assureScreenshotsGenerated();
+    return reply({
+      status: 200,
+      message: 'ok',
+    });
+  }
+
+  public async checkDeploymentActivityHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    this.operationsModule.assureDeploymentActivity();
     return reply({
       status: 200,
       message: 'ok',

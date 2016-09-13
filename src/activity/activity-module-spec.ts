@@ -17,6 +17,7 @@ import {
 
 import ActivityModule, {
   toDbActivity,
+  toMinardActivity,
 } from './activity-module';
 
 import {
@@ -117,6 +118,15 @@ describe('activity-module', () => {
       knex);
     return activityModule;
   }
+
+  describe('toDdbActivity', () => {
+    it('should convert', () => {
+      const activity = activities[0];
+      const dbActivity = toDbActivity(activity);
+      const minardActivity = toMinardActivity(dbActivity);
+      expect(minardActivity.timestamp.isSame(activity.timestamp));
+    });
+  });
 
   describe('getProjectActivity(...)', () => {
     it('should return a single project correcly', async () => {

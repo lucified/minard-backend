@@ -43,7 +43,7 @@ export function toDbActivity(activity: MinardActivity) {
   return Object.assign({}, activity, {
     deployment: JSON.stringify(activity.deployment),
     commit: JSON.stringify(activity.commit),
-    timestamp: activity.timestamp.toDate().getTime(),
+    timestamp: activity.timestamp.valueOf(),
   });
 }
 
@@ -147,7 +147,7 @@ export default class ActivityModule {
       .from('activity')
       .where('teamId', teamId);
     if (until) {
-      select.andWhere('timestamp', '<=', until.toDate().getTime());
+      select.andWhere('timestamp', '<=', until.valueOf());
     }
     select.orderBy('timestamp', 'DESC');
     if (count) {
@@ -161,7 +161,7 @@ export default class ActivityModule {
       .from('activity')
       .where('projectId', projectId);
     if (until) {
-      select.andWhere('timestamp', '<=', until.toDate().getTime());
+      select.andWhere('timestamp', '<=', until.valueOf());
     }
     select.orderBy('timestamp', 'DESC');
     if (count) {

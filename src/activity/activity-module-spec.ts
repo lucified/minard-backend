@@ -244,7 +244,6 @@ describe('activity-module', () => {
     });
   });
 
-
   describe('subscribeForFailedDeployments', () => {
 
     const projectId = 5;

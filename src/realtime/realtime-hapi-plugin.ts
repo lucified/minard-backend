@@ -1,21 +1,24 @@
 
-import { Observable, Subscription } from '@reactivex/rxjs';
+import { Observable } from '@reactivex/rxjs';
 import { inject, injectable } from 'inversify';
-import { Readable } from 'stream';
 
 import * as Hapi from 'hapi';
 import * as Joi from 'joi';
 
-import { JsonApiHapiPlugin } from '../json-api';
+import { ApiProject, JsonApiHapiPlugin } from '../json-api';
 import { HapiRegister } from '../server/hapi-register';
 import * as logger from '../shared/logger';
+import { ObservableWrapper } from './observable-wrapper';
 
 import {
   ProjectCreatedEvent,
+  ProjectDeletedEvent,
+  ProjectEditedEvent,
   projectCreated,
+  projectDeleted,
+  projectEdited,
 } from '../project';
 
-import { AuthenticationModule } from '../authentication';
 import { EventBus, eventBusInjectSymbol } from '../event-bus/';
 import { Event, isType } from '../shared/events';
 
@@ -24,18 +27,16 @@ export class RealtimeHapiPlugin {
 
   public static injectSymbol = Symbol('realtime-plugin');
   private jsonApiPlugin: JsonApiHapiPlugin;
-  private authenticationModule: AuthenticationModule;
   private eventBus: EventBus;
-  private stream: Observable<Event<any>>;
+  public readonly stream: Observable<Event<any>>;
 
   private readonly logger: logger.Logger;
 
   constructor(
     @inject(JsonApiHapiPlugin.injectSymbol) jsonApiPlugin: JsonApiHapiPlugin,
-    @inject(AuthenticationModule.injectSymbol) authenticationModule: AuthenticationModule,
     @inject(eventBusInjectSymbol) eventBus: EventBus,
     @inject(logger.loggerInjectSymbol) logger: logger.Logger) {
-    this.authenticationModule = authenticationModule;
+
     this.eventBus = eventBus;
     this.logger = logger;
     this.jsonApiPlugin = jsonApiPlugin;
@@ -52,9 +53,14 @@ export class RealtimeHapiPlugin {
 
   private transform(bus: EventBus): Observable<any> {
     return bus.flatMap(event => {
-      console.log(event.type);
       if (isType<ProjectCreatedEvent>(event, projectCreated)) {
         return this.projectCreated(event);
+      }
+      if (isType<ProjectEditedEvent>(event, projectEdited)) {
+        return this.projectEdited(event);
+      }
+      if (isType<ProjectDeletedEvent>(event, projectDeleted)) {
+        return this.projectDeleted(event);
       }
       return Observable.of(event);
     }, 1);
@@ -69,7 +75,20 @@ export class RealtimeHapiPlugin {
   }
 
   private async projectCreated(event: Event<ProjectCreatedEvent>) {
-    const payload = await this.jsonApiPlugin.getEntity('project', api => api.getProject(event.payload.projectId));
+    const payload: ApiProject = await this.jsonApiPlugin
+      .getEntity('project', api => api.getProject(event.payload.projectId));
+    return this.richify(event, payload);
+  }
+
+  private async projectEdited(event: Event<ProjectEditedEvent>) {
+    const payload: ApiProject = await this.jsonApiPlugin
+      .getEntity('project', api => api.getProject(event.payload.projectId));
+    return this.richify(event, payload);
+  }
+
+  private async projectDeleted(event: Event<ProjectDeletedEvent>) {
+    const payload: ApiProject = await this.jsonApiPlugin
+      .getEntity('project', api => api.getProject(event.payload.projectId));
     return this.richify(event, payload);
   }
 
@@ -131,64 +150,4 @@ export class RealtimeHapiPlugin {
     }
   }
 
-}
-
-class ObservableWrapper extends Readable {
-  private readonly stream: Observable<Event<any>>;
-  private subscription: Subscription;
-
-  constructor(stream: Observable<Event<any>>) {
-    super();
-    this.stream = stream;
-
-    this.on('end', () => this.subscription && this.subscription.unsubscribe());
-    this.on('error', (err: any) => console.log(err));
-  }
-
-  private sseEvent(event: Event<any>) {
-    return this.stringifyEvent({
-      id: 1,
-      event: event.type,
-      data: event.payload,
-    });
-  }
-
-  private subscribe() {
-    if (!this.subscription) {
-      // Every time there's data, push it into the internal buffer.
-      this.subscription = this.stream
-        .map(this.sseEvent.bind(this))
-        .subscribe(
-          event => this.push(event),
-          error => { throw error; },
-          () => this.push(null)
-        );
-    }
-  }
-  // _read will be called when the stream wants to pull more data in
-  // the advisory size argument is ignored in this case.
-  public _read(size: any) {
-    this.subscribe();
-  }
-
-  // https://github.com/mtharrison/susie/blob/master/lib/utils.js
-  private stringifyEvent(event: any) {
-    let str = '';
-    const endl = '\r\n';
-    for (const i in event) {
-      if (event.hasOwnProperty(i)) {
-        let val = event[i];
-        if (val instanceof Buffer) {
-          val = val.toString();
-        }
-        if (typeof val === 'object') {
-          val = JSON.stringify(val);
-        }
-        str += i + ': ' + val + endl;
-      }
-    }
-    str += endl;
-
-    return str;
-  }
 }

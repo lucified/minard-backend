@@ -350,6 +350,7 @@ export default class ProjectModule {
       this.logger.error('Unexpected response from Gitlab when creating project: project path is incorrect', project);
       throw Boom.badImplementation();
     }
+    await this.assureProjectHookRegistered(project.id);
     return project;
   }
 

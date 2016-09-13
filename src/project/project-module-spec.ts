@@ -916,6 +916,12 @@ describe('project-module', () => {
         .toPromise();
       const projectModule = arrangeProjectModule(201, { id: projectId, path }, bus);
 
+      const projectHookPromise = new Promise((resolve, reject) => {
+        projectModule.assureProjectHookRegistered = async (_projectId: number) => {
+          resolve(_projectId);
+        };
+      });
+
       // Act
       const id = await projectModule.createProject(teamId, name, description);
       const payload = await promise;
@@ -926,6 +932,7 @@ describe('project-module', () => {
       expect(payload.projectId).to.equal(projectId);
       expect(payload.teamId).to.equal(teamId);
       expect(payload.name).to.equal(name);
+      expect(await projectHookPromise).to.equal(projectId);
     });
 
     it('should throw server error when gitlab response status is not 201', async () => {

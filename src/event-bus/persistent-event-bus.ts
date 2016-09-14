@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify';
 
-import { Event } from '../shared/events';
+import { Event, SSEEvent, isSSE } from '../shared/events';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
 import { default as LocalEventBus } from './local-event-bus';
 
@@ -30,13 +30,13 @@ export class PersistentEventBus extends LocalEventBus  {
   }
 
   private _publish(event: Event<any>, callback: (err?: any) => void) {
-    // this.logger.debug('Publishing %s', event.type);
     this.stream.next(event);
     callback();
   }
 
+
   public async post(event: Event<any>) {
-    if (!event.teamId) {
+    if (!isSSE(event)) { // only persist SSE events
       this.stream.next(event);
       return false;
     }
@@ -45,27 +45,29 @@ export class PersistentEventBus extends LocalEventBus  {
         await this.eventStore.init();
       }
       const stream = await this.eventStore.getLastEventAsStream({
-        aggregateId: event.teamId,
+        aggregateId: String(event.teamId),
       });
       stream.addEvent(event);
       await stream.commit();
       return true;
     } catch (err) {
       this.logger.error('Unable to post event', err);
+      throw err;
     }
-
-    return false;
   }
 
-  public async getEvents(teamId: string, since: number = 0): Promise<Event<any>[]> {
-    const stream = await this.eventStore.getEventStream(teamId, since, -1);
+  public async getEvents(teamId: number, since: number = 0): Promise<SSEEvent<any>[]> {
+    if (!this.isEventStoreReady) {
+      await this.eventStore.init();
+    }
+    const stream = await this.eventStore.getEventStream(String(teamId), since, -1);
     if (!stream) {
       throw new Error(`No event\'s for team ${teamId}`);
     }
     if (!stream.events) {
       return [];
     }
-    const events = stream.events as Event<any>[];
+    const events = stream.events as SSEEvent<any>[];
     return events.map((event: any, i: number) => {
       event.payload.streamRevision = since + i;
       return event.payload;

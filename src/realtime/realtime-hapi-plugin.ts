@@ -20,7 +20,7 @@ import {
 } from '../project';
 
 import { PersistentEventBus, eventBusInjectSymbol } from '../event-bus/';
-import { Event, isType } from '../shared/events';
+import {  Event, SSEEvent, isSSE, isType } from '../shared/events';
 
 @injectable()
 export class RealtimeHapiPlugin {
@@ -28,7 +28,7 @@ export class RealtimeHapiPlugin {
   public static injectSymbol = Symbol('realtime-plugin');
   private jsonApiPlugin: JsonApiHapiPlugin;
   private eventBus: PersistentEventBus;
-  public readonly stream: Observable<Event<any>>;
+  public readonly sseEvents: Observable<SSEEvent<any>>;
 
   private readonly logger: logger.Logger;
 
@@ -40,7 +40,10 @@ export class RealtimeHapiPlugin {
     this.eventBus = eventBus;
     this.logger = logger;
     this.jsonApiPlugin = jsonApiPlugin;
-    this.stream = this.eventBus.getStream().share();
+    this.sseEvents = this.eventBus.getStream()
+      .filter(isSSE)
+      .map(event => <SSEEvent<any>> event)
+      .share();
 
     this.register = Object.assign(this._register.bind(this), {
       attributes: {
@@ -85,19 +88,25 @@ export class RealtimeHapiPlugin {
 
   public readonly register: HapiRegister;
 
-  private postHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    this.eventBus.post(request.payload);
-    reply(200);
+  private async postHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    try {
+      const isPersisted = await this.eventBus.post(request.payload);
+      reply(JSON.stringify(request.payload, null, 2))
+        .code(isPersisted ? 500 : 200);
+
+    } catch (err) {
+      this.logger.error('Error:', err);
+      reply(err);
+    }
   }
 
   private async requestHandler(request: Hapi.Request, reply: Hapi.IReply) {
     try {
-      const teamId = request.paramsArray[0];
-
+      const teamId = parseInt(request.paramsArray[0], 10);
       const sinceKey = 'last-event-id';
-      let observable = this.stream;
+      let observable = this.sseEvents.filter(event => event.teamId === teamId);
       if (request.headers[sinceKey]) {
-        const since =  parseInt(request.headers[sinceKey], 10);
+        const since = parseInt(request.headers[sinceKey], 10);
         const existing = await this.eventBus.getEvents(teamId, since);
         observable = Observable.concat(Observable.from(existing), observable);
       }

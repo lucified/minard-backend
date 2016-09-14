@@ -8,10 +8,15 @@ export interface Event<T extends EventPayload> {
   readonly type: string;
   readonly created: moment.Moment;
   readonly payload: T;
-  teamId?: string;
-  id?: string;
-  streamRevision?: string;
+  teamId?: number;
 }
+
+export interface SSEEvent<T extends EventPayload> extends Event<T> {
+  teamId: number;
+  id: string;
+  streamRevision: string;
+}
+
 
 export interface EventCreator<T extends EventPayload> {
   readonly type: string;
@@ -19,7 +24,7 @@ export interface EventCreator<T extends EventPayload> {
 }
 
 function copyIds(event: Event<any>) {
-  if (event.payload.teamId) {
+  if (typeof event.payload.teamId === 'number') {
     event.teamId = event.payload.teamId;
   }
 }
@@ -47,5 +52,10 @@ export const eventCreator =
   return ret as EventCreator<T>;
 };
 
-export const isType = <T>(event: Event<any>, creator: EventCreator<T>):
-  event is Event<T> => event.type === creator.type;
+export function isType<T>(event: Event<any>, creator: EventCreator<T>): event is Event<T> {
+  return event.type === creator.type;
+}
+
+export function isSSE<T>(event: Event<T>): event is SSEEvent<T> {
+  return event.type.substr(0, 4) === 'SSE_' && typeof event.teamId === 'number';
+}

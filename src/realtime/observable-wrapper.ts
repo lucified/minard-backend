@@ -1,13 +1,13 @@
 import { Observable, Subscription } from '@reactivex/rxjs';
 import { Readable } from 'stream';
 
-import { Event } from '../shared/events';
+import { SSEEvent } from '../shared/events';
 
 export class ObservableWrapper extends Readable {
-  private readonly stream: Observable<Event<any>>;
+  private readonly stream: Observable<SSEEvent<any>>;
   private subscription: Subscription;
 
-  constructor(stream: Observable<Event<any>>) {
+  constructor(stream: Observable<SSEEvent<any>>) {
     super();
     this.stream = stream;
 
@@ -15,7 +15,7 @@ export class ObservableWrapper extends Readable {
     this.on('error', (err: any) => { throw err; });
   }
 
-  private sseEvent(event: Event<any>) {
+  private sseEvent(event: SSEEvent<any>) {
     return this.stringifyEvent({
       id: event.streamRevision,
       event: event.type,

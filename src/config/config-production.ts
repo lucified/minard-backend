@@ -128,7 +128,8 @@ function getKnex(dbName: string) {
     pool: {
       min: 2,
       max: 10,
-      bailAfter: 10 * 60 * 1000,
+      bailAfter: Infinity,
+      acquireTimeout: 5 * 1000,
     } as any,
   });
 }

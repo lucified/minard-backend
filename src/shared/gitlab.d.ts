@@ -21,6 +21,7 @@ interface Commit {
   // http://docs.gitlab.com/ce/api/branches.html
   committer_email?: string;
   committer_name?: string;
+  parent_ids: string[];
 }
 
 export type DeploymentStatus = 'running' | 'success' | 'failed' | 'canceled' | 'extracted';

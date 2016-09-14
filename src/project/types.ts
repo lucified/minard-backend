@@ -22,6 +22,7 @@ export interface CodePushedEvent {
   ref: string;
   before: MinardCommit | null;
   after: MinardCommit | null;
+  parents: (MinardCommit | null)[] | null;
   commits: (MinardCommit | null)[];
 }
 
@@ -66,6 +67,7 @@ export interface MinardCommit {
   message: string;
   author: MinardCommitAuthor;
   committer: MinardCommitAuthor;
+  parentIds?: string[];
 }
 
 export interface MinardBranch {

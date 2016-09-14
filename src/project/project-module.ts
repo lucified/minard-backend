@@ -78,6 +78,7 @@ export default class ProjectModule {
        name: gitlabCommit.committer_name || gitlabCommit.author_name,
        timestamp: gitlabCommit.committed_date || gitlabCommit.created_at,
       },
+      parentIds: gitlabCommit.parent_ids,
     };
   }
 
@@ -304,12 +305,15 @@ export default class ProjectModule {
       payload.before ? this.getCommit(projectId, payload.before) : Promise.resolve(undefined),
       Promise.all(payload.commits.map(commit => this.getCommit(projectId, commit.id))),
     ]);
+    const parents = commits[0] && commits[0]!.parentIds ?
+      await Promise.all(commits[0]!.parentIds!.map(id => this.getCommit(projectId, id))) : null;
 
     const event: CodePushedEvent = {
       projectId: payload.project_id,
       ref,
       after,
       before,
+      parents,
       commits,
     };
     this.logger.info(`Received code push`, { payload, event });

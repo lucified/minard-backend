@@ -196,6 +196,7 @@ describe('project-module', () => {
       expect(commit.committer.email).to.equal('foobar@gmail.com');
       expect(commit.committer.name).to.equal('fooman');
       expect(commit.committer.timestamp).to.equal('2012-09-20T09:09:12+03:00');
+      expect(commit.parentIds).to.deep.equal(gitlabCommit.parent_ids);
     });
   });
 
@@ -1501,6 +1502,12 @@ describe('project-module', () => {
 
       projectModule.getCommit = async (_projectId: number, sha: string) => {
         expect(_projectId).to.equal(gitlabPayload.project_id);
+        if (sha === 'first-commit-hash') {
+          return {
+            id: sha,
+            parentIds: ['first-parent-hash', 'second-parent-hash'],
+          };
+        }
         return {
           id: sha,
         };
@@ -1522,6 +1529,9 @@ describe('project-module', () => {
       expect(event.before!.id).to.equal(gitlabPayload.before);
       expect(event.commits[0]!.id).to.equal(gitlabPayload.commits[0].id);
       expect(event.commits[1]!.id).to.equal(gitlabPayload.commits[1].id);
+      expect(event.parents).to.have.length(2);
+      expect(event.parents![0]!.id).to.equal('first-parent-hash');
+      expect(event.parents![1]!.id).to.equal('second-parent-hash');
     });
 
   });

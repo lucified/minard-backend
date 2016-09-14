@@ -75,7 +75,6 @@ describe('event-bus', () => {
     expect(event.type).to.equal(TEST_EVENT_TYPE);
     expect(event.payload.status).to.equal('bar');
 
-
   });
 
   it('should allow filtering by multiple types', async () => {

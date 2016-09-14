@@ -4,7 +4,6 @@ import { injectable } from 'inversify';
 import { Event } from '../shared/events';
 import { EventBus } from './';
 
-
 @injectable()
 export default class LocalEventBus implements EventBus {
 

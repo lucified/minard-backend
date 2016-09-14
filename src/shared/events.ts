@@ -17,7 +17,6 @@ export interface SSEEvent<T extends EventPayload> extends Event<T> {
   streamRevision: string;
 }
 
-
 export interface EventCreator<T extends EventPayload> {
   readonly type: string;
   (payload: T, callback?: (event: Event<T>) => Event<T>): Event<T>;

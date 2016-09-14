@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import * as moment from 'moment';
 import 'reflect-metadata';
 
-import { SSEEvent, eventCreator, isSSE } from '../shared/events';
+import { SSEEvent, eventCreator } from '../shared/events';
 import { default as logger } from '../shared/logger';
 import { PersistentEventBus as EventBus } from './persistent-event-bus';
 
@@ -27,8 +27,6 @@ const testEventCreator = eventCreator<Payload>(TEST_EVENT_TYPE);
 
 const ANOTHER_TEST_EVENT_TYPE = 'ANOTHER_TEST_EVENT_TYPE';
 const anotherTestEventCreator = eventCreator<AnotherPayload>(ANOTHER_TEST_EVENT_TYPE);
-
-
 
 function getEventBus() {
   return new EventBus(logger(undefined, false, true));

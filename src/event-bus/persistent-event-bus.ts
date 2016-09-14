@@ -2,24 +2,26 @@ import { inject, injectable } from 'inversify';
 
 import { Event } from '../shared/events';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
-import { LocalEventBus, eventStoreConfigInjectSymbol } from './';
+import { default as LocalEventBus } from './local-event-bus';
 
 import { promisify } from '../shared/promisify';
 
 const eventStoreConstructor = require('eventstore');
+export const eventStoreConfigInjectSymbol = Symbol('event-store-config');
 
 @injectable()
-export default class PersistentEventBus extends LocalEventBus  {
+export class PersistentEventBus extends LocalEventBus  {
 
   private isEventStoreReady = false;
   private eventStore: any;
   private logger: Logger;
 
   constructor(
-    @inject(loggerInjectSymbol) logger: Logger) {
+    @inject(loggerInjectSymbol) logger: Logger,
+    @inject(eventStoreConfigInjectSymbol) eventStoreConfig?: any) {
     super();
     this.logger = logger;
-    this.eventStore = promisifyEventStore(eventStoreConstructor());
+    this.eventStore = promisifyEventStore(eventStoreConstructor(eventStoreConfig));
     this.eventStore.useEventPublisher(this._publish.bind(this));
     this.eventStore.defineEventMappings({
       id: 'id',

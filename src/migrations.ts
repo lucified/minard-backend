@@ -33,7 +33,7 @@ export default class Migrations {
   private async runMigrations() {
     this.logger.info('Running migrations');
     const config = {
-      directory: 'dist/activity/migrations',
+      directory: 'migrations/activity',
       tableName: 'knex_migrations_activity',
     };
     await this.charlesKnex.migrate.latest(config);

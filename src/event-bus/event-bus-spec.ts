@@ -10,6 +10,7 @@ import EventBus from './local-event-bus';
 interface Payload {
   readonly status: 'bar';
   readonly foo?: string;
+  readonly teamId?: string;
 }
 interface AnotherPayload {
   readonly status: 'foo';
@@ -26,6 +27,18 @@ describe('event-creator', () => {
     const testEvent = testEventCreator({ status: 'bar', foo: 'foo' });
     expect(testEvent.type).to.equal(TEST_EVENT_TYPE);
   });
+  it('created event has timestamp', () => {
+    const testEvent = testEventCreator({ status: 'bar', foo: 'foo' });
+    expect(testEvent.created).to.exist;
+  });
+  it('created event has teamId if payload has teamId', () => {
+    let testEvent = testEventCreator({ status: 'bar', foo: 'foo' });
+    expect(testEvent.teamId).to.not.exist;
+    const teamId = 'baz';
+    testEvent = testEventCreator({ status: 'bar', foo: 'foo', teamId });
+    expect(testEvent.teamId).to.equal(teamId);
+  });
+
 });
 
 describe('event-bus', () => {

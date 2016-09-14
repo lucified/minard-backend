@@ -9,7 +9,6 @@ export interface Event<T extends EventPayload> {
   readonly created: moment.Moment;
   readonly payload: T;
   teamId?: string;
-  projectId?: string;
 }
 
 export interface EventCreator<T extends EventPayload> {
@@ -20,9 +19,6 @@ export interface EventCreator<T extends EventPayload> {
 function copyIds(event: Event<any>) {
   if (event.payload.teamId) {
     event.teamId = event.payload.teamId;
-  }
-  if (event.payload.projectId) {
-    event.projectId = event.payload.projectId;
   }
 }
 

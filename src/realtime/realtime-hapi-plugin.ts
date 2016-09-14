@@ -52,7 +52,12 @@ export class RealtimeHapiPlugin {
       },
     });
 
+    // creates SSEEvents and posts them
+    this.enrich(eventBus.getStream())
+      .flatMap(eventBus.post.bind(eventBus))
+      .subscribe();
   }
+
   private _register(server: Hapi.Server, _options: Hapi.IServerOptions, next: () => void) {
 
     server.route({
@@ -123,6 +128,37 @@ export class RealtimeHapiPlugin {
     } catch (err) {
       this.logger.error('Error handling a SSE request', err);
     }
+  }
+
+  private enrich(stream: Observable<Event<any>>) {
+    return stream
+      .flatMap(event => {
+        if (isType<ProjectCreatedEvent>(event, projectCreated)) {
+          return this.projectCreated(event);
+        }
+        if (
+          isType<ProjectEditedEvent>(event, projectEdited) ||
+          isType<ProjectDeletedEvent>(event, projectDeleted)) {
+          return Observable.of(this.toSSE(event, event.payload));
+        }
+        return Observable.empty<Event<any>>();
+      }, 3);
+  }
+
+  private async projectCreated(event: Event<ProjectCreatedEvent>) {
+    const payload: ApiProject = await this.jsonApiPlugin
+      .getEntity('project', api => api.getProject(event.payload.projectId));
+    return this.toSSE(event, payload);
+  }
+
+  private toSSE<T>(event: Event<any>, payload: T): Event<T> {
+    if (!event.teamId) {
+      throw Error('Tried to convert an incompatible event to an SSEEvent');
+    }
+    return Object.assign({}, event, {
+      type: 'SSE_' + event.type,
+      payload,
+    });
   }
 
 }

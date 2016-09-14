@@ -1,9 +1,7 @@
 
-import { Kernel, interfaces } from 'inversify';
-import * as winston from 'winston';
+import { interfaces } from 'inversify';
 
 import { goodOptionsInjectSymbol } from '../server';
-import Logger, { loggerInjectSymbol } from '../shared/logger';
 import productionConfig from './config-production';
 import { FilterStream } from './utils';
 
@@ -39,22 +37,8 @@ const goodOptions = {
   },
 };
 
-const winstonOptions = {
-  transports: [
-    new winston.transports.Console({
-      level: 'debug',
-      colorize: true,
-      timestamp: true,
-      prettyPrint: true,
-      silent: false,
-    }),
-  ],
-};
-
 export default (kernel: interfaces.Kernel) => {
   productionConfig(kernel);
   kernel.unbind(goodOptionsInjectSymbol);
   kernel.bind(goodOptionsInjectSymbol).toConstantValue(goodOptions);
-  kernel.unbind(loggerInjectSymbol);
-  kernel.bind(loggerInjectSymbol).toConstantValue(Logger(winstonOptions));
 };

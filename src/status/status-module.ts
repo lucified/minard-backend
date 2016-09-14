@@ -136,7 +136,7 @@ export default class StatusModule {
 
   public async getPostgreSqlStatus() {
     try {
-      const privateKey = this.authentication.getPrivateAuthenticationToken(1);
+      const privateKey = await this.authentication.getPrivateAuthenticationToken(1);
       if (!privateKey) {
         return {
           status: 'error',

@@ -3,6 +3,7 @@ import { inject, injectable } from 'inversify';
 import * as Knex from 'knex';
 
 import { Logger, loggerInjectSymbol } from './shared/logger';
+import { sleep } from './shared/sleep';
 
 @injectable()
 export default class Migrations {
@@ -26,18 +27,35 @@ export default class Migrations {
   }
 
   public async prepareDatabase() {
-    await this.createCharlesDatabase();
+    this.logger.info('Preparing charles database');
+    await this.assureDatabaseCreated();
     await this.runMigrations();
   }
 
   private async runMigrations() {
     this.logger.info('Running migrations');
     const config = {
-      directory: 'dist/activity/migrations',
+      directory: 'migrations/activity',
       tableName: 'knex_migrations_activity',
     };
     await this.charlesKnex.migrate.latest(config);
     this.logger.info('Migrations finished');
+  }
+
+  private async assureDatabaseCreated() {
+    let success = false;
+    while (!success) {
+      try {
+        await this.createCharlesDatabase();
+        success = true;
+      } catch (err) {
+        this.logger.info(
+          `Failed to assure that charles database exists. ` +
+          `Postgres is probably not (yet) running. ` +
+          `Waiting for 2 seconds. Message was: ${err.message}`);
+        await sleep(2000);
+      }
+    }
   }
 
   private async createCharlesDatabase() {
@@ -48,7 +66,6 @@ export default class Migrations {
       if (err.message.indexOf('already exists') !== -1) {
         this.logger.info(`Database "${this.charlesDbName}" did already exist`);
       } else {
-        this.logger.error(err.message);
         throw err;
       }
     }

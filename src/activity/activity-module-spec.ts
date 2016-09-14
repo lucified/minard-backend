@@ -39,7 +39,7 @@ describe('activity-module', () => {
       useNullAsDefault: true,
     });
     await knex.migrate.latest({
-      directory: 'dist/activity/migrations',
+      directory: 'migrations/activity',
     });
     return knex;
   }

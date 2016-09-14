@@ -9,6 +9,8 @@ export interface Event<T extends EventPayload> {
   readonly created: moment.Moment;
   readonly payload: T;
   teamId?: string;
+  id?: string;
+  streamRevision?: string;
 }
 
 export interface EventCreator<T extends EventPayload> {

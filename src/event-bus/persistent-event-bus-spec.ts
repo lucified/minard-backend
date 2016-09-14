@@ -3,26 +3,32 @@ import { expect } from 'chai';
 import * as moment from 'moment';
 import 'reflect-metadata';
 
-import { eventCreator } from '../shared/events';
+import { SSEEvent, eventCreator, isSSE } from '../shared/events';
 import { default as logger } from '../shared/logger';
-import EventBus from './persistent-event-bus';
+import { PersistentEventBus as EventBus } from './persistent-event-bus';
 
 // Events boilerplate includes payload types, string identifiers and smart constructors
 interface Payload {
   readonly status: 'bar';
   readonly foo?: string;
-  readonly teamId?: string;
-  readonly projectId?: string;
+  readonly teamId?: number;
+  readonly projectId?: number;
 }
 interface AnotherPayload {
   readonly status: 'foo';
   readonly bar: string;
 }
+
+const SSE_EVENT_TYPE = 'SSE_EVENT_TYPE';
+const sseEventCreator = eventCreator<Payload>(SSE_EVENT_TYPE);
+
 const TEST_EVENT_TYPE = 'TEST_EVENT_TYPE';
 const testEventCreator = eventCreator<Payload>(TEST_EVENT_TYPE);
 
 const ANOTHER_TEST_EVENT_TYPE = 'ANOTHER_TEST_EVENT_TYPE';
 const anotherTestEventCreator = eventCreator<AnotherPayload>(ANOTHER_TEST_EVENT_TYPE);
+
+
 
 function getEventBus() {
   return new EventBus(logger(undefined, false, true));
@@ -44,28 +50,29 @@ describe('persistent-event-bus', () => {
     expect(event.type).to.equal(testEventCreator.type); // the constructor has a reference to the type
   });
 
-  it('should work with an event that has teamId', async () => {
+  it('should work with an sse event that has teamId', async () => {
     const bus = getEventBus();
     const promise = bus
       .getStream()
       .take(1)
       .toPromise();
 
-    const isPersisted = await bus.post(testEventCreator({ status: 'bar', teamId: 'foo' }));
+    const isPersisted = await bus.post(sseEventCreator({ status: 'bar', teamId: 23234 }));
     const event = await promise;
     expect(isPersisted).to.be.true;
-    expect(event.type).to.equal(TEST_EVENT_TYPE);
-    expect(event.type).to.equal(testEventCreator.type); // the constructor has a reference to the type
+    expect(event.type).to.equal(SSE_EVENT_TYPE);
+    expect(event.type).to.equal(sseEventCreator.type); // the constructor has a reference to the type
   });
 
-  it('should add id and streamRevision when to an event when persisted', async () => {
+  it('should add id and streamRevision to an sse event', async () => {
     const bus = getEventBus();
     const promise = bus
       .getStream()
+      .map(event => <SSEEvent<any>> event)
       .take(1)
       .toPromise();
 
-    await bus.post(testEventCreator({ status: 'bar', teamId: 'foo' }));
+    await bus.post(sseEventCreator({ status: 'bar', teamId: 23234 }));
     const event = await promise;
     expect(event.id).to.be.exist;
     expect(event.streamRevision).to.eql(0);
@@ -75,12 +82,13 @@ describe('persistent-event-bus', () => {
     const bus = getEventBus();
     const promise = bus
       .getStream()
+      .map(event => <SSEEvent<any>> event)
       .take(2)
       .toArray()
       .toPromise();
 
-    await bus.post(testEventCreator({ status: 'bar', teamId: 'foo' }));
-    await bus.post(testEventCreator({ status: 'bar', foo: 'baz', teamId: 'foo' }));
+    await bus.post(sseEventCreator({ status: 'bar', teamId: 23234 }));
+    await bus.post(sseEventCreator({ status: 'bar', foo: 'baz', teamId: 23234 }));
     const events = await promise;
     expect(events[0].streamRevision).to.eql(0);
     expect(events[1].streamRevision).to.eql(1);
@@ -90,12 +98,13 @@ describe('persistent-event-bus', () => {
     const bus = getEventBus();
     const promise = bus
       .getStream()
+      .map(event => <SSEEvent<any>> event)
       .take(2)
       .toArray()
       .toPromise();
 
-    await bus.post(testEventCreator({ status: 'bar', teamId: 'foo', projectId: 'foo' }));
-    await bus.post(testEventCreator({ status: 'bar', foo: 'baz', teamId: 'foo', projectId: 'bar' }));
+    await bus.post(sseEventCreator({ status: 'bar', teamId: 23234, projectId: 34534 }));
+    await bus.post(sseEventCreator({ status: 'bar', foo: 'baz', teamId: 23234, projectId: 2 }));
     const events = await promise;
     expect(events[0].streamRevision).to.eql(0);
     expect(events[1].streamRevision).to.eql(1);
@@ -105,12 +114,13 @@ describe('persistent-event-bus', () => {
     const bus = getEventBus();
     const promise = bus
       .getStream()
+      .map(event => <SSEEvent<any>> event)
       .take(2)
       .toArray()
       .toPromise();
 
-    await bus.post(testEventCreator({ status: 'bar', teamId: 'fooo' }));
-    await bus.post(testEventCreator({ status: 'bar', foo: 'baz', teamId: 'foo' }));
+    await bus.post(sseEventCreator({ status: 'bar', teamId: 2 }));
+    await bus.post(sseEventCreator({ status: 'bar', foo: 'baz', teamId: 23234 }));
     const events = await promise;
     expect(events[0].streamRevision).to.eql(0);
     expect(events[1].streamRevision).to.eql(0);
@@ -118,11 +128,12 @@ describe('persistent-event-bus', () => {
 
   it('allows fetching by teamId', async () => {
     const bus = getEventBus();
-    const teamId = 'foo';
+    const teamId = 33423;
 
     const promises = [
-      bus.post(testEventCreator({ status: 'bar', teamId })),
-      bus.post(testEventCreator({ status: 'bar', foo: 'baz', teamId })),
+      bus.post(sseEventCreator({ status: 'bar', teamId })),
+      bus.post(testEventCreator({ status: 'bar', foo: 'foo', teamId })),
+      bus.post(sseEventCreator({ status: 'bar', foo: 'baz', teamId })),
     ];
     await Promise.all(promises);
 
@@ -136,11 +147,12 @@ describe('persistent-event-bus', () => {
 
   it('allows fetching by teamId and since', async () => {
     const bus = getEventBus();
-    const teamId = 'foo';
+    const teamId = 2342;
 
     const promises = [
-      bus.post(testEventCreator({ status: 'bar', teamId })),
-      bus.post(testEventCreator({ status: 'bar', foo: 'baz', teamId })),
+      bus.post(sseEventCreator({ status: 'bar', teamId })),
+      bus.post(testEventCreator({ status: 'bar', foo: 'foo', teamId })),
+      bus.post(sseEventCreator({ status: 'bar', foo: 'baz', teamId })),
     ];
     await Promise.all(promises);
 
@@ -150,7 +162,6 @@ describe('persistent-event-bus', () => {
     expect(events[0].payload.foo).to.eql('baz');
 
    });
-
 
   it('should allow filtering by types', async () => {
     const bus = getEventBus();
@@ -165,7 +176,6 @@ describe('persistent-event-bus', () => {
 
     expect(event.type).to.equal(TEST_EVENT_TYPE);
     expect(event.payload.status).to.equal('bar');
-
 
   });
 

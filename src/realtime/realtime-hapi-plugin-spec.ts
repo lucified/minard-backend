@@ -4,7 +4,6 @@ import 'reflect-metadata';
 
 import { PersistentEventBus } from '../event-bus';
 import { ApiProject, JsonApiHapiPlugin } from '../json-api';
-import { isType } from '../shared/events';
 import logger from '../shared/logger';
 import { RealtimeHapiPlugin } from './realtime-hapi-plugin';
 
@@ -61,23 +60,28 @@ describe('realtime-hapi-plugin', () => {
         });
         const eventBus = getEventBus();
         const plugin = getPlugin(eventBus, mockFactory);
-        const promise = plugin.stream.take(1).toPromise();
+        const promise = plugin.sseEvents.take(1).toPromise();
         // Act
-        eventBus.post(event);
-        return promise;
+        return eventBus.post(event)
+          .then(_ => promise);
 
       });
       const results = await Promise.all(promises);
-      results.forEach((result, i) => {
+      results.forEach((sseEvent, i) => {
+        const constructor = eventConstructors[i];
         // Assert
-        expect(isType(result, eventConstructors[i])).to.be.true;
-        expect(result.payload).to.exist;
+        expect(sseEvent.type).to.eq('SSE_' + constructor.type);
+        expect(sseEvent.teamId).to.eq(teamId);
+        expect(sseEvent.payload).to.exist;
 
-        expect(result.payload.data.type).to.equal('projects');
-        expect(result.payload.data.id).to.equal(String(projectId));
-        expect(result.payload.data.attributes.name).to.equal(name);
-        expect(result.payload.data.attributes.description).to.equal(description);
-
+        if (constructor === projectCreated) {
+          expect(sseEvent.payload.data.type).to.equal('projects');
+          expect(sseEvent.payload.data.id).to.equal(String(projectId));
+          expect(sseEvent.payload.data.attributes.name).to.equal(name);
+          expect(sseEvent.payload.data.attributes.description).to.equal(description);
+        } else {
+          expect(sseEvent.payload.projectId).to.equal(projectId);
+        }
       });
     });
   });

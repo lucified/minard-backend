@@ -19,7 +19,7 @@ import {
   projectEdited,
 } from '../project';
 
-import { EventBus, eventBusInjectSymbol } from '../event-bus/';
+import { PersistentEventBus, eventBusInjectSymbol } from '../event-bus/';
 import { Event, isType } from '../shared/events';
 
 @injectable()
@@ -27,20 +27,20 @@ export class RealtimeHapiPlugin {
 
   public static injectSymbol = Symbol('realtime-plugin');
   private jsonApiPlugin: JsonApiHapiPlugin;
-  private eventBus: EventBus;
+  private eventBus: PersistentEventBus;
   public readonly stream: Observable<Event<any>>;
 
   private readonly logger: logger.Logger;
 
   constructor(
     @inject(JsonApiHapiPlugin.injectSymbol) jsonApiPlugin: JsonApiHapiPlugin,
-    @inject(eventBusInjectSymbol) eventBus: EventBus,
+    @inject(eventBusInjectSymbol) eventBus: PersistentEventBus,
     @inject(logger.loggerInjectSymbol) logger: logger.Logger) {
 
     this.eventBus = eventBus;
     this.logger = logger;
     this.jsonApiPlugin = jsonApiPlugin;
-    this.stream = this.transform(eventBus).share();
+    this.stream = this.eventBus.getStream().share();
 
     this.register = Object.assign(this._register.bind(this), {
       attributes: {
@@ -50,30 +50,6 @@ export class RealtimeHapiPlugin {
     });
 
   }
-
-  private transform(bus: EventBus): Observable<any> {
-    return bus.getStream().flatMap(event => {
-      if (isType<ProjectCreatedEvent>(event, projectCreated)) {
-        return this.projectCreated(event);
-      }
-      return Observable.of(event);
-    }, 1);
-  }
-
-  private swapPayload<T>(event: Event<any>, payload: T): Event<T> {
-    return {
-      type: event.type,
-      created: event.created,
-      payload,
-    };
-  }
-
-  private async projectCreated(event: Event<ProjectCreatedEvent>) {
-    const payload: ApiProject = await this.jsonApiPlugin
-      .getEntity('project', api => api.getProject(event.payload.projectId));
-    return this.swapPayload(event, payload);
-  }
-
   private _register(server: Hapi.Server, _options: Hapi.IServerOptions, next: () => void) {
 
     server.route({
@@ -114,17 +90,25 @@ export class RealtimeHapiPlugin {
     reply(200);
   }
 
-  private requestHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  private async requestHandler(request: Hapi.Request, reply: Hapi.IReply) {
     try {
-      // TODO const teamId = request.paramsArray[0];
-      const stream = new ObservableWrapper(this.stream);
-      reply(stream)
+      const teamId = request.paramsArray[0];
+
+      const sinceKey = 'last-event-id';
+      let observable = this.stream;
+      if (request.headers[sinceKey]) {
+        const since =  parseInt(request.headers[sinceKey], 10);
+        const existing = await this.eventBus.getEvents(teamId, since);
+        observable = Observable.concat(Observable.from(existing), observable);
+      }
+      const nodeStream = new ObservableWrapper(observable);
+      reply(nodeStream)
         .header('content-type', 'text/event-stream')
         .header('content-encoding', 'identity');
 
       request.once('disconnect', () => {
         // Clean up on disconnect
-        stream.push(null);
+        nodeStream.push(null);
       });
 
     } catch (err) {

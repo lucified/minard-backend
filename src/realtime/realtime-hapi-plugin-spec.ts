@@ -2,10 +2,10 @@
 import { expect } from 'chai';
 import 'reflect-metadata';
 
-import { EventBus, LocalEventBus } from '../event-bus';
+import { PersistentEventBus } from '../event-bus';
 import { ApiProject, JsonApiHapiPlugin } from '../json-api';
 import { isType } from '../shared/events';
-import LoggerConstructor from '../shared/logger';
+import logger from '../shared/logger';
 import { RealtimeHapiPlugin } from './realtime-hapi-plugin';
 
 import {
@@ -14,9 +14,13 @@ import {
   projectEdited,
 } from '../project';
 
-function getPlugin(bus: EventBus, factory: any) {
+function getPlugin(bus: PersistentEventBus, factory: any) {
   const jsonApi = new JsonApiHapiPlugin(factory, baseUrl);
-  return new RealtimeHapiPlugin(jsonApi, bus, LoggerConstructor(undefined, true));
+  return new RealtimeHapiPlugin(jsonApi, bus, logger(undefined, true));
+}
+
+function getEventBus() {
+  return new PersistentEventBus(logger(undefined, false, true));
 }
 
 const baseUrl = 'http://localhost:8000';
@@ -55,7 +59,7 @@ describe('realtime-hapi-plugin', () => {
               repoUrl: 'foo',
           }),
         });
-        const eventBus = new LocalEventBus();
+        const eventBus = getEventBus();
         const plugin = getPlugin(eventBus, mockFactory);
         const promise = plugin.stream.take(1).toPromise();
         // Act

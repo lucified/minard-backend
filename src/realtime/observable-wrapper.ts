@@ -17,7 +17,7 @@ export class ObservableWrapper extends Readable {
 
   private sseEvent(event: Event<any>) {
     return this.stringifyEvent({
-      id: 1,
+      id: event.streamRevision,
       event: event.type,
       data: event.payload,
     });

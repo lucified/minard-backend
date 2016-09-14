@@ -52,21 +52,15 @@ export class RealtimeHapiPlugin {
   }
 
   private transform(bus: EventBus): Observable<any> {
-    return bus.flatMap(event => {
+    return bus.getStream().flatMap(event => {
       if (isType<ProjectCreatedEvent>(event, projectCreated)) {
         return this.projectCreated(event);
-      }
-      if (isType<ProjectEditedEvent>(event, projectEdited)) {
-        return this.projectEdited(event);
-      }
-      if (isType<ProjectDeletedEvent>(event, projectDeleted)) {
-        return this.projectDeleted(event);
       }
       return Observable.of(event);
     }, 1);
   }
 
-  private richify<T>(event: Event<any>, payload: T): Event<T> {
+  private swapPayload<T>(event: Event<any>, payload: T): Event<T> {
     return {
       type: event.type,
       created: event.created,
@@ -77,19 +71,7 @@ export class RealtimeHapiPlugin {
   private async projectCreated(event: Event<ProjectCreatedEvent>) {
     const payload: ApiProject = await this.jsonApiPlugin
       .getEntity('project', api => api.getProject(event.payload.projectId));
-    return this.richify(event, payload);
-  }
-
-  private async projectEdited(event: Event<ProjectEditedEvent>) {
-    const payload: ApiProject = await this.jsonApiPlugin
-      .getEntity('project', api => api.getProject(event.payload.projectId));
-    return this.richify(event, payload);
-  }
-
-  private async projectDeleted(event: Event<ProjectDeletedEvent>) {
-    const payload: ApiProject = await this.jsonApiPlugin
-      .getEntity('project', api => api.getProject(event.payload.projectId));
-    return this.richify(event, payload);
+    return this.swapPayload(event, payload);
   }
 
   private _register(server: Hapi.Server, _options: Hapi.IServerOptions, next: () => void) {

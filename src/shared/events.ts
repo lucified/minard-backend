@@ -1,25 +1,49 @@
 
 import * as moment from 'moment';
 
-export interface Event<T> {
+export interface EventPayload {
+}
+
+export interface Event<T extends EventPayload> {
   readonly type: string;
   readonly created: moment.Moment;
   readonly payload: T;
+  teamId?: string;
+  projectId?: string;
 }
 
-export interface EventCreator<T> {
+export interface EventCreator<T extends EventPayload> {
   readonly type: string;
-  (payload: T): Event<T>;
+  (payload: T, callback?: (event: Event<T>) => Event<T>): Event<T>;
+}
+
+function copyIds(event: Event<any>) {
+  if (event.payload.teamId) {
+    event.teamId = event.payload.teamId;
+  }
+  if (event.payload.projectId) {
+    event.projectId = event.payload.projectId;
+  }
 }
 
 // Creates a constructor function that carries the type string in the type property
-export const eventCreator = <T>(type: string): EventCreator<T> => {
-  const ret: (payload: T) => Event<T> = (payload: T) => {
-    return {
+export const eventCreator =
+  <T extends EventPayload>(type: string, callback?: (event: Event<T>) => boolean): EventCreator<T> => {
+  const ret = (payload: T) => {
+    const event = {
       type,
       payload,
       created: moment(),
     };
+    let doDefault = true;
+    if (callback) {
+      // The callback can modify the event in place
+      doDefault = callback(event);
+    }
+    if (doDefault) {
+      copyIds(event);
+    }
+    return event;
   };
   (<any> ret).type = type;
   return ret as EventCreator<T>;

@@ -30,37 +30,53 @@ describe('event-creator', () => {
 
 describe('event-bus', () => {
 
-  it('should work with single event', done => {
+  it('should work with single event', async () => {
     const bus = new EventBus();
-    bus
-      .subscribe(event => {
-        expect(event.type).to.equal(TEST_EVENT_TYPE);
-        expect(event.type).to.equal(testEventCreator.type); // the constructor has a reference to the type
-      }, done, done);
-    bus.post(testEventCreator({ status: 'bar' }));
-    bus.complete();
+    const promise = bus
+      .getStream()
+      .take(1)
+      .toPromise();
+
+    const success = await bus.post(testEventCreator({ status: 'bar' }));
+    const event = await promise;
+    expect(success).to.be.true;
+    expect(event.type).to.equal(TEST_EVENT_TYPE);
+    expect(event.type).to.equal(testEventCreator.type); // the constructor has a reference to the type
   });
 
-  it('should allow filtering by types', done => {
+  it('should allow filtering by types', async () => {
     const bus = new EventBus();
-    bus
+    const promise = bus
       .filterEvents<Payload>(TEST_EVENT_TYPE)
-      .subscribe(event => {
-        expect(event.type).to.equal(TEST_EVENT_TYPE);
-        expect(event.payload.status).to.equal('bar');
-      }, done, done);
-    bus.post(testEventCreator({ status: 'bar' }));
-    bus.post({ type: 'fooType', payload: { foo: 'bar' }, created: moment() });
-    bus.complete();
+      .take(1)
+      .toPromise();
+
+    await bus.post({ type: 'fooType', payload: { foo: 'bar' }, created: moment() });
+    await bus.post(testEventCreator({ status: 'bar' }));
+    const event = await promise;
+
+    expect(event.type).to.equal(TEST_EVENT_TYPE);
+    expect(event.payload.status).to.equal('bar');
+
 
   });
 
-  it('should allow filtering by multiple types', (done) => {
+  it('should allow filtering by multiple types', async () => {
     const bus = new EventBus();
     let counter = 0;
-    bus
+    const promise = bus
       .filterEvents<Payload | AnotherPayload>(TEST_EVENT_TYPE, ANOTHER_TEST_EVENT_TYPE)
-      .subscribe(event => {
+      .take(2)
+      .toArray()
+      .toPromise();
+
+    const testEvent = testEventCreator({ status: 'bar', foo: 'foo' });
+    const anotherTestEvent = anotherTestEventCreator({ status: 'foo', bar: 'bar' });
+
+    await Promise.all([bus.post(testEvent), bus.post(anotherTestEvent)]);
+    const events = await promise;
+
+    events.forEach(event => {
         const payload = event.payload;
         // Type narrowing
         switch (payload.status) {
@@ -79,17 +95,8 @@ describe('event-bus', () => {
             throw new Error('Unknown type');
         }
         counter++;
-
-      }, done, () => {
-        expect(counter).to.eq(2);
-        done();
-      });
-    const testEvent = testEventCreator({ status: 'bar', foo: 'foo' });
-    const anotherTestEvent = anotherTestEventCreator({ status: 'foo', bar: 'bar' });
-
-    bus.post(testEvent);
-    bus.post(anotherTestEvent);
-    bus.complete();
+    });
+    expect(counter).to.eq(2);
 
   });
 

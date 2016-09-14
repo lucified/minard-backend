@@ -22,6 +22,10 @@ import {
 import Logger from '../shared/logger';
 import { FilterStream } from './utils';
 
+import {
+  eventStoreConfigInjectSymbol,
+} from '../event-bus';
+
 // Logging configuration
 // ---------------------
 
@@ -141,6 +145,12 @@ const gitlabKnex = getKnex(DB_NAME);
 const charlesKnex = getKnex(CHARLES_DB_NAME);
 const postgresKnex = getKnex('postgres');
 
+// EventStore configuration (https://github.com/adrai/node-eventstore)
+// ----------------------
+const eventStoreConfig = {
+  type: 'memory',
+};
+
 // Filesystem configuration
 // ------------------------
 
@@ -151,6 +161,7 @@ const SCREENSHOT_FOLDER = env.SCREENSHOT_FOLDER ? env.SCREENSHOT_FOLDER : 'gitla
 // -------------------------
 
 export default (kernel: interfaces.Kernel) => {
+  kernel.bind(eventStoreConfigInjectSymbol).toConstantValue(eventStoreConfig);
   kernel.bind(goodOptionsInjectSymbol).toConstantValue(goodOptions);
   kernel.bind(loggerInjectSymbol).toConstantValue(Logger(winstonOptions));
   kernel.bind(hostInjectSymbol).toConstantValue(HOST);

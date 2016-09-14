@@ -1015,20 +1015,18 @@ describe('project-module', () => {
 
     it('should create deleted event when gitlab project deletion is successful', async () => {
       // Arrange
-      let called = false;
       const bus = new LocalEventBus();
-      bus.filterEvents<ProjectDeletedEvent>(PROJECT_DELETED_EVENT_TYPE)
-        .subscribe(event => {
-          expect(event.payload.projectId).to.equal(projectId);
-          called = true;
-        });
+      const promise = bus.filterEvents<ProjectDeletedEvent>(PROJECT_DELETED_EVENT_TYPE)
+        .take(1)
+        .toPromise();
       const projectModule = arrangeProjectModule(200, 'true', bus);
 
       // Act
       await projectModule.deleteProject(projectId);
+      const event = await promise;
 
       // Assert
-      expect(called).to.equal(true);
+      expect(event.payload.projectId).to.equal(projectId);
     });
 
     it('should throw when gitlab responds with invalid status code', async () => {

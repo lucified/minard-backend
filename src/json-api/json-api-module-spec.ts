@@ -343,6 +343,7 @@ describe('json-api-module', () => {
       const minardProject = {
         id: 1,
         latestActivityTimestamp: 'fake-timestamp',
+        repoUrl: 'http://foo-repo/foo/bar.git',
       } as MinardProject;
       const minardDeployment = {
         id: 5,
@@ -380,6 +381,7 @@ describe('json-api-module', () => {
       expect(project.latestSuccessfullyDeployedCommit!.deployments).to.have.length(1);
       expect(project.latestSuccessfullyDeployedCommit!.deployments[0].id)
         .to.equal(`${minardProject.id}-${minardDeployment.id}`);
+      expect(project.repoUrl).to.equal(minardProject.repoUrl);
     });
   });
 

@@ -280,6 +280,7 @@ export class JsonApiModule {
       latestSuccessfullyDeployedCommit,
       activeCommitters: project.activeCommitters,
       description: project.description,
+      repoUrl: project.repoUrl,
     };
   }
 

@@ -106,6 +106,7 @@ const exampleProject = {
       email: 'fooma@barmail.com',
     },
   ],
+  repoUrl: 'http://foo-bar.com/foo/bar.git',
 } as ApiProject;
 
 exampleCommitOne.deployments = [exampleDeploymentOne];
@@ -138,6 +139,7 @@ describe('json-api serialization', () => {
       // attributes
       expect(data.attributes.name).to.equal('example-project');
       expect(data.attributes['latest-activity-timestamp']).to.equal(project.latestActivityTimestamp);
+      expect(data.attributes['repo-url']).to.equal(project.repoUrl);
 
       // branches relationship
       expect(data.relationships).to.exist;
@@ -178,6 +180,7 @@ describe('json-api serialization', () => {
         'latestActivityTimestamp': '2016-09-01T13:12:32.521+05:30',
         'activeCommitters': [],
         'description': 'dsafjdsahfj',
+        'repoUrl': 'http://foo-bar.com/foo/bar.git',
       };
       const converted = serializeApiEntity('project', project, apiBaseUrl);
       const data = converted.data;
@@ -188,6 +191,7 @@ describe('json-api serialization', () => {
       expect(data.attributes.name).to.equal(project.name);
       expect(data.attributes['latest-activity-timestamp']).to.equal(project.latestActivityTimestamp);
       expect(data.attributes.description).to.equal(project.description);
+      expect(data.attributes['repo-url']).to.equal(project.repoUrl);
     });
 
   });

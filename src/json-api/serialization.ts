@@ -84,7 +84,8 @@ export const projectSerialization = (apiBaseUrl: string) => {
       'branches',
       'activeCommitters',
       'latestActivityTimestamp',
-      'latestSuccessfullyDeployedCommit'],
+      'latestSuccessfullyDeployedCommit',
+      'repoUrl'],
     branches: {
       ignoreRelationshipData: true,
       ref: linkRef,

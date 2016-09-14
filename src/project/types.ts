@@ -32,6 +32,7 @@ export const projectDeleted =
 export interface MinardProjectPlain {
   name: string;
   path: string;
+  repoUrl: string;
   description: string;
   latestActivityTimestamp: string;
   activeCommitters: MinardProjectContributor[];

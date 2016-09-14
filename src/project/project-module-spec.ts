@@ -48,7 +48,8 @@ function genericArrangeProjectModule(status: number, body: any, path: string) {
       {} as SystemHookModule,
       {} as LocalEventBus,
       gitlabClient,
-      logger);
+      logger,
+      '');
     fetchMock.restore();
     fetchMock.mock(
       `${host}${gitlabClient.apiPrefix}${path}`,
@@ -174,7 +175,8 @@ describe('project-module', () => {
         {} as SystemHookModule,
         {} as LocalEventBus,
         {} as GitlabClient,
-        logger);
+        logger,
+        '');
 
       // Act
       const commit = projectModule.toMinardCommit(gitlabCommit);
@@ -269,7 +271,8 @@ describe('project-module', () => {
         {} as SystemHookModule,
         {} as LocalEventBus,
         gitlabClient,
-        logger);
+        logger,
+        '');
       fetchMock.restore();
       fetchMock.mock(
         `${host}${gitlabClient.apiPrefix}/projects/3`,
@@ -560,7 +563,8 @@ describe('project-module', () => {
         {} as any,
         {} as any,
         {} as any,
-        {} as any);
+        {} as any,
+        '');
       let called = false;
 
       projectModule.fetchBranchCommits = async (
@@ -688,7 +692,8 @@ describe('project-module', () => {
         {} as any,
         {} as any,
         {} as any,
-        {} as any);
+        {} as any,
+        '');
       projectModule.fetchBranchCommits = async (
         _projectId: number, _branchName: string, _until: moment.Moment, _count: number) => {
         expect(_projectId).to.equal(projectId);
@@ -809,7 +814,8 @@ describe('project-module', () => {
         {} as SystemHookModule,
         {} as LocalEventBus,
         gitlabClient,
-        logger);
+        logger,
+        '');
       fetchMock.restore().mock(
         `${host}${gitlabClient.apiPrefix}/projects/${projectId}/repository/contributors`,
         { status, body });
@@ -859,7 +865,8 @@ describe('project-module', () => {
       {} as SystemHookModule,
       bus,
       client,
-      logger);
+      logger,
+      '');
     const mockUrl = `${host}${client.apiPrefix}${url}`;
     fetchMock.restore().mock(
       mockUrl,
@@ -976,7 +983,8 @@ describe('project-module', () => {
         {} as SystemHookModule,
         bus,
         client,
-        logger);
+        logger,
+        '');
       const mockUrl = `${host}${client.apiPrefix}/projects/${projectId}`;
       fetchMock.restore().mock(
         mockUrl,

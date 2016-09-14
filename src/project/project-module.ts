@@ -4,7 +4,7 @@ import { inject, injectable } from 'inversify';
 import * as moment from 'moment';
 import * as queryString from 'querystring';
 
-import { GitlabClient } from '../shared/gitlab-client';
+import { GitlabClient, gitBaseUrlInjectSymbol } from '../shared/gitlab-client';
 import { Branch, Commit } from '../shared/gitlab.d.ts';
 import * as logger from '../shared/logger';
 import { MINARD_ERROR_CODE } from '../shared/minard-error';
@@ -35,18 +35,21 @@ export default class ProjectModule {
   private eventBus: EventBus;
   private gitlab: GitlabClient;
   private readonly logger: logger.Logger;
+  private readonly gitBaseUrl: string;
 
   constructor(
     @inject(AuthenticationModule.injectSymbol) authenticationModule: AuthenticationModule,
     @inject(SystemHookModule.injectSymbol) systemHookModule: SystemHookModule,
     @inject(eventBusInjectSymbol) eventBus: EventBus,
     @inject(GitlabClient.injectSymbol) gitlab: GitlabClient,
-    @inject(logger.loggerInjectSymbol) logger: logger.Logger) {
+    @inject(logger.loggerInjectSymbol) logger: logger.Logger,
+    @inject(gitBaseUrlInjectSymbol) gitBaseUrl: string) {
     this.authenticationModule = authenticationModule;
     this.systemHookModule = systemHookModule;
     this.eventBus = eventBus;
     this.gitlab = gitlab;
     this.logger = logger;
+    this.gitBaseUrl = gitBaseUrl;
   }
 
   public toMinardCommit(gitlabCommit: Commit): MinardCommit {
@@ -235,7 +238,8 @@ export default class ProjectModule {
     }
   }
 
-  private toMinardProject(project: Project, activeCommitters: MinardProjectContributor[]) {
+  private toMinardProject(project: Project, activeCommitters: MinardProjectContributor[]): MinardProject {
+    const repoUrl = `${this.gitBaseUrl}/${project.namespace.path}/${project.path}.git`;
     return {
       id: project.id,
       name: project.name,
@@ -243,6 +247,7 @@ export default class ProjectModule {
       description: project.description,
       activeCommitters,
       latestActivityTimestamp: project.last_activity_at,
+      repoUrl,
     };
   }
 

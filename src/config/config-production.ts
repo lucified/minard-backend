@@ -9,7 +9,7 @@ import {
 } from '../deployment';
 
 import { externalBaseUrlInjectSymbol, goodOptionsInjectSymbol, hostInjectSymbol, portInjectSymbol} from '../server';
-import { gitlabHostInjectSymbol } from '../shared/gitlab-client';
+import { gitBaseUrlInjectSymbol, gitlabHostInjectSymbol } from '../shared/gitlab-client';
 import { loggerInjectSymbol } from '../shared/logger';
 import { systemHookBaseUrlSymbol } from '../system-hook/system-hook-module';
 
@@ -95,6 +95,9 @@ const SCREENSHOTTER_BASEURL = env.SCREENSHOTTER_BASEURL ? env.SCREENSHOTTER_BASE
 // Generic external base URL for charles
 const EXTERNAL_BASEURL = env.EXTERNAL_BASEURL ? env.EXTERNAL_BASEURL : `http://localhost:${PORT}`;
 
+// External baseUrl for git clone urls
+const EXTERNAL_GIT_BASEURL = env.EXTERNAL_GIT_BASEURL ? env.EXTERNAL_GIT_BASEURL : `http://localhost:${GITLAB_PORT}`;
+
 // URL pattern used for composing external deployment URLs
 // Users access deployments via urls matching this pattern
 const DEPLOYMENT_URL_PATTERN = env.DEPLOYMENT_URL_PATTERN ? env.DEPLOYMENT_URL_PATTERN
@@ -163,4 +166,5 @@ export default (kernel: interfaces.Kernel) => {
   kernel.bind(externalBaseUrlInjectSymbol).toConstantValue(EXTERNAL_BASEURL);
   kernel.bind(deploymentUrlPatternInjectSymbol).toConstantValue(DEPLOYMENT_URL_PATTERN);
   kernel.bind(screenshotUrlPattern).toConstantValue(SCREENSHOT_URL_PATTERN);
+  kernel.bind(gitBaseUrlInjectSymbol).toConstantValue(EXTERNAL_GIT_BASEURL);
 };

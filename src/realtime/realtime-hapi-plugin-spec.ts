@@ -52,6 +52,7 @@ describe('realtime-hapi-plugin', () => {
                 name: 'foo',
                 email: 'foo',
               }],
+              repoUrl: 'foo',
           }),
         });
         const eventBus = new LocalEventBus();

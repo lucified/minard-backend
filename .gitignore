@@ -8,6 +8,7 @@ gitlab-data/postgresql/*
 !gitlab-data/postgresql/README.md
 gitlab-data/runner/config.toml
 gitlab-data-backup
+gitlab-data/gitlab-logs
 gitlab-data/charles
 gitlab-data/gitlab-logs
 temp

@@ -296,7 +296,7 @@ export class JsonApiHapiPlugin {
     return serializeApiEntity(type, entity, this.baseUrl);
   }
 
-  private async getEntity(type: string, entityFetcher: (api: JsonApiModule) => apiReturn) {
+  public async getEntity(type: string, entityFetcher: (api: JsonApiModule) => apiReturn) {
     const entity = await entityFetcher(this.factory());
     if (!entity) {
       throw Boom.notFound(`${type} not found`);

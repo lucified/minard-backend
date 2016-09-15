@@ -1,10 +1,10 @@
 import { Observable, Subscription } from '@reactivex/rxjs';
 import { Readable } from 'stream';
 
-import { SSEEvent } from '../shared/events';
+import { PersistedEvent } from '../shared/events';
 
 export class ObservableWrapper extends Readable {
-  private readonly stream: Observable<SSEEvent<any>>;
+  private readonly stream: Observable<PersistedEvent<any>>;
   private subscription: Subscription;
 
   // http://hapijs.com/api#replyerr-result
@@ -12,7 +12,7 @@ export class ObservableWrapper extends Readable {
   // that status code will be used as the default response code.
   public readonly statusCode = 200;
 
-  constructor(stream: Observable<SSEEvent<any>>) {
+  constructor(stream: Observable<PersistedEvent<any>>) {
     super();
     this.stream = stream;
 
@@ -20,7 +20,7 @@ export class ObservableWrapper extends Readable {
     this.on('error', (err: any) => { throw err; });
   }
 
-  private sseEvent(event: SSEEvent<any>) {
+  private sseEvent(event: PersistedEvent<any>) {
     return this.stringifyEvent({
       id: event.streamRevision,
       event: event.type,

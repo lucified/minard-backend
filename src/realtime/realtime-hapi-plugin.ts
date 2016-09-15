@@ -20,7 +20,7 @@ import {
 } from '../project';
 
 import { PersistentEventBus, eventBusInjectSymbol } from '../event-bus/';
-import { Event, SSEEvent, isSSE, isType } from '../shared/events';
+import { Event, PersistedEvent, StreamingEvent, isPersistedEvent, isType } from '../shared/events';
 
 @injectable()
 export class RealtimeHapiPlugin {
@@ -29,7 +29,7 @@ export class RealtimeHapiPlugin {
   private jsonApiPlugin: JsonApiHapiPlugin;
   private eventBus: PersistentEventBus;
   private eventBusSubscription: Subscription;
-  public readonly sseEvents: Observable<SSEEvent<any>>;
+  public readonly persistedEvents: Observable<PersistedEvent<any>>;
 
   private readonly logger: logger.Logger;
 
@@ -41,9 +41,9 @@ export class RealtimeHapiPlugin {
     this.eventBus = eventBus;
     this.logger = logger;
     this.jsonApiPlugin = jsonApiPlugin;
-    this.sseEvents = this.eventBus.getStream()
-      .filter(isSSE)
-      .map(event => <SSEEvent<any>> event)
+    this.persistedEvents = this.eventBus.getStream()
+      .filter(isPersistedEvent)
+      .map(event => <PersistedEvent<any>> event)
       .share();
 
     this.register = Object.assign(this._register.bind(this), {
@@ -66,7 +66,7 @@ export class RealtimeHapiPlugin {
       .subscribe();
   }
 
-  private getEnrichedStream(): Observable<Event<any>> {
+  private getEnrichedStream(): Observable<StreamingEvent<any>> {
     return this.enrich(this.eventBus.getStream())
       .catch(err => {
         this.logger.error('Error on enrich:', err);
@@ -125,7 +125,7 @@ export class RealtimeHapiPlugin {
     try {
       const teamId = parseInt(request.paramsArray[0], 10);
       const sinceKey = 'last-event-id';
-      let observable = this.sseEvents.filter(event => event.teamId === teamId);
+      let observable = this.persistedEvents.filter(event => event.teamId === teamId);
       if (request.headers[sinceKey]) {
         const since = parseInt(request.headers[sinceKey], 10);
         const existing = await this.eventBus.getEvents(teamId, since);
@@ -146,7 +146,7 @@ export class RealtimeHapiPlugin {
     }
   }
 
-  private enrich(stream: Observable<Event<any>>) {
+  private enrich(stream: Observable<Event<any>>): Observable<StreamingEvent<any>> {
     return stream
       .flatMap(event => {
         if (isType<ProjectCreatedEvent>(event, projectCreated)) {
@@ -157,7 +157,7 @@ export class RealtimeHapiPlugin {
           isType<ProjectDeletedEvent>(event, projectDeleted)) {
           return Observable.of(this.toSSE(event, event.payload));
         }
-        return Observable.empty<Event<any>>();
+        return Observable.empty<StreamingEvent<any>>();
       }, 3);
   }
 
@@ -167,11 +167,12 @@ export class RealtimeHapiPlugin {
     return this.toSSE(event, payload);
   }
 
-  private toSSE<T>(event: Event<any>, payload: T): Event<T> {
-    if (!event.teamId) {
+  private toSSE<T>(event: Event<any>, payload: T): StreamingEvent<T> {
+    if (typeof event.teamId !== 'number') {
       throw Error('Tried to convert an incompatible event to an SSEEvent');
     }
     return Object.assign({}, event, {
+      teamId: event.teamId!,
       type: 'SSE_' + event.type,
       payload,
     });

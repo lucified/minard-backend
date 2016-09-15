@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify';
 
-import { Event, SSEEvent, isSSE } from '../shared/events';
+import { Event, PersistedEvent, isSSE } from '../shared/events';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
 import { default as LocalEventBus } from './local-event-bus';
 
@@ -55,7 +55,7 @@ export class PersistentEventBus extends LocalEventBus  {
     }
   }
 
-  public async getEvents(teamId: number, since: number = 0): Promise<SSEEvent<any>[]> {
+  public async getEvents(teamId: number, since: number = 0): Promise<PersistedEvent<any>[]> {
     if (!this.isEventStoreReady) {
       await this.eventStore.init();
     }
@@ -66,7 +66,7 @@ export class PersistentEventBus extends LocalEventBus  {
     if (!stream.events) {
       return [];
     }
-    const events = stream.events as SSEEvent<any>[];
+    const events = stream.events as PersistedEvent<any>[];
     return events.map((event: any, i: number) => {
       event.payload.streamRevision = since + i;
       return event.payload;

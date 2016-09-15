@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import * as moment from 'moment';
 import 'reflect-metadata';
 
-import { SSEEvent, eventCreator } from '../shared/events';
+import { PersistedEvent, eventCreator } from '../shared/events';
 import { default as logger } from '../shared/logger';
 import { PersistentEventBus as EventBus } from './persistent-event-bus';
 
@@ -66,7 +66,7 @@ describe('persistent-event-bus', () => {
     const bus = getEventBus();
     const promise = bus
       .getStream()
-      .map(event => <SSEEvent<any>> event)
+      .map(event => <PersistedEvent<any>> event)
       .take(1)
       .toPromise();
 
@@ -80,7 +80,7 @@ describe('persistent-event-bus', () => {
     const bus = getEventBus();
     const promise = bus
       .getStream()
-      .map(event => <SSEEvent<any>> event)
+      .map(event => <PersistedEvent<any>> event)
       .take(2)
       .toArray()
       .toPromise();
@@ -96,7 +96,7 @@ describe('persistent-event-bus', () => {
     const bus = getEventBus();
     const promise = bus
       .getStream()
-      .map(event => <SSEEvent<any>> event)
+      .map(event => <PersistedEvent<any>> event)
       .take(2)
       .toArray()
       .toPromise();
@@ -112,7 +112,7 @@ describe('persistent-event-bus', () => {
     const bus = getEventBus();
     const promise = bus
       .getStream()
-      .map(event => <SSEEvent<any>> event)
+      .map(event => <PersistedEvent<any>> event)
       .take(2)
       .toArray()
       .toPromise();

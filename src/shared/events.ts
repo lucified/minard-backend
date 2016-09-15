@@ -11,10 +11,14 @@ export interface Event<T extends EventPayload> {
   teamId?: number;
 }
 
-export interface SSEEvent<T extends EventPayload> extends Event<T> {
+export interface StreamingEvent<T extends EventPayload> extends Event<T> {
   teamId: number;
+}
+
+// We only persist StreamingEvents
+export interface PersistedEvent<T extends EventPayload> extends StreamingEvent<T> {
   id: string;
-  streamRevision: string;
+  streamRevision: number;
 }
 
 export interface EventCreator<T extends EventPayload> {
@@ -55,6 +59,10 @@ export function isType<T>(event: Event<any>, creator: EventCreator<T>): event is
   return event.type === creator.type;
 }
 
-export function isSSE<T>(event: Event<T>): event is SSEEvent<T> {
+export function isSSE<T>(event: Event<T>): event is StreamingEvent<T> {
   return event.type.substr(0, 4) === 'SSE_' && typeof event.teamId === 'number';
+}
+
+export function isPersistedEvent<T>(event: Event<T>): event is PersistedEvent<T> {
+  return isSSE(event) && typeof (<any> event).id === 'string' && typeof (<any> event).streamRevision === 'number';
 }

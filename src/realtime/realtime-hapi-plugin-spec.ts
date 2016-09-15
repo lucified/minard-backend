@@ -60,7 +60,7 @@ describe('realtime-hapi-plugin', () => {
         });
         const eventBus = getEventBus();
         const plugin = getPlugin(eventBus, mockFactory);
-        const promise = plugin.sseEvents.take(1).toPromise();
+        const promise = plugin.persistedEvents.take(1).toPromise();
         // Act
         return eventBus.post(event)
           .then(_ => promise);

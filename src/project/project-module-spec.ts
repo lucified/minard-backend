@@ -1215,7 +1215,8 @@ describe('project-module', () => {
       systemHookModule,
       {} as LocalEventBus,
       gitlabClient,
-      logger);
+      logger,
+      '');
     fetchMock.restore();
     fetchMock.mock(
       `${host}${gitlabClient.apiPrefix}${path}`,
@@ -1432,6 +1433,7 @@ describe('project-module', () => {
         {} as any,
         {} as any,
         logger,
+        '',
       );
       projectModule.getAllProjectIds = async () => projectIds;
 
@@ -1454,6 +1456,7 @@ describe('project-module', () => {
         {} as any,
         {} as any,
         logger,
+        '',
       );
       projectModule.failSleepTime = 10;
       projectModule.getAllProjectIds = async () => projectIds;
@@ -1498,7 +1501,8 @@ describe('project-module', () => {
         {} as any,
         bus,
         {} as any,
-        logger);
+        logger,
+        '');
 
       projectModule.getCommit = async (_projectId: number, sha: string) => {
         expect(_projectId).to.equal(gitlabPayload.project_id);

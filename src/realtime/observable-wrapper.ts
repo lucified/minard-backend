@@ -7,6 +7,11 @@ export class ObservableWrapper extends Readable {
   private readonly stream: Observable<SSEEvent<any>>;
   private subscription: Subscription;
 
+  // http://hapijs.com/api#replyerr-result
+  // Note that if result is a Stream with a statusCode property,
+  // that status code will be used as the default response code.
+  public readonly statusCode = 200;
+
   constructor(stream: Observable<SSEEvent<any>>) {
     super();
     this.stream = stream;

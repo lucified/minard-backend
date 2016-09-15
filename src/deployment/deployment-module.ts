@@ -1,8 +1,10 @@
 
-import * as rx from '@reactivex/rxjs';
 import * as Boom from 'boom';
 import * as fs from 'fs';
 import { inject, injectable } from 'inversify';
+import * as Knex from 'knex';
+import { values } from 'lodash';
+import * as moment from 'moment';
 import * as os from 'os';
 import * as path from 'path';
 import * as querystring from 'querystring';
@@ -13,11 +15,18 @@ import { GitlabClient } from '../shared/gitlab-client';
 import * as logger from '../shared/logger';
 
 import {
+  ScreenshotModule,
+} from '../screenshot';
+
+import {
+  BUILD_CREATED_EVENT,
+  BUILD_STATUS_EVENT_TYPE,
+  BuildCreatedEvent,
+  BuildStatusEvent,
   DEPLOYMENT_EVENT_TYPE,
-  Deployment,
   DeploymentEvent,
-  DeploymentStatus,
   MinardDeployment,
+  MinardDeploymentStatus,
   MinardJson,
   MinardJsonInfo,
   RepositoryObject,
@@ -42,6 +51,12 @@ const Queue = require('promise-queue'); // tslint:disable-line
 const extract = promisify(require('extract-zip'));
 
 export const deploymentFolderInjectSymbol = Symbol('deployment-folder');
+
+interface DeploymentStatusUpdate {
+  buildStatus?: MinardDeploymentStatus;
+  extractStatus?: MinardDeploymentStatus;
+  screenshotStatus?: MinardDeploymentStatus;
+}
 
 export function isRawDeploymentHostname(hostname: string) {
   return getDeploymentKeyFromHost(hostname) !== null;
@@ -69,6 +84,23 @@ export function getDeploymentKeyFromId(id: string) {
   };
 }
 
+export function toDbDeployment(deployment: MinardDeployment) {
+  return Object.assign({}, deployment, {
+    commit: JSON.stringify(deployment.commit),
+    finishedAt: deployment.finishedAt && deployment.finishedAt.valueOf(),
+  });
+}
+
+export function toMinardDeployment(deployment: any): MinardDeployment {
+  const commit = deployment.commit instanceof Object ? deployment.commit : JSON.parse(deployment.commit);
+  const creator = deployment.creator instanceof Object ? deployment.creator : JSON.parse(deployment.creator);
+  return Object.assign({}, deployment, {
+    commit,
+    creator,
+    finishedAt: moment(Number(deployment.finishedAt)),
+  }) as MinardDeployment;
+}
+
 @injectable()
 export default class DeploymentModule {
 
@@ -80,9 +112,8 @@ export default class DeploymentModule {
   private readonly urlPattern: string;
   private readonly eventBus: EventBus;
   private readonly prepareQueue: any;
-
-  private buildToProject = new Map<number, number>();
-  private events: rx.Observable<DeploymentEvent>;
+  private readonly knex: Knex;
+  private readonly screenshotModule: ScreenshotModule;
 
   public constructor(
     @inject(GitlabClient.injectSymbol) gitlab: GitlabClient,
@@ -95,126 +126,145 @@ export default class DeploymentModule {
     this.logger = logger;
     this.eventBus = eventBus;
     this.urlPattern = urlPattern;
-    this.events = eventBus
-      .filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
-      .map(e => e.payload);
     this.prepareQueue = new Queue(1, Infinity);
     this.subscribeToEvents();
   }
 
   private subscribeToEvents() {
-    this.events.subscribe(e => this.setDeploymentState(e.id, e.status, e.projectId));
-    // On successfully completed deployments, download, extract and post an 'extracted' event
-    this.completedDeployments()
-      .filter(event => event.status === 'success')
-      .delay(1000)
-      .flatMap(event => this.prepareDeploymentAndPostEvent(event), 1)
-      .subscribe();
+    // subscribe for build created events
+    this.eventBus.filterEvents<BuildCreatedEvent>(BUILD_CREATED_EVENT)
+      .subscribe(event => this.createDeployment(event.payload));
+
+    // subscribe on build status updates
+    this.eventBus.filterEvents<BuildStatusEvent>(BUILD_STATUS_EVENT_TYPE)
+      .subscribe(event => this.updateDeploymentStatus(event.payload.deploymentId,
+        { buildStatus: event.payload.status }));
+
+    // subscribe on finished builds
+    this.eventBus.filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
+      .filter(event => event.payload.statusUpdate.buildStatus === 'success')
+      .flatMap(event => {
+        const { projectId, deploymentId } = event.payload.deployment;
+        return this.prepareDeploymentForServing(projectId, deploymentId, false);
+      });
+
+    // subscribe on exracted builds
+    this.eventBus.filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
+      .filter(event => event.payload.statusUpdate.extractStatus === 'success')
+      .flatMap(event => {
+        const { projectId, deploymentId } = event.payload.deployment;
+        return this.takeScreenshot(projectId, deploymentId);
+      }, 1);
   }
 
-  private async prepareDeploymentAndPostEvent(event: any) {
+  private async takeScreenshot(projectId: number, deploymentId: number) {
     try {
-      await this.prepareDeploymentForServing(event.projectId, event.id, false);
-      this.eventBus.post(createDeploymentEvent(Object.assign({}, event, {status: 'extracted'})));
+      await this.updateDeploymentStatus(deploymentId, { screenshotStatus: 'running' });
+      await this.screenshotModule.takeScreenshot(projectId, deploymentId);
+      await this.updateDeploymentStatus(deploymentId, { screenshotStatus: 'success' });
     } catch (err) {
-      this.logger.error(err.message, err);
+      await this.updateDeploymentStatus(deploymentId, { screenshotStatus: 'failed' });
     }
   }
 
-  private completedDeployments() {
-    const events = this.events;
-    // The initial events for a new deployment have status 'running' and always include the projectId
-    const started = events.filter(e => e.status === 'running' && e.projectId !== undefined);
-    // We use a flatMap to return a single event *with* the projectId, when the deployment has finished
-    return started
-      .flatMap(initial => events.filter(later => later.id === initial.id && this.isFinished(later.status))
-        .map(later => ({id: later.id, status: later.status, projectId: initial.projectId as number}))
-      );
+  public async createDeployment(event: BuildCreatedEvent) {
+    const deployment: MinardDeployment = {
+      deploymentId: event.id,
+      ref: event.ref,
+      projectId: event.project_id,
+      projectName: event.project_name,
+      buildStatus: event.status,
+      extractionStatus: 'pending',
+      screenshotStatus: 'pending',
+      commit: event.sha,
+    };
+
+    await this.knex('deployment').insert(deployment);
+
+    // TODO
+    //
+    // const creator = {
+    //   name: deployment.commit.author_name,
+    //   email: deployment.commit.author_email,
+    //   timestamp: deployment.finished_at || deployment.started_at || deployment.finished_at,
+    // };
   }
 
-  private isFinished(status: DeploymentStatus) {
-    return status === 'success' || status === 'failed' || status === 'canceled';
-  }
-
-  private async getDeployments(projectId: number, url: string): Promise<MinardDeployment[]> {
-    try {
-      const res = await this.gitlab.fetchJson<Deployment[]>(url);
-      return res.map(deployment => this.toMinardModelDeployment(deployment, projectId));
-    } catch (err) {
-      if (err.response && err.response.status === 404) {
-        return [];
-      }
-      throw Boom.wrap(err);
-    }
+  public async updateBuildStatus(event: BuildStatusEvent) {
+    this.updateDeploymentStatus(event.deploymentId, { buildStatus: event.status });
   }
 
   public async getProjectDeployments(projectId: number): Promise<MinardDeployment[]> {
-    return this.getDeployments(projectId, `projects/${projectId}/builds`);
+    const select = this.knex.select('*')
+      .from('deployment')
+      .where('projectId', projectId)
+      .orderBy('id', 'DESC');
+    return (await select).map(this.toFullMinardDeployment.bind(this));
   };
 
   public async getBranchDeployments(projectId: number, branchName: string): Promise<MinardDeployment[]> {
-    const projectDeployments = await this.getProjectDeployments(projectId);
-    return projectDeployments.filter(item => item.ref === branchName);
+    const select = this.knex.select('*')
+      .from('deployment')
+      .where('projectId', projectId)
+      .andWhere('ref', branchName)
+      .orderBy('id', 'DESC');
+    return (await select).map(this.toFullMinardDeployment.bind(this));
   };
 
-  // these are highly unoptimized solutions
-  // we can do better later by pluggin into
-  // persisted deployment events or similar
   public async getLatestSuccessfulProjectDeployment(projectId: number): Promise<MinardDeployment | undefined> {
-    const deployments = await this.getProjectDeployments(projectId);
-    return deployments.find((deployment: MinardDeployment) => deployment.status === 'success');
+    const select = this.knex.select('*')
+      .from('deployment')
+      .where('projectId', projectId)
+      .andWhere('status', 'success')
+      .orderBy('id', 'DESC')
+      .limit(1)
+      .first();
+    return (await select).map(this.toFullMinardDeployment.bind(this));
   }
 
   public async getLatestSuccessfulBranchDeployment(
     projectId: number, branchName: string): Promise<MinardDeployment | undefined> {
-    const deployments = await this.getBranchDeployments(projectId, branchName);
-    return deployments.find((deployment: MinardDeployment) => deployment.status === 'success');
+    const select = this.knex.select('*')
+      .from('deployment')
+      .where('projectId', projectId)
+      .andWhere('status', 'success')
+      .andWhere('ref', branchName)
+      .orderBy('id', 'DESC')
+      .limit(1)
+      .first();
+    return (await select).map(this.toFullMinardDeployment.bind(this));
   }
 
   public async getCommitDeployments(projectId: number, sha: string) {
-    try {
-      const deployments = await this.gitlab.fetchJson<Deployment[]>(
-        `projects/${projectId}/repository/commits/${sha}/builds`);
-      return deployments.map((deployment: Deployment) => this.toMinardModelDeployment(deployment, projectId));
-    } catch (err) {
-      if (err.output.statusCode === 404) {
-        return null;
-      }
-      throw Boom.wrap(err);
-    }
+    const select = this.knex.select('*')
+      .from('deployment')
+      .where('projectId', projectId)
+      .andWhere('commitSha', sha)
+      .orderBy('id', 'DESC');
+    return (await select).map(this.toFullMinardDeployment.bind(this));
   }
 
-  public async getDeployment(projectId: number, deploymentId: number): Promise<MinardDeployment | null> {
-    try {
-      return this.toMinardModelDeployment(
-        await this.gitlab.fetchJson<Deployment>(`projects/${projectId}/builds/${deploymentId}`), projectId);
-    } catch (err) {
-      if (err.output.statusCode === 404) {
-        return null;
-      }
-      throw Boom.wrap(err);
-    }
+  public async getDeployment(deploymentId: number): Promise<MinardDeployment | null> {
+    const select = this.knex.select('*')
+      .from('deployment')
+      .where('id', deploymentId)
+      .limit(1)
+      .first();
+    return this.toFullMinardDeployment(await select);
   }
 
-  private toMinardModelDeployment(deployment: Deployment, projectId: number): MinardDeployment {
-    const creator = {
-      name: deployment.commit.author_name,
-      email: deployment.commit.author_email,
-      timestamp: deployment.finished_at || deployment.started_at || deployment.finished_at,
-    };
-    const url = deployment.status === 'success' ? sprintf(
-      this.urlPattern,
-      `${deployment.ref}-${deployment.commit.short_id}-${projectId}-${deployment.id}`) : undefined;
-    const commitRef = deployment.commit;
-    return {
-      id: deployment.id,
-      creator,
-      url,
-      commitRef,
-      status: deployment.status,
-      finished_at: deployment.finished_at,
-      ref: deployment.ref,
-    };
+  private toFullMinardDeployment(_deployment: any): MinardDeployment {
+    const deployment = toMinardDeployment(_deployment);
+    if (deployment.extractionStatus === 'success') {
+      deployment.url = sprintf(
+         this.urlPattern,
+        `${deployment.ref}-${deployment.commit.short_id}-${deployment.projectId}-${deployment.deploymentId}`
+      );
+    }
+    if (deployment.screenshotStatus === 'success') {
+      deployment.screenshot = this.screenshotModule.getPublicUrl(deployment.projectId, deployment.deploymentId);
+    }
+    return deployment;
   }
 
   public getDeploymentPath(projectId: number, deploymentId: number) {
@@ -330,7 +380,7 @@ export default class DeploymentModule {
 
   public async doPrepareDeploymentForServing(projectId: number, deploymentId: number, checkStatus: boolean = true) {
     if (checkStatus) {
-      const deployment = await this.getDeployment(projectId, deploymentId);
+      const deployment = await this.getDeployment(deploymentId);
       if (!deployment) {
         throw Boom.notFound(
           `No deployment found for: projectId ${projectId}, deploymentId ${deploymentId}`);
@@ -338,30 +388,48 @@ export default class DeploymentModule {
       // GitLab will return status === 'running' for a while also after
       // deployment has succeeded. if we know that the deployment is OK,
       // it is okay to skip the status check
-      if (deployment.status !== 'success') {
-        this.logger.warn(`Tried to prepare deployment for serving while deployment status is ` +
-          `"${deployment.status}", projectId: ${projectId}, deploymentId: ${deploymentId}`);
-        throw Boom.notFound(`Deployment status is "${deployment.status}" for: projectId ${projectId}, ` +
+      if (deployment.buildStatus !== 'success') {
+        this.logger.warn(`Tried to prepare deployment for serving while deployment build status is ` +
+          `"${deployment.buildStatus}", projectId: ${projectId}, deploymentId: ${deploymentId}`);
+        throw Boom.notFound(`Deployment status is "${deployment.buildStatus}" for: projectId ${projectId}, ` +
           `deploymentId ${deploymentId}`);
       }
     }
     try {
+      this.updateDeploymentStatus(deploymentId, { extractStatus: 'running' });
       await this.downloadAndExtractDeployment(projectId, deploymentId);
-      return await this.moveExtractedDeployment(projectId, deploymentId);
+      const finalPath = await this.moveExtractedDeployment(projectId, deploymentId);
+      this.updateDeploymentStatus(deploymentId, { extractStatus: 'success' });
+      return finalPath;
     } catch (err) {
       this.logger.warn(`Failed to prepare deployment ${projectId}_${deploymentId} for serving`, err);
+      this.updateDeploymentStatus(deploymentId, { extractStatus: 'failed' });
       throw Boom.badImplementation();
     }
   }
 
-  public setDeploymentState(deploymentId: number, state: string, projectId?: number) {
-    if (projectId) {
-      this.buildToProject.set(deploymentId, projectId);
+  public async updateDeploymentStatus(deploymentId: number, updates: DeploymentStatusUpdate) {
+    let status = 'pending';
+    if (updates.screenshotStatus === 'success' || updates.screenshotStatus === 'failed') {
+      status = 'success'; // SIC
+    } else if (values(updates).indexOf('failed') !== -1 || values(updates).indexOf('canceled') !== -1) {
+      status = 'failed';
+    } else if (values(updates).indexOf('running') !== -1) {
+      status = 'running';
     }
-    const _projectId = this.buildToProject.get(deploymentId);
-    if (!_projectId) {
-      throw new Error(`Couldn't find projectId for build ${deploymentId}`);
+    const allUpdates = Object.assign({}, updates, { status });
+    await this.knex('deployment').update(allUpdates);
+
+    const deployment = await this.getDeployment(deploymentId);
+    if (!deployment) {
+      this.logger.error(`Failed to fetch deployment after updating deployment status. Dropping DeploymentEvent`);
+      return;
     }
+    const payload: DeploymentEvent = {
+      statusUpdate: updates,
+      deployment,
+    };
+    this.eventBus.post(createDeploymentEvent(payload));
   }
 
   /*
@@ -388,7 +456,6 @@ export default class DeploymentModule {
     const extractedTempPath = this.getTempArtifactsPath(projectId, deploymentId);
     await mkpath(extractedTempPath);
     await extract(tempFileName, { dir: extractedTempPath });
-
     return extractedTempPath;
   }
 
@@ -399,7 +466,7 @@ export default class DeploymentModule {
 
   public async moveExtractedDeployment(projectId: number, deploymentId: number) {
     // fetch minard.json
-    const deployment = await this.getDeployment(projectId, deploymentId);
+    const deployment = await this.getDeployment(deploymentId);
     if (!deployment) {
       this.logger.error('Could not get deployment in downloadAndExtractDeployment');
       throw Boom.badImplementation();

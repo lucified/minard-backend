@@ -24,9 +24,9 @@ interface Commit {
   parent_ids: string[];
 }
 
-export type DeploymentStatus = 'running' | 'success' | 'failed' | 'canceled' | 'extracted';
+export type BuildStatus = 'running' | 'success' | 'failed' | 'canceled';
 
-export interface Deployment {
+export interface Build {
   commit: Commit;
   coverage: string|null;
   created_at: string;
@@ -38,7 +38,7 @@ export interface Deployment {
   runner: string|null;
   stage: string;
   started_at: string;
-  status: DeploymentStatus;
+  status: BuildStatus;
   tag: boolean;
   user: User;
 }

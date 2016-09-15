@@ -300,13 +300,36 @@ export default class ProjectModule {
     }
     const ref = matches[1];
 
-    const [ after, before, commits ] = await Promise.all([
-      payload.after ? this.getCommit(projectId, payload.after) : Promise.resolve(undefined),
-      payload.before ? this.getCommit(projectId, payload.before) : Promise.resolve(undefined),
+    const [ after, before, mappedCommits ] = await Promise.all([
+      payload.after ? this.getCommit(projectId, payload.after) : Promise.resolve(null),
+      payload.before ? this.getCommit(projectId, payload.before) : Promise.resolve(null),
       Promise.all(payload.commits.map(commit => this.getCommit(projectId, commit.id))),
     ]);
-    const parents = commits[0] && commits[0]!.parentIds ?
-      await Promise.all(commits[0]!.parentIds!.map(id => this.getCommit(projectId, id))) : null;
+
+    // While we don't expect getCommit to return null for these commits,
+    // we wish to handle such a situtation cracefully in case it for some
+    // reason still happens. The solution is to simply filter them out§
+    // and add a warning to the log .
+
+    const commits = mappedCommits.filter(item => {
+      if (!item) {
+        this.logger.warn(
+          `getCommit called from receiveProjectHook returned null for parent commit ${item} in ${projectId}`);
+        return false;
+      }
+      return true;
+    }) as MinardCommit[];
+
+    const parentIds = (commits[0] && commits[0]!.parentIds) || [];
+    const mappedParents = await Promise.all(parentIds.map(id => this.getCommit(projectId, id)));
+    const parents = mappedParents.filter(item => {
+      if (!item) {
+        this.logger.warn(
+          `getCommit called from receiveProjectHook returned null for parent commit ${item} in ${projectId}`);
+        return false;
+      }
+      return true;
+    }) as MinardCommit[];
 
     const event: CodePushedEvent = {
       projectId: payload.project_id,

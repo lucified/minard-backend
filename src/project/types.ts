@@ -20,10 +20,10 @@ export interface ProjectEditedEvent {
 export interface CodePushedEvent {
   projectId: number;
   ref: string;
-  before: MinardCommit | null;
-  after: MinardCommit | null;
-  parents: (MinardCommit | null)[] | null;
-  commits: (MinardCommit | null)[];
+  before: MinardCommit | null; // null for new branches
+  after: MinardCommit | null;  // null when branches are deleted
+  parents: MinardCommit[];
+  commits: MinardCommit[];
 }
 
 export const PROJECT_EDITED_EVENT_TYPE = 'PROJECT_EDITED';

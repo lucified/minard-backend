@@ -1490,6 +1490,9 @@ describe('project-module', () => {
         {
           'id': 'second-commit-hash',
         },
+        {
+          'id': 'null-commit-hash',
+        },
       ],
     } as GitlabPushEvent;
 
@@ -1506,10 +1509,13 @@ describe('project-module', () => {
 
       projectModule.getCommit = async (_projectId: number, sha: string) => {
         expect(_projectId).to.equal(gitlabPayload.project_id);
+        if (sha === 'null-commit-hash') {
+          return null;
+        }
         if (sha === 'first-commit-hash') {
           return {
             id: sha,
-            parentIds: ['first-parent-hash', 'second-parent-hash'],
+            parentIds: ['first-parent-hash', 'second-parent-hash', 'null-commit-hash'],
           };
         }
         return {
@@ -1531,6 +1537,7 @@ describe('project-module', () => {
       expect(event.ref).to.equal('master');
       expect(event.after!.id).to.equal(gitlabPayload.after);
       expect(event.before!.id).to.equal(gitlabPayload.before);
+      expect(event.commits).to.have.length(2);
       expect(event.commits[0]!.id).to.equal(gitlabPayload.commits[0].id);
       expect(event.commits[1]!.id).to.equal(gitlabPayload.commits[1].id);
       expect(event.parents).to.have.length(2);

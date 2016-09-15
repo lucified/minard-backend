@@ -32,7 +32,12 @@ export class ObservableWrapper extends Readable {
     if (!this.subscription) {
       // Every time there's data, push it into the internal buffer.
       this.subscription = this.stream
-        .map(this.sseEvent.bind(this))
+        .map(event => {
+          if (event.type === 'CONTROL_PING') {
+            return ': PING \r\n\r\n';
+          }
+          return this.sseEvent(event);
+        })
         .subscribe(
           event => this.push(event),
           error => { throw error; },

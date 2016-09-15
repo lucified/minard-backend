@@ -1,6 +1,7 @@
 
 import { Observable, Subscription } from '@reactivex/rxjs';
 import { inject, injectable } from 'inversify';
+import * as moment from 'moment';
 
 import * as Hapi from 'hapi';
 import * as Joi from 'joi';
@@ -21,6 +22,8 @@ import {
 
 import { PersistentEventBus, eventBusInjectSymbol } from '../event-bus/';
 import { Event, PersistedEvent, StreamingEvent, isPersistedEvent, isType } from '../shared/events';
+
+export const PING_INTERVAL = 20000;
 
 @injectable()
 export class RealtimeHapiPlugin {
@@ -81,6 +84,7 @@ export class RealtimeHapiPlugin {
       path: '/events/{teamId}',
       handler: this.requestHandler.bind(this),
       config: {
+        cors: true,
         validate: {
           params: {
             teamId: Joi.number().required(),
@@ -121,16 +125,40 @@ export class RealtimeHapiPlugin {
     }
   }
 
+  private pingEvent() {
+    return {
+      type: 'CONTROL_PING',
+      id: '0',
+      streamRevision: 0,
+      teamId: 0,
+      created: moment(),
+      payload: 0,
+    } as PersistedEvent<any>;
+  }
+
+  private async onRequest(teamId: number, since?: number) {
+      let observable = Observable.concat(
+        Observable.of(this.pingEvent()),
+        this.persistedEvents.filter(event => event.teamId === teamId)
+      );
+      if (since) {
+        const existing = await this.eventBus.getEvents(teamId, since);
+        observable = Observable.concat(Observable.from(existing), observable);
+      }
+      observable = Observable.merge(
+        Observable.interval(PING_INTERVAL).map(_ => this.pingEvent()),
+        observable
+      );
+      return observable;
+
+  }
+
   private async requestHandler(request: Hapi.Request, reply: Hapi.IReply) {
     try {
       const teamId = parseInt(request.paramsArray[0], 10);
       const sinceKey = 'last-event-id';
-      let observable = this.persistedEvents.filter(event => event.teamId === teamId);
-      if (request.headers[sinceKey]) {
-        const since = parseInt(request.headers[sinceKey], 10);
-        const existing = await this.eventBus.getEvents(teamId, since);
-        observable = Observable.concat(Observable.from(existing), observable);
-      }
+      const since = request.headers[sinceKey];
+      const observable = await this.onRequest(teamId, since ? parseInt(since, 10) : undefined );
       const nodeStream = new ObservableWrapper(observable);
       reply(nodeStream)
         .header('content-type', 'text/event-stream')

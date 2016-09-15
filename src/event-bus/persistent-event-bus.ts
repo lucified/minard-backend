@@ -30,13 +30,13 @@ export class PersistentEventBus extends LocalEventBus  {
   }
 
   private _publish(event: Event<any>, callback: (err?: any) => void) {
-    this.stream.next(event);
+    this.subject.next(event);
     callback();
   }
 
   public async post(event: Event<any>) {
     if (!isSSE(event)) { // only persist SSE events
-      this.stream.next(event);
+      this.subject.next(event);
       return false;
     }
     try {

@@ -1,5 +1,5 @@
 
-import { Observable } from '@reactivex/rxjs';
+import { Observable, Subscription } from '@reactivex/rxjs';
 import { inject, injectable } from 'inversify';
 
 import * as Hapi from 'hapi';
@@ -20,7 +20,7 @@ import {
 } from '../project';
 
 import { PersistentEventBus, eventBusInjectSymbol } from '../event-bus/';
-import {  Event, SSEEvent, isSSE, isType } from '../shared/events';
+import { Event, SSEEvent, isSSE, isType } from '../shared/events';
 
 @injectable()
 export class RealtimeHapiPlugin {
@@ -28,6 +28,7 @@ export class RealtimeHapiPlugin {
   public static injectSymbol = Symbol('realtime-plugin');
   private jsonApiPlugin: JsonApiHapiPlugin;
   private eventBus: PersistentEventBus;
+  private eventBusSubscription: Subscription;
   public readonly sseEvents: Observable<SSEEvent<any>>;
 
   private readonly logger: logger.Logger;
@@ -53,9 +54,24 @@ export class RealtimeHapiPlugin {
     });
 
     // creates SSEEvents and posts them
-    this.enrich(eventBus.getStream())
-      .flatMap(eventBus.post.bind(eventBus))
+    this.eventBusSubscription = this.getEnrichedStream()
+      .flatMap(async (enriched) => {
+        try {
+          return await this.eventBus.post(enriched);
+        } catch (err) {
+          this.logger.error('Error when trying to post enriched event %s', enriched.type, err);
+        }
+        return Observable.empty<boolean>();
+      })
       .subscribe();
+  }
+
+  private getEnrichedStream(): Observable<Event<any>> {
+    return this.enrich(this.eventBus.getStream())
+      .catch(err => {
+        this.logger.error('Error on enrich:', err);
+        return this.getEnrichedStream();
+      });
   }
 
   private _register(server: Hapi.Server, _options: Hapi.IServerOptions, next: () => void) {

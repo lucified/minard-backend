@@ -9,9 +9,11 @@ export interface ProjectCreatedEvent {
 
 export interface ProjectDeletedEvent {
   projectId: number;
+  teamId: number;
 }
 
 export interface ProjectEditedEvent {
+  teamId: number;
   projectId: number;
   name?: string;
   description?: string;

@@ -8,13 +8,18 @@ import { GitlabClient, gitBaseUrlInjectSymbol } from '../shared/gitlab-client';
 import { Branch, Commit } from '../shared/gitlab.d.ts';
 import * as logger from '../shared/logger';
 import { MINARD_ERROR_CODE } from '../shared/minard-error';
+import { sleep } from '../shared/sleep';
 import { toGitlabTimestamp } from '../shared/time-conversion';
 
+import { GitlabPushEvent } from './gitlab-push-hook-types';
+
 import {
+  CodePushedEvent,
   MinardBranch,
   MinardCommit,
   MinardProject,
   MinardProjectContributor,
+  codePushed,
   projectCreated,
   projectDeleted,
   projectEdited,
@@ -22,7 +27,12 @@ import {
 
 import { AuthenticationModule } from '../authentication';
 import { EventBus, eventBusInjectSymbol } from '../event-bus/';
-import { Project } from '../shared/gitlab.d.ts';
+
+import {
+  Project,
+  ProjectHook,
+} from '../shared/gitlab.d.ts';
+
 import { SystemHookModule } from '../system-hook';
 
 @injectable()
@@ -36,6 +46,7 @@ export default class ProjectModule {
   private gitlab: GitlabClient;
   private readonly logger: logger.Logger;
   private readonly gitBaseUrl: string;
+  public failSleepTime = 2000;
 
   constructor(
     @inject(AuthenticationModule.injectSymbol) authenticationModule: AuthenticationModule,
@@ -67,6 +78,7 @@ export default class ProjectModule {
        name: gitlabCommit.committer_name || gitlabCommit.author_name,
        timestamp: gitlabCommit.committed_date || gitlabCommit.created_at,
       },
+      parentIds: gitlabCommit.parent_ids,
     };
   }
 
@@ -275,6 +287,62 @@ export default class ProjectModule {
     // TODO: handle push events
   }
 
+  public async receiveProjectHook(payload: GitlabPushEvent) {
+    if (payload.object_kind !== 'push') {
+      return;
+    }
+
+    const projectId = payload.project_id;
+    const matches = payload.ref.match(/^refs\/heads\/(\S+)$/);
+    if (!matches) {
+      this.logger.error(`Could not parse ref ${payload.ref}`, payload);
+      return;
+    }
+    const ref = matches[1];
+
+    const [ after, before, mappedCommits ] = await Promise.all([
+      payload.after ? this.getCommit(projectId, payload.after) : Promise.resolve(null),
+      payload.before ? this.getCommit(projectId, payload.before) : Promise.resolve(null),
+      Promise.all(payload.commits.map(commit => this.getCommit(projectId, commit.id))),
+    ]);
+
+    // While we don't expect getCommit to return null for these commits,
+    // we wish to handle such a situtation cracefully in case it for some
+    // reason still happens. The solution is to simply filter them out§
+    // and add a warning to the log .
+
+    const commits = mappedCommits.filter(item => {
+      if (!item) {
+        this.logger.warn(
+          `getCommit called from receiveProjectHook returned null for parent commit ${item} in ${projectId}`);
+        return false;
+      }
+      return true;
+    }) as MinardCommit[];
+
+    const parentIds = (commits[0] && commits[0]!.parentIds) || [];
+    const mappedParents = await Promise.all(parentIds.map(id => this.getCommit(projectId, id)));
+    const parents = mappedParents.filter(item => {
+      if (!item) {
+        this.logger.warn(
+          `getCommit called from receiveProjectHook returned null for parent commit ${item} in ${projectId}`);
+        return false;
+      }
+      return true;
+    }) as MinardCommit[];
+
+    const event: CodePushedEvent = {
+      projectId: payload.project_id,
+      ref,
+      after,
+      before,
+      parents,
+      commits,
+    };
+    this.logger.info(`Received code push`, { payload, event });
+    this.eventBus.post(codePushed(event));
+  }
+
   private getSystemHookPath() {
     return `/project/hook`;
   }
@@ -309,6 +377,7 @@ export default class ProjectModule {
       this.logger.error('Unexpected response from Gitlab when creating project: project path is incorrect', project);
       throw Boom.badImplementation();
     }
+    await this.assureProjectHookRegistered(project.id);
     return project;
   }
 
@@ -395,6 +464,70 @@ export default class ProjectModule {
       name: project.name,
       description: project.description,
     }));
+  }
+
+  public async assureProjectHooksRegistered() {
+    const ids = await this.getAllProjectIds();
+    let success = false;
+    while (!success) {
+      try {
+        await Promise.all(ids.map(id => this.assureProjectHookRegistered(id)));
+        success = true;
+        this.logger.info('Project hooks registered for all projects.');
+      } catch (err) {
+        this.logger.error(
+          `Failed to register project hook for all projects. Sleeping for ${this.failSleepTime} ms.`, err);
+        await sleep(this.failSleepTime);
+      }
+    }
+  }
+
+  // internal method
+  public async fetchProjectHooks(projectId: number): Promise<ProjectHook[]> {
+    const hooks = await this.gitlab.fetchJson<ProjectHook[]>(`/projects/${projectId}/hooks`);
+    if (!Array.isArray(hooks)) {
+      throw Boom.badGateway();
+    }
+    return hooks;
+  }
+
+  // internal method
+  public getProjectHookUrl() {
+    return this.systemHookModule.getUrl('/project/project-hook');
+  }
+
+  // internal method
+  public async assureProjectHookRegistered(projectId: number) {
+    try {
+      const hooks = await this.fetchProjectHooks(projectId);
+      const found = hooks.find(item =>
+        item.project_id === projectId
+        && item.url === this.getProjectHookUrl()
+        && item.push_events);
+      if (!found) {
+        this.registerProjectHook(projectId);
+      }
+    } catch (err) {
+      this.logger.error(`Failed to register project hook for project ${projectId}`, err);
+      throw err;
+    }
+  }
+
+  // internal method
+  public async registerProjectHook(projectId: number) {
+    const params = {
+      url: this.getProjectHookUrl(),
+      push_events: true,
+    };
+    const ret = await this.gitlab.fetchJsonAnyStatus(
+      `projects/${projectId}/hooks?${queryString.stringify(params)}`,
+      { method: 'POST' });
+    if (ret.status === 404) {
+      throw Boom.notFound();
+    }
+    if (ret.status !== 201) {
+      throw Boom.badGateway();
+    }
   }
 
 }

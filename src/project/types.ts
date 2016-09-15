@@ -17,6 +17,15 @@ export interface ProjectEditedEvent {
   description?: string;
 }
 
+export interface CodePushedEvent {
+  projectId: number;
+  ref: string;
+  before: MinardCommit | null; // null for new branches
+  after: MinardCommit | null;  // null when branches are deleted
+  parents: MinardCommit[];
+  commits: MinardCommit[];
+}
+
 export const PROJECT_EDITED_EVENT_TYPE = 'PROJECT_EDITED';
 export const projectEdited =
   eventCreator<ProjectEditedEvent>(PROJECT_EDITED_EVENT_TYPE);
@@ -28,6 +37,10 @@ export const projectCreated =
 export const PROJECT_DELETED_EVENT_TYPE = 'PROJECT_DELETED';
 export const projectDeleted =
   eventCreator<ProjectDeletedEvent>(PROJECT_DELETED_EVENT_TYPE);
+
+export const CODE_PUSHED_EVENT_TYPE = 'CODE_PUSHED';
+export const codePushed =
+  eventCreator<CodePushedEvent>(CODE_PUSHED_EVENT_TYPE);
 
 export interface MinardProjectPlain {
   name: string;
@@ -54,6 +67,7 @@ export interface MinardCommit {
   message: string;
   author: MinardCommitAuthor;
   committer: MinardCommitAuthor;
+  parentIds?: string[];
 }
 
 export interface MinardBranch {

@@ -21,6 +21,7 @@ interface Commit {
   // http://docs.gitlab.com/ce/api/branches.html
   committer_email?: string;
   committer_name?: string;
+  parent_ids: string[];
 }
 
 export type DeploymentStatus = 'running' | 'success' | 'failed' | 'canceled' | 'extracted';
@@ -139,4 +140,20 @@ export interface Branch {
   developers_can_push: boolean;
   developers_can_merge: boolean;
   commit: Commit;
+}
+
+export interface ProjectHook {
+  id: number;
+  url: string;
+  project_id: number;
+  push_events: boolean;
+  issues_events: boolean;
+  merge_requests_events: boolean;
+  tag_push_events: boolean;
+  note_events: boolean;
+  build_events: boolean;
+  pipeline_events: boolean;
+  wiki_page_events: boolean;
+  enable_ssl_verification: boolean;
+  created_at: string;
 }

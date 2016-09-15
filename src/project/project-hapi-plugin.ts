@@ -21,12 +21,22 @@ export default class ProjectHapiPlugin {
 
   public register: HapiRegister = (server, _options, next) => {
     this.projectModule.assureSystemHookRegistered();
+    this.projectModule.assureProjectHooksRegistered();
 
     server.route({
       method: 'GET',
       path: '/project/hook',
       handler: (request: any, reply: any) => {
         this.projectModule.receiveHook(request.payload);
+        return reply('ok');
+      },
+    });
+
+    server.route({
+      method: 'POST',
+      path: '/project/project-hook',
+      handler: (request: any, reply: any) => {
+        this.projectModule.receiveProjectHook(request.payload);
         return reply('ok');
       },
     });

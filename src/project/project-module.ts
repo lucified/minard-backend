@@ -16,7 +16,6 @@ import { GitlabPushEvent } from './gitlab-push-hook-types';
 import {
   CodePushedEvent,
   MinardBranch,
-  MinardCommit,
   MinardProject,
   MinardProjectContributor,
   codePushed,
@@ -24,6 +23,11 @@ import {
   projectDeleted,
   projectEdited,
 } from './types';
+
+import {
+  MinardCommit,
+  toMinardCommit,
+} from '../shared/minard-commit';
 
 import { AuthenticationModule } from '../authentication';
 import { EventBus, eventBusInjectSymbol } from '../event-bus/';
@@ -63,25 +67,6 @@ export default class ProjectModule {
     this.gitBaseUrl = gitBaseUrl;
   }
 
-  public toMinardCommit(gitlabCommit: Commit): MinardCommit {
-    return {
-      id: gitlabCommit.id,
-      shortId: gitlabCommit.short_id,
-      message: gitlabCommit.message,
-      author: {
-        email: gitlabCommit.author_email,
-        name: gitlabCommit.author_name,
-        timestamp: gitlabCommit.authored_date || gitlabCommit.created_at,
-      },
-      committer: {
-       email: gitlabCommit.committer_email || gitlabCommit.author_email,
-       name: gitlabCommit.committer_name || gitlabCommit.author_name,
-       timestamp: gitlabCommit.committed_date || gitlabCommit.created_at,
-      },
-      parentIds: gitlabCommit.parent_ids,
-    };
-  }
-
   public async getProjectContributors(projectId: number): Promise<MinardProjectContributor[] | null> {
     try {
       return await this.gitlab.fetchJson<MinardProjectContributor[]>(`projects/${projectId}/repository/contributors`);
@@ -98,7 +83,7 @@ export default class ProjectModule {
     try {
       const commit = await this.gitlab.fetchJson<Commit>(
         `projects/${projectId}/repository/commits/${encodeURIComponent(hash)}`);
-      return this.toMinardCommit(commit);
+      return toMinardCommit(commit);
     } catch (err) {
       if (err.isBoom && err.output.statusCode === MINARD_ERROR_CODE.NOT_FOUND) {
         return null;
@@ -179,14 +164,14 @@ export default class ProjectModule {
       return this.getBranchCommits(projectId, branchName, until, count, extraCount + 100);
     }
     return commits.slice(0, Math.min(commits.length, count + atUntilCount))
-      .map((commit: Commit) => this.toMinardCommit(commit));
+      .map((commit: Commit) => toMinardCommit(commit));
   }
 
   public toMinardBranch(projectId: number, branch: Branch): MinardBranch {
     return {
       project: projectId,
       name: branch.name,
-      latestCommit: this.toMinardCommit(branch.commit),
+      latestCommit: toMinardCommit(branch.commit),
       latestActivityTimestamp: branch.commit.created_at,
     };
   }

@@ -1,4 +1,5 @@
 import { eventCreator } from '../shared/events';
+import { MinardCommit } from '../shared/minard-commit';
 
 export interface ProjectCreatedEvent {
   id: number;
@@ -55,21 +56,6 @@ export interface MinardProjectPlain {
 
 export interface MinardProject extends MinardProjectPlain {
   id: number;
-}
-
-export interface MinardCommitAuthor {
-  name: string;
-  email: string;
-  timestamp: string;
-}
-
-export interface MinardCommit {
-  id: string;
-  shortId?: string;
-  message: string;
-  author: MinardCommitAuthor;
-  committer: MinardCommitAuthor;
-  parentIds?: string[];
 }
 
 export interface MinardBranch {

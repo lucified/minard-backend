@@ -8,7 +8,6 @@ import { sprintf } from 'sprintf-js';
 import { EventBus, eventBusInjectSymbol } from '../event-bus';
 import { externalBaseUrlInjectSymbol } from '../server/types';
 import * as logger from '../shared/logger';
-import { createScreenshotEvent } from './types';
 
 import {
   Screenshotter,
@@ -18,11 +17,6 @@ import {
 } from './types';
 
 const urljoin = require('url-join');
-
-import {
-  DEPLOYMENT_EVENT_TYPE,
-  DeploymentEvent,
-} from '../deployment';
 
 @injectable()
 export default class ScreenshotModule {
@@ -48,21 +42,6 @@ export default class ScreenshotModule {
     this.screenshotter = screenshotter;
     this.folder = folder;
     this.externalBaseUrl = baseUrl;
-    this.subscribeToEvents();
-  }
-
-  private subscribeToEvents() {
-    this.eventBus
-      .filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
-      .filter(event => event.payload.status === 'extracted' && event.payload.projectId !== undefined)
-      .flatMap(async event => {
-        try {
-          return await this.takeScreenshot(event.payload.projectId!, event.payload.id);
-        } catch (err) {
-          return null;
-        }
-      })
-      .subscribe();
   }
 
   private getScreenshotDir(projectId: number, deploymentId: number) {
@@ -99,13 +78,7 @@ export default class ScreenshotModule {
         renderDelay: 2000,
       };
       await this.screenshotter.webshot(url, file, webshotOptions);
-      const publicUrl = this.getPublicUrl(projectId, deploymentId);
-      this.eventBus.post(createScreenshotEvent({
-        projectId,
-        deploymentId,
-        url: publicUrl,
-      }));
-      return publicUrl;
+      return this.getPublicUrl(projectId, deploymentId);
     } catch (err) {
       // TODO: detect issues taking screenshot that are not Minard's fault
       this.logger.error(`Failed to create screenshot for url ${url}`, err);

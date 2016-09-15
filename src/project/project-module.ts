@@ -442,6 +442,7 @@ export default class ProjectModule {
   public async deleteProject(projectId: number): Promise<void> {
     await this.deleteGitLabProject(projectId);
     this.eventBus.post(projectDeleted({
+      teamId: 1, // TODO
       projectId,
     }));
   }
@@ -460,6 +461,7 @@ export default class ProjectModule {
   public async editProject(projectId: number, attributes: { name?: string, description?: string}) {
     const project = await this.editGitLabProject(projectId, attributes);
     this.eventBus.post(projectEdited({
+      teamId: 1, // TODO
       projectId,
       name: project.name,
       description: project.description,

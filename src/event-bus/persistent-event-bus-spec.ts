@@ -1,11 +1,14 @@
-
+import { Observable } from '@reactivex/rxjs';
 import { expect } from 'chai';
 import * as moment from 'moment';
+import * as Redis from 'redis';
 import 'reflect-metadata';
 
 import { PersistedEvent, eventCreator } from '../shared/events';
 import { default as logger } from '../shared/logger';
 import { PersistentEventBus as EventBus } from './persistent-event-bus';
+
+import { promisify } from '../shared/promisify';
 
 // Events boilerplate includes payload types, string identifiers and smart constructors
 interface Payload {
@@ -28,38 +31,69 @@ const testEventCreator = eventCreator<Payload>(TEST_EVENT_TYPE);
 const ANOTHER_TEST_EVENT_TYPE = 'ANOTHER_TEST_EVENT_TYPE';
 const anotherTestEventCreator = eventCreator<AnotherPayload>(ANOTHER_TEST_EVENT_TYPE);
 
+let persistence: any = { type: 'inmemory' };
+
+if (process.env.TEST_USE_REDIS) {
+  persistence = {
+    type: 'redis',
+    host: process.env.REDIS_HOST || '127.0.0.1',
+    port: process.env.REDIS_PORT || '16379',
+    db: 0,
+    prefix: 'charles-testing',
+    eventsCollectionName: 'events',
+    snapshotsCollectionName: 'snapshots',
+  };
+}
+
 function getEventBus() {
-  return new EventBus(logger(undefined, false, true));
+  return  new EventBus(logger(undefined, false, true), persistence);
+}
+
+async function clearDb() {
+  if (persistence.type === 'redis') {
+    // we need to clear the db manually, otherwise nothing will work
+    const client = Redis.createClient(persistence);
+    const flushdb = promisify(client.flushdb, client);
+    const quit = promisify(client.flushdb, client);
+    await flushdb();
+    await quit();
+  }
 }
 
 describe('persistent-event-bus', () => {
+
+  beforeEach(clearDb);
+
+  // afterEach(clearDb);
 
   it('should work with an event that doesn\'t have teamId', async () => {
     const bus = getEventBus();
     const promise = bus
       .getStream()
-      .take(1)
+      .takeUntil(Observable.timer(100))
+      .toArray()
       .toPromise();
 
-    const isPersisted = await bus.post(testEventCreator({ status: 'bar' }));
-    const event = await promise;
-    expect(isPersisted).to.be.false;
-    expect(event.type).to.equal(TEST_EVENT_TYPE);
-    expect(event.type).to.equal(testEventCreator.type); // the constructor has a reference to the type
+    bus.post(testEventCreator({ status: 'bar' }));
+    const events = await promise;
+    expect(events.length).to.eq(1);
+    expect(events[0].type).to.equal(TEST_EVENT_TYPE);
+    expect(events[0].type).to.equal(testEventCreator.type); // the constructor has a reference to the type
   });
 
   it('should work with an sse event that has teamId', async () => {
     const bus = getEventBus();
     const promise = bus
       .getStream()
-      .take(1)
+      .takeUntil(Observable.timer(100))
+      .toArray()
       .toPromise();
 
-    const isPersisted = await bus.post(sseEventCreator({ status: 'bar', teamId: 23234 }));
-    const event = await promise;
-    expect(isPersisted).to.be.true;
-    expect(event.type).to.equal(SSE_EVENT_TYPE);
-    expect(event.type).to.equal(sseEventCreator.type); // the constructor has a reference to the type
+    bus.post(sseEventCreator({ status: 'bar', teamId: 23234 }));
+    const events = await promise;
+    expect(events.length).to.eq(1);
+    expect(events[0].type).to.equal(SSE_EVENT_TYPE);
+    expect(events[0].type).to.equal(sseEventCreator.type); // the constructor has a reference to the type
   });
 
   it('should add id and streamRevision to an sse event', async () => {
@@ -67,99 +101,115 @@ describe('persistent-event-bus', () => {
     const promise = bus
       .getStream()
       .map(event => <PersistedEvent<any>> event)
-      .take(1)
+      .takeUntil(Observable.timer(100))
+      .toArray()
       .toPromise();
 
-    await bus.post(sseEventCreator({ status: 'bar', teamId: 23234 }));
-    const event = await promise;
-    expect(event.id).to.be.exist;
-    expect(event.streamRevision).to.eql(0);
-   });
+    bus.post(sseEventCreator({ status: 'bar', teamId: 23234 }));
+    const events = await promise;
+    expect(events.length).to.eq(1);
+    expect(events[0].id).to.be.exist;
+    expect(events[0].streamRevision).to.eql(0);
+  });
 
   it('should add a streamRevision that increments when using the same teamId', async () => {
     const bus = getEventBus();
     const promise = bus
       .getStream()
       .map(event => <PersistedEvent<any>> event)
-      .take(2)
+      .takeUntil(Observable.timer(100))
       .toArray()
       .toPromise();
 
-    await bus.post(sseEventCreator({ status: 'bar', teamId: 23234 }));
-    await bus.post(sseEventCreator({ status: 'bar', foo: 'baz', teamId: 23234 }));
+    bus.post(sseEventCreator({ status: 'bar', teamId: 23234 }));
+    bus.post(sseEventCreator({ status: 'bar', foo: 'baz', teamId: 23234 }));
     const events = await promise;
+    expect(events.length).to.eq(2);
     expect(events[0].streamRevision).to.eql(0);
+    expect(events[1].payload.foo).to.eql('baz');
     expect(events[1].streamRevision).to.eql(1);
-   });
+  });
 
   it('should add a streamRevision that increments when using the same teamId but separate projectId', async () => {
     const bus = getEventBus();
     const promise = bus
       .getStream()
       .map(event => <PersistedEvent<any>> event)
-      .take(2)
+      .takeUntil(Observable.timer(100))
       .toArray()
       .toPromise();
 
-    await bus.post(sseEventCreator({ status: 'bar', teamId: 23234, projectId: 34534 }));
-    await bus.post(sseEventCreator({ status: 'bar', foo: 'baz', teamId: 23234, projectId: 2 }));
+    bus.post(sseEventCreator({ status: 'bar', teamId: 23234, projectId: 34534 }));
+    bus.post(sseEventCreator({ status: 'bar', foo: 'baz', teamId: 23234, projectId: 2 }));
     const events = await promise;
+    expect(events.length).to.eq(2);
     expect(events[0].streamRevision).to.eql(0);
+    expect(events[1].payload.foo).to.eql('baz');
     expect(events[1].streamRevision).to.eql(1);
-   });
+  });
 
   it('should add a streamRevision that doesn\'t increment when using separate teamIds', async () => {
     const bus = getEventBus();
     const promise = bus
       .getStream()
       .map(event => <PersistedEvent<any>> event)
-      .take(2)
+      .takeUntil(Observable.timer(100))
       .toArray()
       .toPromise();
 
-    await bus.post(sseEventCreator({ status: 'bar', teamId: 2 }));
-    await bus.post(sseEventCreator({ status: 'bar', foo: 'baz', teamId: 23234 }));
+    bus.post(sseEventCreator({ status: 'bar', teamId: 2 }));
+    bus.post(sseEventCreator({ status: 'bar', foo: 'baz', teamId: 23234 }));
     const events = await promise;
+    expect(events.length).to.eq(2);
     expect(events[0].streamRevision).to.eql(0);
+    expect(events[1].payload.foo).to.eql('baz');
     expect(events[1].streamRevision).to.eql(0);
-   });
+  });
 
   it('allows fetching by teamId', async () => {
     const bus = getEventBus();
     const teamId = 33423;
 
-    const promises = [
-      bus.post(sseEventCreator({ status: 'bar', teamId })),
-      bus.post(testEventCreator({ status: 'bar', foo: 'foo', teamId })),
-      bus.post(sseEventCreator({ status: 'bar', foo: 'baz', teamId })),
-    ];
-    await Promise.all(promises);
+    const promise = bus
+      .getStream()
+      .take(3)
+      .toArray()
+      .toPromise();
 
+    bus.post(sseEventCreator({ status: 'bar', teamId }));
+    bus.post(testEventCreator({ status: 'bar', foo: 'foo', teamId }));
+    bus.post(sseEventCreator({ status: 'bar', foo: 'baz', teamId }));
+
+    await promise;
     const events = await bus.getEvents(teamId);
     expect(events.length).to.eql(2);
     expect(events[0].streamRevision).to.eql(0);
     expect(events[1].streamRevision).to.eql(1);
     expect(events[1].payload.foo).to.eql('baz');
 
-   });
+  });
 
   it('allows fetching by teamId and since', async () => {
     const bus = getEventBus();
-    const teamId = 2342;
+    const teamId = 33423;
 
-    const promises = [
-      bus.post(sseEventCreator({ status: 'bar', teamId })),
-      bus.post(testEventCreator({ status: 'bar', foo: 'foo', teamId })),
-      bus.post(sseEventCreator({ status: 'bar', foo: 'baz', teamId })),
-    ];
-    await Promise.all(promises);
+    const promise = bus
+      .getStream()
+      .take(3)
+      .toArray()
+      .toPromise();
 
+    bus.post(sseEventCreator({ status: 'bar', teamId }));
+    bus.post(testEventCreator({ status: 'bar', foo: 'foo', teamId }));
+    bus.post(sseEventCreator({ status: 'bar', foo: 'baz', teamId }));
+
+    await promise;
     const events = await bus.getEvents(teamId, 1);
     expect(events.length).to.eql(1);
     expect(events[0].streamRevision).to.eql(1);
     expect(events[0].payload.foo).to.eql('baz');
 
-   });
+  });
 
   it('should allow filtering by types', async () => {
     const bus = getEventBus();
@@ -168,8 +218,8 @@ describe('persistent-event-bus', () => {
       .take(1)
       .toPromise();
 
-    await bus.post({ type: 'fooType', payload: { foo: 'bar' }, created: moment() });
-    await bus.post(testEventCreator({ status: 'bar' }));
+    bus.post({ type: 'fooType', payload: { foo: 'bar' }, created: moment() });
+    bus.post(testEventCreator({ status: 'bar' }));
     const event = await promise;
 
     expect(event.type).to.equal(TEST_EVENT_TYPE);
@@ -193,24 +243,24 @@ describe('persistent-event-bus', () => {
     const events = await promise;
 
     events.forEach(event => {
-        const payload = event.payload;
-        // Type narrowing
-        switch (payload.status) {
-          case 'bar':
-            expect(event.type).to.equal(TEST_EVENT_TYPE);
-            expect(payload.foo).to.equal('foo');
+      const payload = event.payload;
+      // Type narrowing
+      switch (payload.status) {
+        case 'bar':
+          expect(event.type).to.equal(TEST_EVENT_TYPE);
+          expect(payload.foo).to.equal('foo');
 
-            break;
-          case 'foo':
-            expect(event.type).to.equal(ANOTHER_TEST_EVENT_TYPE);
-            expect(payload.bar).to.equal('bar');
+          break;
+        case 'foo':
+          expect(event.type).to.equal(ANOTHER_TEST_EVENT_TYPE);
+          expect(payload.bar).to.equal('bar');
 
-            break;
+          break;
 
-          default:
-            throw new Error('Unknown type');
-        }
-        counter++;
+        default:
+          throw new Error('Unknown type');
+      }
+      counter++;
     });
     expect(counter).to.eq(2);
 

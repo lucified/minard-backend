@@ -108,7 +108,7 @@ describe('persistent-event-bus', () => {
     bus.post(sseEventCreator({ status: 'bar', teamId: 23234 }));
     const events = await promise;
     expect(events.length).to.eq(1);
-    expect(events[0].id).to.be.exist;
+    expect(events[0].id).to.exist;
     expect(events[0].streamRevision).to.eql(0);
   });
 

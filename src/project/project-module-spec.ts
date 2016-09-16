@@ -930,7 +930,7 @@ describe('project-module', () => {
       // Assert
       expect(id).to.equal(projectId);
       expect(payload.description).to.equal(description);
-      expect(payload.projectId).to.equal(projectId);
+      expect(payload.id).to.equal(projectId);
       expect(payload.teamId).to.equal(teamId);
       expect(payload.name).to.equal(name);
       expect(await projectHookPromise).to.equal(projectId);
@@ -1026,7 +1026,7 @@ describe('project-module', () => {
       const event = await promise;
 
       // Assert
-      expect(event.payload.projectId).to.equal(projectId);
+      expect(event.payload.id).to.equal(projectId);
     });
 
     it('should throw when gitlab responds with invalid status code', async () => {
@@ -1118,7 +1118,7 @@ describe('project-module', () => {
       // Assert
       expect(fetchMock.called()).to.equal(true);
       expect(payload.description).to.equal(resultingDescription);
-      expect(payload.projectId).to.equal(projectId);
+      expect(payload.id).to.equal(projectId);
       expect(payload.name).to.equal(resultingName);
     }
 

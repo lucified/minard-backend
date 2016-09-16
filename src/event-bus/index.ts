@@ -11,7 +11,7 @@ export type Event<T> = Event<T>;
 export const eventBusInjectSymbol = Symbol('event-bus');
 
 export interface EventBus {
-  post(event: Event<any>): Promise<boolean>;
+  post(event: Event<any>): void;
   getStream(): Observable<Event<any>>;
   filterEvents<T>(...types: string[]): Observable<Event<T>>;
 }

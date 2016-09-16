@@ -25,12 +25,11 @@ export default class LocalEventBus implements EventBus {
     return this.handledSubject();
   }
 
-  public async post(event: Event<any>) {
+  public post(event: Event<any>) {
     if (this.subject.isStopped) {
       throw new Error('eventBus has stopped running, which should never happen.');
     }
     this.subject.next(event);
-    return true;
   }
 
   public getStream(): Observable<Event<any>> {

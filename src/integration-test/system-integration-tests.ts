@@ -1,7 +1,9 @@
-/* tslint:disable only-arrow-functions */
+/* tslint:disable:only-arrow-functions variable-name */
 
-/* The rule needs to be disabled as mocha's
-   this.timeout(...) does not work with arrow functions */
+/* The first rule needs to be disabled as mocha's
+   this.timeout(...) does not work with arrow functions.
+   The second rule needs to be disabled since EventSource is a class
+   and using disable-line doesn't work */
 
 import 'isomorphic-fetch';
 
@@ -343,6 +345,13 @@ describe('system-integration', () => {
         },
       },
     };
+    const firstEventId = await editProjectAndListenToEvent(editProjectPayload);
+    const secondEventId = await editProjectAndListenToEvent(editProjectPayload);
+
+    await testSSEPersistence(firstEventId, secondEventId, 'PROJECT_EDITED');
+  });
+
+  async function editProjectAndListenToEvent(editProjectPayload: any) {
     const editRequest = fetch(`${charles}/api/projects/${projectId}`, {
       method: 'PATCH',
       body: JSON.stringify(editProjectPayload),
@@ -366,12 +375,12 @@ describe('system-integration', () => {
     const event = JSON.parse(sseResponse.data);
     expect(event).to.exist;
     expect(event.id).to.eq(projectId);
-    expect(event.description).to.eq(newDescription);
+    expect(event.description).to.eq(editProjectPayload.data.attributes.description);
 
-    await testSSEPersistence(eventType, sseResponse.lastEventId);
-  });
+    return sseResponse.lastEventId;
+  }
 
-  async function testSSEPersistence(eventType: string, lastEventId: string) {
+  async function testSSEPersistence(lastEventId: string, currentEventId: string, eventType: string) {
 
     const eventSourceInitDict = {headers: {'Last-Event-ID': lastEventId}};
     const eventSource = new EventSource(`${charles}/events/1`, eventSourceInitDict); // TODO teamId
@@ -381,7 +390,7 @@ describe('system-integration', () => {
     ).take(1).map(event => <SSE> event).toPromise();
 
     expect(sseResponse.type).to.equal(eventType);
-    expect(sseResponse.lastEventId).to.eq(lastEventId);
+    expect(sseResponse.lastEventId).to.eq(currentEventId);
     const event = JSON.parse(sseResponse.data);
     expect(event).to.exist;
     expect(event.id).to.eq(projectId);

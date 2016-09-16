@@ -5,17 +5,31 @@ import { expect } from 'chai';
 import 'reflect-metadata';
 
 import { PersistentEventBus } from '../event-bus';
-import { ApiProject, JsonApiHapiPlugin } from '../json-api';
+
+import {
+  ApiBranch,
+  ApiProject,
+  JsonApiHapiPlugin,
+  JsonApiModule,
+  toApiCommitId,
+} from '../json-api';
+
 import logger from '../shared/logger';
 import { RealtimeHapiPlugin } from './realtime-hapi-plugin';
 
 import { promisify } from '../shared/promisify';
 
 import {
+  CodePushedEvent,
+  codePushed,
   projectCreated,
   projectDeleted,
   projectEdited,
 } from '../project';
+
+import {
+  StreamingCodePushedEvent,
+} from './types';
 
 function getPlugin(bus: PersistentEventBus, factory: any) {
   const jsonApi = new JsonApiHapiPlugin(factory, baseUrl);
@@ -119,4 +133,68 @@ describe('realtime-hapi-plugin', () => {
       });
     });
   });
+
+  describe('CodePushedEvent', () => {
+    beforeEach(clearDb);
+
+    it('is transformed correctly when after is not null', async () => {
+      const branchName = 'foo-branch-name';
+      const projectId = 5;
+      const mockFactory = () => ({
+        getBranch: async (_projectId: number, _branchName: string): Promise<ApiBranch> => ({
+          type: 'branch',
+          name: _branchName,
+          project: projectId,
+          id: `5-branch`,
+        } as any),
+        toApiCommit: JsonApiModule.prototype.toApiCommit,
+      });
+      const eventBus = getEventBus();
+      const plugin = getPlugin(eventBus, mockFactory);
+
+      // Act
+      const payload: CodePushedEvent = {
+        after: {
+          id: 'foo-after-id',
+        } as any,
+        before: {
+          id: 'foo-before-id',
+        } as any,
+        parents: [
+          {
+            id: 'foo-parent-id',
+          } as any,
+        ],
+        commits: [
+          {
+            id: 'foo-commit-id',
+            message: 'foo-message',
+          } as any,
+          {
+            id: 'bar-commit-id',
+            message: 'bar-message',
+          } as any,
+        ],
+        projectId,
+        ref: branchName,
+      };
+      const promise = plugin.persistedEvents.take(1).toPromise();
+      const event = codePushed(payload);
+      eventBus.post(event);
+
+      const created = await promise;
+
+      // Assert
+      const createdPayload = created.payload as StreamingCodePushedEvent;
+      expect(createdPayload.after).to.equal(toApiCommitId(projectId, payload.after!.id));
+      expect(createdPayload.before).to.equal(toApiCommitId(projectId, payload.before!.id));
+      expect(createdPayload.parents).to.have.length(1);
+      expect(createdPayload.parents[0]).to.equal(toApiCommitId(projectId, payload.parents[0].id));
+      expect(createdPayload.commits).to.have.length(2);
+      expect(createdPayload.commits[0].id).to.equal(toApiCommitId(projectId, payload.commits[0].id));
+      expect(createdPayload.commits[0].type).to.equal('commits');
+      expect(createdPayload.commits[0].attributes.message).to.equal(payload.commits[0].message);
+    });
+  });
+
 });

@@ -292,7 +292,7 @@ export class JsonApiHapiPlugin {
     next();
   };
 
-  private serializeApiEntity(type: string, entity: any) {
+  public serializeApiEntity(type: string, entity: any) {
     return serializeApiEntity(type, entity, this.baseUrl);
   }
 
@@ -387,6 +387,10 @@ export class JsonApiHapiPlugin {
     }
     // for now any team id returns all activity
     return reply(this.getEntity('activity', api => api.getTeamActivity(1, until, count)));
+  }
+
+  public getJsonApiModule() {
+    return this.factory();
   }
 
 }

@@ -23,7 +23,7 @@ export class ObservableWrapper extends Readable {
   private sseEvent(event: PersistedEvent<any>) {
     return this.stringifyEvent({
       id: event.streamRevision,
-      event: event.type,
+      event: event.type.replace(/^SSE_/, ''),
       data: event.payload,
     });
   }

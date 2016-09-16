@@ -3,10 +3,11 @@ import * as moment from 'moment';
 
 import { eventCreator } from '../shared/events';
 import { BuildStatus } from '../shared/gitlab';
+import { MinardCommit } from '../shared/minard-commit';
 
 export const deploymentUrlPatternInjectSymbol = Symbol('deployment-url-pattern');
 
-interface DeploymentStatusUpdate {
+export interface DeploymentStatusUpdate {
   buildStatus?: MinardDeploymentStatus;
   extractStatus?: MinardDeploymentStatus;
   screenshotStatus?: MinardDeploymentStatus;
@@ -63,7 +64,8 @@ export interface MinardDeploymentCreator {
 
 export interface MinardDeployment extends MinardDeploymentPlain {
   deploymentId: number;
-  commit: any;
+  commit: MinardCommit;
+  commitHash: string;
 }
 
 export interface MinardJsonBuildCommand {

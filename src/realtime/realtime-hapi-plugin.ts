@@ -28,6 +28,11 @@ import {
 } from '../project';
 
 import {
+  MinardActivity,
+  createActivityEvent,
+} from '../activity';
+
+import {
   StreamingCodePushedEvent,
 } from './types';
 
@@ -194,8 +199,19 @@ export class RealtimeHapiPlugin {
         if (isType<CodePushedEvent>(event, codePushed)) {
           return this.codePushed(event);
         }
+
+        if (isType<MinardActivity>(event, createActivityEvent)) {
+          return this.activity(event);
+        }
+
         return Observable.empty<StreamingEvent<any>>();
       }, 3);
+  }
+
+  private async activity(event: Event<MinardActivity>) {
+    const apiActivity = await this.jsonApiPlugin.getJsonApiModule().toApiActivity(event.payload);
+    const payload = this.jsonApiPlugin.serializeApiEntity('activity', apiActivity).data;
+    return this.toSSE(event, payload);
   }
 
   private async codePushed(event: Event<CodePushedEvent>) {

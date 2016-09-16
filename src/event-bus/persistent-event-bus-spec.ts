@@ -153,7 +153,7 @@ describe('persistent-event-bus', () => {
     const promise = bus
       .getStream()
       .map(event => <PersistedEvent<any>> event)
-      .takeUntil(Observable.timer(100))
+      .takeUntil(Observable.timer(200))
       .toArray()
       .toPromise();
 

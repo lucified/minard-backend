@@ -18,6 +18,7 @@ export default class LocalEventBus implements EventBus {
   private handledSubject(): Observable<Event<any>> {
     return this.subject.catch(err => this.handleError(err));
   }
+
   private handleError(err?: any): Observable<Event<any>> {
     if (err) {
       console.error(err);

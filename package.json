@@ -49,6 +49,7 @@
     "@types/knex": "0.0.32",
     "@types/lodash": "^4.14.34",
     "@types/mocha": "^2.2.26-alpha",
+    "@types/redis": "^0.12.31",
     "@types/sprintf-js": "0.0.26",
     "@types/winston": "0.0.27",
     "@types/wreck": "^7.0.27",

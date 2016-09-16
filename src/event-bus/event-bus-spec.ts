@@ -54,9 +54,8 @@ describe('event-bus', () => {
       .take(1)
       .toPromise();
 
-    const success = await bus.post(testEventCreator({ status: 'bar' }));
+    bus.post(testEventCreator({ status: 'bar' }));
     const event = await promise;
-    expect(success).to.be.true;
     expect(event.type).to.equal(TEST_EVENT_TYPE);
     expect(event.type).to.equal(testEventCreator.type); // the constructor has a reference to the type
   });
@@ -68,8 +67,8 @@ describe('event-bus', () => {
       .take(1)
       .toPromise();
 
-    await bus.post({ type: 'fooType', payload: { foo: 'bar' }, created: moment() });
-    await bus.post(testEventCreator({ status: 'bar' }));
+    bus.post({ type: 'fooType', payload: { foo: 'bar' }, created: moment() });
+    bus.post(testEventCreator({ status: 'bar' }));
     const event = await promise;
 
     expect(event.type).to.equal(TEST_EVENT_TYPE);

@@ -58,15 +58,7 @@ export class RealtimeHapiPlugin {
 
     // creates SSEEvents and posts them
     this.eventBusSubscription = this.getEnrichedStream()
-      .flatMap(async (enriched) => {
-        try {
-          return await this.eventBus.post(enriched);
-        } catch (err) {
-          this.logger.error('Error when trying to post enriched event %s', enriched.type, err);
-        }
-        return Observable.empty<boolean>();
-      })
-      .subscribe();
+      .subscribe(this.eventBus.post.bind(this.eventBus));
   }
 
   private getEnrichedStream(): Observable<StreamingEvent<any>> {
@@ -191,7 +183,7 @@ export class RealtimeHapiPlugin {
 
   private async projectCreated(event: Event<ProjectCreatedEvent>) {
     const payload: ApiProject = await this.jsonApiPlugin
-      .getEntity('project', api => api.getProject(event.payload.projectId));
+      .getEntity('project', api => api.getProject(event.payload.id));
     return this.toSSE(event, payload);
   }
 

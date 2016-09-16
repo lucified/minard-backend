@@ -5,6 +5,7 @@
 
 import 'isomorphic-fetch';
 
+import { Observable } from '@reactivex/rxjs';
 import { expect } from 'chai';
 import { spawn } from 'child_process';
 import * as fs from 'fs';
@@ -13,6 +14,14 @@ import { keys } from 'lodash';
 import { JsonApiEntity, JsonApiResponse } from '../json-api';
 
 import * as chalk from 'chalk';
+
+const EventSource = require('eventsource');
+
+interface SSE {
+  type: string;
+  lastEventId: string;
+  data: any;
+}
 
 const projectFolder = process.env.SYSTEM_TEST_PROJECT ? process.env.SYSTEM_TEST_PROJECT : 'blank';
 const charles = process.env.CHARLES ? process.env.CHARLES : 'http://localhost:8000';
@@ -173,7 +182,7 @@ describe('system-integration', () => {
         expect(ret.status).to.equal(201);
         const json = await ret.json();
         expect(json.data.id).to.exist;
-        projectId = json.data.id;
+        projectId = parseInt(json.data.id, 10);
       }
     }
     log(`Project created (projectId: ${projectId})`);
@@ -320,6 +329,64 @@ describe('system-integration', () => {
     expect(json.data.id).to.exist;
     expect(json.data.attributes.description).to.equal(editProjectPayload.data.attributes.description);
   });
+
+  it('should be able to get streaming updates', async function() {
+    logTitle('Streaming');
+    this.timeout(1000 * 30);
+    const newDescription = 'foo bar bar bar foo';
+    const editProjectPayload = {
+      'data': {
+        'type': 'projects',
+        'id': projectId,
+        'attributes': {
+          'description': newDescription,
+        },
+      },
+    };
+    const editRequest = fetch(`${charles}/api/projects/${projectId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(editProjectPayload),
+    });
+
+    const eventSource = new EventSource(`${charles}/events/1`); // TODO teamId
+    const eventType = 'PROJECT_EDITED';
+    const eventPromise = Observable.fromEventPattern(
+      (h: any) => eventSource.addEventListener(eventType, h),
+      (h: any) => eventSource.removeListener(eventType, h),
+    ).take(1).map(event => <SSE> event).toPromise();
+
+    const [editResponse, sseResponse] = await Promise.all([editRequest, eventPromise]);
+    const json = await editResponse.json();
+    expect(editResponse.status).to.equal(200);
+    expect(json.data.id).to.exist;
+    expect(json.data.attributes.description).to.equal(editProjectPayload.data.attributes.description);
+
+    expect(sseResponse.type).to.equal(eventType);
+    expect(sseResponse.lastEventId).to.exist;
+    const event = JSON.parse(sseResponse.data);
+    expect(event).to.exist;
+    expect(event.id).to.eq(projectId);
+    expect(event.description).to.eq(newDescription);
+
+    await testSSEPersistence(eventType, sseResponse.lastEventId);
+  });
+
+  async function testSSEPersistence(eventType: string, lastEventId: string) {
+
+    const eventSourceInitDict = {headers: {'Last-Event-ID': lastEventId}};
+    const eventSource = new EventSource(`${charles}/events/1`, eventSourceInitDict); // TODO teamId
+    const sseResponse = await Observable.fromEventPattern(
+      (h: any) => eventSource.addEventListener(eventType, h),
+      (h: any) => eventSource.removeListener(eventType, h),
+    ).take(1).map(event => <SSE> event).toPromise();
+
+    expect(sseResponse.type).to.equal(eventType);
+    expect(sseResponse.lastEventId).to.eq(lastEventId);
+    const event = JSON.parse(sseResponse.data);
+    expect(event).to.exist;
+    expect(event.id).to.eq(projectId);
+
+  }
 
   it('should be able to delete project', async function() {
     if (skipDeleteProject) {

@@ -1,6 +1,7 @@
 
-import { Observable } from '@reactivex/rxjs';
+import { Observable, Subscription } from '@reactivex/rxjs';
 import { inject, injectable } from 'inversify';
+import * as moment from 'moment';
 
 import * as Hapi from 'hapi';
 import * as Joi from 'joi';
@@ -19,28 +20,34 @@ import {
   projectEdited,
 } from '../project';
 
-import { EventBus, eventBusInjectSymbol } from '../event-bus/';
-import { Event, isType } from '../shared/events';
+import { PersistentEventBus, eventBusInjectSymbol } from '../event-bus/';
+import { Event, PersistedEvent, StreamingEvent, isPersistedEvent, isType } from '../shared/events';
+
+export const PING_INTERVAL = 20000;
 
 @injectable()
 export class RealtimeHapiPlugin {
 
   public static injectSymbol = Symbol('realtime-plugin');
   private jsonApiPlugin: JsonApiHapiPlugin;
-  private eventBus: EventBus;
-  public readonly stream: Observable<Event<any>>;
+  private eventBus: PersistentEventBus;
+  private eventBusSubscription: Subscription;
+  public readonly persistedEvents: Observable<PersistedEvent<any>>;
 
   private readonly logger: logger.Logger;
 
   constructor(
     @inject(JsonApiHapiPlugin.injectSymbol) jsonApiPlugin: JsonApiHapiPlugin,
-    @inject(eventBusInjectSymbol) eventBus: EventBus,
+    @inject(eventBusInjectSymbol) eventBus: PersistentEventBus,
     @inject(logger.loggerInjectSymbol) logger: logger.Logger) {
 
     this.eventBus = eventBus;
     this.logger = logger;
     this.jsonApiPlugin = jsonApiPlugin;
-    this.stream = this.transform(eventBus).share();
+    this.persistedEvents = this.eventBus.getStream()
+      .filter(isPersistedEvent)
+      .map(event => <PersistedEvent<any>> event)
+      .share();
 
     this.register = Object.assign(this._register.bind(this), {
       attributes: {
@@ -49,47 +56,17 @@ export class RealtimeHapiPlugin {
       },
     });
 
+    // creates SSEEvents and posts them
+    this.eventBusSubscription = this.getEnrichedStream()
+      .subscribe(this.eventBus.post.bind(this.eventBus));
   }
 
-  private transform(bus: EventBus): Observable<any> {
-    return bus.flatMap(event => {
-      if (isType<ProjectCreatedEvent>(event, projectCreated)) {
-        return this.projectCreated(event);
-      }
-      if (isType<ProjectEditedEvent>(event, projectEdited)) {
-        return this.projectEdited(event);
-      }
-      if (isType<ProjectDeletedEvent>(event, projectDeleted)) {
-        return this.projectDeleted(event);
-      }
-      return Observable.of(event);
-    }, 1);
-  }
-
-  private richify<T>(event: Event<any>, payload: T): Event<T> {
-    return {
-      type: event.type,
-      created: event.created,
-      payload,
-    };
-  }
-
-  private async projectCreated(event: Event<ProjectCreatedEvent>) {
-    const payload: ApiProject = await this.jsonApiPlugin
-      .getEntity('project', api => api.getProject(event.payload.projectId));
-    return this.richify(event, payload);
-  }
-
-  private async projectEdited(event: Event<ProjectEditedEvent>) {
-    const payload: ApiProject = await this.jsonApiPlugin
-      .getEntity('project', api => api.getProject(event.payload.projectId));
-    return this.richify(event, payload);
-  }
-
-  private async projectDeleted(event: Event<ProjectDeletedEvent>) {
-    const payload: ApiProject = await this.jsonApiPlugin
-      .getEntity('project', api => api.getProject(event.payload.projectId));
-    return this.richify(event, payload);
+  private getEnrichedStream(): Observable<StreamingEvent<any>> {
+    return this.enrich(this.eventBus.getStream())
+      .catch(err => {
+        this.logger.error('Error on enrich:', err);
+        return this.getEnrichedStream();
+      });
   }
 
   private _register(server: Hapi.Server, _options: Hapi.IServerOptions, next: () => void) {
@@ -99,6 +76,7 @@ export class RealtimeHapiPlugin {
       path: '/events/{teamId}',
       handler: this.requestHandler.bind(this),
       config: {
+        cors: true,
         validate: {
           params: {
             teamId: Joi.number().required(),
@@ -127,27 +105,97 @@ export class RealtimeHapiPlugin {
 
   public readonly register: HapiRegister;
 
-  private postHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    this.eventBus.post(request.payload);
-    reply(200);
+  private async postHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    try {
+      const isPersisted = await this.eventBus.post(request.payload);
+      reply(JSON.stringify(request.payload, null, 2))
+        .code(isPersisted ? 500 : 200);
+
+    } catch (err) {
+      this.logger.error('Error:', err);
+      reply(err);
+    }
   }
 
-  private requestHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  private pingEvent() {
+    return {
+      type: 'CONTROL_PING',
+      id: '0',
+      streamRevision: 0,
+      teamId: 0,
+      created: moment(),
+      payload: 0,
+    } as PersistedEvent<any>;
+  }
+
+  private async onRequest(teamId: number, since?: number) {
+      let observable = Observable.concat(
+        Observable.of(this.pingEvent()),
+        this.persistedEvents.filter(event => event.teamId === teamId)
+      );
+      if (since) {
+        const existing = await this.eventBus.getEvents(teamId, since);
+        observable = Observable.concat(Observable.from(existing), observable);
+      }
+      observable = Observable.merge(
+        Observable.interval(PING_INTERVAL).map(_ => this.pingEvent()),
+        observable
+      );
+      return observable;
+
+  }
+
+  private async requestHandler(request: Hapi.Request, reply: Hapi.IReply) {
     try {
-      // TODO const teamId = request.paramsArray[0];
-      const stream = new ObservableWrapper(this.stream);
-      reply(stream)
+      const teamId = parseInt(request.paramsArray[0], 10);
+      const sinceKey = 'last-event-id';
+      const since = request.headers[sinceKey];
+      const observable = await this.onRequest(teamId, since ? parseInt(since, 10) : undefined );
+      const nodeStream = new ObservableWrapper(observable);
+      reply(nodeStream)
         .header('content-type', 'text/event-stream')
         .header('content-encoding', 'identity');
 
       request.once('disconnect', () => {
         // Clean up on disconnect
-        stream.push(null);
+        nodeStream.push(null);
       });
 
     } catch (err) {
       this.logger.error('Error handling a SSE request', err);
     }
+  }
+
+  private enrich(stream: Observable<Event<any>>): Observable<StreamingEvent<any>> {
+    return stream
+      .flatMap(event => {
+        if (isType<ProjectCreatedEvent>(event, projectCreated)) {
+          return this.projectCreated(event);
+        }
+        if (
+          isType<ProjectEditedEvent>(event, projectEdited) ||
+          isType<ProjectDeletedEvent>(event, projectDeleted)) {
+          return Observable.of(this.toSSE(event, event.payload));
+        }
+        return Observable.empty<StreamingEvent<any>>();
+      }, 3);
+  }
+
+  private async projectCreated(event: Event<ProjectCreatedEvent>) {
+    const payload: ApiProject = await this.jsonApiPlugin
+      .getEntity('project', api => api.getProject(event.payload.id));
+    return this.toSSE(event, payload);
+  }
+
+  private toSSE<T>(event: Event<any>, payload: T): StreamingEvent<T> {
+    if (typeof event.teamId !== 'number') {
+      throw Error('Tried to convert an incompatible event to an SSEEvent');
+    }
+    return Object.assign({}, event, {
+      teamId: event.teamId!,
+      type: 'SSE_' + event.type,
+      payload,
+    });
   }
 
 }

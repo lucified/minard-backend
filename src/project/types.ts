@@ -1,20 +1,22 @@
 import { eventCreator } from '../shared/events';
 
 export interface ProjectCreatedEvent {
-  projectId: number;
+  id: number;
   teamId: number;
   name: string;
   description?: string;
 }
 
 export interface ProjectDeletedEvent {
-  projectId: number;
+  id: number;
+  teamId: number;
 }
 
 export interface ProjectEditedEvent {
-  projectId: number;
+  id: number;
   name?: string;
   description?: string;
+  teamId: number;
 }
 
 export interface CodePushedEvent {

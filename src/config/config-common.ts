@@ -11,9 +11,8 @@ import {
   DeploymentHapiPlugin,
   DeploymentModule,
 } from '../deployment';
-
 import {
-  LocalEventBus,
+  PersistentEventBus,
   eventBusInjectSymbol,
 } from '../event-bus';
 
@@ -69,18 +68,6 @@ import { UserModule } from '../user';
 
 export default new KernelModule(bind => {
 
-// Notes on injecting EventBus:
-//
-// We are binding the eventBus as a constantValue as the
-// normal injection mechanism does not work when the base class
-// does not have the @injectable() annotation, and the base class
-// in RxJx, which means we cannot modify it.
-//
-// This is not a problem as long as we don't need to inject other
-// dependencies into EventBus
-//
-//  -- JO 25.6.2016
-
   // Bindings for modules
   bind(ActivityModule.injectSymbol).to(ActivityModule).inSingletonScope();
   bind(AuthenticationModule.injectSymbol).to(AuthenticationModule);
@@ -104,7 +91,7 @@ export default new KernelModule(bind => {
   bind(RealtimeHapiPlugin.injectSymbol).to(RealtimeHapiPlugin);
 
   // Other bindings
-  bind(eventBusInjectSymbol).toConstantValue(new LocalEventBus());
+  bind(eventBusInjectSymbol).to(PersistentEventBus).inSingletonScope();
   bind(CIProxy.injectSymbol).to(CIProxy);
   bind(GitlabClient.injectSymbol).to(GitlabClient).inSingletonScope();
   bind(fetchInjectSymbol).toConstantValue(fetch);

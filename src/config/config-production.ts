@@ -22,6 +22,10 @@ import {
 import Logger from '../shared/logger';
 import { FilterStream } from './utils';
 
+import {
+  eventStoreConfigInjectSymbol,
+} from '../event-bus';
+
 // Logging configuration
 // ---------------------
 
@@ -141,6 +145,39 @@ const gitlabKnex = getKnex(DB_NAME);
 const charlesKnex = getKnex(CHARLES_DB_NAME);
 const postgresKnex = getKnex('postgres');
 
+// EventStore / Redis configuration
+// https://github.com/adrai/node-eventstore
+// http://redis.js.org/#api-rediscreateclient
+// ----------------------
+const REDIS_HOST = env.REDIS_HOST ? env.REDIS_HOST : 'localhost';
+const REDIS_PORT = env.REDIS_PORT ? parseInt(env.REDIS_PORT, 10) : 6379;
+
+const eventStoreConfig = {
+  type: 'redis',
+  host: REDIS_HOST,
+  port: REDIS_PORT,
+  db: 0,
+  prefix: 'charles',
+  eventsCollectionName: 'events',
+  snapshotsCollectionName: 'snapshots',
+  retry_strategy: (options: any): Error | number | undefined => {
+    if (options.error.code === 'ECONNREFUSED') {
+      // End reconnecting on a specific error and flush all commands with a individual error
+      return new Error('The server refused the connection');
+    }
+    if (options.total_retry_time > 1000 * 60 * 60) {
+      // End reconnecting after a specific timeout and flush all commands with a individual error
+      return new Error('Retry time exhausted');
+    }
+    if (options.times_connected > 10) {
+      // End reconnecting with built in error
+      return undefined;
+    }
+    // reconnect after
+    return Math.max(options.attempt * 100, 3000);
+  },
+};
+
 // Filesystem configuration
 // ------------------------
 
@@ -151,6 +188,7 @@ const SCREENSHOT_FOLDER = env.SCREENSHOT_FOLDER ? env.SCREENSHOT_FOLDER : 'gitla
 // -------------------------
 
 export default (kernel: interfaces.Kernel) => {
+  kernel.bind(eventStoreConfigInjectSymbol).toConstantValue(eventStoreConfig);
   kernel.bind(goodOptionsInjectSymbol).toConstantValue(goodOptions);
   kernel.bind(loggerInjectSymbol).toConstantValue(Logger(winstonOptions));
   kernel.bind(hostInjectSymbol).toConstantValue(HOST);

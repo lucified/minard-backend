@@ -439,17 +439,18 @@ export default class ProjectModule {
     return project;
   }
 
-  public async deleteProject(projectId: number): Promise<void> {
-    await this.deleteGitLabProject(projectId);
+  public async deleteProject(id: number): Promise<void> {
+    await this.deleteGitLabProject(id);
     this.eventBus.post(projectDeleted({
-      projectId,
+      teamId: 1, // TODO
+      id,
     }));
   }
 
   public async createProject(teamId: number, name: string, description?: string): Promise<number> {
     const project = await this.createGitlabProject(teamId, name, description);
     this.eventBus.post(projectCreated({
-      projectId: project.id,
+      id: project.id,
       description,
       name,
       teamId,
@@ -457,10 +458,11 @@ export default class ProjectModule {
     return project.id;
   }
 
-  public async editProject(projectId: number, attributes: { name?: string, description?: string}) {
-    const project = await this.editGitLabProject(projectId, attributes);
+  public async editProject(id: number, attributes: { name?: string, description?: string}) {
+    const project = await this.editGitLabProject(id, attributes);
     this.eventBus.post(projectEdited({
-      projectId,
+      teamId: 1, // TODO
+      id,
       name: project.name,
       description: project.description,
     }));

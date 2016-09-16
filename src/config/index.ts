@@ -29,4 +29,6 @@ if (!config) {
 config(kernel);
 override(kernel, env);
 
-export function get<T>(identifier: Symbol | string) { return kernel.get<T>(identifier); }
+export function get<T>(identifier: symbol | string | interfaces.Newable<T> | interfaces.Abstract<T>) {
+  return kernel.get<T>(identifier);
+}

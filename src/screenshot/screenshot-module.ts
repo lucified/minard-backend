@@ -5,7 +5,6 @@ import { inject, injectable } from 'inversify';
 import * as path from 'path';
 import { sprintf } from 'sprintf-js';
 
-import { EventBus, eventBusInjectSymbol } from '../event-bus';
 import { externalBaseUrlInjectSymbol } from '../server/types';
 import * as logger from '../shared/logger';
 
@@ -23,20 +22,17 @@ export default class ScreenshotModule {
 
   public static injectSymbol = Symbol('screenshot-module');
   private readonly logger: logger.Logger;
-  private readonly eventBus: EventBus;
   private readonly urlPattern: string;
   private readonly screenshotter: Screenshotter;
   private readonly folder: string;
   private readonly externalBaseUrl: string;
 
   constructor(
-    @inject(eventBusInjectSymbol) eventBus: EventBus,
     @inject(logger.loggerInjectSymbol) logger: logger.Logger,
     @inject(screenshotUrlPattern) urlPattern: string,
     @inject(screenshotterInjectSymbol) screenshotter: Screenshotter,
     @inject(screenshotFolderInjectSymbol) folder: string,
     @inject(externalBaseUrlInjectSymbol) baseUrl: string) {
-    this.eventBus = eventBus;
     this.logger = logger;
     this.urlPattern = urlPattern;
     this.screenshotter = screenshotter;

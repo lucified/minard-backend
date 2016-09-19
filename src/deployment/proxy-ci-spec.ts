@@ -3,7 +3,13 @@ import 'reflect-metadata';
 import { expect } from 'chai';
 import Hapi = require('hapi');
 
-import { DEPLOYMENT_EVENT_TYPE, DeploymentEvent } from '../deployment';
+import {
+  BUILD_CREATED_EVENT,
+  BUILD_STATUS_EVENT_TYPE,
+  BuildCreatedEvent,
+  BuildStatusEvent,
+} from '../deployment';
+
 import { default as EventBus } from '../event-bus/local-event-bus';
 import loggerConstructor from '../shared/logger';
 import { CIProxy } from './proxy-ci';
@@ -85,26 +91,29 @@ describe('ci-proxy', () => {
     expect(response.statusCode).to.equal(404);
   });
 
-  it('Posts build started event' , async () => {
+  it('Posts build created event' , async () => {
 
     const { proxy, bus, plugin } = await provisionProxy(`http://localhost:${upstream.info.port}`);
     const path = plugin.routeNamespace + 'builds/register.json';
 
+    const createdPayload: BuildCreatedEvent = {
+      project_name: 'foo-project-name',
+      id: 5,
+      project_id: 6,
+    } as any;
+
     upstream.route([{
       method: 'POST',
       path,
-      handler: (_req: any, rep: any) => {
-        return rep({
-          status: 'running',
-          id: 1,
-        }).code(201);
+      handler: (_requeqst: any, reply: any) => {
+        return reply(createdPayload).code(201);
       },
     }]);
     await upstream.start();
 
     const eventPromise = bus
-      .filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
-      .map(e => e.payload)
+      .filterEvents<BuildCreatedEvent>(BUILD_CREATED_EVENT)
+      .map(event => event.payload)
       .take(1)
       .toPromise();
 
@@ -114,7 +123,7 @@ describe('ci-proxy', () => {
     });
 
     const [event, response] = await Promise.all([eventPromise, responsePromise]);
-    expect(event.status).to.eq('running');
+    expect(event).to.deep.equal(createdPayload);
     expect(response.statusCode).to.eq(201);
   });
 
@@ -129,7 +138,7 @@ describe('ci-proxy', () => {
       path,
       handler: (_req: any, rep: any) => {
         return rep({
-          state: 'cancelled',
+          state: 'canceled',
           id: 1,
         });
       },
@@ -137,7 +146,7 @@ describe('ci-proxy', () => {
     await upstream.start();
 
     const eventPromise = bus
-      .filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
+      .filterEvents<BuildStatusEvent>(BUILD_STATUS_EVENT_TYPE)
       .map(e => e.payload)
       .take(1)
       .toPromise();
@@ -149,13 +158,13 @@ describe('ci-proxy', () => {
         'Content-Type': 'application/json',
       },
       payload: {
-        state: 'cancelled',
+        state: 'canceled',
         id: 1,
       },
     });
 
     const [event, response] = await Promise.all([eventPromise, responsePromise]);
-    expect(event.status).to.eq('cancelled');
+    expect(event.status).to.equal('canceled');
     expect(response.statusCode).to.eq(200);
   });
 

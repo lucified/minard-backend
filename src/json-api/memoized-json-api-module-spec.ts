@@ -3,8 +3,11 @@ import { expect } from 'chai';
 import 'reflect-metadata';
 
 import {
-  MinardBranch,
   MinardCommit,
+} from '../shared/minard-commit';
+
+import {
+  MinardBranch,
   MinardProject,
 } from '../project/';
 

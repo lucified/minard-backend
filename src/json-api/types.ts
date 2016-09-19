@@ -63,7 +63,7 @@ export interface ApiDeployment {
   status: MinardDeploymentStatus;
   url?: string;
   screenshot?: string;
-  creator?: MinardDeploymentCreator;
+  creator: MinardDeploymentCreator;
   // this is not exposed in serialized responses, but it is internally helpful
   commitHash: string;
 }

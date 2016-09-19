@@ -10,9 +10,15 @@ import * as path from 'path';
 import * as querystring from 'querystring';
 import { sprintf } from 'sprintf-js';
 
-import { EventBus, eventBusInjectSymbol } from '../event-bus';
+import {
+  Event,
+  EventBus,
+  eventBusInjectSymbol,
+} from '../event-bus';
 import { GitlabClient } from '../shared/gitlab-client';
 import * as logger from '../shared/logger';
+
+import { toGitlabTimestamp } from '../shared/time-conversion';
 
 import {
   ScreenshotModule,
@@ -86,15 +92,16 @@ export function toDbDeployment(deployment: MinardDeployment) {
   return Object.assign({}, deployment, {
     commit: JSON.stringify(deployment.commit),
     finishedAt: deployment.finishedAt && deployment.finishedAt.valueOf(),
+    createdAt: deployment.createdAt && deployment.createdAt.valueOf(),
   });
 }
 
 export function toMinardDeployment(deployment: any): MinardDeployment {
   const commit = deployment.commit instanceof Object ? deployment.commit : JSON.parse(deployment.commit);
-  // const creator = deployment.creator instanceof Object ? deployment.creator : JSON.parse(deployment.creator);
   return Object.assign({}, deployment, {
     commit,
     finishedAt: deployment.finishedAt ? moment(Number(deployment.finishedAt)) : undefined,
+    createdAt: deployment.createdAt ? moment(Number(deployment.createdAt)) : undefined,
   }) as MinardDeployment;
 }
 
@@ -139,7 +146,7 @@ export default class DeploymentModule {
     this.eventBus.filterEvents<BuildCreatedEvent>(BUILD_CREATED_EVENT)
       .subscribe(async event => {
         try {
-          await this.createDeployment(event.payload);
+          await this.createDeployment(event);
         } catch (error) {
           this.logger.error(`Failed to create deployment based on BuildCreatedEvent`, { event, error });
         }
@@ -187,23 +194,25 @@ export default class DeploymentModule {
     }
   }
 
-  public async createDeployment(event: BuildCreatedEvent) {
-    const commit = await this.projectModule.getCommit(event.project_id, event.sha)!;
+  public async createDeployment(event: Event<BuildCreatedEvent>) {
+    const payload = event.payload;
+    const commit = await this.projectModule.getCommit(payload.project_id, payload.sha)!;
     if (!commit) {
-      this.logger.error(`Commit ${event.sha} in project ${event.project_id} not found while in createDeployment`);
+      this.logger.error(`Commit ${payload.sha} in project ${payload.project_id} not found while in createDeployment`);
       return;
     }
     const deployment: MinardDeployment = {
-      id: event.id,
-      ref: event.ref,
-      projectId: event.project_id,
-      projectName: event.project_name,
-      buildStatus: event.status,
+      id: payload.id,
+      ref: payload.ref,
+      projectId: payload.project_id,
+      projectName: payload.project_name,
+      buildStatus: payload.status,
       extractionStatus: 'pending',
       screenshotStatus: 'pending',
-      status: event.status,
+      status: payload.status,
       commit,
-      commitHash: event.sha,
+      commitHash: payload.sha,
+      createdAt: event.created,
     };
     await this.knex('deployment').insert(toDbDeployment(deployment));
   }
@@ -288,6 +297,13 @@ export default class DeploymentModule {
     if (deployment.screenshotStatus === 'success') {
       deployment.screenshot = this.screenshotModule.getPublicUrl(deployment.projectId, deployment.id);
     }
+
+    deployment.creator = {
+      email: deployment.commit.committer.email,
+      name: deployment.commit.committer.name,
+      timestamp: toGitlabTimestamp(deployment.createdAt),
+    };
+
     return deployment;
   }
 

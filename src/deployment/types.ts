@@ -61,6 +61,7 @@ export interface MinardDeployment {
   url?: string;
   screenshot?: string;
   finishedAt?: moment.Moment;
+  createdAt: moment.Moment;
   creator?: MinardDeploymentCreator;
   projectId: number;
   projectName: string;

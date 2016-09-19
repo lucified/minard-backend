@@ -188,7 +188,12 @@ describe('json-api-module', () => {
         commitHash: 'foo',
         ref: 'master',
         status: 'success',
-      } as MinardDeployment;
+        creator: {
+          name: 'foo',
+          email: 'fooman@foomail.com',
+          timestamp: 'fooo',
+        },
+      } as any as MinardDeployment;
       const jsonApiModule = new JsonApiModule(
         {} as any,
         {} as any,
@@ -202,6 +207,7 @@ describe('json-api-module', () => {
       expect(deployment).to.exist;
       expect(deployment.id).to.equal('5-2');
       expect(deployment.status).to.equal(minardDeployment.status);
+      expect(deployment.creator).to.deep.equal(minardDeployment.creator);
     });
   });
 

@@ -188,6 +188,7 @@ export class JsonApiModule {
     };
     const deployment = Object.assign({}, activity.deployment, {
       id: `${activity.projectId}-${activity.deployment.id}`,
+      creator: activity.deployment.creator!,
     });
     delete deployment.ref;
     const timestamp = toGitlabTimestamp(activity.timestamp);
@@ -236,7 +237,7 @@ export class JsonApiModule {
       commitHash: deployment.commitHash,
       url: deployment.url,
       screenshot: deployment.screenshot,
-      creator: deployment.creator,
+      creator: deployment.creator!,
       ref: deployment.ref,
       status: deployment.status,
       buildStatus: deployment.buildStatus,

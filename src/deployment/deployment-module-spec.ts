@@ -23,6 +23,10 @@ import {
 } from '../screenshot';
 
 import {
+  toGitlabTimestamp,
+} from '../shared/time-conversion';
+
+import {
   BuildCreatedEvent,
   DEPLOYMENT_EVENT_TYPE,
   DeploymentEvent,
@@ -37,7 +41,12 @@ import {
 import { applyDefaults } from './gitlab-yml';
 
 import Authentication from '../authentication/authentication-module';
-import { LocalEventBus } from '../event-bus';
+
+import {
+  Event,
+  LocalEventBus,
+} from '../event-bus';
+
 import { IFetchStatic } from '../shared/fetch.d.ts';
 import { GitlabClient } from '../shared/gitlab-client';
 import Logger from '../shared/logger';
@@ -111,6 +120,7 @@ describe('deployment-module', () => {
       extractionStatus: 'success',
       screenshotStatus: 'success',
       finishedAt: moment(),
+      createdAt: moment(),
       ref: 'master',
       projectName: 'foo-project',
       commit: {
@@ -137,6 +147,7 @@ describe('deployment-module', () => {
       buildStatus: 'success',
       extractionStatus: 'success',
       screenshotStatus: 'failed',
+      createdAt: moment(),
       finishedAt: moment().add(1, 'day'),
       ref: 'foo-branch',
       projectName: 'bar-project',
@@ -165,6 +176,7 @@ describe('deployment-module', () => {
       extractionStatus: 'pending',
       screenshotStatus: 'pending',
       finishedAt: moment(),
+      createdAt: moment(),
       ref: 'foo-bar-branch',
       projectName: 'foo-bar-project',
       commit: {
@@ -219,14 +231,15 @@ describe('deployment-module', () => {
       const deployment = await deploymentModule.getDeployment(15);
 
       // Assert
-      expect(deployment!.finishedAt!.isSame(deployments[0]!.finishedAt!));
-      const expected = Object.assign({}, deployments[0], {
-        url: `http://deploy-master-foo-5-15.localhost:8000`,
-        screenshot: screenshotModule.getPublicUrl(deployments[0].projectId, deployments[0].id),
-        finishedAt: undefined,
-      });
-      const compare = Object.assign({}, deployment, { finishedAt: undefined });
-      expect(compare).to.deep.equal(expected);
+      const dep = deployment!;
+
+      expect(dep.finishedAt!.isSame(deployments[0]!.finishedAt!));
+      expect(dep.createdAt.isSame(deployments[0]!.createdAt));
+      expect(dep.screenshot).to.equal(screenshotModule.getPublicUrl(deployments[0].projectId, deployments[0].id));
+      expect(dep.url).to.equal(`http://deploy-master-foo-5-15.localhost:8000`);
+      expect(dep.creator!.name).to.equal(deployments[0].commit.committer.name);
+      expect(dep.creator!.email).to.equal(deployments[0].commit.committer.email);
+      expect(dep.creator!.timestamp).to.equal(toGitlabTimestamp(deployments[0].createdAt));
     });
 
     it('should work for deployment with failed screenshot', async () => {
@@ -237,12 +250,8 @@ describe('deployment-module', () => {
       const deployment = await deploymentModule.getDeployment(16);
 
       // Assert
-      const expected = Object.assign({}, deployments[1], {
-        url: `http://deploy-foo-branch-foo-5-16.localhost:8000`,
-        finishedAt: undefined,
-      });
-      const compare = Object.assign({}, deployment, { finishedAt: undefined });
-      expect(compare).to.deep.equal(expected);
+      expect(deployment!.screenshot).to.equal(undefined);
+      expect(deployment!.url).to.equal(`http://deploy-foo-branch-foo-5-16.localhost:8000`);
     });
 
     it('should work for deployment with failed extraction', async () => {
@@ -253,10 +262,9 @@ describe('deployment-module', () => {
       const deployment = await deploymentModule.getDeployment(17);
 
       // Assert
+      expect(deployment!.screenshot).to.equal(undefined);
+      expect(deployment!.url).to.equal(undefined);
       expect(deployment!.finishedAt!.isSame(deployments[2]!.finishedAt!));
-      const expected = Object.assign({}, deployments[2], { finishedAt: undefined });
-      const compare = Object.assign({}, deployment, { finishedAt: undefined });
-      expect(compare).to.deep.equal(expected);
     });
 
     it('should return null if deployment is not found', async () => {
@@ -357,6 +365,10 @@ describe('deployment-module', () => {
       const commit = {
         id: 'foo-sha',
         message: 'foo',
+        committer: {
+          name: 'foo',
+          email: 'fooman@foomail.com',
+        },
       };
       const projectModule = {} as ProjectModule;
       projectModule.getCommit = async (projectId: number, commitHash: string) => {
@@ -366,34 +378,40 @@ describe('deployment-module', () => {
       };
       const deploymentModule = await arrangeDeploymentModule(projectModule);
 
-      const buildCreatedEvent: BuildCreatedEvent = {
+      const buildCreatedEvent: Event<BuildCreatedEvent> = createBuildCreatedEvent({
         project_id: 6,
         id: 5,
         project_name: 'foo-project-name',
         ref: 'master', // TODO
         sha: commit.id,
         status: 'pending',
-      } as any;
+      } as any);
 
       // Act
       await deploymentModule.createDeployment(buildCreatedEvent);
 
       // Assert
       const deployment = await deploymentModule.getDeployment(5);
-      const compare = Object.assign({}, deployment);
+      const compare = Object.assign({}, deployment, { createdAt: undefined });
       expect(compare).to.deep.equal({
-        projectId: buildCreatedEvent.project_id,
-        projectName: buildCreatedEvent.project_name,
-        id: buildCreatedEvent.id,
+        projectId: buildCreatedEvent.payload.project_id,
+        projectName: buildCreatedEvent.payload.project_name,
+        id: buildCreatedEvent.payload.id,
         buildStatus: 'pending',
         extractionStatus: 'pending',
         screenshotStatus: 'pending',
         status: 'pending',
-        commitHash: buildCreatedEvent.sha,
+        commitHash: buildCreatedEvent.payload.sha,
         commit: commit as any,
-        ref: buildCreatedEvent.ref,
+        ref: buildCreatedEvent.payload.ref,
         finishedAt: undefined,
-      } as MinardDeployment);
+        createdAt: undefined,
+        creator: {
+          name: commit.committer.name,
+          email: commit.committer.email,
+          timestamp: toGitlabTimestamp(buildCreatedEvent.created),
+        },
+      } as any);
     });
   });
 
@@ -854,8 +872,8 @@ describe('deployment-module', () => {
       const deploymentModule = createDeploymentModule(bus, basicLogger);
 
       const promise = new Promise((resolve, reject) => {
-        deploymentModule.createDeployment = async (event: BuildCreatedEvent) => {
-          expect(event).to.deep.equal(payload);
+        deploymentModule.createDeployment = async (event: Event<BuildCreatedEvent>) => {
+          expect(event.payload).to.deep.equal(payload);
           resolve();
         };
       });
@@ -960,8 +978,13 @@ describe('deployment-module', () => {
         buildStatus: 'pending',
         extractionStatus: 'pending',
         screenshotStatus: 'pending',
+        createdAt: moment(),
         commit: {
           id: 'foo',
+          committer: {
+            email: 'fooman@foomail.com',
+            name: 'foo',
+          },
         },
         finishedAt: moment(),
       } as any));

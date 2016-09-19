@@ -70,7 +70,8 @@ export default class ActivityModule {
 
   public async subscribeForFinishedDeployments() {
     this.eventBus.filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
-      .filter(event => event.payload.statusUpdate === 'failed' || event.payload.statusUpdate === 'success')
+      .filter(event => event.payload.statusUpdate.status === 'failed'
+        || event.payload.statusUpdate.status === 'success')
       .flatMap(event => this.handleFinishedDeployment(event))
       .subscribe();
   }
@@ -91,7 +92,7 @@ export default class ActivityModule {
 
     let timestamp = deployment.finishedAt;
     if (!timestamp) {
-      this.logger.warn(`Finished deployment ${deployment.deploymentId} did not have finishedAt defined`);
+      this.logger.warn(`Finished deployment ${deployment.id} did not have finishedAt defined`);
       timestamp = moment();
     }
 

@@ -2,22 +2,18 @@
 import { eventCreator } from '../shared/events';
 
 import { MinardDeployment } from '../deployment';
-import { MinardCommit } from '../project';
+import { MinardCommit } from '../shared/minard-commit';
 
 import * as moment from 'moment';
 
 export interface MinardActivity extends MinardActivityPlain {
-  deployment: MinardActivityDeployment;
+  deployment: MinardDeployment;
   commit: MinardCommit;
 }
 
 export interface MinardActivityBranch {
   id: string;
   name: string;
-}
-
-export interface MinardActivityDeployment extends MinardDeployment {
-  screenshot?: string;
 }
 
 export interface MinardActivityPlain {

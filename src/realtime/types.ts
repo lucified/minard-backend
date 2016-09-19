@@ -4,7 +4,6 @@ import {
 } from '../json-api/types';
 
 export interface StreamingCodePushedEvent {
-  teamId: number;
   after?: string;
   before?: string;
   commits: JsonApiEntity[];

@@ -37,7 +37,14 @@ import {
 } from './types';
 
 import { PersistentEventBus, eventBusInjectSymbol } from '../event-bus/';
-import { Event, PersistedEvent, StreamingEvent, isPersistedEvent, isType } from '../shared/events';
+
+import {
+  Event,
+  PersistedEvent,
+  StreamingEvent,
+  isPersistedEvent,
+  isType,
+} from '../shared/events';
 
 export const PING_INTERVAL = 20000;
 
@@ -227,7 +234,6 @@ export class RealtimeHapiPlugin {
         toApiBranchId(projectId, event.payload.ref);
 
       const payload: StreamingCodePushedEvent = {
-        teamId: 1,
         commits,
         after: event.payload.after ? toApiCommitId(projectId, event.payload.after.id) : undefined,
         before: event.payload.before ? toApiCommitId(projectId, event.payload.before.id) : undefined,
@@ -235,7 +241,7 @@ export class RealtimeHapiPlugin {
         branch,
         project: String(projectId),
       };
-      return this.toSSE(event, payload);
+      return this.toSSE(Object.assign(event, { teamId: 1}), payload);
 
     } catch (error) {
       this.logger.error(`Unable to create StreamingCodePushedEvent`, { error, event });
@@ -250,9 +256,6 @@ export class RealtimeHapiPlugin {
   }
 
   private toSSE<T>(event: Event<any>, payload: T): StreamingEvent<T> {
-    if (!event.teamId && (<any> payload).teamId) {
-      event.teamId = (<any> payload).teamId;
-    }
     if (typeof event.teamId !== 'number') {
       throw Error('Tried to convert an incompatible event to an SSEEvent');
     }

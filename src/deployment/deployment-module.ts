@@ -1,10 +1,9 @@
 
-
 import * as Boom from 'boom';
 import * as fs from 'fs';
 import { inject, injectable } from 'inversify';
 import * as Knex from 'knex';
-import { omitBy, isNil, values } from 'lodash';
+import { isNil, omitBy, values } from 'lodash';
 import * as moment from 'moment';
 import * as os from 'os';
 import * as path from 'path';

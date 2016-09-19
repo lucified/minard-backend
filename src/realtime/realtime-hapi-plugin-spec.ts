@@ -205,7 +205,6 @@ describe('realtime-hapi-plugin', () => {
     });
   });
 
-
   describe('DeploymentEvent', () => {
     beforeEach(clearDb);
 

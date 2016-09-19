@@ -24,7 +24,7 @@ interface Commit {
   parent_ids: string[];
 }
 
-export type BuildStatus = 'running' | 'success' | 'failed' | 'canceled';
+export type BuildStatus = 'running' | 'success' | 'failed' | 'canceled' | 'pending';
 
 export interface Build {
   commit: Commit;

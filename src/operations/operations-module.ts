@@ -90,20 +90,11 @@ export default class OperationsModule {
 
   private async assureScreenshotsGeneratedForDeployments(projectId: number, deployments: MinardDeployment[]) {
     const filtered = deployments.filter((deployment: MinardDeployment) =>
-      deployment.status === 'success'
-      && this.deploymentModule.isDeploymentReadyToServe(projectId, deployment.id));
+      deployment.extractionStatus === 'success' && deployment.screenshotStatus === 'failed');
     for (let j = 0; j < filtered.length; j++) {
       const deployment = deployments[j];
-      const hasScreenshot = await this.screenshotModule
-        .deploymentHasScreenshot(projectId, deployment.id);
-      if (!hasScreenshot) {
-        this.logger.info(`Creating missing screenshot for deployment ${deployment.id} of project ${projectId}.`);
-        try {
-          await this.screenshotModule.takeScreenshot(projectId, deployment.id);
-        } catch (err) {
-          this.logger.warn(`Failed to take screenshot for deployment ${deployment.id} of project ${projectId}.`);
-        }
-      }
+      this.logger.info(`Creating missing screenshot for deployment ${deployment.id} of project ${projectId}.`);
+      await this.deploymentModule.takeScreenshot(projectId, deployment.id);
     }
   }
 

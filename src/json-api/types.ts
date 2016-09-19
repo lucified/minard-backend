@@ -1,12 +1,17 @@
+
+import {
+  MinardCommit,
+} from '../shared/minard-commit';
+
 import {
   MinardBranch,
-  MinardCommit,
   MinardProject,
   MinardProjectPlain,
 } from '../project/';
 
 import {
-  MinardDeploymentPlain,
+  MinardDeploymentCreator,
+  MinardDeploymentStatus,
 } from '../deployment/';
 
 interface MemoizedJsonApiModule {
@@ -38,20 +43,29 @@ export interface ApiProject extends MinardProjectPlain {
   latestSuccessfullyDeployedCommit?: ApiCommit;
 }
 
-export interface ApiBranch extends MinardBranch {
+export interface ApiBranch {
   type: 'branch';
   id: string;
   project: number;
+  name: string;
+  latestActivityTimestamp: string;
   latestCommit: ApiCommit;
   latestSuccessfullyDeployedCommit?: ApiCommit;
   minardJson: any;
 }
 
-export interface ApiDeployment extends MinardDeploymentPlain {
+export interface ApiDeployment {
   id: string;
+  ref: string;
+  buildStatus: MinardDeploymentStatus;
+  extractionStatus: MinardDeploymentStatus;
+  screenshotStatus: MinardDeploymentStatus;
+  status: MinardDeploymentStatus;
+  url?: string;
+  screenshot?: string;
+  creator?: MinardDeploymentCreator;
   // this is not exposed in serialized responses, but it is internally helpful
   commitHash: string;
-  screenshot: string | null;
 }
 
 export interface ApiCommit extends MinardCommit {
@@ -69,10 +83,6 @@ export interface ApiActivityBranch {
   name: string;
 }
 
-export interface ApiActivityDeployment extends MinardDeploymentPlain {
-  id: string;
-}
-
 export interface ApiActivityCommit extends MinardCommit {
   hash: string;
 }
@@ -82,7 +92,7 @@ export interface ApiActivity {
   activityType: string;
   id: string;
   timestamp: string;
-  deployment: ApiActivityDeployment;
+  deployment: ApiDeployment;
   project: ApiActivityProject;
   branch: ApiActivityBranch;
   commit: ApiActivityCommit;

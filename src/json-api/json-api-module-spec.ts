@@ -11,6 +11,9 @@ import {
 
 import {
   MinardCommit,
+} from '../shared/minard-commit';
+
+import {
   MinardProject,
   ProjectModule,
 } from '../project/';
@@ -36,8 +39,9 @@ describe('json-api-module', () => {
   describe('toApiCommit', () => {
 
     const projectId = 5;
-    const minardCommit = {
+    const minardCommit: MinardCommit = {
       id: 'foo-commit-id',
+      shortId: 'foo',
       message: 'foo-commit-message',
       author: {
         name: 'foo-name',
@@ -116,18 +120,30 @@ describe('json-api-module', () => {
   describe('toApiActivity', () => {
     it('should work with activity of type deployment', async () => {
       // Arrange
+      const projectName = 'foo-project-name';
+      const deploymentId = 8;
+      const projectId = 9;
+      const branch = 'foo';
+
       const minardActivity: MinardActivity = {
         activityType: 'deployment',
         branch: 'foo-branch-name',
         teamId: 1,
-        projectId: 6,
-        projectName: 'foo-project-name',
+        projectId,
+        projectName,
         deployment: {
-          id: 8,
+          id: deploymentId,
+          projectId,
+          projectName,
           status: 'success',
-          commitRef: {
+          commit: {
             id: 'foo-commit-id',
-          },
+          } as any,
+          commitHash: 'foo-commit-id',
+          ref: branch,
+          buildStatus: 'success',
+          extractionStatus: 'running',
+          screenshotStatus: 'running',
         } as MinardDeployment,
         commit: {
           id: 'foo-commit-id',
@@ -139,6 +155,7 @@ describe('json-api-module', () => {
         } as MinardCommit,
         timestamp: moment(),
       };
+
       const jsonApiModule = new JsonApiModule(
         {} as any,
         {} as any,
@@ -163,33 +180,28 @@ describe('json-api-module', () => {
   });
 
   describe('toApiDeployment', () => {
-
-    const screenshotModule = {} as ScreenshotModule;
-    screenshotModule.getPublicUrl = () => {
-      return 'http://foobar.com';
-    };
-    screenshotModule.deploymentHasScreenshot = async () => {
-      return true;
-    };
-
     it('should work when commit is not passed', async () => {
       // Arrange
       const projectId = 5;
       const minardDeployment = {
         id: 2,
-        commitRef: { id: 'foo' },
+        commitHash: 'foo',
         ref: 'master',
         status: 'success',
       } as MinardDeployment;
-
       const jsonApiModule = new JsonApiModule(
         {} as any,
         {} as any,
         {} as any,
-        screenshotModule);
+        {} as any);
+
+      // Act
       const deployment = await jsonApiModule.toApiDeployment(projectId, minardDeployment);
+
+      // Assert
       expect(deployment).to.exist;
       expect(deployment.id).to.equal('5-2');
+      expect(deployment.status).to.equal(minardDeployment.status);
     });
   });
 
@@ -207,15 +219,15 @@ describe('json-api-module', () => {
     const minardDeployments = [
       {
         id: 'foo-deployment',
-        commitRef: minardCommits[0],
+        commitHash: minardCommits[0].id,
       },
       {
         id: 'bar-deployment',
-        commitRef: minardCommits[1],
+        commitHash: minardCommits[1].id,
       },
       {
         id: 'foo-two-deployment',
-        commitRef: minardCommits[0],
+        commitHash: minardCommits[0].id,
       },
     ];
 
@@ -239,13 +251,6 @@ describe('json-api-module', () => {
         {} as any,
         {} as any);
 
-      jsonApiModule.toApiDeployment = async(_projectId: number, deployment: MinardDeployment) => {
-        return {
-          id: `${_projectId}-${deployment.id}-foo`,
-          commitHash: deployment.commitRef.id,
-        };
-      };
-
       // Act
       const commits = await jsonApiModule.getBranchCommits(projectId, branchName);
 
@@ -255,11 +260,11 @@ describe('json-api-module', () => {
       expect(commits![0].deployments).to.have.length(2);
       expect(commits![0].id).to.equal(`${projectId}-${minardCommits[0].id}`);
       expect(commits![0].hash).to.equal(minardCommits[0].id);
-      expect(commits![0].deployments[0].id).to.equal(`${projectId}-${minardDeployments[0].id}-foo`);
-      expect(commits![0].deployments[1].id).to.equal(`${projectId}-${minardDeployments[2].id}-foo`);
+      expect(commits![0].deployments[0].id).to.equal(`${projectId}-${minardDeployments[0].id}`);
+      expect(commits![0].deployments[1].id).to.equal(`${projectId}-${minardDeployments[2].id}`);
       expect(commits![1].deployments).to.have.length(1);
       expect(commits![1].id).to.equal(`${projectId}-${minardCommits[1].id}`);
-      expect(commits![1].deployments[0].id).to.equal(`${projectId}-${minardDeployments[1].id}-foo`);
+      expect(commits![1].deployments[0].id).to.equal(`${projectId}-${minardDeployments[1].id}`);
     });
   });
 
@@ -277,7 +282,7 @@ describe('json-api-module', () => {
     };
     const minardDeployment = {
       id: 5,
-      commitRef: {
+      commit: {
         id: 'bar-commit-id',
       },
     };
@@ -290,7 +295,7 @@ describe('json-api-module', () => {
       hash: 'bar-commit-hash',
     };
 
-    it ('should return valid ApiBranch when fetching of related data succeeds', async () => {
+    it('should return valid ApiBranch when fetching of related data succeeds', async () => {
       // Arrange
       const deploymentModule = {} as DeploymentModule;
       deploymentModule.getMinardJsonInfo = async (projectId: number, branchName: string) => {
@@ -300,7 +305,6 @@ describe('json-api-module', () => {
         return minardDeployment;
       };
       const projectModule = {} as ProjectModule;
-      projectModule.toMinardCommit = ProjectModule.prototype.toMinardCommit;
       const screenshotModule = {} as ScreenshotModule;
       screenshotModule.deploymentHasScreenshot = async (projectId: number, deploymentId: number) => {
         return false;
@@ -312,10 +316,11 @@ describe('json-api-module', () => {
         {} as any,
         screenshotModule);
       jsonApiModule.toApiCommit = async(projectId: number, commit: MinardCommit, deployments?: ApiDeployment[]) => {
+        expect(commit).to.exist;
         if (commit.id === minardBranch.latestCommit.id) {
           return latestCommitReturnedFromToApiCommit;
         }
-        if (commit.id === minardDeployment.commitRef.id) {
+        if (commit.id === minardDeployment.commit.id) {
           return latestDeployedCommitFromToApiCommit;
         }
         throw Error('invalid params to toApiCommit');
@@ -347,7 +352,7 @@ describe('json-api-module', () => {
       } as MinardProject;
       const minardDeployment = {
         id: 5,
-        commitRef: {
+        commit: {
           id: 'foo-commit-id',
         },
       };
@@ -357,7 +362,6 @@ describe('json-api-module', () => {
         return minardDeployment;
       };
       const projectModule = {} as ProjectModule;
-      projectModule.toMinardCommit = ProjectModule.prototype.toMinardCommit;
       const screenshotModule = {} as ScreenshotModule;
       screenshotModule.deploymentHasScreenshot = async (projectId: number, deploymentId: number) => {
         return false;
@@ -377,7 +381,7 @@ describe('json-api-module', () => {
       expect(project.latestActivityTimestamp).to.equal(minardProject.latestActivityTimestamp);
       expect(project.latestSuccessfullyDeployedCommit).to.exist;
       expect(project.latestSuccessfullyDeployedCommit!.id)
-        .to.equal(`${minardProject.id}-${minardDeployment.commitRef.id}`);
+        .to.equal(`${minardProject.id}-${minardDeployment.commit.id}`);
       expect(project.latestSuccessfullyDeployedCommit!.deployments).to.have.length(1);
       expect(project.latestSuccessfullyDeployedCommit!.deployments[0].id)
         .to.equal(`${minardProject.id}-${minardDeployment.id}`);

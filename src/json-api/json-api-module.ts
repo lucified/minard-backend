@@ -25,7 +25,6 @@ import {
 
 import {
   MinardBranch,
-  MinardCommit,
   MinardProject,
   ProjectModule,
 } from '../project/';
@@ -33,6 +32,10 @@ import {
 import {
   ScreenshotModule,
 } from '../screenshot';
+
+import {
+  MinardCommit,
+} from '../shared/minard-commit';
 
 const deepcopy = require('deepcopy');
 
@@ -117,7 +120,7 @@ export class JsonApiModule {
   }
 
   public async getDeployment(projectId: number, deploymentId: number): Promise<ApiDeployment | null> {
-     const deployment = await this.deploymentModule.getDeployment(projectId, deploymentId);
+     const deployment = await this.deploymentModule.getDeployment(deploymentId);
      if (!deployment) {
        return null;
      }
@@ -216,7 +219,7 @@ export class JsonApiModule {
         ret.deployments = [];
       } else {
         ret.deployments = await Promise.all<ApiDeployment>(
-          minardDeployments.map(deployment => this.toApiDeployment(projectId, deployment)));
+          minardDeployments.map((deployment: MinardDeployment) => this.toApiDeployment(projectId, deployment)));
       }
     }
     ret.id = `${projectId}-${commit.id}`;
@@ -224,20 +227,21 @@ export class JsonApiModule {
     return ret;
   }
 
+  // TODO: this method does not need to be async
   public async toApiDeployment(
     projectId: number,
     deployment: MinardDeployment): Promise<ApiDeployment> {
-    const hasScreenshot = await this.screenshotModule.deploymentHasScreenshot(projectId, deployment.id);
-    const screenshot = hasScreenshot ? this.screenshotModule.getPublicUrl(projectId, deployment.id) : null;
     return {
       id: `${projectId}-${deployment.id}`,
-      commitHash: deployment.commitRef.id,
+      commitHash: deployment.commitHash,
       url: deployment.url,
-      screenshot,
+      screenshot: deployment.screenshot,
       creator: deployment.creator,
       ref: deployment.ref,
       status: deployment.status,
-      finished_at: deployment.finished_at,
+      buildStatus: deployment.buildStatus,
+      extractionStatus: deployment.buildStatus,
+      screenshotStatus: deployment.screenshotStatus,
     };
   }
 
@@ -263,8 +267,7 @@ export class JsonApiModule {
 
   private async minardDeploymentToApiCommit(projectId: number, minardDeployment: MinardDeployment): Promise<ApiCommit> {
     const deployment = await this.toApiDeployment(projectId, minardDeployment);
-    const minardCommit = this.projectModule.toMinardCommit(minardDeployment.commitRef);
-    return await this.toApiCommit(projectId, minardCommit, [deployment]);
+    return await this.toApiCommit(projectId, minardDeployment.commit, [deployment]);
   }
 
   public async toApiProject(project: MinardProject): Promise<ApiProject> {

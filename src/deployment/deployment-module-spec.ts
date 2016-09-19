@@ -1028,6 +1028,7 @@ describe('deployment-module', () => {
       const deployment = await deploymentModule.getDeployment(deploymentId);
       expect(deployment).to.exist;
       expect(deployment!.status).to.equal(resultingStatus);
+      return deployment;
     }
 
     async function shouldNotUpdate(
@@ -1086,11 +1087,12 @@ describe('deployment-module', () => {
     });
 
     it('should update with correct status when extractionStatus turns to success', async () => {
-      await shouldUpdateCorrectly(
+      const deployment = await shouldUpdateCorrectly(
         { buildStatus: 'success', status: 'running', extractionStatus: 'running'},
         { extractionStatus: 'success' },
         { extractionStatus: 'success' },
         'running');
+      expect(deployment!.url).to.exist;
     });
 
     it('should update with correct status when extractionStatus turns to failed', async () => {
@@ -1110,11 +1112,12 @@ describe('deployment-module', () => {
     });
 
     it('should update with correct status when screenshot turns to success', async () => {
-      await shouldUpdateCorrectly(
+      const deployment = await shouldUpdateCorrectly(
         { buildStatus: 'success', extractionStatus: 'success', status: 'running' },
         { screenshotStatus: 'success' },
         { screenshotStatus: 'success', status: 'success' },
         'success');
+      expect(deployment!.screenshot).to.exist;
     });
 
     it('should update with correct status when screenshot turns to failed', async () => {

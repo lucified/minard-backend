@@ -460,9 +460,9 @@ export default class DeploymentModule {
       newStatus = 'running';
     }
 
-    const deployment = await this.getDeployment(deploymentId);
+    let deployment = await this.getDeployment(deploymentId);
     if (!deployment) {
-      this.logger.error(`Failed to fetch deployment after updating deployment status. Dropping DeploymentEvent`);
+      this.logger.error(`Failed to fetch deployment when updating deployment status. Dropping DeploymentEvent`);
       return;
     }
 
@@ -479,9 +479,17 @@ export default class DeploymentModule {
 
     if (values(realUpdates).length > 0) {
       await this.knex('deployment').update(realUpdates);
+      // this is a bit clumsy, but we need to fetch the deployment again
+      // after performing the updates, as otherwise the deployment will
+      // not have correct url and screenshot urls set
+      deployment = await this.getDeployment(deploymentId);
+      if (!deployment) {
+        this.logger.error(`Failed to fetch deployment after updating deployment status. Dropping DeploymentEvent`);
+        return;
+      }
       const payload: DeploymentEvent = {
         statusUpdate: realUpdates,
-        deployment: Object.assign({}, deployment, realUpdates),
+        deployment,
       };
       this.eventBus.post(createDeploymentEvent(payload));
     }

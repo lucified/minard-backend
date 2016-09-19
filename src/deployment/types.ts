@@ -43,29 +43,27 @@ export interface DeploymentKey {
 
 export type MinardDeploymentStatus = 'pending' | 'running' | 'success' | 'failed' | 'canceled';
 
-export interface MinardDeploymentPlain {
-  ref: string;
-  buildStatus: MinardDeploymentStatus;
-  extractionStatus: MinardDeploymentStatus;
-  screenshotStatus: MinardDeploymentStatus;
-  url?: string;
-  screenshot?: string;
-  finishedAt?: moment.Moment;
-  creator?: MinardDeploymentCreator;
-  projectId: number;
-  projectName: string;
-}
-
 export interface MinardDeploymentCreator {
   name: string;
   email: string;
   timestamp: string;
 }
 
-export interface MinardDeployment extends MinardDeploymentPlain {
-  deploymentId: number;
+export interface MinardDeployment {
+  id: number;
   commit: MinardCommit;
   commitHash: string;
+  ref: string;
+  buildStatus: MinardDeploymentStatus;
+  extractionStatus: MinardDeploymentStatus;
+  screenshotStatus: MinardDeploymentStatus;
+  status: MinardDeploymentStatus;
+  url?: string;
+  screenshot?: string;
+  finishedAt?: moment.Moment;
+  creator?: MinardDeploymentCreator;
+  projectId: number;
+  projectName: string;
 }
 
 export interface MinardJsonBuildCommand {

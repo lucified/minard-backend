@@ -97,7 +97,7 @@ export function toDbDeployment(deployment: MinardDeployment) {
 
 export function toMinardDeployment(deployment: any): MinardDeployment {
   const commit = deployment.commit instanceof Object ? deployment.commit : JSON.parse(deployment.commit);
-  //const creator = deployment.creator instanceof Object ? deployment.creator : JSON.parse(deployment.creator);
+  // const creator = deployment.creator instanceof Object ? deployment.creator : JSON.parse(deployment.creator);
   return Object.assign({}, deployment, {
     commit,
     finishedAt: deployment.finishedAt ? moment(Number(deployment.finishedAt)) : undefined,

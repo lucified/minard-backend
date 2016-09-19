@@ -9,8 +9,8 @@ exports.up = (knex) => Promise.all([
     table.string('extractionStatus');
     table.string('screenshotStatus');
     table.string('status').index();
-    table.integer('finishedAt').index();
-    table.integer('createdAt').index();
+    table.bigInteger('finishedAt').index();
+    table.bigInteger('createdAt').index();
     table.integer('projectId').index();
     table.string('projectName');
   }),

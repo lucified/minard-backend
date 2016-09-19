@@ -135,6 +135,9 @@ export class RealtimeHapiPlugin {
       );
       if (since) {
         const existing = await this.eventBus.getEvents(teamId, since);
+        if (existing.length > 0) {
+          existing.shift(); // getEvents is '>= since', but here we want '> since'
+        }
         observable = Observable.concat(Observable.from(existing), observable);
       }
       observable = Observable.merge(

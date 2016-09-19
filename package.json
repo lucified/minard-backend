@@ -55,6 +55,7 @@
     "@types/wreck": "^7.0.27",
     "@types/yamljs": "^0.2.29",
     "chai": "^3.5.0",
+    "eventsource": "^0.2.1",
     "fetch-mock": "^5.0.3",
     "mocha": "^3.0.2",
     "mocha-typescript": "^1.0.6",

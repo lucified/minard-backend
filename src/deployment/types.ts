@@ -34,7 +34,7 @@ export const createDeploymentEvent =
 
 export const BUILD_CREATED_EVENT = 'BUILD_CREATED_EVENT';
 export const createBuildCreatedEvent =
-  eventCreator<BuildCreatedEvent>(BUILD_STATUS_EVENT_TYPE);
+  eventCreator<BuildCreatedEvent>(BUILD_CREATED_EVENT);
 
 export interface DeploymentKey {
   projectId: number;

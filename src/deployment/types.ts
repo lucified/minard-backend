@@ -28,7 +28,7 @@ export const BUILD_STATUS_EVENT_TYPE = 'BUILD_STATUS_EVENT';
 export const createBuildStatusEvent =
   eventCreator<BuildStatusEvent>(BUILD_STATUS_EVENT_TYPE);
 
-export const DEPLOYMENT_EVENT_TYPE = 'DEPLOYMENT_EVENT_TYPE';
+export const DEPLOYMENT_EVENT_TYPE = 'DEPLOYMENT_UPDATED';
 export const createDeploymentEvent =
   eventCreator<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE);
 

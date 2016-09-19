@@ -24,6 +24,7 @@ import {
 
 import {
   BuildCreatedEvent,
+  DEPLOYMENT_EVENT_TYPE,
   DeploymentEvent,
   DeploymentStatusUpdate,
   MinardDeployment,
@@ -261,7 +262,7 @@ describe('deployment-module', () => {
     it('should return null if deployment is not found', async () => {
       const deploymentModule = await arrangeDeploymentModule();    // Arrange
       const deployment = await deploymentModule.getDeployment(18); // Act
-      expect(deployment).to.equal(null);                           // Assert
+      expect(deployment).to.equal(undefined);                      // Assert
     });
   });
 
@@ -279,6 +280,58 @@ describe('deployment-module', () => {
       expect(ret[1].id).to.equal(deployments[0].id);
       expect(ret[0].url).to.exist;
       expect(ret[1].url).to.exist;
+    });
+  });
+
+  describe('getLatestSuccessfulProjectDeployment()', () => {
+    it('it should return correct deployment when it can be found', async () => {
+      // Arrange
+      const deploymentModule = await arrangeDeploymentModule();
+
+      // Act
+      const ret = await deploymentModule.getLatestSuccessfulProjectDeployment(5);
+
+      // Assert
+      expect(ret).to.exist;
+      expect(ret!.id).to.equal(deployments[1].id);
+      expect(ret!.url).to.exist;
+    });
+
+    it('it should return null when deployment cannot be found', async () => {
+      // Arrange
+      const deploymentModule = await arrangeDeploymentModule();
+
+      // Act
+      const ret = await deploymentModule.getLatestSuccessfulProjectDeployment(500);
+
+      // Assert
+      expect(ret).to.equal(undefined);
+    });
+  });
+
+  describe('getLatestSuccessfulBranchDeployment()', () => {
+    it('should return correct deployment when one can be found', async () => {
+      // Arrange
+      const deploymentModule = await arrangeDeploymentModule();
+
+      // Act
+      const ret = await deploymentModule.getLatestSuccessfulBranchDeployment(5, 'foo-branch');
+
+      // Assert
+      expect(ret).to.exist;
+      expect(ret!.id).to.equal(deployments[1].id);
+      expect(ret!.url).to.exist;
+    });
+
+    it('should return null when deployment cannot be found', async () => {
+      // Arrange
+      const deploymentModule = await arrangeDeploymentModule();
+
+      // Act
+      const ret = await deploymentModule.getLatestSuccessfulBranchDeployment(5, 'nonexistent-branch');
+
+      // Assert
+      expect(ret).to.equal(undefined);
     });
   });
 
@@ -887,12 +940,193 @@ describe('deployment-module', () => {
           projectId,
         },
         statusUpdate: {
-          extractStatus: 'success',
+          extractionStatus: 'success',
         },
       } as any;
       bus.post(createDeploymentEvent(payload));
       await promise;
     });
+  });
+
+  describe('updateDeploymentStatus', () => {
+
+    const deploymentId = 20;
+
+    async function initializeDb() {
+      const knex = await setupKnex();
+      await knex('deployment').insert(toDbDeployment({
+        id: deploymentId,
+        status: 'pending',
+        buildStatus: 'pending',
+        extractionStatus: 'pending',
+        screenshotStatus: 'pending',
+        commit: {
+          id: 'foo',
+        },
+        finishedAt: moment(),
+      } as any));
+      return knex;
+    }
+
+    async function arrangeDeploymentModule(bus: LocalEventBus, knex: Knex) {
+      const deploymentModule = new DeploymentModule(
+        {} as any,
+        {} as any,
+        bus,
+        {} as any,
+        urlPattern,
+        screenshotModule,
+        {} as any,
+        knex);
+      return deploymentModule;
+    }
+
+    async function shouldUpdateCorrectly(
+      knex: Knex,
+      statusUpdate: DeploymentStatusUpdate,
+      resultingUpdate: DeploymentStatusUpdate,
+      resultingStatus: string) {
+
+      // Arrange
+      const bus = getEventBus();
+      const deploymentModule = await arrangeDeploymentModule(bus, knex);
+      deploymentModule.doPrepareDeploymentForServing = async(_projectId: number, _deploymentId: number) => undefined;
+      deploymentModule.takeScreenshot = async(_projectId: number, _deploymentId: number) => undefined;
+
+      const promise = bus.filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
+        .map(event => event.payload).take(1).toPromise();
+
+      // Act
+      await deploymentModule.updateDeploymentStatus(deploymentId, statusUpdate);
+
+      // Assert
+      const event = await promise;
+      expect(event.statusUpdate).to.deep.equal(resultingUpdate);
+      const deployment = await deploymentModule.getDeployment(deploymentId);
+      expect(deployment).to.exist;
+      expect(deployment!.status).to.equal(resultingStatus);
+    }
+
+    it('should update with correct status when buildStatus turns to running', async () => {
+      await shouldUpdateCorrectly(
+          await initializeDb(),
+          { buildStatus: 'running' },
+          { buildStatus: 'running', status: 'running' },
+          'running');
+    });
+
+    it('should update with correct status when buildStatus turns to failed', async () => {
+      await shouldUpdateCorrectly(
+          await initializeDb(),
+          { buildStatus: 'failed' },
+          { buildStatus: 'failed', status: 'failed' },
+          'failed');
+    });
+
+    it('should update with correct status when buildStatus turns to success', async () => {
+      const knex = await initializeDb();
+      await shouldUpdateCorrectly(
+        knex,
+        { buildStatus: 'running' },
+        { buildStatus: 'running', status: 'running' },
+        'running');
+      await shouldUpdateCorrectly(
+        knex,
+        { buildStatus: 'success' },
+        { buildStatus: 'success' },
+        'running');
+    });
+
+    it('should update with correct status when extractionStatus turns to success', async () => {
+      const knex = await initializeDb();
+      await shouldUpdateCorrectly(
+        knex,
+        { buildStatus: 'running' },
+        { buildStatus: 'running', status: 'running' },
+        'running');
+
+      await shouldUpdateCorrectly(
+        knex,
+        { extractionStatus: 'running' },
+        { extractionStatus: 'running', status: 'running' },
+        'running');
+
+      await shouldUpdateCorrectly(
+        knex,
+        { extractionStatus: 'success' },
+        { extractionStatus: 'success' },
+        'running');
+    });
+
+    it('should update with correct status when extractionStatus turns to failed', async () => {
+      const knex = await initializeDb();
+      await shouldUpdateCorrectly(
+        knex,
+        { buildStatus: 'running' },
+        { buildStatus: 'running', status: 'running' },
+        'running');
+
+      await shouldUpdateCorrectly(
+        knex,
+        { extractionStatus: 'running' },
+        { extractionStatus: 'running', status: 'running' },
+        'running');
+
+      await shouldUpdateCorrectly(
+        knex,
+        { extractionStatus: 'failed' },
+        { extractionStatus: 'failed', status: 'failed' },
+        'failed');
+    });
+
+    it('should update with correct status when screenshot turns to success', async () => {
+      const knex = await initializeDb();
+
+      await shouldUpdateCorrectly(
+        knex,
+        { extractionStatus: 'running' },
+        { extractionStatus: 'running', status: 'running' },
+        'running');
+
+      await shouldUpdateCorrectly(
+        knex,
+        { extractionStatus: 'success' },
+        { extractionStatus: 'success' },
+        'running');
+
+      await shouldUpdateCorrectly(
+        knex,
+        { screenshotStatus: 'success' },
+        { screenshotStatus: 'success', status: 'success' },
+        'success');
+    });
+
+    it('should update with correct status when screenshot turns to failed', async () => {
+      const knex = await initializeDb();
+
+      await shouldUpdateCorrectly(
+        knex,
+        { extractionStatus: 'running' },
+        { extractionStatus: 'running', status: 'running' },
+        'running');
+
+      await shouldUpdateCorrectly(
+        knex,
+        { extractionStatus: 'success' },
+        { extractionStatus: 'success' },
+        'running');
+
+      await shouldUpdateCorrectly(
+        knex,
+        { screenshotStatus: 'failed' },
+        { screenshotStatus: 'failed', status: 'success' },
+        'success');
+    });
+
+    it('should not update if there is nothing to update', async () => {
+      await shouldUpdateCorrectly(await initializeDb(), { }, { }, 'pending');
+    });
+
   });
 
   describe('filesAtPath', () => {

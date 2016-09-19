@@ -29,8 +29,8 @@ import {
   BuildStatusEvent,
   DEPLOYMENT_EVENT_TYPE,
   DeploymentEvent,
+  DeploymentStatusUpdate,
   MinardDeployment,
-  MinardDeploymentStatus,
   MinardJson,
   MinardJsonInfo,
   RepositoryObject,
@@ -55,12 +55,6 @@ const Queue = require('promise-queue'); // tslint:disable-line
 const extract = promisify(require('extract-zip'));
 
 export const deploymentFolderInjectSymbol = Symbol('deployment-folder');
-
-interface DeploymentStatusUpdate {
-  buildStatus?: MinardDeploymentStatus;
-  extractStatus?: MinardDeploymentStatus;
-  screenshotStatus?: MinardDeploymentStatus;
-}
 
 export function isRawDeploymentHostname(hostname: string) {
   return getDeploymentKeyFromHost(hostname) !== null;
@@ -174,7 +168,7 @@ export default class DeploymentModule {
 
     // subscribe on exracted builds
     this.eventBus.filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
-      .filter(event => event.payload.statusUpdate.extractStatus === 'success')
+      .filter(event => event.payload.statusUpdate.extractionStatus === 'success')
       .flatMap(event => {
         const { projectId, id } = event.payload.deployment;
         return this.takeScreenshot(projectId, id);
@@ -243,7 +237,8 @@ export default class DeploymentModule {
       .orderBy('id', 'DESC')
       .limit(1)
       .first();
-    return (await select).map(this.toFullMinardDeployment.bind(this));
+    const ret = await select;
+    return ret ? this.toFullMinardDeployment(ret) : undefined;
   }
 
   public async getLatestSuccessfulBranchDeployment(
@@ -256,7 +251,8 @@ export default class DeploymentModule {
       .orderBy('id', 'DESC')
       .limit(1)
       .first();
-    return (await select).map(this.toFullMinardDeployment.bind(this));
+    const ret = await select;
+    return ret ? this.toFullMinardDeployment(ret) : undefined;
   }
 
   public async getCommitDeployments(projectId: number, sha: string): Promise<MinardDeployment[]> {
@@ -268,7 +264,7 @@ export default class DeploymentModule {
     return (await select).map(this.toFullMinardDeployment.bind(this));
   }
 
-  public async getDeployment(deploymentId: number): Promise<MinardDeployment | null> {
+  public async getDeployment(deploymentId: number): Promise<MinardDeployment | undefined> {
     const select = this.knex.select('*')
       .from('deployment')
       .where('id', deploymentId)
@@ -276,7 +272,7 @@ export default class DeploymentModule {
       .first();
     const ret = await select;
     if (!ret) {
-      return null;
+      return undefined;
     }
     return this.toFullMinardDeployment(ret);
   }
@@ -424,29 +420,31 @@ export default class DeploymentModule {
       }
     }
     try {
-      this.updateDeploymentStatus(deploymentId, { extractStatus: 'running' });
+      this.updateDeploymentStatus(deploymentId, { extractionStatus: 'running' });
       await this.downloadAndExtractDeployment(projectId, deploymentId);
       const finalPath = await this.moveExtractedDeployment(projectId, deploymentId);
-      this.updateDeploymentStatus(deploymentId, { extractStatus: 'success' });
+      this.updateDeploymentStatus(deploymentId, { extractionStatus: 'success' });
       return finalPath;
     } catch (err) {
       this.logger.warn(`Failed to prepare deployment ${projectId}_${deploymentId} for serving`, err);
-      this.updateDeploymentStatus(deploymentId, { extractStatus: 'failed' });
+      this.updateDeploymentStatus(deploymentId, { extractionStatus: 'failed' });
       throw Boom.badImplementation();
     }
   }
 
   public async updateDeploymentStatus(deploymentId: number, updates: DeploymentStatusUpdate) {
-    let status = 'pending';
+    const allUpdates = Object.assign({}, updates);
     if (updates.screenshotStatus === 'success' || updates.screenshotStatus === 'failed') {
-      status = 'success'; // SIC
+      allUpdates.status = 'success'; // SIC
     } else if (values(updates).indexOf('failed') !== -1 || values(updates).indexOf('canceled') !== -1) {
-      status = 'failed';
+      allUpdates.status = 'failed';
     } else if (values(updates).indexOf('running') !== -1) {
-      status = 'running';
+      allUpdates.status = 'running';
     }
-    const allUpdates = Object.assign({}, updates, { status });
-    await this.knex('deployment').update(allUpdates);
+
+    if (values(updates).length > 0) {
+      await this.knex('deployment').update(allUpdates);
+    }
 
     const deployment = await this.getDeployment(deploymentId);
     if (!deployment) {
@@ -454,7 +452,7 @@ export default class DeploymentModule {
       return;
     }
     const payload: DeploymentEvent = {
-      statusUpdate: updates,
+      statusUpdate: allUpdates,
       deployment,
     };
     this.eventBus.post(createDeploymentEvent(payload));

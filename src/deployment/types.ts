@@ -9,7 +9,7 @@ export const deploymentUrlPatternInjectSymbol = Symbol('deployment-url-pattern')
 
 export interface DeploymentStatusUpdate {
   buildStatus?: MinardDeploymentStatus;
-  extractStatus?: MinardDeploymentStatus;
+  extractionStatus?: MinardDeploymentStatus;
   screenshotStatus?: MinardDeploymentStatus;
   status?: MinardDeploymentStatus;
 }

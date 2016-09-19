@@ -15,6 +15,7 @@ import {
 } from '../project';
 
 import {
+  DeploymentEvent,
   DeploymentModule,
   MinardDeployment,
 } from '../deployment';
@@ -141,10 +142,17 @@ export default class OperationsModule {
       const missing = await this.getMissingDeploymentActivityForProject(projectId);
       await Promise.all(missing.map(async item => {
         this.logger.info(`Creating missing deployment activity for ${item.projectId}-${item.deploymentId}`);
-        const activity = await this.activityModule.createDeploymentActivity(item.projectId, item.deploymentId);
-        const hasScreenshot = await this.screenshotModule.deploymentHasScreenshot(projectId, item.deploymentId);
-        activity.deployment.screenshot = hasScreenshot ? this.screenshotModule
-          .getPublicUrl(projectId, item.deploymentId) : undefined;
+        const deployment = await this.deploymentModule.getDeployment(item.deploymentId);
+        if (!deployment) {
+          throw Error('Could not get deployment');
+        }
+        const event: DeploymentEvent = {
+          deployment,
+          statusUpdate: {
+            status: deployment.status,
+          },
+        };
+        const activity = await this.activityModule.createDeploymentActivity(event);
         await this.activityModule.addActivity(activity);
       }));
     } catch (err) {

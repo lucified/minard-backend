@@ -19,6 +19,10 @@ import {
 } from '../screenshot';
 
 import {
+  ProjectModule,
+} from '../project';
+
+import {
   BUILD_CREATED_EVENT,
   BUILD_STATUS_EVENT_TYPE,
   BuildCreatedEvent,
@@ -93,11 +97,10 @@ export function toDbDeployment(deployment: MinardDeployment) {
 
 export function toMinardDeployment(deployment: any): MinardDeployment {
   const commit = deployment.commit instanceof Object ? deployment.commit : JSON.parse(deployment.commit);
-  const creator = deployment.creator instanceof Object ? deployment.creator : JSON.parse(deployment.creator);
+  //const creator = deployment.creator instanceof Object ? deployment.creator : JSON.parse(deployment.creator);
   return Object.assign({}, deployment, {
     commit,
-    creator,
-    finishedAt: moment(Number(deployment.finishedAt)),
+    finishedAt: deployment.finishedAt ? moment(Number(deployment.finishedAt)) : undefined,
   }) as MinardDeployment;
 }
 
@@ -112,20 +115,27 @@ export default class DeploymentModule {
   private readonly urlPattern: string;
   private readonly eventBus: EventBus;
   private readonly prepareQueue: any;
-  private readonly knex: Knex;
   private readonly screenshotModule: ScreenshotModule;
+  private readonly knex: Knex;
+  private readonly projectModule: ProjectModule;
 
   public constructor(
     @inject(GitlabClient.injectSymbol) gitlab: GitlabClient,
     @inject(deploymentFolderInjectSymbol) deploymentFolder: string,
     @inject(eventBusInjectSymbol) eventBus: EventBus,
     @inject(logger.loggerInjectSymbol) logger: logger.Logger,
-    @inject(deploymentUrlPatternInjectSymbol) urlPattern: string) {
+    @inject(deploymentUrlPatternInjectSymbol) urlPattern: string,
+    @inject(ScreenshotModule.injectSymbol) screenshotModule: ScreenshotModule,
+    @inject(ProjectModule.injectSymbol) projectModule: ProjectModule,
+    @inject('charles-knex') knex: Knex) {
     this.gitlab = gitlab;
     this.deploymentFolder = deploymentFolder;
     this.logger = logger;
     this.eventBus = eventBus;
     this.urlPattern = urlPattern;
+    this.screenshotModule = screenshotModule;
+    this.projectModule = projectModule;
+    this.knex = knex;
     this.prepareQueue = new Queue(1, Infinity);
     this.subscribeToEvents();
   }
@@ -133,31 +143,47 @@ export default class DeploymentModule {
   private subscribeToEvents() {
     // subscribe for build created events
     this.eventBus.filterEvents<BuildCreatedEvent>(BUILD_CREATED_EVENT)
-      .subscribe(event => this.createDeployment(event.payload));
+      .subscribe(async event => {
+        try {
+          await this.createDeployment(event.payload);
+        } catch (error) {
+          this.logger.error(`Failed to create deployment based on BuildCreatedEvent`, { event, error });
+        }
+      });
 
     // subscribe on build status updates
     this.eventBus.filterEvents<BuildStatusEvent>(BUILD_STATUS_EVENT_TYPE)
-      .subscribe(event => this.updateDeploymentStatus(event.payload.deploymentId,
-        { buildStatus: event.payload.status }));
+      .subscribe(async event => {
+        try {
+          await this.updateDeploymentStatus(
+            event.payload.deploymentId, { buildStatus: event.payload.status });
+        } catch (error) {
+          console.log(error);
+          this.logger.error(`Failed to update deployment status based on BuildStatusEvent`, { event, error });
+        }
+      });
 
     // subscribe on finished builds
     this.eventBus.filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
       .filter(event => event.payload.statusUpdate.buildStatus === 'success')
       .flatMap(event => {
-        const { projectId, deploymentId } = event.payload.deployment;
-        return this.prepareDeploymentForServing(projectId, deploymentId, false);
-      });
+        const { projectId, id } = event.payload.deployment;
+        return this.prepareDeploymentForServing(projectId, id, false);
+      })
+      .subscribe();
 
     // subscribe on exracted builds
     this.eventBus.filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
       .filter(event => event.payload.statusUpdate.extractStatus === 'success')
       .flatMap(event => {
-        const { projectId, deploymentId } = event.payload.deployment;
-        return this.takeScreenshot(projectId, deploymentId);
-      }, 1);
+        const { projectId, id } = event.payload.deployment;
+        return this.takeScreenshot(projectId, id);
+      }, 1)
+      .subscribe();
   }
 
-  private async takeScreenshot(projectId: number, deploymentId: number) {
+  // internal method
+  public async takeScreenshot(projectId: number, deploymentId: number) {
     try {
       await this.updateDeploymentStatus(deploymentId, { screenshotStatus: 'running' });
       await this.screenshotModule.takeScreenshot(projectId, deploymentId);
@@ -168,30 +194,28 @@ export default class DeploymentModule {
   }
 
   public async createDeployment(event: BuildCreatedEvent) {
+    const commit = await this.projectModule.getCommit(event.project_id, event.sha)!;
+    if (!commit) {
+      this.logger.error(`Commit ${event.sha} in project ${event.project_id} not found while in createDeployment`);
+      return;
+    }
     const deployment: MinardDeployment = {
-      deploymentId: event.id,
+      id: event.id,
       ref: event.ref,
       projectId: event.project_id,
       projectName: event.project_name,
       buildStatus: event.status,
       extractionStatus: 'pending',
       screenshotStatus: 'pending',
-      commit: event.sha,
+      status: event.status,
+      commit,
+      commitHash: event.sha,
     };
-
-    await this.knex('deployment').insert(deployment);
-
-    // TODO
-    //
-    // const creator = {
-    //   name: deployment.commit.author_name,
-    //   email: deployment.commit.author_email,
-    //   timestamp: deployment.finished_at || deployment.started_at || deployment.finished_at,
-    // };
+    await this.knex('deployment').insert(toDbDeployment(deployment));
   }
 
-  public async updateBuildStatus(event: BuildStatusEvent) {
-    this.updateDeploymentStatus(event.deploymentId, { buildStatus: event.status });
+  public updateBuildStatus(event: BuildStatusEvent): Promise<void> {
+    return this.updateDeploymentStatus(event.deploymentId, { buildStatus: event.status });
   }
 
   public async getProjectDeployments(projectId: number): Promise<MinardDeployment[]> {
@@ -235,11 +259,11 @@ export default class DeploymentModule {
     return (await select).map(this.toFullMinardDeployment.bind(this));
   }
 
-  public async getCommitDeployments(projectId: number, sha: string) {
+  public async getCommitDeployments(projectId: number, sha: string): Promise<MinardDeployment[]> {
     const select = this.knex.select('*')
       .from('deployment')
       .where('projectId', projectId)
-      .andWhere('commitSha', sha)
+      .andWhere('commitHash', sha)
       .orderBy('id', 'DESC');
     return (await select).map(this.toFullMinardDeployment.bind(this));
   }
@@ -250,7 +274,11 @@ export default class DeploymentModule {
       .where('id', deploymentId)
       .limit(1)
       .first();
-    return this.toFullMinardDeployment(await select);
+    const ret = await select;
+    if (!ret) {
+      return null;
+    }
+    return this.toFullMinardDeployment(ret);
   }
 
   private toFullMinardDeployment(_deployment: any): MinardDeployment {
@@ -258,11 +286,11 @@ export default class DeploymentModule {
     if (deployment.extractionStatus === 'success') {
       deployment.url = sprintf(
          this.urlPattern,
-        `${deployment.ref}-${deployment.commit.short_id}-${deployment.projectId}-${deployment.deploymentId}`
+        `${deployment.ref}-${deployment.commit.shortId}-${deployment.projectId}-${deployment.id}`
       );
     }
     if (deployment.screenshotStatus === 'success') {
-      deployment.screenshot = this.screenshotModule.getPublicUrl(deployment.projectId, deployment.deploymentId);
+      deployment.screenshot = this.screenshotModule.getPublicUrl(deployment.projectId, deployment.id);
     }
     return deployment;
   }

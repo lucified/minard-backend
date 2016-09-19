@@ -13,6 +13,7 @@ export interface MinardCommit {
   message: string;
   author: MinardCommitAuthor;
   committer: MinardCommitAuthor;
+  parentIds?: string[];
 }
 
 export function toMinardCommit(gitlabCommit: Commit): MinardCommit {

@@ -1,9 +1,10 @@
 
+
 import * as Boom from 'boom';
 import * as fs from 'fs';
 import { inject, injectable } from 'inversify';
 import * as Knex from 'knex';
-import { values } from 'lodash';
+import { omitBy, isNil, values } from 'lodash';
 import * as moment from 'moment';
 import * as os from 'os';
 import * as path from 'path';
@@ -37,6 +38,7 @@ import {
   DeploymentEvent,
   DeploymentStatusUpdate,
   MinardDeployment,
+  MinardDeploymentStatus,
   MinardJson,
   MinardJsonInfo,
   RepositoryObject,
@@ -449,17 +451,13 @@ export default class DeploymentModule {
   }
 
   public async updateDeploymentStatus(deploymentId: number, updates: DeploymentStatusUpdate) {
-    const allUpdates = Object.assign({}, updates);
+    let newStatus: MinardDeploymentStatus | undefined = undefined;
     if (updates.screenshotStatus === 'success' || updates.screenshotStatus === 'failed') {
-      allUpdates.status = 'success'; // SIC
+      newStatus = 'success'; // SIC
     } else if (values(updates).indexOf('failed') !== -1 || values(updates).indexOf('canceled') !== -1) {
-      allUpdates.status = 'failed';
+      newStatus = 'failed';
     } else if (values(updates).indexOf('running') !== -1) {
-      allUpdates.status = 'running';
-    }
-
-    if (values(updates).length > 0) {
-      await this.knex('deployment').update(allUpdates);
+      newStatus = 'running';
     }
 
     const deployment = await this.getDeployment(deploymentId);
@@ -467,11 +465,26 @@ export default class DeploymentModule {
       this.logger.error(`Failed to fetch deployment after updating deployment status. Dropping DeploymentEvent`);
       return;
     }
-    const payload: DeploymentEvent = {
-      statusUpdate: allUpdates,
-      deployment,
-    };
-    this.eventBus.post(createDeploymentEvent(payload));
+
+    function updatedStatus(updated: MinardDeploymentStatus | undefined, curr: MinardDeploymentStatus) {
+      return updated && updated !== curr ? updated : undefined;
+    }
+
+    const realUpdates = omitBy({
+      status: updatedStatus(newStatus, deployment.status),
+      buildStatus: updatedStatus(updates.buildStatus, deployment.buildStatus),
+      extractionStatus: updatedStatus(updates.extractionStatus, deployment.extractionStatus),
+      screenshotStatus: updatedStatus(updates.screenshotStatus, deployment.screenshotStatus),
+    }, isNil);
+
+    if (values(realUpdates).length > 0) {
+      await this.knex('deployment').update(realUpdates);
+      const payload: DeploymentEvent = {
+        statusUpdate: realUpdates,
+        deployment: Object.assign({}, deployment, realUpdates),
+      };
+      this.eventBus.post(createDeploymentEvent(payload));
+    }
   }
 
   /*

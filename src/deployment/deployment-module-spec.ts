@@ -970,9 +970,9 @@ describe('deployment-module', () => {
 
     const deploymentId = 20;
 
-    async function initializeDb() {
+    async function initializeDb(beforeState: any) {
       const knex = await setupKnex();
-      await knex('deployment').insert(toDbDeployment({
+      await knex('deployment').insert(toDbDeployment(Object.assign({
         id: deploymentId,
         status: 'pending',
         buildStatus: 'pending',
@@ -987,7 +987,7 @@ describe('deployment-module', () => {
           },
         },
         finishedAt: moment(),
-      } as any));
+      }, beforeState)));
       return knex;
     }
 
@@ -1005,14 +1005,14 @@ describe('deployment-module', () => {
     }
 
     async function shouldUpdateCorrectly(
-      knex: Knex,
+      beforeState: any,
       statusUpdate: DeploymentStatusUpdate,
       resultingUpdate: DeploymentStatusUpdate,
       resultingStatus: string) {
 
       // Arrange
       const bus = getEventBus();
-      const deploymentModule = await arrangeDeploymentModule(bus, knex);
+      const deploymentModule = await arrangeDeploymentModule(bus, await initializeDb(beforeState));
       deploymentModule.doPrepareDeploymentForServing = async(_projectId: number, _deploymentId: number) => undefined;
       deploymentModule.takeScreenshot = async(_projectId: number, _deploymentId: number) => undefined;
 
@@ -1030,9 +1030,32 @@ describe('deployment-module', () => {
       expect(deployment!.status).to.equal(resultingStatus);
     }
 
+    async function shouldNotUpdate(
+      beforeState: any,
+      statusUpdate: DeploymentStatusUpdate,
+      resultingUpdate: DeploymentStatusUpdate,
+      resultingStatus: string) {
+
+      // Arrange
+      const bus = getEventBus();
+      const deploymentModule = await arrangeDeploymentModule(bus, await initializeDb(beforeState));
+      deploymentModule.doPrepareDeploymentForServing = async(_projectId: number, _deploymentId: number) => undefined;
+      deploymentModule.takeScreenshot = async(_projectId: number, _deploymentId: number) => undefined;
+
+      let called = false;
+      bus.filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
+        .subscribe(item => {
+          called = true;
+        });
+
+      // Act
+      await deploymentModule.updateDeploymentStatus(deploymentId, statusUpdate);
+      expect(called).to.be.false;
+    }
+
     it('should update with correct status when buildStatus turns to running', async () => {
       await shouldUpdateCorrectly(
-          await initializeDb(),
+          { },
           { buildStatus: 'running' },
           { buildStatus: 'running', status: 'running' },
           'running');
@@ -1040,114 +1063,93 @@ describe('deployment-module', () => {
 
     it('should update with correct status when buildStatus turns to failed', async () => {
       await shouldUpdateCorrectly(
-          await initializeDb(),
+          { buildStatus: 'running', status: 'running'},
           { buildStatus: 'failed' },
           { buildStatus: 'failed', status: 'failed' },
           'failed');
     });
 
     it('should update with correct status when buildStatus turns to success', async () => {
-      const knex = await initializeDb();
       await shouldUpdateCorrectly(
-        knex,
-        { buildStatus: 'running' },
-        { buildStatus: 'running', status: 'running' },
-        'running');
-      await shouldUpdateCorrectly(
-        knex,
+        { buildStatus: 'running', status: 'running'},
         { buildStatus: 'success' },
         { buildStatus: 'success' },
         'running');
     });
 
-    it('should update with correct status when extractionStatus turns to success', async () => {
-      const knex = await initializeDb();
+    it('should update with correct status when extractionStatus turns to running', async () => {
       await shouldUpdateCorrectly(
-        knex,
-        { buildStatus: 'running' },
-        { buildStatus: 'running', status: 'running' },
-        'running');
-
-      await shouldUpdateCorrectly(
-        knex,
+        { buildStatus: 'success', status: 'running'},
         { extractionStatus: 'running' },
-        { extractionStatus: 'running', status: 'running' },
+        { extractionStatus: 'running' },
         'running');
+    });
 
+    it('should update with correct status when extractionStatus turns to success', async () => {
       await shouldUpdateCorrectly(
-        knex,
+        { buildStatus: 'success', status: 'running', extractionStatus: 'running'},
         { extractionStatus: 'success' },
         { extractionStatus: 'success' },
         'running');
     });
 
     it('should update with correct status when extractionStatus turns to failed', async () => {
-      const knex = await initializeDb();
       await shouldUpdateCorrectly(
-        knex,
-        { buildStatus: 'running' },
-        { buildStatus: 'running', status: 'running' },
-        'running');
-
-      await shouldUpdateCorrectly(
-        knex,
-        { extractionStatus: 'running' },
-        { extractionStatus: 'running', status: 'running' },
-        'running');
-
-      await shouldUpdateCorrectly(
-        knex,
+        { buildStatus: 'success', status: 'running', extractionStatus: 'running'},
         { extractionStatus: 'failed' },
         { extractionStatus: 'failed', status: 'failed' },
         'failed');
     });
 
+    it('should update with correct status when screenshot turns to running', async () => {
+      await shouldUpdateCorrectly(
+        { buildStatus: 'success', extractionStatus: 'success', status: 'running' },
+        { screenshotStatus: 'running' },
+        { screenshotStatus: 'running' },
+        'running');
+    });
+
     it('should update with correct status when screenshot turns to success', async () => {
-      const knex = await initializeDb();
-
       await shouldUpdateCorrectly(
-        knex,
-        { extractionStatus: 'running' },
-        { extractionStatus: 'running', status: 'running' },
-        'running');
-
-      await shouldUpdateCorrectly(
-        knex,
-        { extractionStatus: 'success' },
-        { extractionStatus: 'success' },
-        'running');
-
-      await shouldUpdateCorrectly(
-        knex,
+        { buildStatus: 'success', extractionStatus: 'success', status: 'running' },
         { screenshotStatus: 'success' },
         { screenshotStatus: 'success', status: 'success' },
         'success');
     });
 
     it('should update with correct status when screenshot turns to failed', async () => {
-      const knex = await initializeDb();
-
       await shouldUpdateCorrectly(
-        knex,
-        { extractionStatus: 'running' },
-        { extractionStatus: 'running', status: 'running' },
-        'running');
-
-      await shouldUpdateCorrectly(
-        knex,
-        { extractionStatus: 'success' },
-        { extractionStatus: 'success' },
-        'running');
-
-      await shouldUpdateCorrectly(
-        knex,
+        { buildStatus: 'success', extractionStatus: 'success', status: 'running' },
         { screenshotStatus: 'failed' },
         { screenshotStatus: 'failed', status: 'success' },
         'success');
     });
 
     it('should not update if there is nothing to update', async () => {
-      await shouldUpdateCorrectly(await initializeDb(), { }, { }, 'pending');
+      await shouldNotUpdate(
+        { },
+        { },
+        { },
+        'pending');
+    });
+
+    it('should not update if buildStatus is already running', async () => {
+      await shouldNotUpdate(
+        { buildStatus: 'running', status: 'running' },
+        { buildStatus: 'running' },
+        { },
+        'running');
+    });
+
+    it('should update with correct status when screenshot turns to success when deployment is already success',
+      async () => {
+      // this can happen when we recreate screenshots for deployments
+      // that were successfully created but screenshots failed for some reason
+      await shouldUpdateCorrectly(
+        { buildStatus: 'success', extractionStatus: 'success', status: 'success', screenshotStatus: 'failed' },
+        { screenshotStatus: 'success' },
+        { screenshotStatus: 'success' }, // note that overall deployment status does not update
+        'success');
     });
 
   });

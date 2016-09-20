@@ -805,7 +805,7 @@ describe('project-module', () => {
       const committers = await projectModule.getProjectContributors(projectId);
 
       // Assert
-      expect(committers).to.equal([]);
+      expect(committers).to.have.length(0);
     });
 
     it('should throw when gitlab returns 500', async() => {

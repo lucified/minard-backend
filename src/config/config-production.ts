@@ -2,6 +2,7 @@
 import { interfaces } from 'inversify';
 import * as Knex from 'knex';
 import * as winston from 'winston';
+import * as cacheManager from 'cache-manager';
 
 import {
   deploymentFolderInjectSymbol,
@@ -25,6 +26,12 @@ import { FilterStream } from './utils';
 import {
   eventStoreConfigInjectSymbol,
 } from '../event-bus';
+
+import {
+  cacheInjectSymbol,
+} from '../shared/cache';
+
+const redisStore = require('cache-manager-redis');
 
 // Logging configuration
 // ---------------------
@@ -184,6 +191,17 @@ const eventStoreConfig = {
 const DEPLOYMENT_FOLDER = env.DEPLOYMENT_FOLDER ? env.DEPLOYMENT_FOLDER : 'gitlab-data/charles/deployments/';
 const SCREENSHOT_FOLDER = env.SCREENSHOT_FOLDER ? env.SCREENSHOT_FOLDER : 'gitlab-data/charles/screenshots/';
 
+// Redis cache
+// -----------
+
+const cache = cacheManager.caching({
+  store: redisStore,
+  host: REDIS_HOST,
+  port: REDIS_PORT,
+  db: 1,
+  ttl: 600,
+} as any);
+
 // Inversify kernel bindings
 // -------------------------
 
@@ -206,4 +224,5 @@ export default (kernel: interfaces.Kernel) => {
   kernel.bind(deploymentUrlPatternInjectSymbol).toConstantValue(DEPLOYMENT_URL_PATTERN);
   kernel.bind(screenshotUrlPattern).toConstantValue(SCREENSHOT_URL_PATTERN);
   kernel.bind(gitBaseUrlInjectSymbol).toConstantValue(EXTERNAL_GIT_BASEURL);
+  kernel.bind(cacheInjectSymbol).toConstantValue(cache);
 };

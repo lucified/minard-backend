@@ -7,6 +7,8 @@
     "@reactivex/rxjs": "^5.0.0-beta.10",
     "bluebird": "^3.4.6",
     "boom": "^3.2.2",
+    "cache-manager": "^2.1.2",
+    "cache-manager-redis": "^0.2.4",
     "deepcopy": "^0.6.3",
     "eventstore": "^1.8.1",
     "extract-zip": "^1.5.0",
@@ -41,6 +43,7 @@
   },
   "devDependencies": {
     "@types/boom": "0.0.31",
+    "@types/cache-manager": "^1.2.4",
     "@types/chai": "^3.4.28",
     "@types/chalk": "^0.4.28",
     "@types/hapi": "^13.0.34",

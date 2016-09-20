@@ -200,13 +200,13 @@ describe('deployment-module', () => {
 
   const screenshotModule = new ScreenshotModule({} as any, '', {} as any, '', externalBaseUrl);
 
-  async function arrangeDeploymentModule(projectModule: ProjectModule = {} as any) {
+  async function arrangeDeploymentModule(projectModule: ProjectModule = {} as any, bus: LocalEventBus = getEventBus()) {
     const knex = await setupKnex();
     await Promise.all(deployments.map(item => knex('deployment').insert(toDbDeployment(item))));
     const deploymentModule = new DeploymentModule(
       {} as any,
       {} as any,
-      getEventBus(),
+      bus,
       {} as any,
       urlPattern,
       screenshotModule,
@@ -376,7 +376,8 @@ describe('deployment-module', () => {
         expect(projectId).to.equal(6);
         return commit;
       };
-      const deploymentModule = await arrangeDeploymentModule(projectModule);
+      const bus = getEventBus();
+      const deploymentModule = await arrangeDeploymentModule(projectModule, bus);
 
       const buildCreatedEvent: Event<BuildCreatedEvent> = createBuildCreatedEvent({
         project_id: 6,
@@ -384,23 +385,25 @@ describe('deployment-module', () => {
         project_name: 'foo-project-name',
         ref: 'master', // TODO
         sha: commit.id,
-        status: 'pending',
+        status: 'running',
       } as any);
+
+      const promise = bus.filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE).take(1).toPromise();
 
       // Act
       await deploymentModule.createDeployment(buildCreatedEvent);
 
       // Assert
       const deployment = await deploymentModule.getDeployment(5);
-      const compare = Object.assign({}, deployment, { createdAt: undefined });
-      expect(compare).to.deep.equal({
+      let compare = Object.assign({}, deployment, { createdAt: undefined });
+      const expected = {
         projectId: buildCreatedEvent.payload.project_id,
         projectName: buildCreatedEvent.payload.project_name,
         id: buildCreatedEvent.payload.id,
-        buildStatus: 'pending',
+        buildStatus: 'running',
         extractionStatus: 'pending',
         screenshotStatus: 'pending',
-        status: 'pending',
+        status: 'running',
         commitHash: buildCreatedEvent.payload.sha,
         commit: commit as any,
         ref: buildCreatedEvent.payload.ref,
@@ -411,7 +414,13 @@ describe('deployment-module', () => {
           email: commit.committer.email,
           timestamp: toGitlabTimestamp(buildCreatedEvent.created),
         },
-      } as any);
+      };
+      expect(compare).to.deep.equal(expected);
+      const event = await promise;
+      expect(event.payload.statusUpdate).to.deep.equal({
+        status: 'running',
+        buildStatus: 'running',
+      });
     });
   });
 

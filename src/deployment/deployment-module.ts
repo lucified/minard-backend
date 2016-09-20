@@ -207,19 +207,18 @@ export default class DeploymentModule {
       ref: payload.ref,
       projectId: payload.project_id,
       projectName: payload.project_name,
-      buildStatus: payload.status,
+      buildStatus: 'pending',
       extractionStatus: 'pending',
       screenshotStatus: 'pending',
-      status: payload.status,
+      status: 'pending',
       commit,
       commitHash: payload.sha,
       createdAt: event.created,
     };
     await this.knex('deployment').insert(toDbDeployment(deployment));
-  }
-
-  public updateBuildStatus(event: BuildStatusEvent): Promise<void> {
-    return this.updateDeploymentStatus(event.deploymentId, { buildStatus: event.status });
+    await this.updateDeploymentStatus(payload.id, {
+      buildStatus: payload.status,
+    });
   }
 
   public async getProjectDeployments(projectId: number): Promise<MinardDeployment[]> {

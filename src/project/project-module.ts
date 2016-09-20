@@ -72,7 +72,9 @@ export default class ProjectModule {
       return await this.gitlab.fetchJson<MinardProjectContributor[]>(`projects/${projectId}/repository/contributors`);
     } catch (err) {
       if (err.isBoom && err.output.statusCode === MINARD_ERROR_CODE.NOT_FOUND) {
-        return null;
+        // gitlab returns NOT_FOUND when there are not contributors for
+        // the project, even if the project exists
+        return [];
       }
       this.logger.error(`Unexpected response from GitLab when fetching project contributors for project ${projectId}`);
       throw Boom.badGateway();
@@ -276,7 +278,6 @@ export default class ProjectModule {
     if (payload.object_kind !== 'push') {
       return;
     }
-
     const projectId = payload.project_id;
     const matches = payload.ref.match(/^refs\/heads\/(\S+)$/);
     if (!matches) {
@@ -284,7 +285,10 @@ export default class ProjectModule {
       return;
     }
     const ref = matches[1];
+    await this.handlePushEvent(projectId, ref, payload);
+  }
 
+  public async handlePushEvent(projectId: number, ref: string, payload: GitlabPushEvent) {
     const [ after, before, mappedCommits ] = await Promise.all([
       payload.after ? this.getCommit(projectId, payload.after) : Promise.resolve(null),
       payload.before ? this.getCommit(projectId, payload.before) : Promise.resolve(null),

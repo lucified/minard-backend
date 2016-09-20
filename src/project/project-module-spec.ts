@@ -797,7 +797,7 @@ describe('project-module', () => {
       expect(committers![0].email).to.equal(gitlabResponse[0].email);
     });
 
-    it('should return null when gitlab returns 404', async () => {
+    it('should return [] when gitlab returns 404', async () => {
       // Arrange
       const projectModule = arrangeProjectModule(404, gitlabResponse);
 
@@ -805,7 +805,7 @@ describe('project-module', () => {
       const committers = await projectModule.getProjectContributors(projectId);
 
       // Assert
-      expect(committers).to.equal(null);
+      expect(committers).to.equal([]);
     });
 
     it('should throw when gitlab returns 500', async() => {

@@ -1,8 +1,8 @@
 
+import * as cacheManager from 'cache-manager';
 import { interfaces } from 'inversify';
 import * as Knex from 'knex';
 import * as winston from 'winston';
-import * as cacheManager from 'cache-manager';
 
 import {
   deploymentFolderInjectSymbol,

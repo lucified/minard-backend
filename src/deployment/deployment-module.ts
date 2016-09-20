@@ -160,7 +160,6 @@ export default class DeploymentModule {
           await this.updateDeploymentStatus(
             event.payload.deploymentId, { buildStatus: event.payload.status });
         } catch (error) {
-          console.log(error);
           this.logger.error(`Failed to update deployment status based on BuildStatusEvent`, { event, error });
         }
       });

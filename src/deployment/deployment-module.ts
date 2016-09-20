@@ -467,11 +467,13 @@ export default class DeploymentModule {
       return updated && updated !== curr ? updated : undefined;
     }
 
+    const status = updatedStatus(newStatus, deployment.status);
     const realUpdates = omitBy({
-      status: updatedStatus(newStatus, deployment.status),
+      status,
       buildStatus: updatedStatus(updates.buildStatus, deployment.buildStatus),
       extractionStatus: updatedStatus(updates.extractionStatus, deployment.extractionStatus),
       screenshotStatus: updatedStatus(updates.screenshotStatus, deployment.screenshotStatus),
+      finishedAt: (status === 'success' || status === 'failed') ? moment().valueOf() : undefined,
     }, isNil);
 
     if (values(realUpdates).length > 0) {
@@ -485,7 +487,7 @@ export default class DeploymentModule {
         return;
       }
       const payload: DeploymentEvent = {
-        statusUpdate: realUpdates,
+        statusUpdate: omitBy(Object.assign({}, realUpdates, { finishedAt: undefined }), isNil),
         deployment,
       };
       this.eventBus.post(createDeploymentEvent(payload));

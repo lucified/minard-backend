@@ -995,7 +995,7 @@ describe('deployment-module', () => {
             name: 'foo',
           },
         },
-        finishedAt: moment(),
+        finishedAt: undefined,
       }, beforeState)));
       return knex;
     }
@@ -1113,11 +1113,12 @@ describe('deployment-module', () => {
     });
 
     it('should update with correct status when screenshot turns to running', async () => {
-      await shouldUpdateCorrectly(
+      const deployment = await shouldUpdateCorrectly(
         { buildStatus: 'success', extractionStatus: 'success', status: 'running' },
         { screenshotStatus: 'running' },
         { screenshotStatus: 'running' },
         'running');
+      expect(deployment!.finishedAt).to.not.exist;
     });
 
     it('should update with correct status when screenshot turns to success', async () => {
@@ -1127,14 +1128,16 @@ describe('deployment-module', () => {
         { screenshotStatus: 'success', status: 'success' },
         'success');
       expect(deployment!.screenshot).to.exist;
+      expect(deployment!.finishedAt).to.exist;
     });
 
     it('should update with correct status when screenshot turns to failed', async () => {
-      await shouldUpdateCorrectly(
+      const deployment = await shouldUpdateCorrectly(
         { buildStatus: 'success', extractionStatus: 'success', status: 'running' },
         { screenshotStatus: 'failed' },
         { screenshotStatus: 'failed', status: 'success' },
         'success');
+      expect(deployment!.finishedAt).to.exist;
     });
 
     it('should not update if there is nothing to update', async () => {

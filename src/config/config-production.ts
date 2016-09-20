@@ -199,7 +199,7 @@ const cache = cacheManager.caching({
   host: REDIS_HOST,
   port: REDIS_PORT,
   db: 1,
-  ttl: 600,
+  ttl: 60 * 60 * 24 * 30, // 30 days
 } as any);
 
 // Inversify kernel bindings

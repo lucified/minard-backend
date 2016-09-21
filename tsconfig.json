@@ -20,8 +20,6 @@
     "noImplicitReturns": true,
     "noEmitOnError": false, // still transpiles with type errors
     "baseUrl": ".",
-    "paths": {
-      "inversify": ["node_modules/inversify-dts/inversify/inversify.d.ts"]
-    }
+    "paths": {}
   }
 }

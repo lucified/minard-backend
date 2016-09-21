@@ -1,4 +1,6 @@
 
+import { eventCreator } from '../shared/events';
+
 import { MinardDeployment } from '../deployment';
 import { MinardCommit } from '../project';
 
@@ -27,3 +29,7 @@ export interface MinardActivityPlain {
   projectName: string;
   branch: string;
 }
+
+export const NEW_ACTIVITY = 'NEW_ACTIVITY';
+export const createActivityEvent =
+  eventCreator<MinardActivity>(NEW_ACTIVITY);

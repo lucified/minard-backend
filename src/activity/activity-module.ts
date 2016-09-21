@@ -25,7 +25,11 @@ import {
 
 import { ProjectModule } from '../project';
 import * as logger from  '../shared/logger';
-import { MinardActivity } from './types';
+
+import {
+  MinardActivity,
+  createActivityEvent,
+} from './types';
 
 export function toMinardActivity(activity: any): MinardActivity {
   // when using postgres driver, we get objects,
@@ -138,8 +142,9 @@ export default class ActivityModule {
     };
   }
 
-  public addActivity(activity: MinardActivity): Promise<void> {
-    return this.knex('activity').insert(toDbActivity(activity));
+  public async addActivity(activity: MinardActivity): Promise<void> {
+    await this.knex('activity').insert(toDbActivity(activity));
+    this.eventBus.post(createActivityEvent(activity));
   }
 
   public async getTeamActivity(teamId: number, until?: moment.Moment, count?: number): Promise<MinardActivity[]> {

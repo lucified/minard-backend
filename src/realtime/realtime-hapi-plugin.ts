@@ -12,16 +12,40 @@ import * as logger from '../shared/logger';
 import { ObservableWrapper } from './observable-wrapper';
 
 import {
+  toApiBranchId,
+  toApiCommitId,
+} from '../json-api';
+
+import {
+  CodePushedEvent,
   ProjectCreatedEvent,
   ProjectDeletedEvent,
   ProjectEditedEvent,
+  codePushed,
   projectCreated,
   projectDeleted,
   projectEdited,
 } from '../project';
 
+import {
+  MinardActivity,
+  createActivityEvent,
+} from '../activity';
+
+import {
+  StreamingCodePushedEvent,
+} from './types';
+
 import { PersistentEventBus, eventBusInjectSymbol } from '../event-bus/';
-import { Event, PersistedEvent, StreamingEvent, isPersistedEvent, isType } from '../shared/events';
+
+import {
+  Event,
+  PersistedEvent,
+  StreamingEvent,
+  eventCreator,
+  isPersistedEvent,
+  isType,
+} from '../shared/events';
 
 export const PING_INTERVAL = 20000;
 
@@ -33,7 +57,6 @@ export class RealtimeHapiPlugin {
   private eventBus: PersistentEventBus;
   private eventBusSubscription: Subscription;
   public readonly persistedEvents: Observable<PersistedEvent<any>>;
-
   private readonly logger: logger.Logger;
 
   constructor(
@@ -180,8 +203,52 @@ export class RealtimeHapiPlugin {
           isType<ProjectDeletedEvent>(event, projectDeleted)) {
           return Observable.of(this.toSSE(event, event.payload));
         }
+
+        if (isType<CodePushedEvent>(event, codePushed)) {
+          return this.codePushed(event);
+        }
+
+        if (isType<MinardActivity>(event, createActivityEvent)) {
+          return this.activity(event);
+        }
+
         return Observable.empty<StreamingEvent<any>>();
       }, 3);
+  }
+
+  private async activity(event: Event<MinardActivity>) {
+    const apiActivity = await this.jsonApiPlugin.getJsonApiModule().toApiActivity(event.payload);
+    const payload = this.jsonApiPlugin.serializeApiEntity('activity', apiActivity).data;
+    return this.toSSE(event, payload);
+  }
+
+  private async codePushed(event: Event<CodePushedEvent>) {
+    try {
+      const projectId = event.payload.projectId;
+      const commits = await Promise.all(event.payload.commits.map(async item => {
+        const apiCommit = await this.jsonApiPlugin.getJsonApiModule().toApiCommit(projectId, item, []);
+        return this.jsonApiPlugin.serializeApiEntity('commit', apiCommit).data;
+      }));
+
+      const branch = event.payload.after ?
+        (await this.jsonApiPlugin.getEntity('branch', api => api.getBranch(projectId, event.payload.ref))).data :
+        toApiBranchId(projectId, event.payload.ref);
+
+      const payload: StreamingCodePushedEvent = {
+        teamId: 1,
+        commits,
+        after: event.payload.after ? toApiCommitId(projectId, event.payload.after.id) : undefined,
+        before: event.payload.before ? toApiCommitId(projectId, event.payload.before.id) : undefined,
+        parents: event.payload.parents.map(item => toApiCommitId(projectId, item.id)),
+        branch,
+        project: String(projectId),
+      };
+      return this.toSSE(event, payload);
+
+    } catch (error) {
+      this.logger.error(`Unable to create StreamingCodePushedEvent`, { error, event });
+      throw Error('Unable to create StreamingCodePushedEvent');
+    }
   }
 
   private async projectCreated(event: Event<ProjectCreatedEvent>) {
@@ -191,14 +258,17 @@ export class RealtimeHapiPlugin {
   }
 
   private toSSE<T>(event: Event<any>, payload: T): StreamingEvent<T> {
-    if (typeof event.teamId !== 'number') {
+    if (typeof event.teamId !== 'number' && typeof (<any> payload).teamId !== 'number') {
       throw Error('Tried to convert an incompatible event to an SSEEvent');
     }
-    return Object.assign({}, event, {
-      teamId: event.teamId!,
-      type: 'SSE_' + event.type,
-      payload,
-    });
+
+    const type = `SSE_${event.type}`;
+    return eventCreator<any>(type, (_event: Event<any>) => {
+      if (event.teamId) {
+        _event.teamId = event.teamId!;
+      }
+      return true;
+    })(payload) as StreamingEvent<T>;
   }
 
 }

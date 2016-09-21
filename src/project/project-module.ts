@@ -328,7 +328,6 @@ export default class ProjectModule {
       parents,
       commits,
     };
-    this.logger.info(`Received code push`, { payload, event });
     this.eventBus.post(codePushed(event));
   }
 

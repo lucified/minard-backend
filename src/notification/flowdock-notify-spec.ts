@@ -69,7 +69,7 @@ describe('notification-flowdock', () => {
     const body = await shouldSendCorrectNotification(deployment,
       'Created preview for foo-project-name/foo-branch');
     expect(body.thread.status.color).to.equal('green');
-    expect(body.thread.body.indexOf(`<img src="${deployment.screenshot}" />`) !== -1).to.be.true;
+    expect(body.thread.body.indexOf(`<img src="${deployment.screenshot}"`) !== -1).to.be.true;
     expect(body.author.avatar).to.equal('https://d2ph5hv9wbwvla.cloudfront.net/heaven/build_ok.png');
     expect(body.thread.external_url).to.equal(deployment.url);
   });
@@ -79,7 +79,7 @@ describe('notification-flowdock', () => {
     const body = await shouldSendCorrectNotification(deployment,
       'Created preview for foo-project-name/foo-branch');
     expect(body.thread.status.color).to.equal('green');
-    expect(body.thread.body.indexOf(`<img src="${deployment.screenshot}" />`) !== -1).to.be.false;
+    expect(body.thread.body.indexOf(`<img src="${deployment.screenshot}"`) !== -1).to.be.false;
     expect(body.author.avatar).to.equal('https://d2ph5hv9wbwvla.cloudfront.net/heaven/build_ok.png');
     expect(body.thread.external_url).to.equal(deployment.url);
   });

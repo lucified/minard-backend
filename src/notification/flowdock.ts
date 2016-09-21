@@ -154,13 +154,6 @@ export class FlowdockNotify {
       });
     }
 
-    if (this.deployment.screenshot) {
-      fields.push({
-        label: 'Screenshot',
-        value: `<a href="${this.deployment.screenshot}">${this.deployment.screenshot}</a>`,
-      });
-    }
-
     return fields;
   }
 }

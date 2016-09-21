@@ -196,6 +196,7 @@ describe('system-integration', () => {
     this.timeout(1000 * 20);
     if (!flowToken) {
       log('No flowToken defined. Not configuring notifications');
+      return;
     }
     logTitle('Creating notification configuration');
     const createNotificationPayload = {
@@ -427,6 +428,7 @@ describe('system-integration', () => {
     this.timeout(1000 * 10);
     if (!flowToken) {
       log('No flowToken defined. Skipping deletion of notification configuration');
+      return;
     }
     const ret = await fetchWithRetry(`${charles}/api/notifications/${notificationId}`, {
       method: 'DELETE',

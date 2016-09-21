@@ -9,7 +9,8 @@ export interface FlowdockNotificationConfiguration extends NotificationConfigura
 }
 
 export interface NotificationConfiguration {
-  id: number;
+  id?: number;
+  projectId: number;
   type: NotificationType;
   options: any;
 }

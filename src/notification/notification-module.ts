@@ -24,7 +24,7 @@ import {
 
 import {
   FlowdockNotify,
-} from './flowdock';
+} from './flowdock-notify';
 
 import {
   FlowdockNotificationConfiguration,
@@ -58,16 +58,19 @@ export class NotificationModule {
   private readonly logger: Logger;
   private readonly knex: Knex;
   private readonly uiBaseUrl: string;
+  private readonly flowdockNotify: FlowdockNotify;
 
   constructor(
     @inject(eventBusInjectSymbol) bus: EventBus,
     @inject(loggerInjectSymbol) logger: Logger,
     @inject('charles-knex') knex: Knex,
-    @inject(minardUiBaseUrlInjectSymbol) uiBaseUrl: string) {
+    @inject(minardUiBaseUrlInjectSymbol) uiBaseUrl: string
+    @inject(FlowdockNotify.injectSymbol) flowdockNotify: FlowdockNotify) {
     this.eventBus = bus;
     this.logger = logger;
     this.knex = knex;
     this.uiBaseUrl = uiBaseUrl;
+    this.flowdockNotify = flowdockNotify;
     this.subscribe();
   }
 
@@ -100,9 +103,8 @@ export class NotificationModule {
       const { projectId, ref } = event.payload.deployment;
       const projectUrl = getUiProjectUrl(projectId, this.uiBaseUrl);
       const branchUrl = getUiBranchUrl(projectId, ref, this.uiBaseUrl);
-      const notifier = new FlowdockNotify(event.payload.deployment,
+      await this.flowdockNotify.notify(event.payload.deployment,
         config.options.flowToken, projectUrl, branchUrl);
-      await notifier.notify();
     } catch (error) {
       this.logger.error(`Failed to send Flowdock notification for deployment`, { error, event });
     }

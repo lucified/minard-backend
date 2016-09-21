@@ -4,7 +4,7 @@ exports.up = (knex) => Promise.all([
     table.integer('id').primary();
     table.string('type');
     table.integer('projectId').index();
-    table.jsonb('options');
+    table.string('flowToken');
   }),
 ]);
 

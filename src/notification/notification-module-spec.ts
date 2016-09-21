@@ -4,13 +4,11 @@ import * as Knex from 'knex';
 import 'reflect-metadata';
 
 import {
-  DEPLOYMENT_EVENT_TYPE,
-  createDeploymentEvent,
   MinardDeployment,
+  createDeploymentEvent,
 } from '../deployment';
 
 import {
-  Event,
   LocalEventBus,
 } from '../event-bus';
 
@@ -19,6 +17,11 @@ import Logger from '../shared/logger';
 import {
   FlowdockNotify,
 } from './flowdock-notify';
+
+import {
+  getUiBranchUrl,
+  getUiProjectUrl,
+} from '../project';
 
 import { NotificationModule } from './notification-module';
 
@@ -43,21 +46,22 @@ describe('notification-module', () => {
   const flowToken = 'foo-flow-token';
   const projectId = 6;
 
-  it('should trigger flowdock notification for DeploymentEvents', async () => {
-    // Arrange
-    const bus = new LocalEventBus();
+  async function arrange(flowdockNotify: FlowdockNotify, bus: LocalEventBus) {
     const knex = await setupKnex();
-    const flowdockNotify = {} as FlowdockNotify;
     const notificationModule = new NotificationModule(
       bus, basicLogger, knex, uiBaseUrl, flowdockNotify);
     await notificationModule.addConfiguration({
       type: 'flowdock',
       projectId,
-      options: {
-        flowToken: 'foo-flow-token',
-      },
+      flowToken: 'foo-flow-token',
     });
+    return notificationModule;
+  }
 
+  it('should trigger flowdock notification for DeploymentEvents', async () => {
+    // Arrange
+    const bus = new LocalEventBus();
+    const flowdockNotify = {} as FlowdockNotify;
     const promise = new Promise<any>((resolve: any, reject: any) => {
       flowdockNotify.notify = async (
         deployment: MinardDeployment, _flowToken: string, _projectUrl: string, _branchUrl: string) => {
@@ -69,13 +73,12 @@ describe('notification-module', () => {
         });
       };
     });
+    await arrange(flowdockNotify, bus);
 
     // Act
-    const deployment = { projectId };
+    const deployment = { projectId, ref: 'foo' };
     bus.post(createDeploymentEvent({
-      deployment: {
-        projectId,
-      } as MinardDeployment,
+      deployment: deployment as any,
       statusUpdate: {},
     }));
 
@@ -83,8 +86,26 @@ describe('notification-module', () => {
     const args = await promise;
     expect(args.deployment).to.equal(deployment);
     expect(args._flowToken).to.equal(flowToken);
-    expect(args._projectUrl).to.equal();
-    expect(args._branchUrl).to.equal();
+    expect(args._projectUrl).to.equal(getUiProjectUrl(projectId, uiBaseUrl));
+    expect(args._branchUrl).to.equal(getUiBranchUrl(projectId, deployment.ref, uiBaseUrl));
+  });
+
+  it(`should not trigger notification when no configurations exists for deploymentEvent's projectId`, async () => {
+    // Arrange
+    const bus = new LocalEventBus();
+    const flowdockNotify = {} as FlowdockNotify;
+    flowdockNotify.notify = async (
+        deployment: MinardDeployment, _flowToken: string, _projectUrl: string, _branchUrl: string) => {
+        expect.fail('should not be called');
+    };
+    await arrange(flowdockNotify, bus);
+
+    // Act
+    const deployment = { projectId, ref: 'foo' };
+    bus.post(createDeploymentEvent({
+      deployment: deployment as any,
+      statusUpdate: {},
+    }));
   });
 
 });

@@ -36,19 +36,6 @@ import {
   getUiProjectUrl,
 } from '../project';
 
-export function toDbNotificationConfiguration(config: NotificationConfiguration) {
-  return Object.assign({}, config, {
-    settings: JSON.stringify(config.options),
-  });
-}
-
-export function toMinardNotificationConfiguration(config: any): NotificationConfiguration {
-  const settings = config.settings instanceof Object ? config.settings : JSON.parse(config.settings);
-  return Object.assign({}, config, {
-    settings,
-  }) as NotificationConfiguration;
-}
-
 @injectable()
 export class NotificationModule {
 
@@ -64,7 +51,7 @@ export class NotificationModule {
     @inject(eventBusInjectSymbol) bus: EventBus,
     @inject(loggerInjectSymbol) logger: Logger,
     @inject('charles-knex') knex: Knex,
-    @inject(minardUiBaseUrlInjectSymbol) uiBaseUrl: string
+    @inject(minardUiBaseUrlInjectSymbol) uiBaseUrl: string,
     @inject(FlowdockNotify.injectSymbol) flowdockNotify: FlowdockNotify) {
     this.eventBus = bus;
     this.logger = logger;
@@ -82,14 +69,14 @@ export class NotificationModule {
 
   public addConfiguration(config: NotificationConfiguration): Promise<void> {
     return this.knex('notification_configuration')
-      .insert(toDbNotificationConfiguration(config));
+      .insert(config);
   }
 
   public async getConfigurations(event: DeploymentEvent): Promise<NotificationConfiguration[]> {
     const select = this.knex.select('*')
       .from('notification_configuration')
       .where('projectId', event.deployment.projectId);
-    return (await select).map((item: any) => toMinardNotificationConfiguration(item));
+    return await select;
   }
 
   public notify(event: Event<DeploymentEvent>, config: NotificationConfiguration) {
@@ -104,7 +91,7 @@ export class NotificationModule {
       const projectUrl = getUiProjectUrl(projectId, this.uiBaseUrl);
       const branchUrl = getUiBranchUrl(projectId, ref, this.uiBaseUrl);
       await this.flowdockNotify.notify(event.payload.deployment,
-        config.options.flowToken, projectUrl, branchUrl);
+        config.flowToken, projectUrl, branchUrl);
     } catch (error) {
       this.logger.error(`Failed to send Flowdock notification for deployment`, { error, event });
     }

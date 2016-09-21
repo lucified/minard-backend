@@ -13,6 +13,10 @@ import {
   ProjectModule,
 } from '../project/';
 
+import {
+  NotificationModule,
+} from '../notification';
+
 import { ScreenshotModule } from '../screenshot';
 
 import { JsonApiModule } from './json-api-module';
@@ -65,8 +69,9 @@ export class MemoizedJsonApiModule extends JsonApiModule {
     @inject(DeploymentModule.injectSymbol) deploymentModule: DeploymentModule,
     @inject(ProjectModule.injectSymbol) projectModule: ProjectModule,
     @inject(ActivityModule.injectSymbol) activityModule: ActivityModule,
-    @inject(ScreenshotModule.injectSymbol) screenshotModule: ScreenshotModule) {
-    super(deploymentModule, projectModule, activityModule, screenshotModule);
+    @inject(ScreenshotModule.injectSymbol) screenshotModule: ScreenshotModule,
+    @inject(NotificationModule.injectSymbol) notificationModule: NotificationModule) {
+    super(deploymentModule, projectModule, activityModule, screenshotModule, notificationModule);
     memoizeApi(this);
   }
 

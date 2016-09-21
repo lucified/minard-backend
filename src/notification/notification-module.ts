@@ -1,4 +1,4 @@
-
+import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
 import * as Knex from 'knex';
 
@@ -64,24 +64,61 @@ export class NotificationModule {
   private subscribe() {
     this.eventBus
       .filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
+      // only post event if status changes
+      .filter(event => event.payload.statusUpdate.status !== undefined)
       .subscribe(event => this.handleDeploymentEvent(event));
   }
 
-  public addConfiguration(config: NotificationConfiguration): Promise<void> {
-    return this.knex('notification_configuration')
-      .insert(config);
+  public async deleteConfiguration(id: number): Promise<void> {
+    try {
+      await this.knex.delete()
+        .from('notification_configuration')
+        .where('id', id);
+    } catch (error) {
+      this.logger.error('Failed to delete notification configuration', error);
+      throw Boom.badImplementation();
+    }
   }
 
-  public async getConfigurations(event: DeploymentEvent): Promise<NotificationConfiguration[]> {
-    const select = this.knex.select('*')
-      .from('notification_configuration')
-      .where('projectId', event.deployment.projectId);
-    return await select;
+  public async addConfiguration(config: NotificationConfiguration): Promise<number> {
+    try {
+      const ids = await this.knex('notification_configuration').insert(config).returning('id');
+      return ids[0];
+    } catch (error) {
+      this.logger.error('Failed to add notification configuration', error);
+      throw Boom.badImplementation();
+    }
   }
 
-  public notify(event: Event<DeploymentEvent>, config: NotificationConfiguration) {
+  public async getConfiguration(id: number): Promise<NotificationConfiguration | undefined> {
+    try {
+      return this.knex.select('*')
+        .from('notification_configuration')
+        .where('id', id)
+        .limit(1)
+        .first();
+    } catch (error) {
+      this.logger.error('Failed to get notification configuration', error);
+      throw Boom.badImplementation();
+    }
+  }
+
+  public async getProjectConfigurations(projectId: number): Promise<NotificationConfiguration[]> {
+    try {
+      const select = this.knex.select('*')
+        .from('notification_configuration')
+        .where('projectId', projectId);
+      const ret = await select;
+      return ret ? ret : [];
+    } catch (error) {
+      this.logger.error('Failed to fetch notification configurations', error);
+      throw Boom.badImplementation();
+    }
+  }
+
+  public async notify(event: Event<DeploymentEvent>, config: NotificationConfiguration): Promise<void> {
     if (config.type === 'flowdock') {
-      this.notifyFlowdock(event, config as FlowdockNotificationConfiguration);
+      return this.notifyFlowdock(event, config as FlowdockNotificationConfiguration);
     }
   }
 
@@ -93,16 +130,16 @@ export class NotificationModule {
       await this.flowdockNotify.notify(event.payload.deployment,
         config.flowToken, projectUrl, branchUrl);
     } catch (error) {
-      this.logger.error(`Failed to send Flowdock notification for deployment`, { error, event });
+      this.logger.error(`Failed to send Flowdock notification for deployment`, error);
     }
   }
 
   private async handleDeploymentEvent(event: Event<DeploymentEvent>) {
     try {
-      const configs = await this.getConfigurations(event.payload);
-      configs.forEach(item => this.notify(event, item));
+      const configs = await this.getProjectConfigurations(event.payload.deployment.projectId);
+      await Promise.all(configs.map(item => this.notify(event, item)));
     } catch (error) {
-      this.logger.error(`Failed to send notifications for deployment`, { error, event });
+      this.logger.error(`Failed to send notifications for deployment`, error);
     }
   }
 

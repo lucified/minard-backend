@@ -1,7 +1,7 @@
 
 exports.up = (knex) => Promise.all([
   knex.schema.createTable('notification_configuration', table => {
-    table.integer('id').primary();
+    table.increments('id').primary();
     table.string('type');
     table.integer('projectId').index();
     table.string('flowToken');

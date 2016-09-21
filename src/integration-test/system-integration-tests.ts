@@ -25,6 +25,7 @@ interface SSE {
   data: any;
 }
 
+const flowToken = process.env.FLOW_TOKEN;
 const projectFolder = process.env.SYSTEM_TEST_PROJECT ? process.env.SYSTEM_TEST_PROJECT : 'blank';
 const charles = process.env.CHARLES ? process.env.CHARLES : 'http://localhost:8000';
 const gitserver = process.env.MINARD_GIT_SERVER ? process.env.MINARD_GIT_SERVER : 'http://localhost:10080';
@@ -188,6 +189,32 @@ describe('system-integration', () => {
       }
     }
     log(`Project created (projectId: ${projectId})`);
+  });
+
+  let notificationId: number | undefined;
+  it('should be able to configure notifications', async function() {
+    this.timeout(1000 * 20);
+    if (!flowToken) {
+      log('No flowToken defined. Not configuring notifications');
+    }
+    logTitle('Creating notification configuration');
+    const createNotificationPayload = {
+      'data': {
+        'type': 'notifications',
+        'attributes': {
+          'type': 'flowdock',
+          'projectId': projectId,
+          'flowToken': flowToken,
+        },
+      },
+    };
+    const ret = await fetch(`${charles}/api/notifications`, {
+      method: 'POST',
+      body: JSON.stringify(createNotificationPayload),
+    });
+    expect(ret.status).to.equal(201);
+    const json = await ret.json();
+    notificationId = json.data.id;
   });
 
   it('should be able to commit code to repo', async function() {
@@ -394,8 +421,19 @@ describe('system-integration', () => {
     const event = JSON.parse(sseResponse.data);
     expect(event).to.exist;
     expect(event.id).to.eq(projectId);
-
   }
+
+  it('should be able to delete configured notification', async function() {
+    this.timeout(1000 * 10);
+    if (!flowToken) {
+      log('No flowToken defined. Skipping deletion of notification configuration');
+    }
+    const ret = await fetchWithRetry(`${charles}/api/notifications/${notificationId}`, {
+      method: 'DELETE',
+    });
+    expect(ret.status).to.equal(200);
+    log('Notification configuration deleted');
+  });
 
   it('should be able to delete project', async function() {
     if (skipDeleteProject) {

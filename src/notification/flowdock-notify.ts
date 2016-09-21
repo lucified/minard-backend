@@ -13,30 +13,52 @@ export class FlowdockNotify {
 
   public static injectSymbol = Symbol('flowdock-notify');
 
-  public notify(deployment: MinardDeployment, flowToken: string, projectUrl: string, branchUrl: string): Promise<any> {
+  public async notify(
+    deployment: MinardDeployment, flowToken: string, projectUrl: string, branchUrl: string): Promise<any> {
     const state = deployment.status;
     const url = `https://api.flowdock.com/messages`;
+    const body = {
+      flow_token: flowToken,
+      event: 'activity',
+      external_thread_id: this.flowdockThreadId(deployment),
+      tags: [deployment.projectName, deployment.ref, 'minard', 'preview', state],
+      thread: this.threadData(deployment, projectUrl, branchUrl),
+      title: this.activityTitle(deployment),
+      author: {
+        name: deployment.commit.committer.name,
+        email: deployment.commit.committer.email,
+        avatar: this.buildStatusAvatar(state),
+      },
+    };
     const options = {
       method: 'POST',
       headers: {
+        'Content-Type': 'application/json',
         'User-Agent': 'request',
         'X-flowdock-wait-for-message': 'true',
       },
       json: true,
-      body: JSON.stringify({
-        flow_token: flowToken,
-        event: 'activity',
-        external_thread_id: this.flowdockThreadId(deployment),
-        thread: this.threadData(deployment, projectUrl, branchUrl),
-        title: this.activityTitle(deployment),
-        author: {
-          name: deployment.commit.committer.name,
-          email: deployment.commit.committer.email,
-          avatar: this.buildStatusAvatar(state),
-        },
-      }),
+      body: JSON.stringify(body),
     };
-    return fetch(url, options);
+
+    let ret = await fetch(url, options);
+    if (ret.status === 202 || ret.status === 200 && ret.status !== 201) {
+      return;
+    }
+
+    if (ret.status === 404) {
+      // Flowdock responds with 404 if token is invalid
+      throw Error('Flowdock responded 404 when posting notification. Token is probably invalid.');
+    }
+
+    try {
+      const json = await ret.json();
+      throw Error(
+        `Unexpected status ${ret.status} when posting flowdock notification. ` +
+        `Response was ${JSON.stringify(json, null, 2)}`);
+    } catch (error) {
+      throw Error(`Unexpected status ${ret.status} when posting flowdock notification.`);
+    }
   }
 
   private flowdockThreadId(deployment: MinardDeployment) {
@@ -91,11 +113,12 @@ export class FlowdockNotify {
   }
 
   private threadBody(deployment: MinardDeployment) {
+    const style = `border: 1px solid #d8d8d8; border-radius: 3px; box-shadow: box-shadow: 0 6px 12px 0 rgba(0,0,0,.05)`;
     if (deployment.screenshot) {
       return (
         `<div>
-          <p>${deployment.commit.message}</p>
-          <img src="${deployment.screenshot}" />
+          <p style="font-family: monospace">${deployment.commit.message}</p>
+          <img src="${deployment.screenshot}" style="${style}" />
         </div>`
       );
     }

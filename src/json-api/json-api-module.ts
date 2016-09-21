@@ -34,6 +34,11 @@ import {
 } from '../screenshot';
 
 import {
+  NotificationConfiguration,
+  NotificationModule,
+} from '../notification';
+
+import {
   MinardCommit,
 } from '../shared/minard-commit';
 
@@ -49,16 +54,19 @@ export class JsonApiModule {
   private readonly projectModule: ProjectModule;
   private readonly activityModule: ActivityModule;
   private readonly screenshotModule: ScreenshotModule;
+  private readonly notificationModule: NotificationModule;
 
   constructor(
     @inject(DeploymentModule.injectSymbol) deploymentModule: DeploymentModule,
     @inject(ProjectModule.injectSymbol) projectModule: ProjectModule,
     @inject(ActivityModule.injectSymbol) activityModule: ActivityModule,
-    @inject(ScreenshotModule.injectSymbol) screenshotModule: ScreenshotModule) {
+    @inject(ScreenshotModule.injectSymbol) screenshotModule: ScreenshotModule,
+    @inject(NotificationModule.injectSymbol) notificationModule: NotificationModule) {
       this.deploymentModule = deploymentModule;
       this.projectModule = projectModule;
       this.activityModule = activityModule;
       this.screenshotModule = screenshotModule;
+      this.notificationModule = notificationModule;
   }
 
   public async getCommit(projectId: number, hash: string): Promise<ApiCommit | null> {
@@ -286,6 +294,22 @@ export class JsonApiModule {
       description: project.description,
       repoUrl: project.repoUrl,
     };
+  }
+
+  public async getProjectNotificationConfigurations(projectId: number) {
+    return this.notificationModule.getProjectConfigurations(projectId);
+  }
+
+  public async createNotificationConfiguration(config: NotificationConfiguration) {
+    return this.notificationModule.addConfiguration(config);
+  }
+
+  public async getNotificationConfiguration(id: number) {
+    return this.notificationModule.getConfiguration(id);
+  }
+
+  public async deleteNotificationConfiguration(id: number) {
+    return this.notificationModule.deleteConfiguration(id);
   }
 
 }

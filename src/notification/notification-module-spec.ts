@@ -23,9 +23,10 @@ import {
   getUiProjectUrl,
 } from '../project';
 
+import { sleep } from '../shared/sleep';
+
 import { NotificationModule } from './notification-module';
 
-const silentLogger = Logger(undefined, true);
 const basicLogger = Logger(undefined, false);
 
 describe('notification-module', () => {
@@ -79,7 +80,7 @@ describe('notification-module', () => {
     const deployment = { projectId, ref: 'foo' };
     bus.post(createDeploymentEvent({
       deployment: deployment as any,
-      statusUpdate: {},
+      statusUpdate: { status: 'success' },
     }));
 
     // Assert
@@ -90,22 +91,60 @@ describe('notification-module', () => {
     expect(args._branchUrl).to.equal(getUiBranchUrl(projectId, deployment.ref, uiBaseUrl));
   });
 
-  it(`should not trigger notification when no configurations exists for deploymentEvent's projectId`, async () => {
+  async function shouldNotTriggerNotification(_projectId: number, statusUpdate: any) {
     // Arrange
     const bus = new LocalEventBus();
     const flowdockNotify = {} as FlowdockNotify;
+    let called = false;
     flowdockNotify.notify = async (
-        deployment: MinardDeployment, _flowToken: string, _projectUrl: string, _branchUrl: string) => {
-        expect.fail('should not be called');
+      deployment: MinardDeployment, _flowToken: string, _projectUrl: string, _branchUrl: string) => {
+      console.log(`Error: Should not be called. Was called with projectId ${deployment.projectId}`);
+      called = true;
     };
     await arrange(flowdockNotify, bus);
 
     // Act
-    const deployment = { projectId, ref: 'foo' };
+    const deployment = { projectId: _projectId, ref: 'foo' };
     bus.post(createDeploymentEvent({
       deployment: deployment as any,
-      statusUpdate: {},
+      statusUpdate,
     }));
+    await sleep(20);
+    expect(called).to.be.false;
+  }
+
+  it(`should not trigger notification when no configurations exists for deploymentEvent's projectId`, async () => {
+    await shouldNotTriggerNotification(9, { status: 'success' });
+  });
+
+  it(`should not trigger notification when main status does not update`, async () => {
+    await shouldNotTriggerNotification(projectId, { screenshotStatus: 'running' });
+  });
+
+  it('should be able to add, get and delete configurations', async () => {
+    const _projectId = 9;
+    // Arrange
+    const notificationModule = await arrange({} as any, new LocalEventBus());
+    const config = {
+      type: 'flowdock' as 'flowdock',
+      projectId: _projectId,
+      flowToken: 'fake-flow-token',
+    };
+
+    // Act
+    const id = await notificationModule.addConfiguration(config);
+    const existing = await notificationModule.getConfiguration(id);
+    const existingForProject = await notificationModule.getProjectConfigurations(_projectId);
+    await notificationModule.deleteConfiguration(id);
+    const deleted = await notificationModule.getConfiguration(id);
+    const deletedForProject = await notificationModule.getProjectConfigurations(_projectId);
+
+    // Assert
+    expect(existing).to.deep.equal(Object.assign(config, { id}));
+    expect(existingForProject).to.have.length(1);
+    expect(existingForProject[0]).to.deep.equal(Object.assign(config, { id}));
+    expect(deleted).to.equal(undefined);
+    expect(deletedForProject).to.have.length(0);
   });
 
 });

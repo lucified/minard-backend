@@ -432,6 +432,10 @@ export default class DeploymentModule {
       if (deployment.buildStatus !== 'success') {
         this.logger.warn(`Tried to prepare deployment for serving while deployment build status is ` +
           `"${deployment.buildStatus}", projectId: ${projectId}, deploymentId: ${deploymentId}`);
+
+        // From wikipedia (https://en.wikipedia.org/wiki/List_of_HTTP_status_codes)
+        // "The requested resource could not be found but may be available in the future.
+        // Subsequent requests by the client are permissible"
         throw Boom.notFound(`Deployment status is "${deployment.buildStatus}" for: projectId ${projectId}, ` +
           `deploymentId ${deploymentId}`);
       }

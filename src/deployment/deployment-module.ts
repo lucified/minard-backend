@@ -486,7 +486,7 @@ export default class DeploymentModule {
       deployment = await this.getDeployment(deploymentId);
       if (!deployment) {
         this.logger.error(`Failed to fetch deployment after updating deployment status. Dropping DeploymentEvent`);
-        return;
+        throw Boom.badImplementation();
       }
       const payload: DeploymentEvent = {
         statusUpdate: omitBy(Object.assign({}, realUpdates, { finishedAt: undefined }), isNil),

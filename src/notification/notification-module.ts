@@ -16,6 +16,7 @@ import {
 import {
   DEPLOYMENT_EVENT_TYPE,
   DeploymentEvent,
+  MinardDeployment,
 } from '../deployment';
 
 import {
@@ -36,6 +37,10 @@ import {
   getUiProjectUrl,
 } from '../project';
 
+import {
+  ScreenshotModule,
+} from '../screenshot';
+
 @injectable()
 export class NotificationModule {
 
@@ -46,18 +51,21 @@ export class NotificationModule {
   private readonly knex: Knex;
   private readonly uiBaseUrl: string;
   private readonly flowdockNotify: FlowdockNotify;
+  private readonly screenshotModule: ScreenshotModule;
 
   constructor(
     @inject(eventBusInjectSymbol) bus: EventBus,
     @inject(loggerInjectSymbol) logger: Logger,
     @inject('charles-knex') knex: Knex,
     @inject(minardUiBaseUrlInjectSymbol) uiBaseUrl: string,
-    @inject(FlowdockNotify.injectSymbol) flowdockNotify: FlowdockNotify) {
+    @inject(FlowdockNotify.injectSymbol) flowdockNotify: FlowdockNotify,
+    @inject(ScreenshotModule.injectSymbol) screenshotModule: ScreenshotModule) {
     this.eventBus = bus;
     this.logger = logger;
     this.knex = knex;
     this.uiBaseUrl = uiBaseUrl;
     this.flowdockNotify = flowdockNotify;
+    this.screenshotModule = screenshotModule;
     this.subscribe();
   }
 
@@ -118,8 +126,18 @@ export class NotificationModule {
 
   public async notify(event: Event<DeploymentEvent>, config: NotificationConfiguration): Promise<void> {
     if (config.type === 'flowdock') {
-      return this.notifyFlowdock(event, config as FlowdockNotificationConfiguration);
+      return this.notifyFlowdock(event, config as FlowdockNotificationConfiguration, );
     }
+  }
+
+  public async getScreenshotDataUri(event: Event<DeploymentEvent>) {
+     const { projectId, id, screenshot } = event.payload.deployment;
+     return screenshot ? this.screenshotModule.getDataUrl(projectId, id) : undefined;
+  }
+
+  public async getScreenshotData(event: Event<DeploymentEvent>) {
+     const { projectId, id, screenshot } = event.payload.deployment;
+     return screenshot ? this.screenshotModule.getScreenshotData(projectId, id) : undefined;
   }
 
   public async notifyFlowdock(event: Event<DeploymentEvent>, config: FlowdockNotificationConfiguration) {
@@ -127,8 +145,10 @@ export class NotificationModule {
       const { projectId, ref } = event.payload.deployment;
       const projectUrl = getUiProjectUrl(projectId, this.uiBaseUrl);
       const branchUrl = getUiBranchUrl(projectId, ref, this.uiBaseUrl);
-      await this.flowdockNotify.notify(event.payload.deployment,
-        config.flowToken, projectUrl, branchUrl);
+      const deployment = Object.assign({}, event.payload.deployment,
+        { screenshot: await this.getScreenshotDataUri(event) }) as MinardDeployment;
+
+      await this.flowdockNotify.notify(deployment, config.flowToken, projectUrl, branchUrl);
     } catch (error) {
       this.logger.error(`Failed to send Flowdock notification for deployment`, error);
     }

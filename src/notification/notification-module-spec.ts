@@ -23,6 +23,10 @@ import {
   getUiProjectUrl,
 } from '../project';
 
+import {
+  ScreenshotModule,
+} from '../screenshot';
+
 import { sleep } from '../shared/sleep';
 
 import { NotificationModule } from './notification-module';
@@ -46,11 +50,21 @@ describe('notification-module', () => {
   const uiBaseUrl = 'http://foo-bar.com';
   const flowToken = 'foo-flow-token';
   const projectId = 6;
+  const deploymentId = 77;
+  const screenshotDataUri = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA';
 
   async function arrange(flowdockNotify: FlowdockNotify, bus: LocalEventBus) {
     const knex = await setupKnex();
+
+    const screenshotModule = {} as ScreenshotModule;
+    screenshotModule.getDataUrl = async(_projectId: number, _deploymentId: number) => {
+      expect(_projectId).to.equal(projectId);
+      expect(_deploymentId).to.equal(deploymentId);
+      return screenshotDataUri;
+    };
+
     const notificationModule = new NotificationModule(
-      bus, basicLogger, knex, uiBaseUrl, flowdockNotify);
+      bus, basicLogger, knex, uiBaseUrl, flowdockNotify, screenshotModule);
     await notificationModule.addConfiguration({
       type: 'flowdock',
       projectId,
@@ -77,7 +91,7 @@ describe('notification-module', () => {
     await arrange(flowdockNotify, bus);
 
     // Act
-    const deployment = { projectId, ref: 'foo' };
+    const deployment = { projectId, ref: 'foo', id: deploymentId, screenshot: 'foo' };
     bus.post(createDeploymentEvent({
       deployment: deployment as any,
       statusUpdate: { status: 'success' },
@@ -85,7 +99,10 @@ describe('notification-module', () => {
 
     // Assert
     const args = await promise;
-    expect(args.deployment).to.equal(deployment);
+    expect(args.deployment.projectId).to.equal(deployment.projectId);
+    expect(args.deployment.ref).to.equal(deployment.ref);
+    expect(args.deployment.id).to.equal(deploymentId);
+    expect(args.deployment.screenshot).to.equal(screenshotDataUri);
     expect(args._flowToken).to.equal(flowToken);
     expect(args._projectUrl).to.equal(getUiProjectUrl(projectId, uiBaseUrl));
     expect(args._branchUrl).to.equal(getUiBranchUrl(projectId, deployment.ref, uiBaseUrl));

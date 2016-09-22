@@ -1,5 +1,11 @@
 
-export type NotificationType = 'flowdock';
+export type NotificationType = 'flowdock' | 'hipchat';
+
+export interface HipChatNotificationConfiguration extends NotificationConfiguration {
+  type: 'hipchat';
+  hipchatRoomId: number;
+  hipchatAuthToken: string;
+}
 
 export interface FlowdockNotificationConfiguration extends NotificationConfiguration {
   type: 'flowdock';

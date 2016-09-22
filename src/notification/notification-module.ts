@@ -24,11 +24,16 @@ import {
 } from '../server/types';
 
 import {
+  HipchatNotify,
+} from './hipchat-notify';
+
+import {
   FlowdockNotify,
 } from './flowdock-notify';
 
 import {
   FlowdockNotificationConfiguration,
+  HipChatNotificationConfiguration,
   NotificationConfiguration,
 } from './types';
 
@@ -52,6 +57,7 @@ export class NotificationModule {
   private readonly uiBaseUrl: string;
   private readonly flowdockNotify: FlowdockNotify;
   private readonly screenshotModule: ScreenshotModule;
+  private readonly hipchatNotify: HipchatNotify;
 
   constructor(
     @inject(eventBusInjectSymbol) bus: EventBus,
@@ -59,12 +65,14 @@ export class NotificationModule {
     @inject('charles-knex') knex: Knex,
     @inject(minardUiBaseUrlInjectSymbol) uiBaseUrl: string,
     @inject(FlowdockNotify.injectSymbol) flowdockNotify: FlowdockNotify,
-    @inject(ScreenshotModule.injectSymbol) screenshotModule: ScreenshotModule) {
+    @inject(ScreenshotModule.injectSymbol) screenshotModule: ScreenshotModule,
+    @inject(HipchatNotify.injectSymbol) hipchatNotify: HipchatNotify) {
     this.eventBus = bus;
     this.logger = logger;
     this.knex = knex;
     this.uiBaseUrl = uiBaseUrl;
     this.flowdockNotify = flowdockNotify;
+    this.hipchatNotify = hipchatNotify;
     this.screenshotModule = screenshotModule;
     this.subscribe();
   }
@@ -127,6 +135,8 @@ export class NotificationModule {
   public async notify(event: Event<DeploymentEvent>, config: NotificationConfiguration): Promise<void> {
     if (config.type === 'flowdock') {
       return this.notifyFlowdock(event, config as FlowdockNotificationConfiguration, );
+    } else if (config.type === 'hipchat') {
+      return this.notifyHipchat(event, config as HipChatNotificationConfiguration);
     }
   }
 
@@ -138,6 +148,18 @@ export class NotificationModule {
   public async getScreenshotData(event: Event<DeploymentEvent>) {
      const { projectId, id, screenshot } = event.payload.deployment;
      return screenshot ? this.screenshotModule.getScreenshotData(projectId, id) : undefined;
+  }
+
+  public async notifyHipchat(event: Event<DeploymentEvent>, config: HipChatNotificationConfiguration) {
+    try {
+      const { projectId, ref } = event.payload.deployment;
+      const projectUrl = getUiProjectUrl(projectId, this.uiBaseUrl);
+      const branchUrl = getUiBranchUrl(projectId, ref, this.uiBaseUrl);
+      const deployment = event.payload.deployment;
+      await this.hipchatNotify.notify(deployment, config.hipchatRoomId, config.hipchatAuthToken, projectUrl, branchUrl);
+    } catch (error) {
+      this.logger.error(`Failed to send Hipchat notification for deployment`, error);
+    }
   }
 
   public async notifyFlowdock(event: Event<DeploymentEvent>, config: FlowdockNotificationConfiguration) {

@@ -66,6 +66,7 @@ import {
 
 import {
   FlowdockNotify,
+  HipchatNotify,
   NotificationModule,
 } from '../notification';
 
@@ -103,6 +104,7 @@ export default new KernelModule(bind => {
   bind(GitlabClient.injectSymbol).to(GitlabClient).inSingletonScope();
   bind(fetchInjectSymbol).toConstantValue(fetch);
   bind(FlowdockNotify.injectSymbol).to(FlowdockNotify);
+  bind(HipchatNotify.injectSymbol).to(HipchatNotify);
   bind(MinardServer.injectSymbol).to(MinardServer).inSingletonScope();
   bind(RemoteScreenshotter.injectSymbol).to(RemoteScreenshotter).inSingletonScope();
   bind(Migrations.injectSymbol).to(Migrations);

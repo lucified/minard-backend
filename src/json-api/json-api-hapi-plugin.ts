@@ -330,11 +330,19 @@ export class JsonApiHapiPlugin {
           payload: {
             data: Joi.object({
               type: Joi.string().equal('notifications').required(),
-              attributes: Joi.object({
-                type: Joi.string().equal('flowdock').required(),
-                flowToken: Joi.string().alphanum().required(),
-                projectId: Joi.number().required(),
-              }).required(),
+              attributes: Joi.alternatives(
+                Joi.object({
+                  type: Joi.string().equal('flowdock').required(),
+                  projectId: Joi.number().required(),
+                  flowToken: Joi.string().alphanum().required(),
+                }),
+                Joi.object({
+                  type: Joi.string().equal('hipchat').required(),
+                  projectId: Joi.number().required(),
+                  hipchatRoomId: Joi.number().required(),
+                  hipchatAuthToken: Joi.string().required(),
+                })
+              ),
             }).required(),
           },
         },

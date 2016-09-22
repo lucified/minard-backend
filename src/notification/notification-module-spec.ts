@@ -15,6 +15,10 @@ import {
 import Logger from '../shared/logger';
 
 import {
+  HipchatNotify,
+} from './hipchat-notify';
+
+import {
   FlowdockNotify,
 } from './flowdock-notify';
 
@@ -53,7 +57,7 @@ describe('notification-module', () => {
   const deploymentId = 77;
   const screenshotDataUri = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA';
 
-  async function arrange(flowdockNotify: FlowdockNotify, bus: LocalEventBus) {
+  async function arrange(flowdockNotify: FlowdockNotify, bus: LocalEventBus, hipchatNotify: HipchatNotify) {
     const knex = await setupKnex();
 
     const screenshotModule = {} as ScreenshotModule;
@@ -64,7 +68,7 @@ describe('notification-module', () => {
     };
 
     const notificationModule = new NotificationModule(
-      bus, basicLogger, knex, uiBaseUrl, flowdockNotify, screenshotModule);
+      bus, basicLogger, knex, uiBaseUrl, flowdockNotify, screenshotModule, hipchatNotify);
     await notificationModule.addConfiguration({
       type: 'flowdock',
       projectId,
@@ -88,7 +92,7 @@ describe('notification-module', () => {
         });
       };
     });
-    await arrange(flowdockNotify, bus);
+    await arrange(flowdockNotify, bus, {} as any);
 
     // Act
     const deployment = { projectId, ref: 'foo', id: deploymentId, screenshot: 'foo' };
@@ -108,6 +112,54 @@ describe('notification-module', () => {
     expect(args._branchUrl).to.equal(getUiBranchUrl(projectId, deployment.ref, uiBaseUrl));
   });
 
+  it('should trigger hipchat notification for DeploymentEvents', async () => {
+    // Arrange
+    const hipchatProjectId = 77;
+    const bus = new LocalEventBus();
+    const hipchatNotify = {} as HipchatNotify;
+    const promise = new Promise<any>((resolve: any, reject: any) => {
+      hipchatNotify.notify = async (
+        deployment: MinardDeployment, roomId: number, authToken: string, _projectUrl: string, _branchUrl: string) => {
+        resolve({
+          deployment,
+          roomId,
+          authToken,
+          _projectUrl,
+          _branchUrl,
+        });
+      };
+    });
+
+    const config = {
+      type: 'hipchat' as 'hipchat',
+      projectId: hipchatProjectId,
+      hipchatRoomId: 7,
+      hipchatAuthToken: 'foo-auth-token',
+    };
+
+    const notificationModule = await arrange({} as any, bus, hipchatNotify);
+    await notificationModule.addConfiguration(config);
+
+    // Act
+    const deployment = { projectId: hipchatProjectId, ref: 'foo', id: deploymentId, screenshot: 'foo' };
+    bus.post(createDeploymentEvent({
+      deployment: deployment as any,
+      statusUpdate: { status: 'success' },
+    }));
+
+    // Assert
+    const args = await promise;
+    expect(args.deployment.projectId).to.equal(deployment.projectId);
+    expect(args.deployment.ref).to.equal(deployment.ref);
+    expect(args.deployment.id).to.equal(deploymentId);
+    expect(args.deployment.screenshot).to.equal(deployment.screenshot);
+    expect(args.authToken).to.equal(config.hipchatAuthToken);
+    expect(args.roomId).to.equal(config.hipchatRoomId);
+    expect(args._projectUrl).to.equal(getUiProjectUrl(hipchatProjectId, uiBaseUrl));
+    expect(args._branchUrl).to.equal(getUiBranchUrl(hipchatProjectId, deployment.ref, uiBaseUrl));
+  });
+
+
   async function shouldNotTriggerNotification(_projectId: number, statusUpdate: any) {
     // Arrange
     const bus = new LocalEventBus();
@@ -118,7 +170,7 @@ describe('notification-module', () => {
       console.log(`Error: Should not be called. Was called with projectId ${deployment.projectId}`);
       called = true;
     };
-    await arrange(flowdockNotify, bus);
+    await arrange(flowdockNotify, bus, {} as any);
 
     // Act
     const deployment = { projectId: _projectId, ref: 'foo' };
@@ -141,11 +193,13 @@ describe('notification-module', () => {
   it('should be able to add, get and delete configurations', async () => {
     const _projectId = 9;
     // Arrange
-    const notificationModule = await arrange({} as any, new LocalEventBus());
+    const notificationModule = await arrange({} as any, new LocalEventBus(), {} as any);
     const config = {
       type: 'flowdock' as 'flowdock',
       projectId: _projectId,
       flowToken: 'fake-flow-token',
+      hipchatAuthToken: null,
+      hipchatRoomId: null,
     };
 
     // Act
@@ -157,7 +211,7 @@ describe('notification-module', () => {
     const deletedForProject = await notificationModule.getProjectConfigurations(_projectId);
 
     // Assert
-    expect(existing).to.deep.equal(Object.assign(config, { id}));
+    expect(existing).to.deep.equal(Object.assign(config, { id }));
     expect(existingForProject).to.have.length(1);
     expect(existingForProject[0]).to.deep.equal(Object.assign(config, { id}));
     expect(deleted).to.equal(undefined);

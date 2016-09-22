@@ -29,6 +29,9 @@ const flowToken = process.env.FLOW_TOKEN;
 const projectFolder = process.env.SYSTEM_TEST_PROJECT ? process.env.SYSTEM_TEST_PROJECT : 'blank';
 const charles = process.env.CHARLES ? process.env.CHARLES : 'http://localhost:8000';
 const gitserver = process.env.MINARD_GIT_SERVER ? process.env.MINARD_GIT_SERVER : 'http://localhost:10080';
+const hipchatRoomId = process.env.HIPCHAT_ROOM_ID ? process.env.HIPCHAT_ROOM_ID : 3140019;
+const hipchatAuthToken = process.env.HIPCHAT_AUTH_TOKEN ? process.env.HIPCHAT_AUTH_TOKEN
+  : '9ShixCnlFPcgSNbPrPYmafiaT5g8yiCmKLdAoppY';
 
 const skipDeleteProject = process.env.SKIP_DELETE_PROJECT ? true : false;
 
@@ -191,21 +194,21 @@ describe('system-integration', () => {
     log(`Project created (projectId: ${projectId})`);
   });
 
-  let notificationId: number | undefined;
-  it('should be able to configure notifications', async function() {
+  let flowdockNotificationId: number | undefined;
+  it('should be able to configure flowdock notification', async function() {
     this.timeout(1000 * 20);
     if (!flowToken) {
       log('No flowToken defined. Not configuring notifications');
       return;
     }
-    logTitle('Creating notification configuration');
+    logTitle('Creating Flowdock notification configuration');
     const createNotificationPayload = {
       'data': {
         'type': 'notifications',
         'attributes': {
           'type': 'flowdock',
-          'projectId': projectId,
-          'flowToken': flowToken,
+          projectId,
+          flowToken,
         },
       },
     };
@@ -215,7 +218,35 @@ describe('system-integration', () => {
     });
     expect(ret.status).to.equal(201);
     const json = await ret.json();
-    notificationId = json.data.id;
+    flowdockNotificationId = json.data.id;
+  });
+
+  let hipchatNotificationId: number | undefined;
+  it('should be able to configure Hipchat notification', async function() {
+    this.timeout(1000 * 20);
+    if (!hipchatAuthToken) {
+      log('No hipchatAuthToken defined. Not configuring notifications');
+      return;
+    }
+    logTitle('Creating Hipchat notification configuration');
+    const createNotificationPayload = {
+      'data': {
+        'type': 'notifications',
+        'attributes': {
+          type: 'hipchat',
+          projectId,
+          hipchatAuthToken,
+          hipchatRoomId,
+        },
+      },
+    };
+    const ret = await fetch(`${charles}/api/notifications`, {
+      method: 'POST',
+      body: JSON.stringify(createNotificationPayload),
+    });
+    expect(ret.status).to.equal(201);
+    const json = await ret.json();
+    hipchatNotificationId = json.data.id;
   });
 
   it('should be able to commit code to repo', async function() {
@@ -424,13 +455,26 @@ describe('system-integration', () => {
     expect(event.id).to.eq(projectId);
   }
 
-  it('should be able to delete configured notification', async function() {
+  it('should be able to delete configured flowdock notification', async function() {
     this.timeout(1000 * 10);
     if (!flowToken) {
       log('No flowToken defined. Skipping deletion of notification configuration');
       return;
     }
-    const ret = await fetchWithRetry(`${charles}/api/notifications/${notificationId}`, {
+    const ret = await fetchWithRetry(`${charles}/api/notifications/${flowdockNotificationId}`, {
+      method: 'DELETE',
+    });
+    expect(ret.status).to.equal(200);
+    log('Notification configuration deleted');
+  });
+
+  it('should be able to delete configured hipchat notification', async function() {
+    this.timeout(1000 * 10);
+    if (!hipchatAuthToken) {
+      log('No hipchatAuthToken defined. Skipping deletion of notification configuration');
+      return;
+    }
+    const ret = await fetchWithRetry(`${charles}/api/notifications/${hipchatNotificationId}`, {
       method: 'DELETE',
     });
     expect(ret.status).to.equal(200);

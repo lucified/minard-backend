@@ -13,10 +13,12 @@ export class FlowdockNotify {
 
   public static injectSymbol = Symbol('flowdock-notify');
 
-  public async notify(
-    deployment: MinardDeployment, flowToken: string, projectUrl: string, branchUrl: string): Promise<any> {
+  public async getBody(
+    deployment: MinardDeployment,
+    flowToken: string,
+    projectUrl: string,
+    branchUrl: string) {
     const state = deployment.status;
-    const url = `https://api.flowdock.com/messages`;
     const body = {
       flow_token: flowToken,
       event: 'activity',
@@ -30,9 +32,31 @@ export class FlowdockNotify {
         avatar: this.buildStatusAvatar(state),
       },
     };
+
+    // if (deployment.screenshot) {
+    //    (<any> body).attachments = [{
+    //       data: deployment.screenshot,
+    //       content_type: 'image/jpeg',
+    //       file_name: 'screenshot.jpg',
+    //     },
+    //   ];
+    // }
+    return body;
+  }
+
+  public async notify(
+    deployment: MinardDeployment,
+    flowToken: string,
+    projectUrl: string,
+    branchUrl: string): Promise<any> {
+
+    const url = `https://api.flowdock.com/messages`;
+    const body = await this.getBody(deployment, flowToken, projectUrl, branchUrl);
+
     const options = {
       method: 'POST',
       headers: {
+        'Accept': 'application/json',
         'Content-Type': 'application/json',
         'User-Agent': 'request',
         'X-flowdock-wait-for-message': 'true',
@@ -42,7 +66,7 @@ export class FlowdockNotify {
     };
 
     let ret = await fetch(url, options);
-    if (ret.status === 202 || ret.status === 200 && ret.status !== 201) {
+    if (ret.status === 202 || ret.status === 200 || ret.status === 201) {
       return;
     }
 
@@ -52,10 +76,10 @@ export class FlowdockNotify {
     }
 
     try {
-      const json = await ret.json();
+      const text = await ret.text();
       throw Error(
         `Unexpected status ${ret.status} when posting flowdock notification. ` +
-        `Response was ${JSON.stringify(json, null, 2)}`);
+        `Response was ${text}`);
     } catch (error) {
       throw Error(`Unexpected status ${ret.status} when posting flowdock notification.`);
     }
@@ -113,7 +137,8 @@ export class FlowdockNotify {
   }
 
   private threadBody(deployment: MinardDeployment) {
-    const style = `border: 1px solid #d8d8d8; border-radius: 3px; box-shadow: box-shadow: 0 6px 12px 0 rgba(0,0,0,.05)`;
+    const style = `border: 1px solid #d8d8d8; border-radius: 3px; ` +
+      `box-shadow: box-shadow: 0 6px 12px 0 rgba(0,0,0,.05); max-width: 100%`;
     if (deployment.screenshot) {
       return (
         `<div>

@@ -159,7 +159,6 @@ describe('notification-module', () => {
     expect(args._branchUrl).to.equal(getUiBranchUrl(hipchatProjectId, deployment.ref, uiBaseUrl));
   });
 
-
   async function shouldNotTriggerNotification(_projectId: number, statusUpdate: any) {
     // Arrange
     const bus = new LocalEventBus();

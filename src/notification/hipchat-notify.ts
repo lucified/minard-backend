@@ -105,7 +105,7 @@ export class HipchatNotify {
     };
 
     let ret = await fetch(url, options);
-    if (ret.status === 202 || ret.status === 200 && ret.status === 201 || ret.status === 204) {
+    if (ret.status === 202 || ret.status === 200 || ret.status === 201 || ret.status === 204) {
       return;
     }
 

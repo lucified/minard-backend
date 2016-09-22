@@ -12,7 +12,7 @@ import {
 
 const fetchMock = require('fetch-mock');
 
-describe('notification-flowdock', () => {
+describe('flowdock-notify', () => {
 
   const baseDeployment: MinardDeployment = {
     id: 6,

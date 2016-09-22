@@ -145,24 +145,26 @@ export default class DeploymentModule {
   private subscribeToEvents() {
     // subscribe for build created events
     this.eventBus.filterEvents<BuildCreatedEvent>(BUILD_CREATED_EVENT)
-      .subscribe(async event => {
+      .flatMap(async event => {
         try {
           await this.createDeployment(event);
         } catch (error) {
           this.logger.error(`Failed to create deployment based on BuildCreatedEvent`, { event, error });
         }
-      });
+      })
+      .subscribe();
 
     // subscribe on build status updates
     this.eventBus.filterEvents<BuildStatusEvent>(BUILD_STATUS_EVENT_TYPE)
-      .subscribe(async event => {
+      .flatMap(async event => {
         try {
           await this.updateDeploymentStatus(
             event.payload.deploymentId, { buildStatus: event.payload.status });
         } catch (error) {
           this.logger.error(`Failed to update deployment status based on BuildStatusEvent`, { event, error });
         }
-      });
+      })
+      .subscribe();
 
     // subscribe on finished builds
     this.eventBus.filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)

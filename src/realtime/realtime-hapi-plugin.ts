@@ -274,12 +274,13 @@ export class RealtimeHapiPlugin {
           'deployment', api => api.toApiDeployment(deployment.projectId, deployment));
 
       const ssePayload: StreamingDeploymentEvent = {
+        teamId: 1,
         branch: toApiBranchId(deployment.projectId, deployment.ref),
         project: String(deployment.projectId),
         commit: toApiCommitId(deployment.projectId, deployment.commitHash),
         deployment: apiResponse.data,
       };
-      return this.toSSE(Object.assign(event, { teamId: 1 }), ssePayload);
+      return this.toSSE(event, ssePayload);
     } catch (error) {
       const msg = 'Could not convert DeploymentEvent to streaming event';
       this.logger.error(msg, { error, event });

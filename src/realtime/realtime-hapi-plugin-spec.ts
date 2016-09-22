@@ -205,10 +205,6 @@ describe('realtime-hapi-plugin', () => {
     });
   });
 
-<<<<<<< 825364f23e3284b695b0cf583e51d885427f1816
-=======
-
->>>>>>> Add support for converting DeploymentEvents to StreamingDeploymentEvents
   describe('DeploymentEvent', () => {
     beforeEach(clearDb);
 

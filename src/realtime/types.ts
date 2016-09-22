@@ -14,6 +14,7 @@ export interface StreamingCodePushedEvent {
 }
 
 export interface StreamingDeploymentEvent {
+  teamId: number;
   deployment: JsonApiEntity;
   commit: string;
   project: string;

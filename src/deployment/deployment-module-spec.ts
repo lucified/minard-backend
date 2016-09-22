@@ -2,26 +2,51 @@
 import 'reflect-metadata';
 
 import * as Boom from 'boom';
-
 import { expect } from 'chai';
 import * as fs from 'fs';
+import * as Knex from 'knex';
+import * as moment from 'moment';
 import * as os from 'os';
 import * as path from 'path';
 
 import {
+  ProjectModule,
+} from '../project';
+
+import DeploymentModule, {
+  getDeploymentKeyFromHost,
+  toDbDeployment,
+} from './deployment-module';
+
+import {
+  ScreenshotModule,
+} from '../screenshot';
+
+import {
+  toGitlabTimestamp,
+} from '../shared/time-conversion';
+
+import {
+  BuildCreatedEvent,
   DEPLOYMENT_EVENT_TYPE,
   DeploymentEvent,
-  DeploymentModule,
+  DeploymentStatusUpdate,
   MinardDeployment,
   MinardJsonInfo,
+  createBuildCreatedEvent,
+  createBuildStatusEvent,
   createDeploymentEvent,
-  getDeploymentKeyFromHost,
-} from './';
+} from './types';
 
 import { applyDefaults } from './gitlab-yml';
 
 import Authentication from '../authentication/authentication-module';
-import EventBus from '../event-bus/local-event-bus';
+
+import {
+  Event,
+  LocalEventBus,
+} from '../event-bus';
+
 import { IFetchStatic } from '../shared/fetch.d.ts';
 import { GitlabClient } from '../shared/gitlab-client';
 import Logger from '../shared/logger';
@@ -47,212 +72,355 @@ const getClient = () => {
     new MockAuthModule() as Authentication, {} as any);
 };
 
-const logger = Logger(undefined, true);
-const eventBus = new EventBus();
+const silentLogger = Logger(undefined, true);
+const basicLogger = Logger(undefined, false);
+
+const eventBus = new LocalEventBus();
 
 const deploymentUrlPattern = 'http://%s.localhost:8000';
 
-const getDeploymentModule = (client: GitlabClient, path: string) => new DeploymentModule(
+const getDeploymentModule = (client: GitlabClient, path: string, _logger: any = basicLogger) => new DeploymentModule(
   client,
   path,
   eventBus,
-  logger,
+  _logger,
   deploymentUrlPattern,
+  {} as any,
+  {} as any,
+  {} as any,
 );
 
-const gitLabBuildsResponse = [
-  {
-    'commit': {
-      'author_email': 'admin@example.com',
-      'author_name': 'Administrator',
-      'created_at': '2015-12-24T16:51:14.000+01:00',
-      'id': '0ff3ae198f8601a285adcf5c0fff204ee6fba5fd',
-      'message': 'Test the CI integration.',
-      'short_id': '0ff3ae19',
-      'title': 'Test the CI integration.',
-    },
-    'coverage': null,
-    'created_at': '2015-12-24T15:51:21.802Z',
-    'artifacts_file': {
-      'filename': 'artifacts.zip',
-      'size': 1000,
-    },
-    'finished_at': '2015-12-24T17:54:27.895Z',
-    'id': 7,
-    'name': 'teaspoon',
-    'ref': 'master',
-    'runner': null,
-    'stage': 'test',
-    'started_at': '2015-12-24T17:54:27.722Z',
-    'status': 'success',
-    'tag': false,
-    'user': {
-      'avatar_url': 'http://www.gravatar.com/avatar/e64c7d89f26bd1972efa854d13d7dd61?s=80&d=identicon',
-      'bio': null,
-      'created_at': '2015-12-21T13:14:24.077Z',
-      'id': 1,
-      'is_admin': true,
-      'linkedin': '',
-      'name': 'Administrator',
-      'skype': '',
-      'state': 'active',
-      'twitter': '',
-      'username': 'root',
-      'web_url': 'http://gitlab.dev/u/root',
-      'website_url': '',
-    },
-  },
-  {
-    'commit': {
-      'author_email': 'admin@example.com',
-      'author_name': 'Administrator',
-      'created_at': '2015-12-24T16:51:14.000+01:00',
-      'id': '0ff3ae198f8601a285adcf5c0fff204ee6fba5fd',
-      'message': 'Test the CI integration.',
-      'short_id': '0ff3ae19',
-      'title': 'Test the CI integration.',
-    },
-    'coverage': null,
-    'created_at': '2015-12-24T15:51:21.727Z',
-    'artifacts_file': null,
-    'finished_at': '2015-12-24T17:54:24.921Z',
-    'id': 6,
-    'name': 'spinach:other',
-    'ref': 'master',
-    'runner': null,
-    'stage': 'test',
-    'started_at': '2015-12-24T17:54:24.729Z',
-    'status': 'failed',
-    'tag': false,
-    'user': {
-      'avatar_url': 'http://www.gravatar.com/avatar/e64c7d89f26bd1972efa854d13d7dd61?s=80&d=identicon',
-      'bio': null,
-      'created_at': '2015-12-21T13:14:24.077Z',
-      'id': 1,
-      'is_admin': true,
-      'linkedin': '',
-      'name': 'Administrator',
-      'skype': '',
-      'state': 'active',
-      'twitter': '',
-      'username': 'root',
-      'web_url': 'http://gitlab.dev/u/root',
-      'website_url': '',
-    },
-  },
-];
-
-const gitlabBuildResponse = {
-  'commit': {
-    'author_email': 'admin@example.com',
-    'author_name': 'Administrator',
-    'created_at': '2015-12-24T16:51:14.000+01:00',
-    'id': '0ff3ae198f8601a285adcf5c0fff204ee6fba5fd',
-    'message': 'Test the CI integration.',
-    'short_id': '0ff3ae19',
-    'title': 'Test the CI integration.',
-  },
-  'coverage': null,
-  'created_at': '2015-12-24T15:51:21.880Z',
-  'artifacts_file': null,
-  'finished_at': '2015-12-24T17:54:31.198Z',
-  'id': 8,
-  'name': 'rubocop',
-  'ref': 'master',
-  'runner': null,
-  'stage': 'test',
-  'started_at': '2015-12-24T17:54:30.733Z',
-  'status': 'success',
-  'tag': false,
-  'user': {
-    'avatar_url': 'http://www.gravatar.com/avatar/e64c7d89f26bd1972efa854d13d7dd61?s=80&d=identicon',
-    'bio': null,
-    'created_at': '2015-12-21T13:14:24.077Z',
-    'id': 1,
-    'is_admin': true,
-    'linkedin': '',
-    'name': 'Administrator',
-    'skype': '',
-    'state': 'active',
-    'twitter': '',
-    'username': 'root',
-    'web_url': 'http://gitlab.dev/u/root',
-    'website_url': '',
-  },
-};
+function getEventBus() {
+  return new LocalEventBus();
+}
 
 describe('deployment-module', () => {
+
+  async function setupKnex() {
+    const knex = Knex({
+      client: 'sqlite3',
+      connection: { filename: ':memory:' },
+      useNullAsDefault: true,
+    });
+    await knex.migrate.latest({
+      directory: 'migrations/deployment',
+    });
+    return knex;
+  }
+
+  const urlPattern = 'http://deploy-%s.localhost:8000';
+  const externalBaseUrl = 'http://foo-bar.com';
+
+  const deployments: MinardDeployment[] = [
+    {
+      projectId: 5,
+      id: 15,
+      status: 'success',
+      buildStatus: 'success',
+      extractionStatus: 'success',
+      screenshotStatus: 'success',
+      finishedAt: moment(),
+      createdAt: moment(),
+      ref: 'master',
+      projectName: 'foo-project',
+      commit: {
+        id: 'foo-commit-id',
+        shortId: 'foo',
+        message: 'foo-commit-message',
+        author: {
+          name: 'fooman',
+          email: 'fooman@foomail.com',
+          timestamp: 'fake-author-timestamp',
+        },
+        committer: {
+          name: 'barman',
+          email: 'barman@barmail.com',
+          timestamp: 'fake-committer-timestamp',
+        },
+      },
+      commitHash: 'foo-commit-id',
+    },
+    {
+      projectId: 5,
+      id: 16,
+      status: 'success',
+      buildStatus: 'success',
+      extractionStatus: 'success',
+      screenshotStatus: 'failed',
+      createdAt: moment(),
+      finishedAt: moment().add(1, 'day'),
+      ref: 'foo-branch',
+      projectName: 'bar-project',
+      commit: {
+        id: 'bar-commit-id',
+        shortId: 'foo',
+        message: 'bar-commit-message',
+        author: {
+          name: 'foo-bar-man',
+          email: 'foo-bar-man@foomail.com',
+          timestamp: 'fake-author-timestamp',
+        },
+        committer: {
+          name: 'bar-foo-man',
+          email: 'bar-foo-man@barmail.com',
+          timestamp: 'fake-committer-timestamp',
+        },
+      },
+      commitHash: 'bar-commit-id',
+    },
+    {
+      projectId: 7,
+      id: 17,
+      status: 'running',
+      buildStatus: 'running',
+      extractionStatus: 'pending',
+      screenshotStatus: 'pending',
+      finishedAt: moment(),
+      createdAt: moment(),
+      ref: 'foo-bar-branch',
+      projectName: 'foo-bar-project',
+      commit: {
+        id: 'foo-bar-commit-id',
+        shortId: 'foo',
+        message: 'foo-bar-commit-message',
+        author: {
+          name: 'foo-foo-bar-man',
+          email: 'foo-foo-bar-man@foomail.com',
+          timestamp: 'fake-author-timestamp',
+        },
+        committer: {
+          name: 'foo-bar-foo-man',
+          email: 'foo-bar-foo-man@barmail.com',
+          timestamp: 'foo-fake-committer-timestamp',
+        },
+      },
+      commitHash: 'foo-bar-commit-id',
+    },
+  ];
+
+  const screenshotModule = new ScreenshotModule({} as any, '', {} as any, '', externalBaseUrl);
+
+  async function arrangeDeploymentModule(projectModule: ProjectModule = {} as any, bus: LocalEventBus = getEventBus()) {
+    const knex = await setupKnex();
+    await Promise.all(deployments.map(item => knex('deployment').insert(toDbDeployment(item))));
+    const deploymentModule = new DeploymentModule(
+      {} as any,
+      {} as any,
+      bus,
+      {} as any,
+      urlPattern,
+      screenshotModule,
+      projectModule,
+      knex);
+    return deploymentModule;
+  }
+
+  // function expectDeploymentBasicsEqual(target: MinardDeployment, expected: MinardDeployment) {
+  //   expect(target.id).to.equal(expected.buildStatus);
+  //   expect(target.commit).to.deep.equal(expected.commit);
+  //   expect(target.commitHash).to.equal(expected.commitHash);
+  //   expect(target.finishedAt!.)
+  // }
+
   describe('getDeployment()', () => {
-    it('should work when deployment can be found', async () => {
+    it('should work for successfull deployment', async () => {
       // Arrange
-      const gitlabClient = getClient();
-      const response = {
-        status: 200,
-        body: gitlabBuildResponse,
-      };
-      fetchMock.restore().mock(`${host}${gitlabClient.apiPrefix}/projects/1/builds/4`, response);
-      const deploymentModule = getDeploymentModule(gitlabClient, '');
+      const deploymentModule = await arrangeDeploymentModule();
+
       // Act
-      const deployment = await deploymentModule.getDeployment(1, 4);
+      const deployment = await deploymentModule.getDeployment(15);
+
       // Assert
-      expect(deployment).to.not.equal(null);
-      expect(deployment!.id).to.equal(8);
-      expect(deployment!.url).to.equal('http://master-0ff3ae19-1-8.localhost:8000');
-      expect(deployment!.creator.email).to.equal(gitlabBuildResponse.commit.author_email);
-      expect(deployment!.creator.name).to.equal(gitlabBuildResponse.commit.author_name);
-      expect(deployment!.creator.timestamp).to.equal(gitlabBuildResponse.finished_at);
+      const dep = deployment!;
+
+      expect(dep.finishedAt!.isSame(deployments[0]!.finishedAt!));
+      expect(dep.createdAt.isSame(deployments[0]!.createdAt));
+      expect(dep.screenshot).to.equal(screenshotModule.getPublicUrl(deployments[0].projectId, deployments[0].id));
+      expect(dep.url).to.equal(`http://deploy-master-foo-5-15.localhost:8000`);
+      expect(dep.creator!.name).to.equal(deployments[0].commit.committer.name);
+      expect(dep.creator!.email).to.equal(deployments[0].commit.committer.email);
+      expect(dep.creator!.timestamp).to.equal(toGitlabTimestamp(deployments[0].createdAt));
     });
 
-    it('should return null when deployment can not be found', async () => {
+    it('should work for deployment with failed screenshot', async () => {
       // Arrange
-      const gitlabClient = getClient();
-      // (this is how gitlab actually responds)
-      const responseObject = {
-        status: 404,
-        body: { message: '404 Not Found' },
-      };
-      fetchMock.restore().mock(`${host}${gitlabClient.apiPrefix}/projects/1/builds/4`, responseObject);
-      const deploymentModule = getDeploymentModule(gitlabClient, '');
+      const deploymentModule = await arrangeDeploymentModule();
+
       // Act
-      const deployment = await deploymentModule.getDeployment(1, 4);
+      const deployment = await deploymentModule.getDeployment(16);
+
       // Assert
-      expect(deployment).to.equal(null);
+      expect(deployment!.screenshot).to.equal(undefined);
+      expect(deployment!.url).to.equal(`http://deploy-foo-branch-foo-5-16.localhost:8000`);
+    });
+
+    it('should work for deployment with failed extraction', async () => {
+      // Arrange
+      const deploymentModule = await arrangeDeploymentModule();
+
+      // Act
+      const deployment = await deploymentModule.getDeployment(17);
+
+      // Assert
+      expect(deployment!.screenshot).to.equal(undefined);
+      expect(deployment!.url).to.equal(undefined);
+      expect(deployment!.finishedAt!.isSame(deployments[2]!.finishedAt!));
+    });
+
+    it('should return null if deployment is not found', async () => {
+      const deploymentModule = await arrangeDeploymentModule();    // Arrange
+      const deployment = await deploymentModule.getDeployment(18); // Act
+      expect(deployment).to.equal(undefined);                      // Assert
     });
   });
 
   describe('getProjectDeployments()', () => {
     it('it should work with response returning two deployments', async () => {
       // Arrange
-      const gitlabClient = getClient();
-      fetchMock.restore().mock(`${host}${gitlabClient.apiPrefix}/projects/1/builds`, gitLabBuildsResponse);
-      const deploymentModule = getDeploymentModule(gitlabClient, '');
+      const deploymentModule = await arrangeDeploymentModule();
+
       // Act
-      const deployments = await deploymentModule.getProjectDeployments(1);
+      const ret = await deploymentModule.getProjectDeployments(deployments[0].projectId);
+
       // Assert
-      expect(deployments!.length).equals(2);
-      expect(deployments![0].url).equals(
-        `http://master-${gitLabBuildsResponse[0].commit.short_id}-${1}-${gitLabBuildsResponse[0].id}.localhost:8000`);
-      expect(deployments![0].id).equals(gitLabBuildsResponse[0].id);
-      expect(deployments![1].id).equals(gitLabBuildsResponse[1].id);
+      expect(ret.length).equals(2);
+      expect(ret[0].id).to.equal(deployments[1].id);
+      expect(ret[1].id).to.equal(deployments[0].id);
+      expect(ret[0].url).to.exist;
+      expect(ret[1].url).to.exist;
+    });
+  });
+
+  describe('getLatestSuccessfulProjectDeployment()', () => {
+    it('it should return correct deployment when it can be found', async () => {
+      // Arrange
+      const deploymentModule = await arrangeDeploymentModule();
+
+      // Act
+      const ret = await deploymentModule.getLatestSuccessfulProjectDeployment(5);
+
+      // Assert
+      expect(ret).to.exist;
+      expect(ret!.id).to.equal(deployments[1].id);
+      expect(ret!.url).to.exist;
+    });
+
+    it('it should return null when deployment cannot be found', async () => {
+      // Arrange
+      const deploymentModule = await arrangeDeploymentModule();
+
+      // Act
+      const ret = await deploymentModule.getLatestSuccessfulProjectDeployment(500);
+
+      // Assert
+      expect(ret).to.equal(undefined);
+    });
+  });
+
+  describe('getLatestSuccessfulBranchDeployment()', () => {
+    it('should return correct deployment when one can be found', async () => {
+      // Arrange
+      const deploymentModule = await arrangeDeploymentModule();
+
+      // Act
+      const ret = await deploymentModule.getLatestSuccessfulBranchDeployment(5, 'foo-branch');
+
+      // Assert
+      expect(ret).to.exist;
+      expect(ret!.id).to.equal(deployments[1].id);
+      expect(ret!.url).to.exist;
+    });
+
+    it('should return null when deployment cannot be found', async () => {
+      // Arrange
+      const deploymentModule = await arrangeDeploymentModule();
+
+      // Act
+      const ret = await deploymentModule.getLatestSuccessfulBranchDeployment(5, 'nonexistent-branch');
+
+      // Assert
+      expect(ret).to.equal(undefined);
     });
   });
 
   describe('getCommitDeployments()', () => {
-    it('it should work with response returning two deployments', async () => {
+    it('it should work with response returning a single deployments', async () => {
       // Arrange
-      const sha = 'foo-commit-sha';
-      const gitlabClient = getClient();
-      fetchMock.restore().mock(
-        `${host}${gitlabClient.apiPrefix}/projects/1/repository/commits/${sha}/builds`,
-        gitLabBuildsResponse);
-      const deploymentModule = getDeploymentModule(gitlabClient, '');
+      const deploymentModule = await arrangeDeploymentModule();
+
       // Act
-      const deployments = (await deploymentModule.getCommitDeployments(1, sha));
+      const ret = await deploymentModule.getCommitDeployments(
+        deployments[0].projectId, deployments[0].commitHash);
+
       // Assert
-      expect(deployments).to.exist;
-      expect(deployments!.length).equals(2);
-      expect(deployments![0].id).equals(gitLabBuildsResponse[0].id);
-      expect(deployments![1].id).equals(gitLabBuildsResponse[1].id);
+      expect(ret.length).equals(1);
+      expect(ret[0].id).to.deep.equal(deployments[0].id);
+      expect(ret[0].url).to.exist;
+    });
+  });
+
+  describe('createDeployment', () => {
+    it('should fetch related commit and add deployment', async () => {
+      // Arrange
+      const commit = {
+        id: 'foo-sha',
+        message: 'foo',
+        committer: {
+          name: 'foo',
+          email: 'fooman@foomail.com',
+        },
+      };
+      const projectModule = {} as ProjectModule;
+      projectModule.getCommit = async (projectId: number, commitHash: string) => {
+        expect(commitHash).to.equal(commit.id);
+        expect(projectId).to.equal(6);
+        return commit;
+      };
+      const bus = getEventBus();
+      const deploymentModule = await arrangeDeploymentModule(projectModule, bus);
+
+      const buildCreatedEvent: Event<BuildCreatedEvent> = createBuildCreatedEvent({
+        project_id: 6,
+        id: 5,
+        project_name: 'foo-project-name',
+        ref: 'master', // TODO
+        sha: commit.id,
+        status: 'running',
+      } as any);
+
+      const promise = bus.filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE).take(1).toPromise();
+
+      // Act
+      await deploymentModule.createDeployment(buildCreatedEvent);
+
+      // Assert
+      const deployment = await deploymentModule.getDeployment(5);
+      let compare = Object.assign({}, deployment, { createdAt: undefined });
+      const expected = {
+        projectId: buildCreatedEvent.payload.project_id,
+        projectName: buildCreatedEvent.payload.project_name,
+        id: buildCreatedEvent.payload.id,
+        buildStatus: 'running',
+        extractionStatus: 'pending',
+        screenshotStatus: 'pending',
+        status: 'running',
+        commitHash: buildCreatedEvent.payload.sha,
+        commit: commit as any,
+        ref: buildCreatedEvent.payload.ref,
+        finishedAt: undefined,
+        createdAt: undefined,
+        creator: {
+          name: commit.committer.name,
+          email: commit.committer.email,
+          timestamp: toGitlabTimestamp(buildCreatedEvent.created),
+        },
+      };
+      expect(compare).to.deep.equal(expected);
+      const event = await promise;
+      expect(event.payload.statusUpdate).to.deep.equal({
+        status: 'running',
+        buildStatus: 'running',
+      });
     });
   });
 
@@ -294,23 +462,21 @@ describe('deployment-module', () => {
     const branchName = 'master';
     const deploymentPath = path.join(os.tmpdir(), 'minard-move', 'test-deployment');
     const extractedPath = path.join(os.tmpdir(), 'minard-move', 'extracted');
-    console.log(deploymentPath);
 
-    async function shouldMoveCorrectly(publicRoot: string, artifactFolder: string) {
+    async function shouldMoveCorrectly(publicRoot: string, artifactFolder: string, _logger: any = basicLogger) {
       // Arrange
       rimraf.sync(deploymentPath);
       rimraf.sync(extractedPath);
       mkpath.sync(extractedPath);
       await ncp(path.join(__dirname, '../../src/deployment/test-data'), extractedPath);
       const deploymentModule = {
-        logger,
+        logger: _logger,
         getTempArtifactsPath: (_projectId: number, _deploymentId: number) => {
           expect(_projectId).to.equal(projectId);
           expect(_deploymentId).to.equal(deploymentId);
           return path.join(extractedPath, artifactFolder);
         },
-        getDeployment: async (_projectId: number, _deploymentId: number) => {
-          expect(_projectId).to.equal(projectId);
+        getDeployment: async (_deploymentId: number) => {
           expect(_deploymentId).to.equal(deploymentId);
           return {
             ref: branchName,
@@ -355,7 +521,7 @@ describe('deployment-module', () => {
 
     it('should throw error when publicRoot does not exist in artifacts"', async () => {
       try {
-        await shouldMoveCorrectly('bar', 'test-extracted-artifact-2');
+        await shouldMoveCorrectly('bar', 'test-extracted-artifact-2', silentLogger);
         expect.fail('should throw');
       } catch (err) {
         expect((<Boom.BoomError> err).isBoom).to.equal(true);
@@ -596,8 +762,7 @@ describe('deployment-module', () => {
 
     it('should throw error when deployment not found', async () => {
       const deploymentModule = getDeploymentModule({} as GitlabClient, '');
-      deploymentModule.getDeployment = async (projectId, deploymentId) => {
-        expect(projectId).to.equal(2);
+      deploymentModule.getDeployment = async (deploymentId) => {
         expect(deploymentId).to.equal(4);
         return null;
       };
@@ -609,11 +774,11 @@ describe('deployment-module', () => {
       }
     });
 
-    it('should throw error when deployment status is not success', async () => {
-      const deploymentModule = getDeploymentModule({} as GitlabClient, '');
-      deploymentModule.getDeployment = async (_projectId, _deploymentId) => {
+    it('should throw error when build status is not success', async () => {
+      const deploymentModule = getDeploymentModule({} as GitlabClient, '', silentLogger);
+      deploymentModule.getDeployment = async (_deploymentId) => {
         return {
-          status: 'failed',
+          buildStatus: 'failed',
         };
       };
       try {
@@ -626,9 +791,9 @@ describe('deployment-module', () => {
 
     it('should call downloadAndExtractDeployment when deployment is successful', async () => {
       const deploymentModule = getDeploymentModule({} as GitlabClient, '');
-      deploymentModule.getDeployment = async (_projectId, _deploymentId) => {
+      deploymentModule.getDeployment = async (_deploymentId) => {
         return {
-          status: 'success',
+          buildStatus: 'success',
         };
       };
       let called = false;
@@ -649,8 +814,8 @@ describe('deployment-module', () => {
     });
 
     it('should report internal error', async () => {
-      const deploymentModule = getDeploymentModule({} as GitlabClient, '');
-      deploymentModule.getDeployment = async (_projectId, _deploymentId) => {
+      const deploymentModule = getDeploymentModule({} as GitlabClient, '', silentLogger);
+      deploymentModule.getDeployment = async (_deploymentId) => {
         return {
           status: 'success',
         };
@@ -705,34 +870,301 @@ describe('deployment-module', () => {
   });
 
   describe('subscribeToEvents', () => {
+    function createDeploymentModule(bus: LocalEventBus, _logger: any = silentLogger) {
+      return new DeploymentModule({} as any, '', bus, _logger, '', {} as any, {} as any, {} as any);
+    }
 
-    it('should post \'extracted\' event', async function() { // tslint:disable-line
+    it('should create deployment on BuildCreatedEvent', async () => {
       // Arrange
-      const bus = new EventBus();
+      const payload = { foo: 'bar' };
+      const bus = getEventBus();
+      const deploymentModule = createDeploymentModule(bus, basicLogger);
+
+      const promise = new Promise((resolve, reject) => {
+        deploymentModule.createDeployment = async (event: Event<BuildCreatedEvent>) => {
+          expect(event.payload).to.deep.equal(payload);
+          resolve();
+        };
+      });
+
+      bus.post(createBuildCreatedEvent(payload as any));
+      await promise;
+    });
+
+    it('should update deployment status on BuildStatusEvent', async () => {
+      // Arrange
+      const status = 'running' as 'running'; // make typescript happy
+      const deploymentId = 5;
+      const bus = getEventBus();
+      const deploymentModule = createDeploymentModule(bus, basicLogger);
+
+      // Act & Assert
+      const promise = new Promise((resolve, reject) => {
+        deploymentModule.updateDeploymentStatus = async (_deploymentId: number, updates: DeploymentStatusUpdate) => {
+          expect(_deploymentId).to.equal(deploymentId);
+          expect(updates.buildStatus).to.equal(status);
+          resolve();
+        };
+      });
+      bus.post(createBuildStatusEvent({
+        deploymentId,
+        status,
+      }));
+      await promise;
+    });
+
+    it('should prepare finished builds for serving after successful build', async () => {
+      // Arrange
+      const deploymentId = 5;
+      const projectId = 7;
+      const bus = getEventBus();
+      const deploymentModule = createDeploymentModule(bus, basicLogger);
+
+      // Act & Assert
+      const promise = new Promise((resolve, reject) => {
+        deploymentModule.prepareDeploymentForServing = async (
+          _projectId: number, _deploymentId: number, checkStatus: boolean) => {
+          expect(deploymentId).to.equal(_deploymentId);
+          expect(projectId).to.equal(_projectId);
+          expect(checkStatus).to.equal(false);
+          resolve();
+        };
+      });
+
+      const payload: DeploymentEvent = {
+        deployment: {
+          id: deploymentId,
+          projectId,
+        },
+        statusUpdate: {
+          buildStatus: 'success',
+        },
+      } as any;
+      bus.post(createDeploymentEvent(payload));
+      await promise;
+    });
+
+    it('should take screenshots after successful extractions', async () => {
+      // Arrange
+      const deploymentId = 5;
+      const projectId = 7;
+      const bus = getEventBus();
+      const deploymentModule = createDeploymentModule(bus);
+
+      // Act & Assert
+      const promise = new Promise((resolve, reject) => {
+        deploymentModule.takeScreenshot = async (
+          _projectId: number, _deploymentId: number) => {
+          expect(deploymentId).to.equal(_deploymentId);
+          expect(projectId).to.equal(_projectId);
+          resolve();
+        };
+      });
+
+      const payload: DeploymentEvent = {
+        deployment: {
+          id: deploymentId,
+          projectId,
+        },
+        statusUpdate: {
+          extractionStatus: 'success',
+        },
+      } as any;
+      bus.post(createDeploymentEvent(payload));
+      await promise;
+    });
+  });
+
+  describe('updateDeploymentStatus', () => {
+
+    const deploymentId = 20;
+
+    async function initializeDb(beforeState: any) {
+      const knex = await setupKnex();
+      await knex('deployment').insert(toDbDeployment(Object.assign({
+        id: deploymentId,
+        status: 'pending',
+        buildStatus: 'pending',
+        extractionStatus: 'pending',
+        screenshotStatus: 'pending',
+        createdAt: moment(),
+        commit: {
+          id: 'foo',
+          committer: {
+            email: 'fooman@foomail.com',
+            name: 'foo',
+          },
+        },
+        finishedAt: undefined,
+      }, beforeState)));
+      return knex;
+    }
+
+    async function arrangeDeploymentModule(bus: LocalEventBus, knex: Knex) {
       const deploymentModule = new DeploymentModule(
-        {} as any, '', bus, logger, '',
-      );
-      expect(deploymentModule.getDeploymentPath(1, 1)).to.exist;
-      deploymentModule.prepareDeploymentForServing = async (_projectId: number, _deploymentId: number) => {
-        expect(_projectId).to.equal(1);
-        expect(_deploymentId).to.equal(1);
-      };
-      const eventPromise = bus
-        .filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
-        .map(e => e.payload)
-        .filter(e => e.status === 'extracted')
-        .take(1)
-        .toPromise();
+        {} as any,
+        {} as any,
+        bus,
+        {} as any,
+        urlPattern,
+        screenshotModule,
+        {} as any,
+        knex);
+      return deploymentModule;
+    }
+
+    async function shouldUpdateCorrectly(
+      beforeState: any,
+      statusUpdate: DeploymentStatusUpdate,
+      resultingUpdate: DeploymentStatusUpdate,
+      resultingStatus: string) {
+
+      // Arrange
+      const bus = getEventBus();
+      const deploymentModule = await arrangeDeploymentModule(bus, await initializeDb(beforeState));
+      deploymentModule.doPrepareDeploymentForServing = async(_projectId: number, _deploymentId: number) => undefined;
+      deploymentModule.takeScreenshot = async(_projectId: number, _deploymentId: number) => undefined;
+
+      const promise = bus.filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
+        .map(event => event.payload).take(1).toPromise();
 
       // Act
-      bus.post(createDeploymentEvent({ status: 'running', id: 1, projectId: 1 }));
-      bus.post(createDeploymentEvent({ status: 'running', id: 2, projectId: 2 }));
-      bus.post(createDeploymentEvent({ status: 'success', id: 1 }));
-      const event = await eventPromise;
+      await deploymentModule.updateDeploymentStatus(deploymentId, statusUpdate);
 
       // Assert
-      expect(event.status).to.eq('extracted');
-      expect(event.id).to.eq(1);
+      const event = await promise;
+      expect(event.statusUpdate).to.deep.equal(resultingUpdate);
+      const deployment = await deploymentModule.getDeployment(deploymentId);
+      expect(deployment).to.exist;
+      expect(deployment!.status).to.equal(resultingStatus);
+      return deployment;
+    }
+
+    async function shouldNotUpdate(
+      beforeState: any,
+      statusUpdate: DeploymentStatusUpdate,
+      resultingUpdate: DeploymentStatusUpdate,
+      resultingStatus: string) {
+
+      // Arrange
+      const bus = getEventBus();
+      const deploymentModule = await arrangeDeploymentModule(bus, await initializeDb(beforeState));
+      deploymentModule.doPrepareDeploymentForServing = async(_projectId: number, _deploymentId: number) => undefined;
+      deploymentModule.takeScreenshot = async(_projectId: number, _deploymentId: number) => undefined;
+
+      let called = false;
+      bus.filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
+        .subscribe(item => {
+          called = true;
+        });
+
+      // Act
+      await deploymentModule.updateDeploymentStatus(deploymentId, statusUpdate);
+      expect(called).to.be.false;
+    }
+
+    it('should update with correct status when buildStatus turns to running', async () => {
+      await shouldUpdateCorrectly(
+          { },
+          { buildStatus: 'running' },
+          { buildStatus: 'running', status: 'running' },
+          'running');
+    });
+
+    it('should update with correct status when buildStatus turns to failed', async () => {
+      await shouldUpdateCorrectly(
+          { buildStatus: 'running', status: 'running'},
+          { buildStatus: 'failed' },
+          { buildStatus: 'failed', status: 'failed' },
+          'failed');
+    });
+
+    it('should update with correct status when buildStatus turns to success', async () => {
+      await shouldUpdateCorrectly(
+        { buildStatus: 'running', status: 'running'},
+        { buildStatus: 'success' },
+        { buildStatus: 'success' },
+        'running');
+    });
+
+    it('should update with correct status when extractionStatus turns to running', async () => {
+      await shouldUpdateCorrectly(
+        { buildStatus: 'success', status: 'running'},
+        { extractionStatus: 'running' },
+        { extractionStatus: 'running' },
+        'running');
+    });
+
+    it('should update with correct status when extractionStatus turns to success', async () => {
+      const deployment = await shouldUpdateCorrectly(
+        { buildStatus: 'success', status: 'running', extractionStatus: 'running'},
+        { extractionStatus: 'success' },
+        { extractionStatus: 'success' },
+        'running');
+      expect(deployment!.url).to.exist;
+    });
+
+    it('should update with correct status when extractionStatus turns to failed', async () => {
+      await shouldUpdateCorrectly(
+        { buildStatus: 'success', status: 'running', extractionStatus: 'running'},
+        { extractionStatus: 'failed' },
+        { extractionStatus: 'failed', status: 'failed' },
+        'failed');
+    });
+
+    it('should update with correct status when screenshot turns to running', async () => {
+      const deployment = await shouldUpdateCorrectly(
+        { buildStatus: 'success', extractionStatus: 'success', status: 'running' },
+        { screenshotStatus: 'running' },
+        { screenshotStatus: 'running' },
+        'running');
+      expect(deployment!.finishedAt).to.not.exist;
+    });
+
+    it('should update with correct status when screenshot turns to success', async () => {
+      const deployment = await shouldUpdateCorrectly(
+        { buildStatus: 'success', extractionStatus: 'success', status: 'running' },
+        { screenshotStatus: 'success' },
+        { screenshotStatus: 'success', status: 'success' },
+        'success');
+      expect(deployment!.screenshot).to.exist;
+      expect(deployment!.finishedAt).to.exist;
+    });
+
+    it('should update with correct status when screenshot turns to failed', async () => {
+      const deployment = await shouldUpdateCorrectly(
+        { buildStatus: 'success', extractionStatus: 'success', status: 'running' },
+        { screenshotStatus: 'failed' },
+        { screenshotStatus: 'failed', status: 'success' },
+        'success');
+      expect(deployment!.finishedAt).to.exist;
+    });
+
+    it('should not update if there is nothing to update', async () => {
+      await shouldNotUpdate(
+        { },
+        { },
+        { },
+        'pending');
+    });
+
+    it('should not update if buildStatus is already running', async () => {
+      await shouldNotUpdate(
+        { buildStatus: 'running', status: 'running' },
+        { buildStatus: 'running' },
+        { },
+        'running');
+    });
+
+    it('should update with correct status when screenshot turns to success when deployment is already success',
+      async () => {
+      // this can happen when we recreate screenshots for deployments
+      // that were successfully created but screenshots failed for some reason
+      await shouldUpdateCorrectly(
+        { buildStatus: 'success', extractionStatus: 'success', status: 'success', screenshotStatus: 'failed' },
+        { screenshotStatus: 'success' },
+        { screenshotStatus: 'success' }, // note that overall deployment status does not update
+        'success');
     });
 
   });

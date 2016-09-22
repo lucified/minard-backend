@@ -15,6 +15,7 @@ import {
 } from '../project';
 
 import {
+  DeploymentEvent,
   DeploymentModule,
   MinardDeployment,
 } from '../deployment';
@@ -89,20 +90,11 @@ export default class OperationsModule {
 
   private async assureScreenshotsGeneratedForDeployments(projectId: number, deployments: MinardDeployment[]) {
     const filtered = deployments.filter((deployment: MinardDeployment) =>
-      deployment.status === 'success'
-      && this.deploymentModule.isDeploymentReadyToServe(projectId, deployment.id));
+      deployment.extractionStatus === 'success' && deployment.screenshotStatus === 'failed');
     for (let j = 0; j < filtered.length; j++) {
       const deployment = deployments[j];
-      const hasScreenshot = await this.screenshotModule
-        .deploymentHasScreenshot(projectId, deployment.id);
-      if (!hasScreenshot) {
-        this.logger.info(`Creating missing screenshot for deployment ${deployment.id} of project ${projectId}.`);
-        try {
-          await this.screenshotModule.takeScreenshot(projectId, deployment.id);
-        } catch (err) {
-          this.logger.warn(`Failed to take screenshot for deployment ${deployment.id} of project ${projectId}.`);
-        }
-      }
+      this.logger.info(`Creating missing screenshot for deployment ${deployment.id} of project ${projectId}.`);
+      await this.deploymentModule.takeScreenshot(projectId, deployment.id);
     }
   }
 
@@ -141,10 +133,17 @@ export default class OperationsModule {
       const missing = await this.getMissingDeploymentActivityForProject(projectId);
       await Promise.all(missing.map(async item => {
         this.logger.info(`Creating missing deployment activity for ${item.projectId}-${item.deploymentId}`);
-        const activity = await this.activityModule.createDeploymentActivity(item.projectId, item.deploymentId);
-        const hasScreenshot = await this.screenshotModule.deploymentHasScreenshot(projectId, item.deploymentId);
-        activity.deployment.screenshot = hasScreenshot ? this.screenshotModule
-          .getPublicUrl(projectId, item.deploymentId) : undefined;
+        const deployment = await this.deploymentModule.getDeployment(item.deploymentId);
+        if (!deployment) {
+          throw Error('Could not get deployment');
+        }
+        const event: DeploymentEvent = {
+          deployment,
+          statusUpdate: {
+            status: deployment.status,
+          },
+        };
+        const activity = await this.activityModule.createDeploymentActivity(event);
         await this.activityModule.addActivity(activity);
       }));
     } catch (err) {

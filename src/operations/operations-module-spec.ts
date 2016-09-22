@@ -18,22 +18,25 @@ describe('operations-module', () => {
     const _deploymentId = 10;
 
     function arrangeOperationsModule(
-      deploymentStatus: string,
-      isReadyToServe: boolean,
-      hasScreenshot: boolean,
+      buildStatus: string,
+      extractionStatus: string,
+      screenshotStatus: string,
       callback: () => void) {
       class MockDeploymentModule {
         public async getProjectDeployments(projectId: number) {
           expect(projectId).to.equal(_projectId);
           return [{
             id: _deploymentId,
-            status: deploymentStatus,
+            buildStatus,
+            screenshotStatus,
+            extractionStatus,
           }];
         }
-        public isDeploymentReadyToServe(projectId: number, deploymentId: number) {
+        public async takeScreenshot(projectId: number, deploymentId: number) {
           expect(projectId).to.equal(_projectId);
           expect(deploymentId).to.equal(_deploymentId);
-          return isReadyToServe;
+          callback();
+          return [_projectId];
         }
       }
       class MockProjectModule {
@@ -41,40 +44,34 @@ describe('operations-module', () => {
           return [_projectId];
         }
       }
-      class MockScreenshotModule {
-        public async takeScreenshot(projectId: number, deploymentId: number) {
-          expect(projectId).to.equal(_projectId);
-          expect(deploymentId).to.equal(_deploymentId);
-          callback();
-          return [_projectId];
-        }
-        public async deploymentHasScreenshot(projectId: number, deploymentId: number) {
-          return hasScreenshot;
-        }
-      }
       const eventBus = new LocalEventBus();
       return new OperationsModule(
         new MockProjectModule() as ProjectModule,
         new MockDeploymentModule() as any,
-        new MockScreenshotModule() as any,
+        {} as any,
         eventBus, logger, {} as any);
     }
 
     it('should create missing screenshot for extracted deployment', async () => {
       let called = false;
-      const operationsModule = arrangeOperationsModule('success', true, false, () => called = true );
+      const operationsModule = arrangeOperationsModule(
+          'success', 'success', 'failed', () => called = true );
       await operationsModule.assureScreenshotsGenerated();
       expect(called).to.equal(true);
     });
-    it('should not create screenshot for non-extracted, but successful deployment', async () => {
+
+    it('should not create screenshot for deployment with success build thas has not been extracted', async () => {
       let called = false;
-      const operationsModule = arrangeOperationsModule('success', false, false, () => called = true );
+      const operationsModule = arrangeOperationsModule(
+          'success', 'failed', 'failed', () => called = true );
       await operationsModule.assureScreenshotsGenerated();
       expect(called).to.equal(false);
     });
+
     it('should not create screenshot deployment that already has one', async () => {
       let called = false;
-      const operationsModule = arrangeOperationsModule('success', true, true, () => called = true );
+      const operationsModule = arrangeOperationsModule(
+          'success', 'success', 'success', () => called = true );
       await operationsModule.assureScreenshotsGenerated();
       expect(called).to.equal(false);
     });
@@ -91,12 +88,14 @@ describe('operations-module', () => {
           return [{
             id: _deploymentId,
             status: 'success',
+            extractionStatus: 'success',
+            screenshotStatus: 'failed',
           }];
         }
-        public isDeploymentReadyToServe(projectId: number, deploymentId: number) {
+        public async takeScreenshot(projectId: number, deploymentId: number) {
           expect(projectId).to.equal(_projectId);
           expect(deploymentId).to.equal(_deploymentId);
-          return true;
+          called = true;
         }
       }
       class MockProjectModule {
@@ -104,21 +103,12 @@ describe('operations-module', () => {
           return [failProjectId, _projectId];
         }
       }
-      class MockScreenshotModule {
-        public async takeScreenshot(projectId: number, deploymentId: number) {
-          expect(projectId).to.equal(_projectId);
-          expect(deploymentId).to.equal(_deploymentId);
-          called = true;
-        }
-        public async deploymentHasScreenshot(projectId: number, deploymentId: number) {
-          return false;
-        }
-      }
+
       const eventBus = new LocalEventBus();
       const operationsModule = new OperationsModule(
         new MockProjectModule() as ProjectModule,
         new MockDeploymentModule() as any,
-        new MockScreenshotModule() as ScreenshotModule,
+        {} as any,
         eventBus, logger, {} as any);
 
       // Act
@@ -137,20 +127,10 @@ describe('operations-module', () => {
           return [{
             id: _deploymentId,
             status: 'success',
+            extractionStatus: 'success',
+            screenshotStatus: 'failed',
           }];
         }
-        public isDeploymentReadyToServe(projectId: number, deploymentId: number) {
-          expect(projectId).to.equal(_projectId);
-          expect(deploymentId).to.equal(_deploymentId);
-          return true;
-        }
-      }
-      class MockProjectModule {
-        public async getAllProjectIds() {
-          return [_projectId, failProjectId];
-        }
-      }
-      class MockScreenshotModule {
         public async takeScreenshot(projectId: number, deploymentId: number) {
           if (projectId === failProjectId) {
             throw Error('failed to take screenshot');
@@ -159,15 +139,17 @@ describe('operations-module', () => {
           expect(deploymentId).to.equal(_deploymentId);
           called = true;
         }
-        public async deploymentHasScreenshot(projectId: number, deploymentId: number) {
-          return false;
+      }
+      class MockProjectModule {
+        public async getAllProjectIds() {
+          return [_projectId, failProjectId];
         }
       }
       const eventBus = new LocalEventBus();
       const operationsModule = new OperationsModule(
         new MockProjectModule() as ProjectModule,
         new MockDeploymentModule() as any,
-        new MockScreenshotModule() as ScreenshotModule,
+        {} as ScreenshotModule,
         eventBus, logger, {} as any);
 
       // Act

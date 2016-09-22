@@ -13,3 +13,7 @@ export function toApiCommitId(projectId: number, sha: string) {
 export function toApiBranchId(projectId: number, branchName: string) {
   return `${projectId}-${branchName}`;
 }
+
+export function toApiDeploymentId(projectId: number, deploymentId: number) {
+  return `${projectId}-${deploymentId}`;
+}

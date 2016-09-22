@@ -34,7 +34,6 @@ const exampleDeploymentOne = {
 const exampleDeploymentTwo = {
   id: '1-2',
   url: 'http://www.foobarbar.com',
-  finished_at: '2015-12-24T19:54:31.198Z',
   status: 'success',
   creator: {
     name: 'Barwoman',
@@ -120,7 +119,7 @@ const exampleActivity = {
   activityType: 'deployment',
   deployment: exampleDeploymentOne,
   commit: exampleCommitOne,
-  timestamp: exampleDeploymentOne.finished_at,
+  timestamp: exampleDeploymentOne.creator!.timestamp,
 } as ApiActivity;
 
 describe('json-api serialization', () => {

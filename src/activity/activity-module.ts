@@ -1,21 +1,13 @@
 
-import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
 import * as Knex from 'knex';
 import * as moment from 'moment';
-
-import { toGitlabTimestamp, toMoment } from '../shared/time-conversion';
 
 import {
   DEPLOYMENT_EVENT_TYPE,
   DeploymentEvent,
   DeploymentModule,
 } from '../deployment';
-
-import {
-  SCREENSHOT_EVENT_TYPE,
-  ScreenshotEvent,
-} from '../screenshot';
 
 import {
   Event,
@@ -73,70 +65,44 @@ export default class ActivityModule {
     this.logger = logger;
     this.eventBus = eventBus;
     this.knex = knex;
-    this.subscribeForFailedDeployments();
-    this.subscribeForSuccessfulDeployments();
+    this.subscribeForFinishedDeployments();
   }
 
-  public async subscribeForFailedDeployments() {
+  public async subscribeForFinishedDeployments() {
     this.eventBus.filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
-      .filter(event => event.payload.status === 'failed')
-      .flatMap(event => this.handleFailedDeployment(event))
+      .filter(event => event.payload.statusUpdate.status === 'failed'
+        || event.payload.statusUpdate.status === 'success')
+      .flatMap(event => this.handleFinishedDeployment(event))
       .subscribe();
   }
 
-  private async handleFailedDeployment(event: Event<DeploymentEvent>) {
+  private async handleFinishedDeployment(event: Event<DeploymentEvent>) {
     try {
-      const projectId = event.payload.projectId;
-      const deploymentId = event.payload.id;
-      if (!projectId) {
-        throw Boom.badImplementation();
-      }
-      const activity = await this.createDeploymentActivity(projectId, deploymentId);
-      activity.deployment.status = 'failed';
+      const activity = this.createDeploymentActivity(event.payload);
       await this.addActivity(activity);
-    } catch (err) {
-      this.logger.error('Failed to add activity based on failed deployment event', err);
+    } catch (error) {
+      this.logger.error('Failed to add activity based on deployment event', { error, event });
     }
   }
 
-  public async subscribeForSuccessfulDeployments() {
-    this.eventBus.filterEvents<ScreenshotEvent>(SCREENSHOT_EVENT_TYPE)
-      .flatMap(event => this.handleSuccessfulDeployment(event))
-      .subscribe();
-  }
-
-  private async handleSuccessfulDeployment(event: Event<ScreenshotEvent>) {
-    try {
-      const activity = await this.createDeploymentActivity(event.payload.projectId, event.payload.deploymentId);
-      activity.deployment.status = 'success';
-      activity.deployment.screenshot = event.payload.url;
-      await this.addActivity(activity);
-    } catch (err) {
-      this.logger.error('Failed to add activity based on screenshot event', err);
-    }
-  }
-
-  public async createDeploymentActivity(projectId: number, deploymentId: number): Promise<MinardActivity> {
-    const [ project, deployment ] = await Promise.all([
-      this.projectModule.getProject(projectId),
-      this.deploymentModule.getDeployment(projectId, deploymentId),
-    ]);
-    if (!project || !deployment) {
-      throw Boom.badImplementation();
-    }
+  public createDeploymentActivity(event: DeploymentEvent): MinardActivity {
+    const deployment = event.deployment;
     const branch = deployment.ref;
-    const commit = this.projectModule.toMinardCommit(deployment.commitRef);
-    // This is a bit clumsy, but gitlab may not have yet updated its finished_at info
-    // when we are creating this event. Thus we set the field to the current date
-    // if the info is not included in the deployment
-    const finishedAt = deployment.finished_at = deployment.finished_at || toGitlabTimestamp(moment());
+    const commit = deployment.commit;
+
+    let timestamp = deployment.finishedAt;
+    if (!timestamp) {
+      this.logger.warn(`Finished deployment ${deployment.id} did not have finishedAt defined`);
+      timestamp = moment();
+    }
+
     return {
       activityType: 'deployment',
-      projectId,
-      projectName: project.name,
+      projectId: deployment.projectId,
+      projectName: deployment.projectName,
       branch,
       commit,
-      timestamp: toMoment(finishedAt),
+      timestamp,
       deployment,
       teamId: 1,
     };

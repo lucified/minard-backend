@@ -11,13 +11,20 @@ import {
   ApiProject,
   JsonApiHapiPlugin,
   JsonApiModule,
+  toApiBranchId,
   toApiCommitId,
+  toApiDeploymentId,
 } from '../json-api';
 
 import logger from '../shared/logger';
 import { RealtimeHapiPlugin } from './realtime-hapi-plugin';
 
 import { promisify } from '../shared/promisify';
+
+import {
+  DeploymentEvent,
+  createDeploymentEvent,
+} from '../deployment';
 
 import {
   CodePushedEvent,
@@ -29,6 +36,7 @@ import {
 
 import {
   StreamingCodePushedEvent,
+  StreamingDeploymentEvent,
 } from './types';
 
 function getPlugin(bus: PersistentEventBus, factory: any) {
@@ -194,6 +202,50 @@ describe('realtime-hapi-plugin', () => {
       expect(createdPayload.commits[0].id).to.equal(toApiCommitId(projectId, payload.commits[0].id));
       expect(createdPayload.commits[0].type).to.equal('commits');
       expect(createdPayload.commits[0].attributes.message).to.equal(payload.commits[0].message);
+    });
+  });
+
+  describe('DeploymentEvent', () => {
+    beforeEach(clearDb);
+
+    it('is transformed correctly to StreamingDeploymentEvent', async () => {
+      const branchName = 'foo-branch-name';
+      const projectId = 5;
+      const mockFactory = () => ({
+        toApiDeployment: JsonApiModule.prototype.toApiDeployment,
+      });
+      const eventBus = getEventBus();
+      const plugin = getPlugin(eventBus, mockFactory);
+
+      // Act
+      const payload: DeploymentEvent = {
+        deployment: {
+          buildStatus: 'pending',
+          commit: {
+            id: 'foo-commit-id',
+          } as any,
+          commitHash: 'foo-commit-id',
+          projectId,
+          ref: branchName,
+          projectName: 'foo-project-name',
+          id: 6,
+        } as any,
+        statusUpdate: {} as any,
+      };
+      const promise = plugin.persistedEvents.take(1).toPromise();
+      const event = createDeploymentEvent(payload);
+      eventBus.post(event);
+
+      const created = await promise;
+
+      // Assert
+      expect(created.type).to.equal('SSE_DEPLOYMENT_UPDATED');
+      const createdPayload = created.payload as StreamingDeploymentEvent;
+      expect(createdPayload.project).to.equal(String(projectId));
+      expect(createdPayload.branch).to.equal(toApiBranchId(projectId, branchName));
+      expect(createdPayload.deployment.id).to.equal(toApiDeploymentId(projectId, 6));
+      expect(createdPayload.deployment.type).to.equal('deployments');
+      expect(createdPayload.commit).to.equal(toApiCommitId(projectId, payload.deployment.commitHash));
     });
   });
 

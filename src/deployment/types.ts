@@ -1,33 +1,47 @@
+
+import * as moment from 'moment';
+
 import { eventCreator } from '../shared/events';
-import { Deployment, DeploymentStatus } from '../shared/gitlab';
+import { BuildStatus } from '../shared/gitlab';
+import { MinardCommit } from '../shared/minard-commit';
 
 export const deploymentUrlPatternInjectSymbol = Symbol('deployment-url-pattern');
 
-export type Deployment = Deployment;
-export type DeploymentStatus = DeploymentStatus;
-
-export interface DeploymentEvent {
-  readonly id: number;
-  readonly status: DeploymentStatus;
-  readonly projectId?: number;
+export interface DeploymentStatusUpdate {
+  buildStatus?: MinardDeploymentStatus;
+  extractionStatus?: MinardDeploymentStatus;
+  screenshotStatus?: MinardDeploymentStatus;
+  status?: MinardDeploymentStatus;
 }
 
-export const DEPLOYMENT_EVENT_TYPE = 'DEPLOYMENT_EVENT_TYPE';
+export interface BuildStatusEvent {
+  readonly deploymentId: number;
+  readonly status: BuildStatus;
+}
+
+export interface DeploymentEvent {
+  readonly statusUpdate: DeploymentStatusUpdate;
+  readonly deployment: MinardDeployment;
+}
+
+export const BUILD_STATUS_EVENT_TYPE = 'BUILD_STATUS_EVENT';
+export const createBuildStatusEvent =
+  eventCreator<BuildStatusEvent>(BUILD_STATUS_EVENT_TYPE);
+
+export const DEPLOYMENT_EVENT_TYPE = 'DEPLOYMENT_UPDATED';
 export const createDeploymentEvent =
   eventCreator<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE);
+
+export const BUILD_CREATED_EVENT = 'BUILD_CREATED_EVENT';
+export const createBuildCreatedEvent =
+  eventCreator<BuildCreatedEvent>(BUILD_CREATED_EVENT);
 
 export interface DeploymentKey {
   projectId: number;
   deploymentId: number;
 }
 
-export interface MinardDeploymentPlain {
-  ref: string;
-  status: string;
-  url?: string;
-  finished_at: string;
-  creator: MinardDeploymentCreator;
-}
+export type MinardDeploymentStatus = 'pending' | 'running' | 'success' | 'failed' | 'canceled';
 
 export interface MinardDeploymentCreator {
   name: string;
@@ -35,9 +49,22 @@ export interface MinardDeploymentCreator {
   timestamp: string;
 }
 
-export interface MinardDeployment extends MinardDeploymentPlain {
+export interface MinardDeployment {
   id: number;
-  commitRef: any;
+  commit: MinardCommit;
+  commitHash: string;
+  ref: string;
+  buildStatus: MinardDeploymentStatus;
+  extractionStatus: MinardDeploymentStatus;
+  screenshotStatus: MinardDeploymentStatus;
+  status: MinardDeploymentStatus;
+  url?: string;
+  screenshot?: string;
+  finishedAt?: moment.Moment;
+  createdAt: moment.Moment;
+  creator?: MinardDeploymentCreator;
+  projectId: number;
+  projectName: string;
 }
 
 export interface MinardJsonBuildCommand {
@@ -90,12 +117,12 @@ export interface RepositoryObject {
   mode: string;
 }
 
-export interface BuildCreated {
+export interface BuildCreatedEvent {
   id: number;
   ref: string;
   tag: boolean;
   sha: string;
-  status: DeploymentStatus;
+  status: BuildStatus;
   name: string;
   token: string;
   stage: string;

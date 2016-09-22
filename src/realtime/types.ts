@@ -12,3 +12,10 @@ export interface StreamingCodePushedEvent {
   branch: JsonApiEntity | string;
   project: string;
 }
+
+export interface StreamingDeploymentEvent {
+  deployment: JsonApiEntity;
+  commit: string;
+  project: string;
+  branch: string;
+}

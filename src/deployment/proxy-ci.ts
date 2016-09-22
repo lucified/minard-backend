@@ -11,7 +11,12 @@ import { EventBus, eventBusInjectSymbol } from '../event-bus';
 import { HapiRegister } from '../server/hapi-register';
 import { gitlabHostInjectSymbol } from '../shared/gitlab-client';
 import * as logger from '../shared/logger';
-import { BuildCreated, createDeploymentEvent } from './types';
+
+import {
+  BuildCreatedEvent,
+  createBuildCreatedEvent,
+  createBuildStatusEvent,
+} from './types';
 
 @injectable()
 export class CIProxy {
@@ -50,11 +55,9 @@ export class CIProxy {
         version: '1.0.0',
       },
     });
-
   }
 
   private _register(server: Hapi.Server, _options: Hapi.IServerOptions, next: () => void) {
-
     const config = {
       payload: {
         output: 'stream',
@@ -101,7 +104,7 @@ export class CIProxy {
         .then(JSON.parse)
         .then(payload => this.postEvent(id, payload.state))
         .catch(err => {
-          console.log(err);
+          this.logger.warn(err.message, err);
         });
     } catch (err) {
       console.log(err);
@@ -109,14 +112,23 @@ export class CIProxy {
     reply.proxy(this.proxyOptions);
   }
 
-  private postEvent(deploymentId: number, status: string, projectId?: number) {
-    const event = createDeploymentEvent({
-      id: deploymentId,
-      status,
-      projectId: projectId || undefined,
-    } as any);
-    this.eventBus.post(event);
-    return event;
+  private postEvent(deploymentId: number, status: string) {
+    if (status === 'success'
+      || status === 'failed'
+      || status === 'canceled'
+      || status === 'pending'
+      || status === 'running') {
+      const event = createBuildStatusEvent({
+        deploymentId,
+        status: status as 'success' | 'failed' | 'canceled' | 'pending' | 'running',
+      });
+      this.eventBus.post(event);
+      return event;
+    } else {
+      this.logger.warn(
+        `Deployments status was ${status} for deployment ${deploymentId}. Not posting build status event.`);
+    }
+    return undefined;
   }
 
   private postReplyHandler(
@@ -146,8 +158,8 @@ export class CIProxy {
       return this.collectStream(response)
         .then(JSON.parse)
         .then(_payload => {
-          const payload = _payload as BuildCreated;
-          this.postEvent(payload.id, payload.status, payload.project_id);
+          const payload = _payload as BuildCreatedEvent;
+          this.eventBus.post(createBuildCreatedEvent(payload));
           return reply(payload).charset('').code(201);
         })
         .catch(_err => Promise.resolve(reply(_err)));

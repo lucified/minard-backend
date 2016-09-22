@@ -3,17 +3,19 @@ import { expect } from 'chai';
 import * as moment from 'moment';
 import 'reflect-metadata';
 
-import { DeploymentModule } from '../deployment';
 import { LocalEventBus } from '../event-bus';
-import { ProjectModule } from '../project';
 
 import {
+  MinardCommit,
+} from '../shared/minard-commit';
+
+import {
+  DeploymentEvent,
+  MinardDeployment,
   createDeploymentEvent,
 } from '../deployment';
 
-import {
-  createScreenshotEvent,
-} from '../screenshot';
+import Logger from '../shared/logger';
 
 import ActivityModule, {
   toDbActivity,
@@ -29,6 +31,8 @@ import * as Knex from 'knex';
 function getEventBus() {
   return new LocalEventBus();
 }
+
+const logger = Logger(undefined, true);
 
 describe('activity-module', () => {
 
@@ -244,60 +248,70 @@ describe('activity-module', () => {
     });
   });
 
-  describe('subscribeForFailedDeployments', () => {
+  describe('subscribeForFinishedDeployments', () => {
 
     const projectId = 5;
     const deploymentId = 6;
-    const url = 'foo';
+    const ref = 'master';
+
+    const deployment: MinardDeployment = {
+      projectId,
+      deploymentId,
+      commit: {
+        message: 'foo',
+      } as any,
+      ref,
+      finishedAt: '2016-08-11T07:36:40.222Z',
+    } as any;
+
+    async function shouldCreateActivity(status: 'failed' | 'success') {
+      // Arrange
+      const bus = getEventBus();
+      const activityModule = new ActivityModule(
+        {} as any,
+        {} as any,
+        {} as any,
+        bus,
+        {} as any);
+
+      const promise = new Promise((resolve, reject) => {
+        activityModule.addActivity = async (_activity: MinardActivity) => {
+          try {
+            expect(_activity.projectId).to.equal(projectId);
+            expect(_activity.deployment).to.deep.equal(deployment);
+            expect(_activity.branch).to.equal(deployment.ref);
+            expect(_activity.projectName).to.equal(deployment.projectName);
+            expect(_activity.commit).to.deep.equal(deployment.commit);
+            expect(_activity.activityType).to.equal('deployment');
+          } catch (err) {
+            reject(err);
+          }
+          resolve();
+        };
+      });
+
+      // Act
+      const event = createDeploymentEvent({
+        deployment,
+        statusUpdate: {
+          status,
+        },
+      });
+      bus.post(event);
+
+      // Assert
+      await promise;
+    }
 
     it('should create activity for failed deployment', async () => {
-      // Arrange
-      const bus = getEventBus();
-
-      const activityModule = new ActivityModule(
-        {} as any,
-        {} as any,
-        {} as any,
-        bus,
-        {} as any);
-
-      activityModule.createDeploymentActivity = async (_projectId: number, _deploymentId: number) => {
-        return {
-          projectId: _projectId,
-          deployment: {
-            id: _deploymentId,
-            url,
-          },
-        };
-      };
-
-      const promise = new Promise((resolve, reject) => {
-        activityModule.addActivity = async (_activity: MinardActivity) => {
-          try {
-            expect(_activity.projectId).to.equal(projectId);
-            expect(_activity.deployment.id).to.equal(deploymentId);
-            expect(_activity.deployment.url).to.equal(url);
-            expect(_activity.deployment.status).to.equal('failed');
-          } catch (err) {
-            reject(err);
-          }
-          resolve();
-        };
-      });
-
-      // Act
-      const event = createDeploymentEvent({
-        projectId,
-        id: deploymentId,
-        status: 'failed',
-      });
-      bus.post(event);
-
-      // Assert
-      await promise;
+     await shouldCreateActivity('failed');
     });
 
-    it('should not create activity for succesfull deployment', async () => {
+    it('should create activity for succesful deployment', async () => {
+      await shouldCreateActivity('success');
+    });
+
+    it('should not create activity for running deployment', async () => {
       // Arrange
       const bus = getEventBus();
       const activityModule = new ActivityModule(
@@ -307,77 +321,20 @@ describe('activity-module', () => {
         bus,
         {} as any);
 
-      let called: string | null = null;
-      activityModule.createDeploymentActivity = async (_projectId: number, _deploymentId: number) => {
-       called = 'createDeploymentActivity was called';
-      };
-
+      let called = false;
       activityModule.addActivity = async (_activity: MinardActivity) => {
-       called = 'addActivity was called';
+        called = true;
       };
 
       // Act
       const event = createDeploymentEvent({
-        projectId,
-        id: deploymentId,
-        status: 'success',
+        deployment,
+        statusUpdate: {
+          status: 'running',
+        },
       });
       bus.post(event);
-
-      if (called) {
-        expect.fail(null, null, called!);
-      }
-    });
-
-  });
-
-  describe('subscribeForSuccessfulDeployments', () => {
-    it('should create activity for screenshot event', async () => {
-      // Arrange
-      const projectId = 5;
-      const deploymentId = 6;
-      const screenshot = 'http://foo-bar.com';
-      const bus = getEventBus();
-      const activityModule = new ActivityModule(
-        {} as any,
-        {} as any,
-        {} as any,
-        bus,
-        {} as any);
-
-      activityModule.createDeploymentActivity = async (_projectId: number, _deploymentId: number) => {
-        return {
-          projectId: _projectId,
-          deployment: {
-            id: _deploymentId,
-          },
-        };
-      };
-
-      const promise = new Promise((resolve, reject) => {
-        activityModule.addActivity = async (_activity: MinardActivity) => {
-          try {
-            expect(_activity.projectId).to.equal(projectId);
-            expect(_activity.deployment.id).to.equal(deploymentId);
-            expect(_activity.deployment.screenshot).to.equal(screenshot);
-            expect(_activity.deployment.status).to.equal('success');
-          } catch (err) {
-            reject(err);
-          }
-          resolve();
-        };
-      });
-
-      // Act
-      const event = createScreenshotEvent({
-        projectId,
-        deploymentId,
-        url: screenshot,
-      });
-      bus.post(event);
-
-      // Assert
-      await promise;
+      expect(called).to.be.false;
     });
 
   });
@@ -386,49 +343,54 @@ describe('activity-module', () => {
     const projectId = 5;
     const deploymentId = 6;
     const projectName = 'foo';
-    const branchName = 'master';
-    const finishedAt = '2016-08-11T07:36:40.222Z';
-    const commitRef = {
-      'id': '6104942438c14ec7bd21c6cd5bd995272b3faff6',
-      'author_name': 'randx',
-      'author_email': 'dmitriy.zaporozhets@gmail.com',
-    };
+    const branch = 'master';
 
-    it('should return correct activity when fetching related data succeeds', async () => {
-      const projectModule = {} as ProjectModule;
-      projectModule.toMinardCommit = ProjectModule.prototype.toMinardCommit;
-      projectModule.getProject = async (_projectId: number) => {
-        return {
-          id: _projectId,
-          name: projectName,
-        };
-      };
-      const deploymentModule = {} as DeploymentModule;
-      deploymentModule.getDeployment = async (_projectId: number, _deploymentId: number) => {
-        return {
-          id: _deploymentId,
-          ref: branchName,
-          finished_at: finishedAt,
-          commitRef,
-        };
-      };
+    it('should return correct activity ', () => {
+      // Arrange
+      const teamId = 1;
+      const timestamp = moment();
+      const commit = {
+        id: 'foo-commit-id',
+        message: 'foo-message',
+      } as MinardCommit;
+      const deployment = {
+        deploymentId,
+        ref: branch,
+        commit,
+        commitHash: commit.id,
+        finishedAt: timestamp,
+        projectId,
+        projectName,
+      } as {} as MinardDeployment;
 
       const activityModule = new ActivityModule(
-        projectModule,
-        deploymentModule,
         {} as any,
-        getEventBus(),
+        {} as any,
+        logger,
+        {} as any,
         {} as any);
 
-      const activity = await activityModule.createDeploymentActivity(projectId, deploymentId);
-      expect(activity.activityType).to.equal('deployment');
-      expect(activity.projectId).to.equal(projectId);
-      expect(activity.projectName).to.equal(projectName);
-      expect(activity.branch).to.equal(branchName);
-      expect(activity.teamId).to.equal(1);
-      expect(activity.deployment.id).to.equal(deploymentId);
-      expect(activity.timestamp.isSame(moment(finishedAt))).to.equal(true);
-      expect(activity.commit.author.name).to.equal(commitRef.author_name);
+      // Act
+      const event: DeploymentEvent = {
+        deployment,
+        statusUpdate: {
+          status: 'success',
+        },
+      };
+      const activity = activityModule.createDeploymentActivity(event);
+
+      // Assert
+      const expected: MinardActivity = {
+        activityType: 'deployment',
+        projectId,
+        branch,
+        projectName,
+        teamId,
+        timestamp,
+        deployment,
+        commit,
+      };
+      expect(activity).to.deep.equal(expected);
     });
 
   });

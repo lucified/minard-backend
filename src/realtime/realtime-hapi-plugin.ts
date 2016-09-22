@@ -17,6 +17,11 @@ import {
 } from '../json-api';
 
 import {
+  DeploymentEvent,
+  createDeploymentEvent,
+} from '../deployment';
+
+import {
   CodePushedEvent,
   ProjectCreatedEvent,
   ProjectDeletedEvent,
@@ -34,6 +39,7 @@ import {
 
 import {
   StreamingCodePushedEvent,
+  StreamingDeploymentEvent,
 } from './types';
 
 import { PersistentEventBus, eventBusInjectSymbol } from '../event-bus/';
@@ -212,6 +218,10 @@ export class RealtimeHapiPlugin {
           return this.activity(event);
         }
 
+        if (isType<DeploymentEvent>(event, createDeploymentEvent)) {
+          return this.deployment(event);
+        }
+
         return Observable.empty<StreamingEvent<any>>();
       }, 3);
   }
@@ -255,6 +265,26 @@ export class RealtimeHapiPlugin {
     const payload: ApiProject = await this.jsonApiPlugin
       .getEntity('project', api => api.getProject(event.payload.id));
     return this.toSSE(event, payload);
+  }
+
+  private async deployment(event: Event<DeploymentEvent>) {
+    try {
+      const deployment = event.payload.deployment;
+      const apiResponse = await this.jsonApiPlugin.getEntity(
+          'deployment', api => api.toApiDeployment(deployment.projectId, deployment));
+
+      const ssePayload: StreamingDeploymentEvent = {
+        branch: toApiBranchId(deployment.projectId, deployment.ref),
+        project: String(deployment.projectId),
+        commit: toApiCommitId(deployment.projectId, deployment.commitHash),
+        deployment: apiResponse.data,
+      };
+      return this.toSSE(Object.assign(event, { teamId: 1 }), ssePayload);
+    } catch (error) {
+      const msg = 'Could not convert DeploymentEvent to streaming event';
+      this.logger.error(msg, { error, event });
+      throw Error(msg);
+    }
   }
 
   private toSSE<T>(event: Event<any>, payload: T): StreamingEvent<T> {

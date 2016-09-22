@@ -34,11 +34,19 @@ export default class Migrations {
 
   private async runMigrations() {
     this.logger.info('Running migrations');
-    const config = {
-      directory: 'migrations/activity',
-      tableName: 'knex_migrations_activity',
-    };
-    await this.charlesKnex.migrate.latest(config);
+    const configs = [
+      {
+        directory: 'migrations/activity',
+        tableName: 'knex_migrations_activity',
+      },
+      {
+        directory: 'migrations/deployment',
+        tableName: 'knex_migrations_deployment',
+      },
+    ];
+    for (let i = 0; i < configs.length; i++) {
+      this.charlesKnex.migrate.latest(configs[i]);
+    }
     this.logger.info('Migrations finished');
   }
 

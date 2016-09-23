@@ -21,6 +21,7 @@ export interface ProjectEditedEvent {
 }
 
 export interface CodePushedEvent {
+  teamId: number;
   projectId: number;
   ref: string;
   before: MinardCommit | null; // null for new branches

@@ -1464,6 +1464,8 @@ describe('project-module', () => {
       ],
     } as GitlabPushEvent;
 
+    const teamId = 6;
+
     it('should produce correct event', async () => {
       // Arrange
       const bus = new LocalEventBus();
@@ -1491,6 +1493,13 @@ describe('project-module', () => {
         };
       };
 
+      projectModule.getProject = async (_projectId: number) => {
+        expect(_projectId).to.equal(gitlabPayload.project_id);
+        return {
+          teamId,
+        };
+      };
+
       const promise = bus.filterEvents<CodePushedEvent>(CODE_PUSHED_EVENT_TYPE)
         .map(event => event.payload)
         .take(1)
@@ -1501,6 +1510,7 @@ describe('project-module', () => {
       const event = await promise;
 
       // Assert
+      expect(event.teamId).to.equal(teamId);
       expect(event.projectId).to.equal(gitlabPayload.project_id);
       expect(event.ref).to.equal('master');
       expect(event.after!.id).to.equal(gitlabPayload.after);

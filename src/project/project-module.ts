@@ -295,11 +295,17 @@ export default class ProjectModule {
   }
 
   public async handlePushEvent(projectId: number, ref: string, payload: GitlabPushEvent) {
-    const [ after, before, mappedCommits ] = await Promise.all([
+    const [ after, before, mappedCommits, project ] = await Promise.all([
       payload.after ? this.getCommit(projectId, payload.after) : Promise.resolve(null),
       payload.before ? this.getCommit(projectId, payload.before) : Promise.resolve(null),
       Promise.all(payload.commits.map(commit => this.getCommit(projectId, commit.id))),
+      this.getProject(projectId),
     ]);
+
+    if (!project) {
+      this.logger.error(`Project ${projectId} not found for push event`, payload);
+      throw Boom.badImplementation();
+    }
 
     // While we don't expect getCommit to return null for these commits,
     // we wish to handle such a situtation cracefully in case it for some
@@ -327,6 +333,7 @@ export default class ProjectModule {
     }) as MinardCommit[];
 
     const event: CodePushedEvent = {
+      teamId: project.teamId,
       projectId: payload.project_id,
       ref,
       after,

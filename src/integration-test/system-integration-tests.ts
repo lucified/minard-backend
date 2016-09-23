@@ -30,8 +30,7 @@ const projectFolder = process.env.SYSTEM_TEST_PROJECT ? process.env.SYSTEM_TEST_
 const charles = process.env.CHARLES ? process.env.CHARLES : 'http://localhost:8000';
 const gitserver = process.env.MINARD_GIT_SERVER ? process.env.MINARD_GIT_SERVER : 'http://localhost:10080';
 const hipchatRoomId = process.env.HIPCHAT_ROOM_ID ? process.env.HIPCHAT_ROOM_ID : 3140019;
-const hipchatAuthToken = process.env.HIPCHAT_AUTH_TOKEN ? process.env.HIPCHAT_AUTH_TOKEN
-  : '9ShixCnlFPcgSNbPrPYmafiaT5g8yiCmKLdAoppY';
+const hipchatAuthToken = process.env.HIPCHAT_AUTH_TOKEN ? process.env.HIPCHAT_AUTH_TOKEN : undefined;
 
 const skipDeleteProject = process.env.SKIP_DELETE_PROJECT ? true : false;
 

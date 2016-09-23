@@ -25,6 +25,7 @@ interface SSE {
   data: any;
 }
 
+const teamId = process.env.TEAM_ID ? process.env.TEAM_ID : 2;
 const flowToken = process.env.FLOWDOCK_FLOW_TOKEN;
 const projectFolder = process.env.SYSTEM_TEST_PROJECT ? process.env.SYSTEM_TEST_PROJECT : 'blank';
 const charles = process.env.CHARLES ? process.env.CHARLES : 'http://localhost:8000';
@@ -126,7 +127,7 @@ describe('system-integration', () => {
   it('should successfully respond to request for team projects', async function() {
     logTitle('Requesting team projects');
     this.timeout(1000 * 30);
-    const url = `${charles}/api/teams/1/relationships/projects`;
+    const url = `${charles}/api/teams/${teamId}/relationships/projects`;
     log(`Using URL ${prettyUrl(url)}`);
     const ret = await fetchWithRetry(url);
     expect(ret.status).to.equal(200);
@@ -169,7 +170,7 @@ describe('system-integration', () => {
           'team': {
             'data': {
               'type': 'teams',
-              'id': 1,
+              'id': teamId,
             },
           },
         },
@@ -256,7 +257,7 @@ describe('system-integration', () => {
     const credentialsFileContent = gitserver.replace(/:(\d+)$/gi, '%3a$1').replace('//', '//root:12345678@') + '\n';
     fs.writeFileSync(`/tmp/git-credentials`, credentialsFileContent, 'utf-8');
     await runCommand('src/integration-test/setup-repo');
-    await runCommand('git', '-C', repoFolder, 'remote', 'add', 'minard', `${gitserver}/root/${projectName}.git`);
+    await runCommand('git', '-C', repoFolder, 'remote', 'add', 'minard', `${gitserver}/test/${projectName}.git`);
     await runCommand('git', '-C', repoFolder, 'push', 'minard', 'master');
   });
 
@@ -405,7 +406,6 @@ describe('system-integration', () => {
     };
     const firstEventId = await editProjectAndListenToEvent(editProjectPayload);
     const secondEventId = await editProjectAndListenToEvent(editProjectPayload);
-
     await testSSEPersistence(firstEventId, secondEventId, 'PROJECT_EDITED');
   });
 
@@ -415,7 +415,7 @@ describe('system-integration', () => {
       body: JSON.stringify(editProjectPayload),
     });
 
-    const eventSource = new EventSource(`${charles}/events/1`); // TODO teamId
+    const eventSource = new EventSource(`${charles}/events/${teamId}`);
     const eventType = 'PROJECT_EDITED';
     const eventPromise = Observable.fromEventPattern(
       (h: any) => eventSource.addEventListener(eventType, h),
@@ -439,9 +439,8 @@ describe('system-integration', () => {
   }
 
   async function testSSEPersistence(lastEventId: string, currentEventId: string, eventType: string) {
-
     const eventSourceInitDict = {headers: {'Last-Event-ID': lastEventId}};
-    const eventSource = new EventSource(`${charles}/events/1`, eventSourceInitDict); // TODO teamId
+    const eventSource = new EventSource(`${charles}/events/${teamId}`, eventSourceInitDict);
     const sseResponse = await Observable.fromEventPattern(
       (h: any) => eventSource.addEventListener(eventType, h),
       (h: any) => eventSource.removeListener(eventType, h),

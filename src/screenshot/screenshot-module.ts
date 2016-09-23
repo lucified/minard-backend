@@ -53,7 +53,7 @@ export default class ScreenshotModule {
 
   public async getDataUrl(projectId: number, deploymentId: number) {
     const path = this.getScreenshotPath(projectId, deploymentId);
-    return await dataURI(path);
+    return dataURI(path);
   }
 
   public async getScreenshotData(projectId: number, deploymentId: number) {

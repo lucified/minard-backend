@@ -82,7 +82,8 @@ export class NotificationModule {
       .filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
       // only post event if status changes
       .filter(event => event.payload.statusUpdate.status !== undefined)
-      .subscribe(event => this.handleDeploymentEvent(event));
+      .flatMap(event => this.handleDeploymentEvent(event))
+      .subscribe();
   }
 
   public async deleteConfiguration(id: number): Promise<void> {

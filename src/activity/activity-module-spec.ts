@@ -250,6 +250,7 @@ describe('activity-module', () => {
 
   describe('subscribeForFinishedDeployments', () => {
 
+    const teamId = 7;
     const projectId = 5;
     const deploymentId = 6;
     const ref = 'master';
@@ -277,6 +278,7 @@ describe('activity-module', () => {
       const promise = new Promise((resolve, reject) => {
         activityModule.addActivity = async (_activity: MinardActivity) => {
           try {
+            expect(_activity.teamId).to.equal(teamId);
             expect(_activity.projectId).to.equal(projectId);
             expect(_activity.deployment).to.deep.equal(deployment);
             expect(_activity.branch).to.equal(deployment.ref);
@@ -292,6 +294,7 @@ describe('activity-module', () => {
 
       // Act
       const event = createDeploymentEvent({
+        teamId,
         deployment,
         statusUpdate: {
           status,
@@ -328,6 +331,7 @@ describe('activity-module', () => {
 
       // Act
       const event = createDeploymentEvent({
+        teamId: 6,
         deployment,
         statusUpdate: {
           status: 'running',
@@ -347,7 +351,7 @@ describe('activity-module', () => {
 
     it('should return correct activity ', () => {
       // Arrange
-      const teamId = 1;
+      const teamId = 8;
       const timestamp = moment();
       const commit = {
         id: 'foo-commit-id',
@@ -372,6 +376,7 @@ describe('activity-module', () => {
 
       // Act
       const event: DeploymentEvent = {
+        teamId,
         deployment,
         statusUpdate: {
           status: 'success',

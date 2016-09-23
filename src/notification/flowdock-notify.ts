@@ -33,14 +33,6 @@ export class FlowdockNotify {
       },
     };
 
-    // if (deployment.screenshot) {
-    //    (<any> body).attachments = [{
-    //       data: deployment.screenshot,
-    //       content_type: 'image/jpeg',
-    //       file_name: 'screenshot.jpg',
-    //     },
-    //   ];
-    // }
     return body;
   }
 

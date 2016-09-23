@@ -64,6 +64,12 @@ import {
   StatusModule,
 } from '../status';
 
+import {
+  FlowdockNotify,
+  HipchatNotify,
+  NotificationModule,
+} from '../notification';
+
 import { SystemHookModule } from '../system-hook';
 import { UserModule } from '../user';
 
@@ -75,6 +81,7 @@ export default new KernelModule(bind => {
   bind(DeploymentModule.injectSymbol).to(DeploymentModule).inSingletonScope();
   bind(JsonApiModule.injectSymbol).to(MemoizedJsonApiModule);
   bind(JsonApiModule.factoryInjectSymbol).toAutoFactory(JsonApiModule.injectSymbol);
+  bind(NotificationModule.injectSymbol).to(NotificationModule).inSingletonScope();
   bind(OperationsModule.injectSymbol).to(OperationsModule);
   bind(ProjectModule.injectSymbol).to(CachedProjectModule).inSingletonScope();
   bind(ScreenshotModule.injectSymbol).to(ScreenshotModule).inSingletonScope();
@@ -96,10 +103,10 @@ export default new KernelModule(bind => {
   bind(CIProxy.injectSymbol).to(CIProxy);
   bind(GitlabClient.injectSymbol).to(GitlabClient).inSingletonScope();
   bind(fetchInjectSymbol).toConstantValue(fetch);
+  bind(FlowdockNotify.injectSymbol).to(FlowdockNotify);
+  bind(HipchatNotify.injectSymbol).to(HipchatNotify);
   bind(MinardServer.injectSymbol).to(MinardServer).inSingletonScope();
   bind(RemoteScreenshotter.injectSymbol).to(RemoteScreenshotter).inSingletonScope();
   bind(Migrations.injectSymbol).to(Migrations);
-
   bind(screenshotterInjectSymbol).to(RemoteScreenshotter);
-
 });

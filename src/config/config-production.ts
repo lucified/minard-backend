@@ -9,7 +9,14 @@ import {
   deploymentUrlPatternInjectSymbol,
 } from '../deployment';
 
-import { externalBaseUrlInjectSymbol, goodOptionsInjectSymbol, hostInjectSymbol, portInjectSymbol} from '../server';
+import {
+  externalBaseUrlInjectSymbol,
+  goodOptionsInjectSymbol,
+  hostInjectSymbol,
+  minardUiBaseUrlInjectSymbol,
+  portInjectSymbol,
+} from '../server';
+
 import { gitBaseUrlInjectSymbol, gitlabHostInjectSymbol } from '../shared/gitlab-client';
 import { loggerInjectSymbol } from '../shared/logger';
 import { systemHookBaseUrlSymbol } from '../system-hook/system-hook-module';
@@ -118,6 +125,9 @@ const DEPLOYMENT_URL_PATTERN = env.DEPLOYMENT_URL_PATTERN ? env.DEPLOYMENT_URL_P
 const SCREENSHOT_URL_PATTERN = env.SCREENSHOT_URL_PATTERN ? env.SCREENSHOT_URL_PATTERN
   : `http://deploy-%s.${HOST_LOOPBACK_IP}.xip.io:${PORT}`;
 
+// Base URL for minard-ui
+const MINARD_UI_BASEURL = env.MINARD_UI_BASEURL ? env.MINARD_UI_BASEURL : `http://localhost:3000`;
+
 // Database configuration
 // ----------------------
 
@@ -225,4 +235,5 @@ export default (kernel: interfaces.Kernel) => {
   kernel.bind(screenshotUrlPattern).toConstantValue(SCREENSHOT_URL_PATTERN);
   kernel.bind(gitBaseUrlInjectSymbol).toConstantValue(EXTERNAL_GIT_BASEURL);
   kernel.bind(cacheInjectSymbol).toConstantValue(cache);
+  kernel.bind(minardUiBaseUrlInjectSymbol).toConstantValue(MINARD_UI_BASEURL);
 };

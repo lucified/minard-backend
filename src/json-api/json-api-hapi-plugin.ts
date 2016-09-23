@@ -289,6 +289,66 @@ export class JsonApiHapiPlugin {
       },
     });
 
+    server.route({
+      method: 'GET',
+      path: '/projects/{projectId}/relationships/notification',
+      handler: {
+        async: this.getProjectNotificationConfigurationsHandler.bind(this),
+      },
+      config: {
+        validate: {
+          params: {
+            projectId: Joi.number().required(),
+          },
+        },
+      },
+    });
+
+    server.route({
+      method: 'DELETE',
+      path: '/notifications/{id}',
+      handler: {
+        async: this.deleteNotificationConfigurationHandler.bind(this),
+      },
+      config: {
+        validate: {
+          params: {
+            id: Joi.number().required(),
+          },
+        },
+      },
+    });
+
+    server.route({
+      method: 'POST',
+      path: '/notifications',
+      handler: {
+        async: this.postNotificationConfigurationHandler.bind(this),
+      },
+      config: {
+        validate: {
+          payload: {
+            data: Joi.object({
+              type: Joi.string().equal('notifications').required(),
+              attributes: Joi.alternatives(
+                Joi.object({
+                  type: Joi.string().equal('flowdock').required(),
+                  projectId: Joi.number().required(),
+                  flowToken: Joi.string().alphanum().required(),
+                }),
+                Joi.object({
+                  type: Joi.string().equal('hipchat').required(),
+                  projectId: Joi.number().required(),
+                  hipchatRoomId: Joi.number().required(),
+                  hipchatAuthToken: Joi.string().required(),
+                })
+              ),
+            }).required(),
+          },
+        },
+      },
+    });
+
     next();
   };
 
@@ -391,6 +451,24 @@ export class JsonApiHapiPlugin {
 
   public getJsonApiModule() {
     return this.factory();
+  }
+
+  public async getProjectNotificationConfigurationsHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    const projectId = (<any> request.params).projectId;
+    return reply(this.getEntity('notification', api => api.getProjectNotificationConfigurations(projectId)));
+  }
+
+  public async postNotificationConfigurationHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    const config = request.payload.data.attributes;
+    const id = await this.factory().createNotificationConfiguration(config);
+    return reply(this.getEntity('notification',
+      api => api.getNotificationConfiguration(id))).created('');
+  }
+
+  public async deleteNotificationConfigurationHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    const id = (<any> request.params).id;
+    await this.factory().deleteNotificationConfiguration(id);
+    return reply({});
   }
 
 }

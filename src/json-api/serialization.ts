@@ -43,6 +43,12 @@ export const commitSerialization = {
   included: true,
 };
 
+export const notificationSerialization = {
+  attributes: ['type', 'flowToken', 'projectId'],
+  ref: standardIdRef,
+  included: false,
+};
+
 export const branchSerialization = (apiBaseUrl: string) => ({
   attributes: [
     'name',
@@ -172,6 +178,7 @@ const serializers: (apiBaseUrl: string) => {[name: string]: any} = apiBaseUrl =>
   'project': projectSerializer(apiBaseUrl),
   'deployment': new Serializer('deployment', deploymentCompoundSerialization),
   'branch': branchSerializer(apiBaseUrl),
+  'notification': new Serializer('notification', notificationSerialization),
 });
 
 export function serializeApiEntity(type: string, entity: ApiEntity | ApiEntities, apiBaseUrl: string) {

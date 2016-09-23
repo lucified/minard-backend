@@ -16,6 +16,9 @@ import {
 } from './types';
 
 const urljoin = require('url-join');
+const dataURI = require('datauri').promise;
+
+import { promisify } from '../shared/promisify';
 
 @injectable()
 export default class ScreenshotModule {
@@ -46,6 +49,16 @@ export default class ScreenshotModule {
 
   public getPublicUrl(projectId: number, deploymentId: number): string {
     return urljoin(this.externalBaseUrl, 'screenshot', String(projectId), String(deploymentId));
+  }
+
+  public async getDataUrl(projectId: number, deploymentId: number) {
+    const path = this.getScreenshotPath(projectId, deploymentId);
+    return dataURI(path);
+  }
+
+  public async getScreenshotData(projectId: number, deploymentId: number) {
+    const path = this.getScreenshotPath(projectId, deploymentId);
+    return promisify(fs.readFile)(path);
   }
 
   public getScreenshotPath(projectId: number, deploymentId: number) {

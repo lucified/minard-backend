@@ -9,6 +9,7 @@
     "boom": "^3.2.2",
     "cache-manager": "^2.1.2",
     "cache-manager-redis": "^0.2.4",
+    "datauri": "^1.0.4",
     "deepcopy": "^0.6.3",
     "eventstore": "^1.8.1",
     "extract-zip": "^1.5.0",

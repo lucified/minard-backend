@@ -68,6 +68,7 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         {} as any,
+        {} as any,
         {} as any);
 
       // Act
@@ -91,6 +92,7 @@ describe('json-api-module', () => {
       };
       const jsonApiModule = new JsonApiModule(
         deploymentModule,
+        {} as any,
         {} as any,
         {} as any,
         {} as any);
@@ -160,6 +162,7 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         {} as any,
+        {} as any,
         {} as any);
 
       // Act
@@ -195,6 +198,7 @@ describe('json-api-module', () => {
         },
       } as any as MinardDeployment;
       const jsonApiModule = new JsonApiModule(
+        {} as any,
         {} as any,
         {} as any,
         {} as any,
@@ -254,6 +258,7 @@ describe('json-api-module', () => {
       const jsonApiModule = new JsonApiModule(
         deploymentModule,
         projectModule,
+        {} as any,
         {} as any,
         {} as any);
 
@@ -320,7 +325,8 @@ describe('json-api-module', () => {
         deploymentModule,
         projectModule,
         {} as any,
-        screenshotModule);
+        screenshotModule,
+        {} as any);
       jsonApiModule.toApiCommit = async(projectId: number, commit: MinardCommit, deployments?: ApiDeployment[]) => {
         expect(commit).to.exist;
         if (commit.id === minardBranch.latestCommit.id) {
@@ -377,7 +383,8 @@ describe('json-api-module', () => {
         deploymentModule,
         projectModule,
         {} as any,
-        screenshotModule);
+        screenshotModule,
+        {} as any);
 
       // Act
       const project = await jsonApiModule.toApiProject(minardProject);

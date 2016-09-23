@@ -284,7 +284,9 @@ describe('project-module', () => {
   });
 
   describe('getProjects()', () => {
+    const teamId = gitlabProjectResponse.namespace.id;
     const gitlabResponse = [gitlabProjectResponse];
+    const path = `/groups/${teamId}/projects`;
 
     const contributors = [{
       name: 'foo',
@@ -293,16 +295,17 @@ describe('project-module', () => {
 
     it('should work when gitlab returns a valid project', async () => {
       // Arrange
-      const projectModule = genericArrangeProjectModule(200, gitlabResponse, '/projects/all');
-      projectModule.getProjectContributors = async (projectId: number) => {
-        expect(projectId).to.equal(gitlabProjectResponse.id);
+      const projectModule = genericArrangeProjectModule(200, gitlabResponse, path);
+      projectModule.getProjectContributors = async (_projectId: number) => {
+        expect(_projectId).to.equal(gitlabProjectResponse.id);
         return contributors;
       };
 
       // Act
-      const projects = await projectModule.getProjects(1);
+      const projects = await projectModule.getProjects(teamId);
 
       // Assert
+      expect(projects![0].teamId).to.equal(teamId);
       expect(projects![0].id).to.equal(3);
       expect(projects![0].name).to.equal('Diaspora Project Site');
       expect(projects![0].activeCommitters).to.exist;
@@ -312,32 +315,32 @@ describe('project-module', () => {
 
     it('should throw if cannot fetch contributors', async () => {
       // Arrange
-      const projectModule = genericArrangeProjectModule(200, gitlabResponse, '/projects/all');
-      projectModule.getProjectContributors = async (projectId: number) => {
-        expect(projectId).to.equal(gitlabProjectResponse.id);
+      const projectModule = genericArrangeProjectModule(200, gitlabResponse, path);
+      projectModule.getProjectContributors = async (_projectId: number) => {
+        expect(_projectId).to.equal(gitlabProjectResponse.id);
         throw Boom.badGateway();
       };
       // Act && Assert
-      await expectServerError(async () => await projectModule.getProjects(1));
+      await expectServerError(async () => await projectModule.getProjects(teamId));
     });
 
     it('should throw if gitlab returns status 500', async () => {
       // Arrange
-      const projectModule = genericArrangeProjectModule(500, gitlabResponse, '/projects/all');
-      projectModule.getProjectContributors = async (projectId: number) => {
-        expect(projectId).to.equal(gitlabProjectResponse.id);
+      const projectModule = genericArrangeProjectModule(500, gitlabResponse, path);
+      projectModule.getProjectContributors = async (_projectId: number) => {
+        expect(_projectId).to.equal(gitlabProjectResponse.id);
         return contributors;
       };
       // Act && Assert
-      await expectServerError(async () => await projectModule.getProjects(1));
+      await expectServerError(async () => await projectModule.getProjects(teamId));
     });
 
     it('should return null if gitlab returns status 404', async () => {
       // Arrange
-      const projectModule = genericArrangeProjectModule(404, gitlabResponse, '/projects/all');
+      const projectModule = genericArrangeProjectModule(404, gitlabResponse, path);
 
       // Act
-      const projects = await projectModule.getProjects(1);
+      const projects = await projectModule.getProjects(teamId);
 
       // Assert
       expect(projects).to.equal(null);

@@ -198,11 +198,9 @@ export default class ProjectModule {
     return projects.map(item => item.id);
   }
 
-  public async getProjects(_teamId: number): Promise<MinardProject[] | null> {
-    // TODO: for now this does not use the teamId for anything.
-    // We just return all projects instead
+   public async getProjectsUsingPath(path: string): Promise<MinardProject[] | null> {
     try {
-      const projects = await this.gitlab.fetchJson<Project[]>(`projects/all`);
+      const projects = await this.gitlab.fetchJson<Project[]>(path);
       if (!projects) {
         return [];
       }
@@ -212,14 +210,21 @@ export default class ProjectModule {
       }));
       return Promise.all(jobs.map(async item =>
         this.toMinardProject(item.project, await item.contributorsPromise || [])));
-
     } catch (err) {
       if (err.isBoom && err.output.statusCode === 404) {
         return null;
       }
-      this.logger.error('Unexpected error when getting projects', err);
+      this.logger.error('Unexpected error when getting all projects', err);
       throw Boom.badGateway();
     }
+  }
+
+  public async getAllProjects(): Promise<MinardProject[] | null> {
+    return this.getProjectsUsingPath(`projects/all`);
+  }
+
+  public async getProjects(teamId: number): Promise<MinardProject[] | null> {
+    return this.getProjectsUsingPath(`groups/${teamId}/projects`);
   }
 
   public async getProjectBranches(projectId: number): Promise<MinardBranch[] | null> {
@@ -240,6 +245,7 @@ export default class ProjectModule {
   private toMinardProject(project: Project, activeCommitters: MinardProjectContributor[]): MinardProject {
     const repoUrl = `${this.gitBaseUrl}/${project.namespace.path}/${project.path}.git`;
     return {
+      teamId: project.namespace.id,
       id: project.id,
       name: project.name,
       path: project.path,

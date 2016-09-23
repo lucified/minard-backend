@@ -56,6 +56,7 @@ export interface MinardProjectPlain {
 
 export interface MinardProject extends MinardProjectPlain {
   id: number;
+  teamId: number;
 }
 
 export interface MinardBranch {

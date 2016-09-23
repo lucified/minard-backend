@@ -49,6 +49,7 @@ function onPreResponse(request: Hapi.Request, reply: Hapi.IReply) {
 export function parseActivityFilter(filter: string | null) {
   const ret = {
     projectId: null as number | null,
+    teamId: null as number | null,
   };
   if (!filter) {
     return ret;
@@ -56,6 +57,11 @@ export function parseActivityFilter(filter: string | null) {
   const projectMatches = filter.match(/^project\[(\d+)\]$/);
   if (projectMatches !== null && projectMatches.length === 2) {
     ret.projectId = Number(projectMatches[1]);
+  }
+
+  const teamIdMatches = filter.match(/^team\[(\d+)\]$/);
+  if (teamIdMatches !== null && teamIdMatches.length === 2) {
+    ret.teamId = Number(teamIdMatches[1]);
   }
   return ret;
 }
@@ -436,17 +442,15 @@ export class JsonApiHapiPlugin {
   private async getActivityHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const filter = request.query.filter as string;
     const filterOptions = parseActivityFilter(filter);
-    const projectId = filterOptions.projectId;
+    const { projectId, teamId } = filterOptions;
     const { until, count } = request.query;
     if (projectId !== null) {
       return reply(this.getEntity('activity', api => api.getProjectActivity(projectId, until, count)));
     }
-    if (filter && !filterOptions.projectId) {
-      // if filter is specified it should be valid
-      throw Boom.badRequest('Invalid filter');
+    if (teamId !== null) {
+      return reply(this.getEntity('activity', api => api.getTeamActivity(teamId, until, count)));
     }
-    // for now any team id returns all activity
-    return reply(this.getEntity('activity', api => api.getTeamActivity(1, until, count)));
+    throw Boom.badRequest('team or project filter must be specified');
   }
 
   public getJsonApiModule() {

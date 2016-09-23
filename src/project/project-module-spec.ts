@@ -1031,6 +1031,7 @@ describe('project-module', () => {
 
   describe('editProject()', () => {
 
+    const teamId = 5;
     const projectId = 10;
     const name = 'foo-project';
     const path = name;
@@ -1065,6 +1066,9 @@ describe('project-module', () => {
         name: resultingName,
         path: resultingName,
         description: resultingDescription,
+        'namespace': {
+          id: teamId,
+        },
       };
       const projectModule = arrangeProjectModule(200, params, bus, body);
 
@@ -1077,6 +1081,7 @@ describe('project-module', () => {
       expect(payload.description).to.equal(resultingDescription);
       expect(payload.id).to.equal(projectId);
       expect(payload.name).to.equal(resultingName);
+      expect(payload.teamId).to.equal(teamId);
     }
 
     it('should work when editing all editable fields', async () => {

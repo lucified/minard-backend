@@ -455,7 +455,7 @@ export default class ProjectModule {
   public async editProject(id: number, attributes: { name?: string, description?: string}) {
     const project = await this.editGitLabProject(id, attributes);
     this.eventBus.post(projectEdited({
-      teamId: 1, // TODO
+      teamId: project.namespace.id,
       id,
       name: project.name,
       description: project.description,

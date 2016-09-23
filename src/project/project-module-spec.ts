@@ -946,6 +946,7 @@ describe('project-module', () => {
 
   describe('deleteProject()', () => {
     const projectId = 10;
+    const teamId = 5;
     function arrangeProjectModule(status: number, body: any, eventBus?: EventBus, ) {
       const bus = eventBus || new LocalEventBus();
       const client = getClient();
@@ -956,6 +957,12 @@ describe('project-module', () => {
         client,
         logger,
         '');
+      projectModule.getProject = async (_projectId: number) => {
+        expect(_projectId).to.equal(projectId);
+        return {
+          teamId,
+        };
+      };
       const mockUrl = `${host}${client.apiPrefix}/projects/${projectId}`;
       fetchMock.restore().mock(
         mockUrl,
@@ -984,6 +991,7 @@ describe('project-module', () => {
 
       // Assert
       expect(event.payload.id).to.equal(projectId);
+      expect(event.payload.teamId).to.equal(teamId);
     });
 
     it('should throw when gitlab responds with invalid status code', async () => {

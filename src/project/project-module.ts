@@ -375,7 +375,11 @@ export default class ProjectModule {
     return project;
   }
 
-  public async deleteGitLabProject(projectId: number) {
+  public async deleteGitLabProject(projectId: number): Promise<MinardProject> {
+    const project = await this.getProject(projectId);
+    if (!project) {
+      throw Boom.notFound('Project not found');
+    }
     const res = await this.gitlab.fetch(`projects/${projectId}`, { method: 'DELETE' });
     if (res.status === 404) {
       this.logger.warn(`Attempted to delete project ${projectId} which does not exists (according to GitLab)`);
@@ -393,6 +397,7 @@ export default class ProjectModule {
       this.logger.error(`Unexpected response from GitLab when deleting project ${projectId}: "${text}"`);
       throw Boom.badGateway();
     }
+    return project;
   }
 
   public async editGitLabProject(
@@ -434,9 +439,9 @@ export default class ProjectModule {
   }
 
   public async deleteProject(id: number): Promise<void> {
-    await this.deleteGitLabProject(id);
+    const project = await this.deleteGitLabProject(id);
     this.eventBus.post(projectDeleted({
-      teamId: 1, // TODO
+      teamId: project.teamId,
       id,
     }));
   }

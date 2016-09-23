@@ -245,7 +245,7 @@ export class RealtimeHapiPlugin {
         toApiBranchId(projectId, event.payload.ref);
 
       const payload: StreamingCodePushedEvent = {
-        teamId: 1,
+        teamId: event.payload.teamId,
         commits,
         after: event.payload.after ? toApiCommitId(projectId, event.payload.after.id) : undefined,
         before: event.payload.before ? toApiCommitId(projectId, event.payload.before.id) : undefined,
@@ -274,7 +274,7 @@ export class RealtimeHapiPlugin {
           'deployment', api => api.toApiDeployment(deployment.projectId, deployment));
 
       const ssePayload: StreamingDeploymentEvent = {
-        teamId: 1,
+        teamId: event.payload.teamId,
         branch: toApiBranchId(deployment.projectId, deployment.ref),
         project: String(deployment.projectId),
         commit: toApiCommitId(deployment.projectId, deployment.commitHash),

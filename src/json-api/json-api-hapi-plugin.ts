@@ -220,7 +220,7 @@ export class JsonApiHapiPlugin {
       config: {
         validate: {
           params: {
-            teamId: Joi.string().required(),
+            teamId: Joi.number().required(),
           },
         },
       },
@@ -380,9 +380,9 @@ export class JsonApiHapiPlugin {
     return reply(this.getEntity('branch', api => api.getProjectBranches(projectId)));
   }
 
-  private async getProjectsHandler(_request: Hapi.Request, reply: Hapi.IReply) {
-    // TODO: parse team information
-    return reply(this.getEntity('project', api => api.getProjects(1)));
+  private async getProjectsHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    const teamId = (<any> request.params).teamId;
+    return reply(this.getEntity('project', api => api.getProjects(teamId)));
   }
 
   private async postProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {

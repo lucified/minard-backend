@@ -25,7 +25,7 @@ interface SSE {
   data: any;
 }
 
-const flowToken = process.env.FLOW_TOKEN;
+const flowToken = process.env.FLOWDOCK_FLOW_TOKEN;
 const projectFolder = process.env.SYSTEM_TEST_PROJECT ? process.env.SYSTEM_TEST_PROJECT : 'blank';
 const charles = process.env.CHARLES ? process.env.CHARLES : 'http://localhost:8000';
 const gitserver = process.env.MINARD_GIT_SERVER ? process.env.MINARD_GIT_SERVER : 'http://localhost:10080';

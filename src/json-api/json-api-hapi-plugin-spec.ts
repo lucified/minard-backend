@@ -362,6 +362,15 @@ describe('json-api-hapi-plugin', () => {
       expect(JSON.parse(ret.payload).data).to.have.length(2);
     });
 
+    it('should return 200 when request is valid, includes all params, and branchName has a hyphen', async () => {
+      const projectId = 10;
+      const count = 5;
+      const until = '2012-09-20T08:50:22.000Z';
+      const ret = await injectRequest(projectId, 'foo--foo', { until, count });
+      expect(ret.statusCode).to.equal(200);
+      expect(JSON.parse(ret.payload).data).to.have.length(2);
+    });
+
     it('should return 200 when request is valid and does not include count', async () => {
       const projectId = 10;
       const until = '2012-09-20T08:50:22.000Z';

@@ -6,11 +6,11 @@ import * as Joi from 'joi';
 import * as moment from 'moment';
 
 import { HapiRegister } from '../server/hapi-register';
+import { externalBaseUrlInjectSymbol } from '../server/types';
+import { parseApiBranchId } from './conversions';
 import { JsonApiModule } from './json-api-module';
 import { serializeApiEntity }  from './serialization';
 import { ApiEntities, ApiEntity } from './types';
-
-import { externalBaseUrlInjectSymbol } from '../server/types';
 
 function onPreResponse(request: Hapi.Request, reply: Hapi.IReply) {
   const response = request.response;
@@ -228,15 +228,14 @@ export class JsonApiHapiPlugin {
 
     server.route({
       method: 'GET',
-      path: '/branches/{projectId}-{branchName}',
+      path: '/branches/{branchId}',
       handler: {
         async: this.getBranchHandler.bind(this),
       },
       config: {
         validate: {
           params: {
-            projectId: Joi.number().required(),
-            branchName: Joi.string().alphanum().min(1).required(),
+            branchId: Joi.string().required(),
           },
         },
       },
@@ -244,15 +243,14 @@ export class JsonApiHapiPlugin {
 
     server.route({
       method: 'GET',
-      path: '/branches/{projectId}-{branchName}/relationships/commits',
+      path: '/branches/{branchId}/relationships/commits',
       handler: {
         async: this.getBranchCommitsHandler.bind(this),
       },
       config: {
         validate: {
           params: {
-            projectId: Joi.number().required(),
-            branchName: Joi.string().alphanum().min(1).required(),
+            branchId: Joi.string().required(),
           },
           query: {
             until: Joi.date(),
@@ -417,14 +415,21 @@ export class JsonApiHapiPlugin {
   }
 
   private async getBranchHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const projectId = Number((<any> request.params).projectId);
-    const branchName = (<any> request.params).branchName as string;
+    const matches = parseApiBranchId((<any> request.params).branchId);
+    if (!matches) {
+      throw Boom.badRequest('Invalid branch id');
+    }
+    const { projectId, branchName } = matches;
     return reply(this.getEntity('branch', api => api.getBranch(projectId, branchName)));
   }
 
   private async getBranchCommitsHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const projectId = Number((<any> request.params).projectId);
-    const branchName = String((<any> request.params).branchName);
+    const matches = parseApiBranchId((<any> request.params).branchId);
+    if (!matches) {
+      console.log('here');
+      throw Boom.badRequest('Invalid branch id');
+    }
+    const { projectId, branchName } = matches;
     const { until, count } = request.query;
     const untilMoment = moment(until);
     if (!untilMoment.isValid) {

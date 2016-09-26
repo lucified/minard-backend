@@ -846,7 +846,92 @@ describe('project-module', () => {
     return projectModule;
   }
 
-  describe('createProject()', () => {
+  describe('doCreateProjectFromTemplate()', () => {
+    const projectId = 11;
+    const projectName = 'foo-project-name';
+    const description = 'foo project description';
+    const templateProjectId = 10;
+    const templateProjectPath = 'bar-project-name';
+    const teamId = 5;
+    const namespacePath = 'foo-namespace';
+    const rootPassword = 'foo-password';
+
+    it('it should return id and create event when project creation is succesful ', async () => {
+      // Arrange
+      const bus = new LocalEventBus();
+      const gitlab = new GitlabClient(
+        '',
+        {} as any,
+        {} as any,
+        {} as any,
+        false);
+      const authenticationModule = new AuthenticationModule({} as any, rootPassword);
+      const projectModule = new ProjectModule(
+        authenticationModule,
+        {} as any,
+        bus,
+        gitlab,
+        logger,
+        '');
+      projectModule.failSleepTime = 0;
+      let callCount = 0;
+      projectModule.getProject = async (_projectId: number) => {
+        callCount++;
+        if (callCount === 1) {
+          expect(_projectId).to.equal(templateProjectId);
+          return {
+            namespacePath,
+            path: templateProjectPath,
+            defaultBranch: 'master',
+          };
+        }
+        if (callCount === 2) {
+          expect(_projectId).to.equal(projectId);
+          return {
+            defaultBranch: null,
+          };
+        }
+        if (callCount === 3) {
+          expect(_projectId).to.equal(projectId);
+          return {
+            defaultBranch: 'master',
+            id: projectId,
+          };
+        }
+        throw Error('callCount should not go over 2');
+      };
+
+      projectModule.createGitlabProject = async (
+        _teamId: number, _path: string, _description: string, _importUrl: string) => {
+        expect(_teamId).to.equal(teamId);
+        expect(_path).to.equal(_path);
+        expect(_description).to.equal(description);
+        expect(_importUrl).to.equal('http://root:foo-password@localhost/foo-namespace/bar-project-name.git');
+        return {
+          id: projectId,
+        };
+      };
+
+      const promise = bus.filterEvents<ProjectCreatedEvent>(PROJECT_CREATED_EVENT_TYPE)
+        .map(event => event.payload)
+        .take(1)
+        .toPromise();
+
+      // Act
+      const createdProjectId = await projectModule.doCreateProjectFromTemplate(
+        templateProjectId, teamId, projectName, description);
+
+      // Assert
+      const payload = await promise;
+      expect(payload.teamId).to.equal(teamId);
+      expect(payload.description).to.equal(description);
+      expect(payload.name).to.equal(projectName);
+      expect(payload.id).to.equal(projectId);
+      expect(createdProjectId).to.equal(createdProjectId);
+    });
+  });
+
+  describe('doCreateProject()', () => {
 
     const projectId = 10;
     const teamId = 5;
@@ -854,13 +939,14 @@ describe('project-module', () => {
     const path = name;
     const description = 'my foo project';
 
-    function arrangeProjectModule(status: number, body: any, eventBus?: EventBus, ) {
+    function arrangeProjectModule(status: number, body: any, eventBus?: EventBus) {
       const params = {
         name,
         path: name,
         public: false,
         description,
         namespace_id: teamId,
+        importUrl: undefined,
       };
       const url = `/projects?${queryString.stringify(params)}`;
       return prepareProjectModule(status, body, url, 'POST', eventBus);
@@ -882,7 +968,7 @@ describe('project-module', () => {
       });
 
       // Act
-      const id = await projectModule.createProject(teamId, name, description);
+      const id = await projectModule.doCreateProject(teamId, name, description);
       const payload = await promise;
 
       // Assert
@@ -899,7 +985,7 @@ describe('project-module', () => {
       const projectModule = arrangeProjectModule(200, { id: projectId, path });
 
       // Act & Assert
-      await expectServerError(async () => await projectModule.createProject(teamId, name, description));
+      await expectServerError(async () => await projectModule.doCreateProject(teamId, name, description));
     });
 
     it('should throw correct error when project name already exists', async () => {
@@ -919,7 +1005,7 @@ describe('project-module', () => {
 
       // Act & Assert
       try {
-        await projectModule.createProject(teamId, name, description);
+        await projectModule.doCreateProject(teamId, name, description);
         expect.fail('should throw');
       } catch (err) {
         expect((<Boom.BoomError> err).isBoom).to.equal(true);
@@ -933,7 +1019,7 @@ describe('project-module', () => {
       const projectModule = arrangeProjectModule(201, { foo: 'bar', path });
 
       // Act & Assert
-      await expectServerError(async () => await projectModule.createProject(teamId, name, description));
+      await expectServerError(async () => await projectModule.doCreateProject(teamId, name, description));
     });
 
     it('should throw if gitlab response has invalid project path', async () => {
@@ -941,7 +1027,7 @@ describe('project-module', () => {
       const projectModule = arrangeProjectModule(201, { foo: 'bar', path: 'foo' });
 
       // Act & Assert
-      await expectServerError(async () => await projectModule.createProject(teamId, name, description));
+      await expectServerError(async () => await projectModule.doCreateProject(teamId, name, description));
     });
   });
 

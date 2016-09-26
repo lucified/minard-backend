@@ -38,6 +38,10 @@ import {
   cacheInjectSymbol,
 } from '../shared/cache';
 
+import {
+  gitlabRootPasswordInjectSymbol,
+} from '../authentication';
+
 const redisStore = require('cache-manager-redis');
 
 // Logging configuration

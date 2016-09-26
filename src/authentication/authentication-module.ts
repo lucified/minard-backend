@@ -1,8 +1,8 @@
 
 import { inject, injectable } from 'inversify';
-
-// only for types
 import * as Knex from 'knex';
+
+import { gitlabRootPasswordInjectSymbol } from './types';
 
 @injectable()
 export default class AuthenticationModule {
@@ -10,11 +10,14 @@ export default class AuthenticationModule {
   public static injectSymbol = Symbol('auth-module');
 
   private rootToken: string;
+  private rootPassword: string;
   private gitlabKnex: Knex;
 
   constructor(
-    @inject('gitlab-knex') gitlabKnex: Knex) {
+    @inject('gitlab-knex') gitlabKnex: Knex,
+    @inject(gitlabRootPasswordInjectSymbol) rootPassword: string) {
     this.gitlabKnex = gitlabKnex;
+    this.rootPassword = rootPassword;
   }
 
   public async getPrivateAuthenticationToken(userId: number): Promise<string> {
@@ -26,6 +29,10 @@ export default class AuthenticationModule {
   public async getRootAuthenticationToken() {
     this.rootToken = this.rootToken || await this.getPrivateAuthenticationToken(1);
     return this.rootToken;
+  }
+
+  public getRootPassword() {
+    return this.rootPassword;
   }
 
 }

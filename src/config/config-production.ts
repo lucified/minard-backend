@@ -216,6 +216,11 @@ const cache = cacheManager.caching({
   ttl: 60 * 60 * 24 * 30, // 30 days
 } as any);
 
+// Authentication
+// --------------
+
+const GITLAB_ROOT_PASSWORD = env.GITLAB_ROOT_PASSWORD ? env.GITLAB_ROOT_PASSWORD : '12345678';
+
 // Inversify kernel bindings
 // -------------------------
 
@@ -240,4 +245,5 @@ export default (kernel: interfaces.Kernel) => {
   kernel.bind(gitBaseUrlInjectSymbol).toConstantValue(EXTERNAL_GIT_BASEURL);
   kernel.bind(cacheInjectSymbol).toConstantValue(cache);
   kernel.bind(minardUiBaseUrlInjectSymbol).toConstantValue(MINARD_UI_BASEURL);
+  kernel.bind(gitlabRootPasswordInjectSymbol).toConstantValue(GITLAB_ROOT_PASSWORD);
 };

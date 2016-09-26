@@ -80,8 +80,9 @@ export class JsonApiModule {
     return project ? this.toApiProject(project) : null;
   }
 
-  public async createProject(teamId: number, name: string, description?: string): Promise<ApiProject> {
-    const id = await this.projectModule.createProject(teamId, name, description);
+  public async createProject(
+    teamId: number, name: string, description?: string, templateProjectId?: number): Promise<ApiProject> {
+    const id = await this.projectModule.createProject(teamId, name, description, templateProjectId);
     const project = await this.getProject(id);
     if (!project) {
       // createProject in projectModule will throw

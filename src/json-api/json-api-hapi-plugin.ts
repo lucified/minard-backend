@@ -142,6 +142,7 @@ export class JsonApiHapiPlugin {
               attributes: Joi.object({
                 name: Joi.string().regex(projectNameRegex).required(),
                 description: Joi.string().max(2000),
+                templateProjectId: Joi.number(),
               }).required(),
               relationships: Joi.object({
                 team: Joi.object({
@@ -398,9 +399,9 @@ export class JsonApiHapiPlugin {
   }
 
   private async postProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const { name, description } = request.payload.data.attributes;
+    const { name, description, templateProjectId } = request.payload.data.attributes;
     const teamId = request.payload.data.relationships.team.data.id;
-    const project = await this.factory().createProject(teamId, name, description);
+    const project = await this.factory().createProject(teamId, name, description, templateProjectId);
     return reply(this.serializeApiEntity('project', project))
       .created(`/api/projects/${project.id}`);
   }

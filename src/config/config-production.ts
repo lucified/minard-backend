@@ -167,9 +167,12 @@ const charlesKnex = getKnex(CHARLES_DB_NAME);
 const postgresKnex = getKnex('postgres');
 
 // EventStore / Redis configuration
-// https://github.com/adrai/node-eventstore
-// http://redis.js.org/#api-rediscreateclient
-// ----------------------
+//
+// Reference:
+//  (a) https://github.com/adrai/node-eventstore
+//  (b) http://redis.js.org/#api-rediscreateclient
+//
+// -----------------------------------------------
 const REDIS_HOST = env.REDIS_HOST ? env.REDIS_HOST : 'localhost';
 const REDIS_PORT = env.REDIS_PORT ? parseInt(env.REDIS_PORT, 10) : 6379;
 

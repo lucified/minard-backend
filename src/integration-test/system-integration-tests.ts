@@ -29,7 +29,6 @@ const teamId = process.env.TEAM_ID ? process.env.TEAM_ID : 2;
 const flowToken = process.env.FLOWDOCK_FLOW_TOKEN;
 const projectFolder = process.env.SYSTEM_TEST_PROJECT ? process.env.SYSTEM_TEST_PROJECT : 'blank';
 const charles = process.env.CHARLES ? process.env.CHARLES : 'http://localhost:8000';
-const gitserver = process.env.MINARD_GIT_SERVER ? process.env.MINARD_GIT_SERVER : 'http://localhost:10080';
 const hipchatRoomId = process.env.HIPCHAT_ROOM_ID ? process.env.HIPCHAT_ROOM_ID : 3140019;
 const hipchatAuthToken = process.env.HIPCHAT_AUTH_TOKEN ? process.env.HIPCHAT_AUTH_TOKEN : undefined;
 
@@ -37,7 +36,6 @@ const skipDeleteProject = process.env.SKIP_DELETE_PROJECT ? true : false;
 
 console.log(`Project is ${projectFolder}`);
 console.log(`Charles is ${charles}`);
-console.log(`Git server is ${gitserver}`);
 
 function sleep(ms = 0) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -93,6 +91,7 @@ describe('system-integration', () => {
   let deploymentId: string | undefined;
   let deployment: any;
   let oldProjectId: number | undefined;
+  let repoUrl: string | undefined;
 
   it('status should be ok', async function() {
     logTitle('Checking that status is ok');
@@ -130,6 +129,9 @@ describe('system-integration', () => {
     const url = `${charles}/api/teams/${teamId}/relationships/projects`;
     log(`Using URL ${prettyUrl(url)}`);
     const ret = await fetchWithRetry(url);
+    if (ret.status === 404) {
+      expect.fail(`Received 404 when getting team projects. Make sure team with id ${teamId} exists`);
+    }
     expect(ret.status).to.equal(200);
     const json = await ret.json();
     expect(json.data).to.exist;
@@ -189,6 +191,9 @@ describe('system-integration', () => {
         const json = await ret.json();
         expect(json.data.id).to.exist;
         projectId = parseInt(json.data.id, 10);
+        repoUrl = json.data.attributes['repo-url'];
+        expect(repoUrl).to.exist;
+        log(`Repository url for new project is ${repoUrl}`);
       }
     }
     log(`Project created (projectId: ${projectId})`);
@@ -254,10 +259,15 @@ describe('system-integration', () => {
     const repoFolder = `src/integration-test/${projectFolder}`;
     this.timeout(1000 * 20);
 
+    const matches = repoUrl!.match(/^(\S+\/\/[^\/]+)/);
+    if (!matches) {
+      throw Error('Could not match server url from repo url'); // make typescript happy
+    }
+    const gitserver = matches[0];
     const credentialsFileContent = gitserver.replace(/:(\d+)$/gi, '%3a$1').replace('//', '//root:12345678@') + '\n';
     fs.writeFileSync(`/tmp/git-credentials`, credentialsFileContent, 'utf-8');
     await runCommand('src/integration-test/setup-repo');
-    await runCommand('git', '-C', repoFolder, 'remote', 'add', 'minard', `${gitserver}/test/${projectName}.git`);
+    await runCommand('git', '-C', repoFolder, 'remote', 'add', 'minard', repoUrl!);
     await runCommand('git', '-C', repoFolder, 'push', 'minard', 'master');
   });
 

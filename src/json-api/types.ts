@@ -20,7 +20,7 @@ interface MemoizedJsonApiModule {
 }
 
 export interface JsonApiEntity {
-  type: "commits" | "deployments" | "projects" | "branches";
+  type: 'commits' | 'deployments' | 'projects' | 'branches';
   id: string;
   attributes?: any;
   relationships?: any;

@@ -41,7 +41,6 @@ class FilterStream extends stream.Transform {
   }
 }
 
-
 @injectable()
 export default class MinardServer {
   public static injectSymbol = Symbol('minard-server');

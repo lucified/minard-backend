@@ -3,7 +3,6 @@ import { Observable, Subscription } from '@reactivex/rxjs';
 import { inject, injectable } from 'inversify';
 import * as moment from 'moment';
 
-
 import * as Joi from 'joi';
 
 import { ApiProject, JsonApiHapiPlugin } from '../json-api';

@@ -3,7 +3,6 @@ import { Readable } from 'stream';
 export const fetch: IFetch = require('node-fetch');
 const _fetchMock = require('fetch-mock');
 
-
 interface Request extends Body {
   method: string;
   url: string;
@@ -85,7 +84,6 @@ interface HeadersConstructor {
   new (headers: any): Headers;
 }
 
-
 type ResponseType = 'basic' | 'cors' | 'default' | 'error' | 'opaque' | 'opaqueredirect';
 
 interface ResponseInit {
@@ -97,7 +95,6 @@ interface ResponseInit {
 type HeaderInit = Headers | Array<string>;
 type BodyInit = ArrayBuffer | ArrayBufferView | Blob | FormData | string;
 type RequestInfo = Request | string;
-
 
 export interface IFetch {
   (url: string | Request, init?: RequestInit): Promise<Response>;

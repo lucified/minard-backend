@@ -3,7 +3,6 @@ import * as events from 'events';
 import * as http from 'http';
 import * as url from 'url';
 
-
 import { inject, injectable } from 'inversify';
 
 import { EventBus, eventBusInjectSymbol } from '../event-bus';

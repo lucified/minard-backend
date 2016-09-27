@@ -13,7 +13,7 @@ function asyncHandlerFactory(route: IRoute, asyncHandler: AsyncHandler) {
   if (typeof asyncHandler !== 'function') {
     throw new Error('Hapi: route handler should be a function');
   }
-  return function (request: Request, reply: IReply) {
+  return function (request: Request, reply: IReply) { // tslint:disable-line
     asyncHandler.call(this, request, reply)
       .catch((err: any) => reply(err));
   };

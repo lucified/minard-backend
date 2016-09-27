@@ -15,13 +15,11 @@ export class FlowdockNotify {
 
   public static injectSymbol = Symbol('flowdock-notify');
 
-
   private fetch: IFetch;
 
   public constructor(@inject(fetchInjectSymbol) fetch: IFetch) {
     this.fetch = fetch;
   }
-
 
   public async getBody(
     deployment: MinardDeployment,

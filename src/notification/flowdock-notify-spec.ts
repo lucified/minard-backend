@@ -12,7 +12,6 @@ import {
 
 import { fetchMock } from '../shared/fetch';
 
-
 describe('flowdock-notify', () => {
 
   const baseDeployment: MinardDeployment = {

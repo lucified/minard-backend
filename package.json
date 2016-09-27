@@ -75,7 +75,7 @@
     "start": "node dist/app.js",
     "transpile": "tsc",
     "lint": "tslint --format=verbose 'src/**/*.ts'",
-    "deploy": "ecs-updater"
+    "deploy": "lucify-notifier ecs-updater"
   },
   "contributors": [
     {

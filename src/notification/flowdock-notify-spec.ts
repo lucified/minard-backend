@@ -10,7 +10,8 @@ import {
   FlowdockNotify,
 } from './flowdock-notify';
 
-const fetchMock = require('fetch-mock');
+import { fetchMock } from '../shared/fetch';
+
 
 describe('flowdock-notify', () => {
 
@@ -36,7 +37,7 @@ describe('flowdock-notify', () => {
     const flowToken = 'fake-flow-token';
     const projectUrl = 'http://foo-bar.com/projects/5';
     const branchUrl = 'http://foo-bar.com/branches/1-5';
-    const notifier = new FlowdockNotify();
+    const notifier = new FlowdockNotify(fetchMock.fetchMock);
 
     const mockUrl = `https://api.flowdock.com/messages`;
     const promise = new Promise<any>((resolve, reject) => {

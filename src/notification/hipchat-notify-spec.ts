@@ -10,7 +10,7 @@ import {
   HipchatNotify,
 } from './hipchat-notify';
 
-const fetchMock = require('fetch-mock');
+import { fetchMock } from '../shared/fetch';
 
 describe('hipchat-notify', () => {
 
@@ -38,7 +38,7 @@ describe('hipchat-notify', () => {
     const roomId = 66;
     const projectUrl = 'http://foo-bar.com/projects/5';
     const branchUrl = 'http://foo-bar.com/branches/1-5';
-    const notifier = new HipchatNotify();
+    const notifier = new HipchatNotify(fetchMock.fetchMock);
 
     const mockUrl = `https://api.hipchat.com/v2/room/${roomId}/notification?auth_token=${authToken}`;
     const promise = new Promise<any>((resolve, reject) => {

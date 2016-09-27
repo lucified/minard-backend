@@ -3,9 +3,8 @@ import { expect } from 'chai';
 import 'reflect-metadata';
 
 import Authentication from '../authentication/authentication-module';
+import { fetchMock } from '../shared/fetch';
 import { GitlabClient } from './gitlab-client';
-
-const fetchMock = require('fetch-mock');
 
 const host = 'gitlab';
 const token = 'the-sercret';
@@ -19,7 +18,7 @@ const getClient = () => {
   }
 
   return new GitlabClient(host,
-    fetchMock.fetchMock as IFetchStatic,
+    fetchMock.fetchMock,
     new MockAuthModule() as Authentication,
     {} as any,
     false);

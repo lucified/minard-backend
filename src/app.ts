@@ -1,6 +1,5 @@
 
 // polyfills
-require('isomorphic-fetch');
 import 'reflect-metadata';
 
 import Migrations from './migrations';

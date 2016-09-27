@@ -193,10 +193,18 @@ to the process.
 
 ## Tests
 
+### Unit tests
+
 Run unit tests with
 ```
 npm test
 ````
+
+### System integration tests
+
+System integration tests require that there is a team with id `2`.
+Use the GitLab UI at `http://localhost:10080` to create the team. You can override
+the id by running system integration tests using the `TEAM_ID` environment variable.
 
 Start all needed services locally and run system integration tests against them with
 ```

@@ -1,6 +1,7 @@
 
+import * as Hapi from '../server/hapi';
 import { HapiRegister } from '../server/hapi-register';
-import * as Hapi from 'hapi';
+
 import { inject, injectable } from 'inversify';
 
 import StatusModule from './status-module';
@@ -24,7 +25,10 @@ class StatusHapiPlugin {
       method: 'GET',
       path: '/status',
       handler: {
-        async: this.getStatusHandler.bind(this),
+        async: this.getStatusHandler,
+      },
+      config: {
+        bind: this,
       },
     });
     next();

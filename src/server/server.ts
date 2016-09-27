@@ -1,5 +1,3 @@
-
-import * as Hapi from 'hapi';
 import { inject, injectable } from 'inversify';
 import * as stream from 'stream';
 
@@ -13,11 +11,11 @@ import { ScreenshotHapiPlugin } from '../screenshot';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
 import { StatusHapiPlugin } from '../status';
 
-const hapiAsyncHandler = require('hapi-async-handler');
 const inert = require('inert');
 const h2o2 = require('h2o2');
 const good = require('good');
 
+import * as Hapi from './hapi';
 import {
   goodOptionsInjectSymbol,
   hostInjectSymbol,
@@ -42,6 +40,7 @@ class FilterStream extends stream.Transform {
     next(null, data);
   }
 }
+
 
 @injectable()
 export default class MinardServer {
@@ -89,7 +88,7 @@ export default class MinardServer {
 
   public async start(): Promise<Hapi.Server> {
     const options = {};
-    const server = new Hapi.Server(options);
+    const server = Hapi.getServer(options);
     server.connection({
       host: this.host,
       port: this.port,
@@ -111,7 +110,6 @@ export default class MinardServer {
   private async loadBasePlugins(server: Hapi.Server) {
 
     await server.register([
-      { register: hapiAsyncHandler },
       { register: h2o2 },
       { register: inert },
       {

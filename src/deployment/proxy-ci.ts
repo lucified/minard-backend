@@ -3,11 +3,11 @@ import * as events from 'events';
 import * as http from 'http';
 import * as url from 'url';
 
-import * as Hapi from 'hapi';
 
 import { inject, injectable } from 'inversify';
 
 import { EventBus, eventBusInjectSymbol } from '../event-bus';
+import * as Hapi from '../server/hapi';
 import { HapiRegister } from '../server/hapi-register';
 import { gitlabHostInjectSymbol } from '../shared/gitlab-client';
 import * as logger from '../shared/logger';
@@ -59,6 +59,7 @@ export class CIProxy {
 
   private _register(server: Hapi.Server, _options: Hapi.IServerOptions, next: () => void) {
     const config = {
+      bind: this,
       payload: {
         output: 'stream',
         parse: false,
@@ -77,7 +78,7 @@ export class CIProxy {
     server.route({
       method: 'PUT',
       path: this.routeNamespace + 'builds/{id}',
-      handler: this.putRequestHandler.bind(this),
+      handler: this.putRequestHandler,
       config,
     });
 
@@ -86,7 +87,7 @@ export class CIProxy {
       path: this.routeNamespace + '{entities}/register.json',
       handler: {
         proxy: Object.assign({}, this.proxyOptions, {
-          onResponse: this.postReplyHandler.bind(this),
+          onResponse: this.postReplyHandler,
         }),
       },
       config,

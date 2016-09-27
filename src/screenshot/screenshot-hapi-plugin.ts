@@ -1,9 +1,9 @@
 
 import * as Boom from 'boom';
-import * as Hapi from 'hapi';
 import { inject, injectable } from 'inversify';
 import * as Joi from 'joi';
 
+import * as Hapi from '../server/hapi';
 import { HapiRegister } from '../server/hapi-register';
 import ScreenshotModule from './screenshot-module';
 
@@ -28,9 +28,10 @@ export default class ScreenshotHapiPlugin {
       method: 'GET',
       path: '/{projectId}/{deploymentId}',
       handler: {
-        async: this.screenshotHandler.bind(this),
+        async: this.screenshotHandler,
       },
       config: {
+        bind: this,
         validate: {
           params: {
             projectId: Joi.number().required(),

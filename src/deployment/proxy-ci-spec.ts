@@ -1,7 +1,6 @@
 import 'reflect-metadata';
 
 import { expect } from 'chai';
-import Hapi = require('hapi');
 
 import {
   BUILD_CREATED_EVENT,
@@ -11,6 +10,7 @@ import {
 } from '../deployment';
 
 import { default as EventBus } from '../event-bus/local-event-bus';
+import * as Hapi from '../server/hapi';
 import loggerConstructor from '../shared/logger';
 import { CIProxy } from './proxy-ci';
 
@@ -24,14 +24,14 @@ const provisionProxy = async (
   const bus = new EventBus();
   const plugin = new CIProxy(upstream, bus, logger);
 
-  const proxy = new Hapi.Server();
+  const proxy = Hapi.getServer();
   proxy.connection(options);
   await proxy.register([h2o2, plugin]);
   return {proxy, bus, plugin};
 };
 
 const provisionUpstream = async (options: Hapi.IServerConnectionOptions = { port: 8090, address: '127.0.0.1' }) => {
-  const server = new Hapi.Server();
+  const server = Hapi.getServer();
   server.connection(options);
   return server;
 };

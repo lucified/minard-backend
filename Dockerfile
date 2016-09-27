@@ -1,6 +1,4 @@
-FROM mhart/alpine-node:latest
-
-# https://blog.docker.com/2016/07/live-debugging-docker/
+FROM mhart/alpine-node:6.6
 
 WORKDIR /code
 
@@ -14,7 +12,7 @@ RUN npm config set registry http://registry.npmjs.org/
 RUN npm config set strict-ssl false
 RUN npm install -g node-gyp
 
-RUN npm install -g node-dev typescript@beta
+RUN npm install -g node-dev typescript@^2.0.3
 
 COPY package.json /code/package.json
 RUN npm install && npm link typescript

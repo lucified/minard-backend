@@ -1,7 +1,7 @@
 
-import * as Hapi from 'hapi';
 import { inject, injectable } from 'inversify';
 
+import * as Hapi from '../server/hapi';
 import { HapiRegister } from '../server/hapi-register';
 import OperationsModule from './operations-module';
 
@@ -26,14 +26,20 @@ export default class OperationsHapiPlugin {
       method: 'GET',
       path: '/check-screenshots',
       handler: {
-        async: this.checkScreenshotsHandler.bind(this),
+        async: this.checkScreenshotsHandler,
+      },
+      config: {
+        bind: this,
       },
     });
     server.route({
       method: 'GET',
       path: '/check-deployment-activity',
       handler: {
-        async: this.checkDeploymentActivityHandler.bind(this),
+        async: this.checkDeploymentActivityHandler,
+      },
+      config: {
+        bind: this,
       },
     });
     next();

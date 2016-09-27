@@ -97,6 +97,7 @@ describe('notification-module', () => {
     // Act
     const deployment = { projectId, ref: 'foo', id: deploymentId, screenshot: 'foo' };
     bus.post(createDeploymentEvent({
+      teamId: 7,
       deployment: deployment as any,
       statusUpdate: { status: 'success' },
     }));
@@ -143,6 +144,7 @@ describe('notification-module', () => {
     // Act
     const deployment = { projectId: hipchatProjectId, ref: 'foo', id: deploymentId, screenshot: 'foo' };
     bus.post(createDeploymentEvent({
+      teamId: 7,
       deployment: deployment as any,
       statusUpdate: { status: 'success' },
     }));
@@ -174,6 +176,7 @@ describe('notification-module', () => {
     // Act
     const deployment = { projectId: _projectId, ref: 'foo' };
     bus.post(createDeploymentEvent({
+      teamId: 7,
       deployment: deployment as any,
       statusUpdate,
     }));

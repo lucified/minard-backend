@@ -138,6 +138,7 @@ export default class OperationsModule {
           throw Error('Could not get deployment');
         }
         const event: DeploymentEvent = {
+          teamId: deployment.teamId,
           deployment,
           statusUpdate: {
             status: deployment.status,

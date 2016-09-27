@@ -104,7 +104,7 @@ export default class ActivityModule {
       commit,
       timestamp,
       deployment,
-      teamId: 1,
+      teamId: event.teamId,
     };
   }
 

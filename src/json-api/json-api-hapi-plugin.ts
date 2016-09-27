@@ -6,11 +6,11 @@ import * as Joi from 'joi';
 import * as moment from 'moment';
 
 import { HapiRegister } from '../server/hapi-register';
+import { externalBaseUrlInjectSymbol } from '../server/types';
+import { parseApiBranchId } from './conversions';
 import { JsonApiModule } from './json-api-module';
 import { serializeApiEntity }  from './serialization';
 import { ApiEntities, ApiEntity } from './types';
-
-import { externalBaseUrlInjectSymbol } from '../server/types';
 
 function onPreResponse(request: Hapi.Request, reply: Hapi.IReply) {
   const response = request.response;
@@ -49,6 +49,7 @@ function onPreResponse(request: Hapi.Request, reply: Hapi.IReply) {
 export function parseActivityFilter(filter: string | null) {
   const ret = {
     projectId: null as number | null,
+    teamId: null as number | null,
   };
   if (!filter) {
     return ret;
@@ -56,6 +57,11 @@ export function parseActivityFilter(filter: string | null) {
   const projectMatches = filter.match(/^project\[(\d+)\]$/);
   if (projectMatches !== null && projectMatches.length === 2) {
     ret.projectId = Number(projectMatches[1]);
+  }
+
+  const teamIdMatches = filter.match(/^team\[(\d+)\]$/);
+  if (teamIdMatches !== null && teamIdMatches.length === 2) {
+    ret.teamId = Number(teamIdMatches[1]);
   }
   return ret;
 }
@@ -214,7 +220,7 @@ export class JsonApiHapiPlugin {
       config: {
         validate: {
           params: {
-            teamId: Joi.string().required(),
+            teamId: Joi.number().required(),
           },
         },
       },
@@ -222,15 +228,14 @@ export class JsonApiHapiPlugin {
 
     server.route({
       method: 'GET',
-      path: '/branches/{projectId}-{branchName}',
+      path: '/branches/{branchId}',
       handler: {
         async: this.getBranchHandler.bind(this),
       },
       config: {
         validate: {
           params: {
-            projectId: Joi.number().required(),
-            branchName: Joi.string().alphanum().min(1).required(),
+            branchId: Joi.string().required(),
           },
         },
       },
@@ -238,15 +243,14 @@ export class JsonApiHapiPlugin {
 
     server.route({
       method: 'GET',
-      path: '/branches/{projectId}-{branchName}/relationships/commits',
+      path: '/branches/{branchId}/relationships/commits',
       handler: {
         async: this.getBranchCommitsHandler.bind(this),
       },
       config: {
         validate: {
           params: {
-            projectId: Joi.number().required(),
-            branchName: Joi.string().alphanum().min(1).required(),
+            branchId: Joi.string().required(),
           },
           query: {
             until: Joi.date(),
@@ -374,9 +378,9 @@ export class JsonApiHapiPlugin {
     return reply(this.getEntity('branch', api => api.getProjectBranches(projectId)));
   }
 
-  private async getProjectsHandler(_request: Hapi.Request, reply: Hapi.IReply) {
-    // TODO: parse team information
-    return reply(this.getEntity('project', api => api.getProjects(1)));
+  private async getProjectsHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    const teamId = (<any> request.params).teamId;
+    return reply(this.getEntity('project', api => api.getProjects(teamId)));
   }
 
   private async postProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {
@@ -411,14 +415,21 @@ export class JsonApiHapiPlugin {
   }
 
   private async getBranchHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const projectId = Number((<any> request.params).projectId);
-    const branchName = (<any> request.params).branchName as string;
+    const matches = parseApiBranchId((<any> request.params).branchId);
+    if (!matches) {
+      throw Boom.badRequest('Invalid branch id');
+    }
+    const { projectId, branchName } = matches;
     return reply(this.getEntity('branch', api => api.getBranch(projectId, branchName)));
   }
 
   private async getBranchCommitsHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const projectId = Number((<any> request.params).projectId);
-    const branchName = String((<any> request.params).branchName);
+    const matches = parseApiBranchId((<any> request.params).branchId);
+    if (!matches) {
+      console.log('here');
+      throw Boom.badRequest('Invalid branch id');
+    }
+    const { projectId, branchName } = matches;
     const { until, count } = request.query;
     const untilMoment = moment(until);
     if (!untilMoment.isValid) {
@@ -436,17 +447,15 @@ export class JsonApiHapiPlugin {
   private async getActivityHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const filter = request.query.filter as string;
     const filterOptions = parseActivityFilter(filter);
-    const projectId = filterOptions.projectId;
+    const { projectId, teamId } = filterOptions;
     const { until, count } = request.query;
     if (projectId !== null) {
       return reply(this.getEntity('activity', api => api.getProjectActivity(projectId, until, count)));
     }
-    if (filter && !filterOptions.projectId) {
-      // if filter is specified it should be valid
-      throw Boom.badRequest('Invalid filter');
+    if (teamId !== null) {
+      return reply(this.getEntity('activity', api => api.getTeamActivity(teamId, until, count)));
     }
-    // for now any team id returns all activity
-    return reply(this.getEntity('activity', api => api.getTeamActivity(1, until, count)));
+    throw Boom.badRequest('team or project filter must be specified');
   }
 
   public getJsonApiModule() {

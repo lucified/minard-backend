@@ -57,8 +57,10 @@ describe('json-api-hapi-plugin', () => {
 
     it('should correctly get team activity', async() => {
       // Arrange
+      const teamId = 6;
       const mockFactory = () => ({
-        getTeamActivity: async (projectId: number) => {
+        getTeamActivity: async (_teamId: number) => {
+          expect(_teamId).to.equal(teamId);
           return [
             {
               id: 'foo',
@@ -75,7 +77,7 @@ describe('json-api-hapi-plugin', () => {
       // Act
       const options: Hapi.IServerInjectOptions = {
         method: 'GET',
-        url: 'http://foo.com/activity',
+        url: 'http://foo.com/activity?filter=team[6]',
       };
       const ret = await server.inject(options);
 
@@ -107,6 +109,11 @@ describe('json-api-hapi-plugin', () => {
     it('should correctly parse null filter', () => {
       const filterOptions = parseActivityFilter('');
       expect(filterOptions.projectId).to.equal(null);
+    });
+
+    it('should correctly parse filter with teamId', () => {
+      const filterOptions = parseActivityFilter('team[54]');
+      expect(filterOptions.teamId).to.equal(54);
     });
   });
 
@@ -351,6 +358,15 @@ describe('json-api-hapi-plugin', () => {
       const count = 5;
       const until = '2012-09-20T08:50:22.000Z';
       const ret = await injectRequest(projectId, 'foo', { until, count });
+      expect(ret.statusCode).to.equal(200);
+      expect(JSON.parse(ret.payload).data).to.have.length(2);
+    });
+
+    it('should return 200 when request is valid, includes all params, and branchName has a hyphen', async () => {
+      const projectId = 10;
+      const count = 5;
+      const until = '2012-09-20T08:50:22.000Z';
+      const ret = await injectRequest(projectId, 'foo--foo', { until, count });
       expect(ret.statusCode).to.equal(200);
       expect(JSON.parse(ret.payload).data).to.have.length(2);
     });

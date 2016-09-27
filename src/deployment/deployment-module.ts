@@ -198,12 +198,21 @@ export default class DeploymentModule {
 
   public async createDeployment(event: Event<BuildCreatedEvent>) {
     const payload = event.payload;
-    const commit = await this.projectModule.getCommit(payload.project_id, payload.sha)!;
+    const [ commit, project ] = await Promise.all([
+      this.projectModule.getCommit(payload.project_id, payload.sha),
+      this.projectModule.getProject(payload.project_id),
+    ]);
     if (!commit) {
       this.logger.error(`Commit ${payload.sha} in project ${payload.project_id} not found while in createDeployment`);
       return;
     }
+    if (!project) {
+      this.logger.error(`Project ${payload.project_id} not found while in createDeployment`);
+      return;
+    }
+
     const deployment: MinardDeployment = {
+      teamId: project.teamId,
       id: payload.id,
       ref: payload.ref,
       projectId: payload.project_id,
@@ -493,6 +502,7 @@ export default class DeploymentModule {
         throw Boom.badImplementation();
       }
       const payload: DeploymentEvent = {
+        teamId: deployment.teamId,
         statusUpdate: omitBy(Object.assign({}, realUpdates, { finishedAt: undefined }), isNil),
         deployment,
       };

@@ -113,6 +113,7 @@ describe('deployment-module', () => {
 
   const deployments: MinardDeployment[] = [
     {
+      teamId: 7,
       projectId: 5,
       id: 15,
       status: 'success',
@@ -141,6 +142,7 @@ describe('deployment-module', () => {
       commitHash: 'foo-commit-id',
     },
     {
+      teamId: 7,
       projectId: 5,
       id: 16,
       status: 'success',
@@ -169,6 +171,7 @@ describe('deployment-module', () => {
       commitHash: 'bar-commit-id',
     },
     {
+      teamId: 8,
       projectId: 7,
       id: 17,
       status: 'running',
@@ -362,6 +365,7 @@ describe('deployment-module', () => {
   describe('createDeployment', () => {
     it('should fetch related commit and add deployment', async () => {
       // Arrange
+      const teamId = 9;
       const commit = {
         id: 'foo-sha',
         message: 'foo',
@@ -375,6 +379,12 @@ describe('deployment-module', () => {
         expect(commitHash).to.equal(commit.id);
         expect(projectId).to.equal(6);
         return commit;
+      };
+      projectModule.getProject = async (projectId: number) => {
+        expect(projectId).to.equal(6);
+        return {
+          teamId,
+        };
       };
       const bus = getEventBus();
       const deploymentModule = await arrangeDeploymentModule(projectModule, bus);
@@ -397,6 +407,7 @@ describe('deployment-module', () => {
       const deployment = await deploymentModule.getDeployment(5);
       let compare = Object.assign({}, deployment, { createdAt: undefined });
       const expected = {
+        teamId,
         projectId: buildCreatedEvent.payload.project_id,
         projectName: buildCreatedEvent.payload.project_name,
         id: buildCreatedEvent.payload.id,
@@ -978,6 +989,7 @@ describe('deployment-module', () => {
   describe('updateDeploymentStatus', () => {
 
     const deploymentId = 20;
+    const teamId = 9;
 
     async function initializeDb(beforeState: any) {
       const knex = await setupKnex();
@@ -996,6 +1008,7 @@ describe('deployment-module', () => {
           },
         },
         finishedAt: undefined,
+        teamId,
       }, beforeState)));
       return knex;
     }
@@ -1034,6 +1047,7 @@ describe('deployment-module', () => {
       // Assert
       const event = await promise;
       expect(event.statusUpdate).to.deep.equal(resultingUpdate);
+      expect(event.teamId).to.equal(teamId);
       const deployment = await deploymentModule.getDeployment(deploymentId);
       expect(deployment).to.exist;
       expect(deployment!.status).to.equal(resultingStatus);

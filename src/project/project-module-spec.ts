@@ -284,7 +284,9 @@ describe('project-module', () => {
   });
 
   describe('getProjects()', () => {
+    const teamId = gitlabProjectResponse.namespace.id;
     const gitlabResponse = [gitlabProjectResponse];
+    const path = `/groups/${teamId}/projects`;
 
     const contributors = [{
       name: 'foo',
@@ -293,16 +295,17 @@ describe('project-module', () => {
 
     it('should work when gitlab returns a valid project', async () => {
       // Arrange
-      const projectModule = genericArrangeProjectModule(200, gitlabResponse, '/projects/all');
-      projectModule.getProjectContributors = async (projectId: number) => {
-        expect(projectId).to.equal(gitlabProjectResponse.id);
+      const projectModule = genericArrangeProjectModule(200, gitlabResponse, path);
+      projectModule.getProjectContributors = async (_projectId: number) => {
+        expect(_projectId).to.equal(gitlabProjectResponse.id);
         return contributors;
       };
 
       // Act
-      const projects = await projectModule.getProjects(1);
+      const projects = await projectModule.getProjects(teamId);
 
       // Assert
+      expect(projects![0].teamId).to.equal(teamId);
       expect(projects![0].id).to.equal(3);
       expect(projects![0].name).to.equal('Diaspora Project Site');
       expect(projects![0].activeCommitters).to.exist;
@@ -312,32 +315,32 @@ describe('project-module', () => {
 
     it('should throw if cannot fetch contributors', async () => {
       // Arrange
-      const projectModule = genericArrangeProjectModule(200, gitlabResponse, '/projects/all');
-      projectModule.getProjectContributors = async (projectId: number) => {
-        expect(projectId).to.equal(gitlabProjectResponse.id);
+      const projectModule = genericArrangeProjectModule(200, gitlabResponse, path);
+      projectModule.getProjectContributors = async (_projectId: number) => {
+        expect(_projectId).to.equal(gitlabProjectResponse.id);
         throw Boom.badGateway();
       };
       // Act && Assert
-      await expectServerError(async () => await projectModule.getProjects(1));
+      await expectServerError(async () => await projectModule.getProjects(teamId));
     });
 
     it('should throw if gitlab returns status 500', async () => {
       // Arrange
-      const projectModule = genericArrangeProjectModule(500, gitlabResponse, '/projects/all');
-      projectModule.getProjectContributors = async (projectId: number) => {
-        expect(projectId).to.equal(gitlabProjectResponse.id);
+      const projectModule = genericArrangeProjectModule(500, gitlabResponse, path);
+      projectModule.getProjectContributors = async (_projectId: number) => {
+        expect(_projectId).to.equal(gitlabProjectResponse.id);
         return contributors;
       };
       // Act && Assert
-      await expectServerError(async () => await projectModule.getProjects(1));
+      await expectServerError(async () => await projectModule.getProjects(teamId));
     });
 
     it('should return null if gitlab returns status 404', async () => {
       // Arrange
-      const projectModule = genericArrangeProjectModule(404, gitlabResponse, '/projects/all');
+      const projectModule = genericArrangeProjectModule(404, gitlabResponse, path);
 
       // Act
-      const projects = await projectModule.getProjects(1);
+      const projects = await projectModule.getProjects(teamId);
 
       // Assert
       expect(projects).to.equal(null);
@@ -943,6 +946,7 @@ describe('project-module', () => {
 
   describe('deleteProject()', () => {
     const projectId = 10;
+    const teamId = 5;
     function arrangeProjectModule(status: number, body: any, eventBus?: EventBus, ) {
       const bus = eventBus || new LocalEventBus();
       const client = getClient();
@@ -953,6 +957,12 @@ describe('project-module', () => {
         client,
         logger,
         '');
+      projectModule.getProject = async (_projectId: number) => {
+        expect(_projectId).to.equal(projectId);
+        return {
+          teamId,
+        };
+      };
       const mockUrl = `${host}${client.apiPrefix}/projects/${projectId}`;
       fetchMock.restore().mock(
         mockUrl,
@@ -981,6 +991,7 @@ describe('project-module', () => {
 
       // Assert
       expect(event.payload.id).to.equal(projectId);
+      expect(event.payload.teamId).to.equal(teamId);
     });
 
     it('should throw when gitlab responds with invalid status code', async () => {
@@ -1028,6 +1039,7 @@ describe('project-module', () => {
 
   describe('editProject()', () => {
 
+    const teamId = 5;
     const projectId = 10;
     const name = 'foo-project';
     const path = name;
@@ -1062,6 +1074,9 @@ describe('project-module', () => {
         name: resultingName,
         path: resultingName,
         description: resultingDescription,
+        'namespace': {
+          id: teamId,
+        },
       };
       const projectModule = arrangeProjectModule(200, params, bus, body);
 
@@ -1074,6 +1089,7 @@ describe('project-module', () => {
       expect(payload.description).to.equal(resultingDescription);
       expect(payload.id).to.equal(projectId);
       expect(payload.name).to.equal(resultingName);
+      expect(payload.teamId).to.equal(teamId);
     }
 
     it('should work when editing all editable fields', async () => {
@@ -1448,6 +1464,8 @@ describe('project-module', () => {
       ],
     } as GitlabPushEvent;
 
+    const teamId = 6;
+
     it('should produce correct event', async () => {
       // Arrange
       const bus = new LocalEventBus();
@@ -1475,6 +1493,13 @@ describe('project-module', () => {
         };
       };
 
+      projectModule.getProject = async (_projectId: number) => {
+        expect(_projectId).to.equal(gitlabPayload.project_id);
+        return {
+          teamId,
+        };
+      };
+
       const promise = bus.filterEvents<CodePushedEvent>(CODE_PUSHED_EVENT_TYPE)
         .map(event => event.payload)
         .take(1)
@@ -1485,6 +1510,7 @@ describe('project-module', () => {
       const event = await promise;
 
       // Assert
+      expect(event.teamId).to.equal(teamId);
       expect(event.projectId).to.equal(gitlabPayload.project_id);
       expect(event.ref).to.equal('master');
       expect(event.after!.id).to.equal(gitlabPayload.after);

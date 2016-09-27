@@ -162,6 +162,7 @@ describe('realtime-hapi-plugin', () => {
 
       // Act
       const payload: CodePushedEvent = {
+        teamId: 5,
         after: {
           id: 'foo-after-id',
         } as any,
@@ -194,6 +195,7 @@ describe('realtime-hapi-plugin', () => {
 
       // Assert
       const createdPayload = created.payload as StreamingCodePushedEvent;
+      expect(createdPayload.teamId).to.equal(payload.teamId);
       expect(createdPayload.after).to.equal(toApiCommitId(projectId, payload.after!.id));
       expect(createdPayload.before).to.equal(toApiCommitId(projectId, payload.before!.id));
       expect(createdPayload.parents).to.have.length(1);
@@ -219,6 +221,7 @@ describe('realtime-hapi-plugin', () => {
 
       // Act
       const payload: DeploymentEvent = {
+        teamId: 6,
         deployment: {
           buildStatus: 'pending',
           commit: {
@@ -241,6 +244,7 @@ describe('realtime-hapi-plugin', () => {
       // Assert
       expect(created.type).to.equal('SSE_DEPLOYMENT_UPDATED');
       const createdPayload = created.payload as StreamingDeploymentEvent;
+      expect(createdPayload.teamId).to.equal(payload.teamId);
       expect(createdPayload.project).to.equal(String(projectId));
       expect(createdPayload.branch).to.equal(toApiBranchId(projectId, branchName));
       expect(createdPayload.deployment.id).to.equal(toApiDeploymentId(projectId, 6));

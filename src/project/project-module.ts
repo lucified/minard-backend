@@ -198,11 +198,9 @@ export default class ProjectModule {
     return projects.map(item => item.id);
   }
 
-  public async getProjects(_teamId: number): Promise<MinardProject[] | null> {
-    // TODO: for now this does not use the teamId for anything.
-    // We just return all projects instead
+   public async getProjectsUsingPath(path: string): Promise<MinardProject[] | null> {
     try {
-      const projects = await this.gitlab.fetchJson<Project[]>(`projects/all`);
+      const projects = await this.gitlab.fetchJson<Project[]>(path);
       if (!projects) {
         return [];
       }
@@ -212,14 +210,21 @@ export default class ProjectModule {
       }));
       return Promise.all(jobs.map(async item =>
         this.toMinardProject(item.project, await item.contributorsPromise || [])));
-
     } catch (err) {
       if (err.isBoom && err.output.statusCode === 404) {
         return null;
       }
-      this.logger.error('Unexpected error when getting projects', err);
+      this.logger.error('Unexpected error when getting all projects', err);
       throw Boom.badGateway();
     }
+  }
+
+  public async getAllProjects(): Promise<MinardProject[] | null> {
+    return this.getProjectsUsingPath(`projects/all`);
+  }
+
+  public async getProjects(teamId: number): Promise<MinardProject[] | null> {
+    return this.getProjectsUsingPath(`groups/${teamId}/projects`);
   }
 
   public async getProjectBranches(projectId: number): Promise<MinardBranch[] | null> {
@@ -240,6 +245,7 @@ export default class ProjectModule {
   private toMinardProject(project: Project, activeCommitters: MinardProjectContributor[]): MinardProject {
     const repoUrl = `${this.gitBaseUrl}/${project.namespace.path}/${project.path}.git`;
     return {
+      teamId: project.namespace.id,
       id: project.id,
       name: project.name,
       path: project.path,
@@ -289,11 +295,17 @@ export default class ProjectModule {
   }
 
   public async handlePushEvent(projectId: number, ref: string, payload: GitlabPushEvent) {
-    const [ after, before, mappedCommits ] = await Promise.all([
+    const [ after, before, mappedCommits, project ] = await Promise.all([
       payload.after ? this.getCommit(projectId, payload.after) : Promise.resolve(null),
       payload.before ? this.getCommit(projectId, payload.before) : Promise.resolve(null),
       Promise.all(payload.commits.map(commit => this.getCommit(projectId, commit.id))),
+      this.getProject(projectId),
     ]);
+
+    if (!project) {
+      this.logger.error(`Project ${projectId} not found for push event`, payload);
+      throw Boom.badImplementation();
+    }
 
     // While we don't expect getCommit to return null for these commits,
     // we wish to handle such a situtation cracefully in case it for some
@@ -321,6 +333,7 @@ export default class ProjectModule {
     }) as MinardCommit[];
 
     const event: CodePushedEvent = {
+      teamId: project.teamId,
       projectId: payload.project_id,
       ref,
       after,
@@ -369,7 +382,11 @@ export default class ProjectModule {
     return project;
   }
 
-  public async deleteGitLabProject(projectId: number) {
+  public async deleteGitLabProject(projectId: number): Promise<MinardProject> {
+    const project = await this.getProject(projectId);
+    if (!project) {
+      throw Boom.notFound('Project not found');
+    }
     const res = await this.gitlab.fetch(`projects/${projectId}`, { method: 'DELETE' });
     if (res.status === 404) {
       this.logger.warn(`Attempted to delete project ${projectId} which does not exists (according to GitLab)`);
@@ -387,6 +404,7 @@ export default class ProjectModule {
       this.logger.error(`Unexpected response from GitLab when deleting project ${projectId}: "${text}"`);
       throw Boom.badGateway();
     }
+    return project;
   }
 
   public async editGitLabProject(
@@ -428,9 +446,9 @@ export default class ProjectModule {
   }
 
   public async deleteProject(id: number): Promise<void> {
-    await this.deleteGitLabProject(id);
+    const project = await this.deleteGitLabProject(id);
     this.eventBus.post(projectDeleted({
-      teamId: 1, // TODO
+      teamId: project.teamId,
       id,
     }));
   }
@@ -449,7 +467,7 @@ export default class ProjectModule {
   public async editProject(id: number, attributes: { name?: string, description?: string}) {
     const project = await this.editGitLabProject(id, attributes);
     this.eventBus.post(projectEdited({
-      teamId: 1, // TODO
+      teamId: project.namespace.id,
       id,
       name: project.name,
       description: project.description,

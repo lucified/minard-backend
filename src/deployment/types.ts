@@ -20,6 +20,7 @@ export interface BuildStatusEvent {
 }
 
 export interface DeploymentEvent {
+  readonly teamId: number;
   readonly statusUpdate: DeploymentStatusUpdate;
   readonly deployment: MinardDeployment;
 }
@@ -65,6 +66,7 @@ export interface MinardDeployment {
   creator?: MinardDeploymentCreator;
   projectId: number;
   projectName: string;
+  teamId: number;
 }
 
 export interface MinardJsonBuildCommand {

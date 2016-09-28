@@ -1,10 +1,10 @@
 {
   "REGION": "eu-west-1",
   "CLUSTER": "minard",
-  "SERVICE": "minard-charles",
+  "SERVICE": "minard-charles-staging",
   "CONTAINER": "charles",
   "IMAGE": "charles",
   "BUCKET": "lucify-configuration",
-  "KEY": "ecs_services/charles",
+  "KEY": "ecs_services/charles_staging",
   "DOCKERFILE": "Dockerfile-production"
 }

@@ -10,12 +10,11 @@ RUN ulimit -n
 RUN npm config set maxsockets 5
 RUN npm config set registry http://registry.npmjs.org/
 RUN npm config set strict-ssl false
-RUN npm install -g node-gyp
 
-RUN npm install -g node-dev typescript@^2.0.3
+RUN npm install -g node-dev node-gyp
 
 COPY package.json /code/package.json
-RUN npm install && npm link typescript
+RUN npm install
 
 COPY . /code
 RUN npm run transpile

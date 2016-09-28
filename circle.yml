@@ -8,7 +8,7 @@ machine:
 dependencies:
   pre:
     - nvm install && nvm use && nvm alias default $(nvm current)
-    - npm install typescript@^2.0.3 tslint ecs-updater@~0.2.1 lucify-notifier
+    - npm install tslint ecs-updater@~0.2.1 lucify-notifier
 
 test:
   override:

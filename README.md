@@ -110,15 +110,14 @@ your own [public key in GitLab](http://docs.gitlab.com/ce/gitlab-basics/create-y
 
 ```bash
 nvm use
-npm install -g tslint node-dev typescript@beta
+npm install -g tslint node-dev
 npm install
-npm link typescript
 npm link tslint
 ```
 
 ### Dnsmasq
 
-Setup and fixed special IP loopback address with
+Setup a fixed special IP loopback address with
 ```bash
 sudo ifconfig lo0 alias 10.77.88.99
 ```
@@ -157,7 +156,7 @@ environment variable to avoid a port conflict with docker.
 To get continous transpilation, run the following in the project root (in another tab):
 
 ```shell
-tsc -w
+npm run transpile -- -w
 ```
 
 ## Deployments
@@ -166,14 +165,17 @@ tsc -w
 
 ### Locally
 
-If not installed, install ecs-updater
+If not installed, install ecs-updater and lucify-notifier
 ```bash
-npm install -g ecs-updater
+npm install -g ecs-updater lucify-notifier
 ```
 
 Run the deployment with:
 ```bash
-AWS_PROFILE=lucify-protected npm run-script deploy
+AWS_PROFILE=lucify-protected \
+FLOWDOCK_FLOW_TOKEN=$FLOW_MAIN \
+FLOWDOCK_AUTHOR_NAME=$FLOWDOCK_AUTHOR \
+npm run deploy
 ```
 For this to work, you must have the `lucify-protected` profile
 configured in your AWS credentials (`~/.aws/credentials`).

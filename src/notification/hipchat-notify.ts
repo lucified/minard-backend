@@ -1,9 +1,11 @@
 
-import { injectable } from 'inversify';
+import { inject, injectable } from 'inversify';
 
 import {
   MinardDeployment,
 } from '../deployment';
+import { IFetch } from '../shared/fetch';
+import { fetchInjectSymbol } from '../shared/types';
 
 export function getMessageWithScreenshot(deployment: MinardDeployment, projectUrl: string, branchUrl: string) {
   const imgStyle = 'height: 100px; border: 1px solid #d8d8d8;';
@@ -68,6 +70,11 @@ interface CardAttribute {
 export class HipchatNotify {
 
   public static injectSymbol = Symbol('hipchat-notify');
+  private fetch: IFetch;
+
+  public constructor(@inject(fetchInjectSymbol) fetch: IFetch) {
+    this.fetch = fetch;
+  }
 
   public async notify(
     deployment: MinardDeployment,
@@ -104,7 +111,7 @@ export class HipchatNotify {
       body: JSON.stringify(body),
     };
 
-    let ret = await fetch(url, options);
+    let ret = await this.fetch(url, options);
     if (ret.status === 202 || ret.status === 200 || ret.status === 201 || ret.status === 204) {
       return;
     }

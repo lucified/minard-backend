@@ -4,8 +4,8 @@ import { inject, injectable } from 'inversify';
 import * as moment from 'moment';
 import * as queryString from 'querystring';
 
+import { Branch, Commit } from '../shared/gitlab';
 import { GitlabClient, gitBaseUrlInjectSymbol } from '../shared/gitlab-client';
-import { Branch, Commit } from '../shared/gitlab.d.ts';
 import * as logger from '../shared/logger';
 import { MINARD_ERROR_CODE } from '../shared/minard-error';
 import { sleep } from '../shared/sleep';
@@ -35,7 +35,7 @@ import { EventBus, eventBusInjectSymbol } from '../event-bus/';
 import {
   Project,
   ProjectHook,
-} from '../shared/gitlab.d.ts';
+} from '../shared/gitlab';
 
 import { SystemHookModule } from '../system-hook';
 

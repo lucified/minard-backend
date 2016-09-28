@@ -2,15 +2,12 @@
 import { expect } from 'chai';
 import 'reflect-metadata';
 
-require('isomorphic-fetch');
-
 import Authentication from '../authentication/authentication-module';
-import { IFetchStatic } from '../shared/fetch.d.ts';
+import { fetchMock } from '../shared/fetch';
 import { GitlabClient } from '../shared/gitlab-client';
 import SystemHookModule from './system-hook-module';
 import { SYSTEM_HOOK_REGISTRATION_EVENT_TYPE, SystemHookRegistrationEvent } from './types';
 
-const fetchMock = require('fetch-mock');
 import { EventBus, LocalEventBus } from '../event-bus';
 import Logger from '../shared/logger';
 
@@ -27,7 +24,7 @@ describe('system-hooks-module', () => {
     }
     return new GitlabClient(
       'http://fake-gitlab.com:1000',
-      fetchMock.fetchMock as IFetchStatic,
+      fetchMock.fetchMock,
       new MockAuthModule() as Authentication,
       {} as any
     );

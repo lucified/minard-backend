@@ -1,9 +1,9 @@
 
 import * as Boom from 'boom';
-import * as Hapi from 'hapi';
 import { inject, injectable } from 'inversify';
 import * as Joi from 'joi';
 
+import * as Hapi from '../server/hapi';
 import { HapiRegister } from '../server/hapi-register';
 import DeploymentModule, {
   getDeploymentKeyFromHost,
@@ -93,8 +93,11 @@ class DeploymentHapiPlugin {
     server.route({
       method: 'GET',
       path: '/ci/projects/{projectId}/{ref}/{sha}/yml',
-      handler: this.getGitlabYmlRequestHandler.bind(this),
+      handler: {
+        async: this.getGitlabYmlRequestHandler,
+      },
       config: {
+        bind: this,
         validate: {
           params: {
             projectId: Joi.number().required(),

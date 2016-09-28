@@ -1,15 +1,26 @@
-
-import * as Hapi from 'hapi';
+export * from 'hapi';
+import { IReply, IRoute, IServerOptions, Request, Server } from 'hapi';
 
 declare module 'hapi' {
-
-    interface AsyncRouteConfiguration extends IRouteConfiguration {
-      handler: { async: any };
-    }
-
-    interface Server {
-      route(options: AsyncRouteConfiguration): void;
-    }
+  interface IRouteHandlerConfig {
+    async?: AsyncHandler;
+  }
 }
 
-export default Hapi;
+type AsyncHandler = (request: Request, reply: IReply ) => Promise<any>;
+
+function asyncHandlerFactory(route: IRoute, asyncHandler: AsyncHandler) {
+  if (typeof asyncHandler !== 'function') {
+    throw new Error('Hapi: route handler should be a function');
+  }
+  return function (request: Request, reply: IReply) { // tslint:disable-line
+    asyncHandler.call(this, request, reply)
+      .catch((err: any) => reply(err));
+  };
+}
+
+export function getServer(options?: IServerOptions) {
+  const server = new Server(options);
+  server.handler('async', asyncHandlerFactory);
+  return server;
+}

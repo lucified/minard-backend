@@ -5,8 +5,6 @@
    The second rule needs to be disabled since EventSource is a class
    and using disable-line doesn't work */
 
-import 'isomorphic-fetch';
-
 import { Observable } from '@reactivex/rxjs';
 import { expect } from 'chai';
 import { spawn } from 'child_process';
@@ -14,6 +12,7 @@ import * as fs from 'fs';
 import { keys } from 'lodash';
 
 import { JsonApiEntity, JsonApiResponse } from '../json-api';
+import { Response, fetch } from '../shared/fetch';
 
 import * as chalk from 'chalk';
 
@@ -41,7 +40,7 @@ function sleep(ms = 0) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function fetchWithRetry(url: string, options?: any, retryCount = 5): Promise<IResponse> {
+async function fetchWithRetry(url: string, options?: any, retryCount = 5): Promise<Response> {
   for (let i = 0; i < retryCount; i++) {
     try {
       return await fetch(url, options);

@@ -3,6 +3,7 @@ import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
 
 import { AuthenticationModule } from '../authentication';
+import { IFetch, RequestInit, Response } from '../shared/fetch';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
 import { fetchInjectSymbol } from '../shared/types';
 
@@ -24,13 +25,13 @@ export class GitlabClient {
   public readonly authenticationHeader = 'PRIVATE-TOKEN';
 
   private logger: Logger;
-  private _fetch: IFetchStatic;
+  private _fetch: IFetch;
   private _logging: boolean;
   private _authentication: AuthenticationModule;
 
   public constructor(
     @inject(gitlabHostInjectSymbol) host: string,
-    @inject(fetchInjectSymbol) fetch: IFetchStatic,
+    @inject(fetchInjectSymbol) fetch: IFetch,
     @inject(AuthenticationModule.injectSymbol) auth: AuthenticationModule,
     @inject(loggerInjectSymbol) logger: Logger,
     logging: boolean = false) {
@@ -45,7 +46,7 @@ export class GitlabClient {
     return urljoin(this.host, this.apiPrefix, path);
   }
 
-  public get rawFetch(): IFetchStatic {
+  public get rawFetch(): IFetch {
     return this._fetch;
   }
 
@@ -59,17 +60,9 @@ export class GitlabClient {
 
     // Is set already, no modifications
     const key = this.authenticationHeader;
-    if (options
-      && options.headers
-      && options.headers instanceof Headers
-      && options.headers.get(key) ) {
-        return options;
-    }
-
-    if (options && options.headers) {
-      // Is set already, no modifications
-      const h = <any> options.headers;
-      if (typeof h === 'object' && h[key]) {
+    if (options && typeof options.headers === 'object') {
+      const headers = options.headers as any;
+      if ((headers.get && headers.get(key)) || headers[key] ) {
         return options;
       }
     }
@@ -78,8 +71,10 @@ export class GitlabClient {
     // Make a shallow copy
     const _options = Object.assign({}, options || {});
 
-    if (_options.headers instanceof Headers) {
-      _options.headers.set(key, token);
+    const headers = _options.headers as any;
+
+    if (headers === 'object' && headers.set) {
+      headers.set(key, token);
       return _options;
     }
 
@@ -87,7 +82,7 @@ export class GitlabClient {
     return _options;
   }
 
-  public async fetch(path: string, options?: RequestInit): Promise<IResponse> {
+  public async fetch(path: string, options?: RequestInit): Promise<Response> {
     const url = this.url(path);
     const _options = await this.authenticate(options);
     this.log(`GitlabClient: sending request to ${url}`);
@@ -130,7 +125,7 @@ export class GitlabClient {
     const _options = await this.authenticate(options);
     this.log(`GitlabClient: sending request to ${url}`);
 
-    let res: IResponse;
+    let res: Response;
     try {
       res = await this._fetch(url, _options);
     } catch (err) {

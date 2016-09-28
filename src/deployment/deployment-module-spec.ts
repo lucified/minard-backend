@@ -47,12 +47,11 @@ import {
   LocalEventBus,
 } from '../event-bus';
 
-import { IFetchStatic } from '../shared/fetch.d.ts';
+import { fetch, fetchMock } from '../shared/fetch';
 import { GitlabClient } from '../shared/gitlab-client';
 import Logger from '../shared/logger';
 import { promisify } from '../shared/promisify';
 
-const fetchMock = require('fetch-mock');
 const rimraf = require('rimraf');
 const ncp = promisify(require('ncp'));
 const mkpath = require('mkpath');
@@ -60,15 +59,13 @@ const mkpath = require('mkpath');
 const host = 'gitlab';
 const token = 'the-sercret';
 
-declare var Response: any;
-
 const getClient = () => {
   class MockAuthModule {
     public async getRootAuthenticationToken() {
       return token;
     }
   }
-  return new GitlabClient(host, fetchMock.fetchMock as IFetchStatic,
+  return new GitlabClient(host, fetchMock.fetchMock,
     new MockAuthModule() as Authentication, {} as any);
 };
 
@@ -448,7 +445,7 @@ describe('deployment-module', () => {
         status: 200,
         statusText: 'ok',
       };
-      const response = new Response(stream, opts);
+      const response = new fetch.Response(stream, opts);
       const gitlabClient = getClient();
       const mockUrl = `${host}${gitlabClient.apiPrefix}/projects/1/builds/2/artifacts`;
       fetchMock.restore().mock(mockUrl, response);

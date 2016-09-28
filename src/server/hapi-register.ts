@@ -1,5 +1,5 @@
 
-import * as Hapi from 'hapi';
+import * as Hapi from './hapi';
 
 export interface HapiRegister {
   (server: Hapi.Server,

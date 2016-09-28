@@ -1,10 +1,10 @@
 
 import * as Boom from 'boom';
-import * as Hapi from 'hapi';
 import { inject, injectable, interfaces } from 'inversify';
 import * as Joi from 'joi';
 import * as moment from 'moment';
 
+import * as Hapi from '../server/hapi';
 import { HapiRegister } from '../server/hapi-register';
 import { externalBaseUrlInjectSymbol } from '../server/types';
 import { parseApiBranchId } from './conversions';
@@ -97,9 +97,10 @@ export class JsonApiHapiPlugin {
       method: 'GET',
       path: '/deployments/{projectId}-{deploymentId}',
       handler: {
-        async: this.getDeploymentHandler.bind(this),
+        async: this.getDeploymentHandler,
       },
       config: {
+        bind: this,
         validate: {
           params: {
             projectId: Joi.number().required(),
@@ -113,9 +114,10 @@ export class JsonApiHapiPlugin {
       method: 'GET',
       path: '/projects/{projectId}',
       handler: {
-        async: this.getProjectHandler.bind(this),
+        async: this.getProjectHandler,
       },
       config: {
+        bind: this,
         validate: {
           params: {
             projectId: Joi.number().required(),
@@ -128,9 +130,10 @@ export class JsonApiHapiPlugin {
       method: 'POST',
       path: '/projects',
       handler: {
-        async: this.postProjectHandler.bind(this),
+        async: this.postProjectHandler,
       },
       config: {
+        bind: this,
         cors: true,
         validate: {
           payload: {
@@ -158,9 +161,10 @@ export class JsonApiHapiPlugin {
       method: 'DELETE',
       path: '/projects/{projectId}',
       handler: {
-        async: this.deleteProjectHandler.bind(this),
+        async: this.deleteProjectHandler,
       },
       config: {
+        bind: this,
         cors: true,
         validate: {
           params: {
@@ -174,10 +178,11 @@ export class JsonApiHapiPlugin {
       method: 'PATCH',
       path: '/projects/{projectId}',
       handler: {
-        async: this.patchProjectHandler.bind(this),
+        async: this.patchProjectHandler,
       },
       config: {
         cors: true,
+        bind: this,
         validate: {
           params: {
             projectId: Joi.number().required(),
@@ -200,9 +205,10 @@ export class JsonApiHapiPlugin {
       method: 'GET',
       path: '/projects/{projectId}/relationships/branches',
       handler: {
-        async: this.getProjectBranchesHandler.bind(this),
+        async: this.getProjectBranchesHandler,
       },
       config: {
+        bind: this,
         validate: {
           params: {
             projectId: Joi.number().required(),
@@ -215,9 +221,10 @@ export class JsonApiHapiPlugin {
       method: 'GET',
       path: '/teams/{teamId}/relationships/projects',
       handler: {
-        async: this.getProjectsHandler.bind(this),
+        async: this.getProjectsHandler,
       },
       config: {
+        bind: this,
         validate: {
           params: {
             teamId: Joi.number().required(),
@@ -230,9 +237,10 @@ export class JsonApiHapiPlugin {
       method: 'GET',
       path: '/branches/{branchId}',
       handler: {
-        async: this.getBranchHandler.bind(this),
+        async: this.getBranchHandler,
       },
       config: {
+        bind: this,
         validate: {
           params: {
             branchId: Joi.string().required(),
@@ -245,9 +253,10 @@ export class JsonApiHapiPlugin {
       method: 'GET',
       path: '/branches/{branchId}/relationships/commits',
       handler: {
-        async: this.getBranchCommitsHandler.bind(this),
+        async: this.getBranchCommitsHandler,
       },
       config: {
+        bind: this,
         validate: {
           params: {
             branchId: Joi.string().required(),
@@ -264,9 +273,10 @@ export class JsonApiHapiPlugin {
       method: 'GET',
       path: '/commits/{projectId}-{hash}',
       handler: {
-        async: this.getCommitHandler.bind(this),
+        async: this.getCommitHandler,
       },
       config: {
+        bind: this,
         validate: {
           params: {
             projectId: Joi.number().required(),
@@ -280,9 +290,10 @@ export class JsonApiHapiPlugin {
       method: 'GET',
       path: '/activity',
       handler: {
-        async: this.getActivityHandler.bind(this),
+        async: this.getActivityHandler,
       },
       config: {
+        bind: this,
         validate: {
           query: {
             until: Joi.date(),
@@ -297,9 +308,10 @@ export class JsonApiHapiPlugin {
       method: 'GET',
       path: '/projects/{projectId}/relationships/notification',
       handler: {
-        async: this.getProjectNotificationConfigurationsHandler.bind(this),
+        async: this.getProjectNotificationConfigurationsHandler,
       },
       config: {
+        bind: this,
         validate: {
           params: {
             projectId: Joi.number().required(),
@@ -312,9 +324,10 @@ export class JsonApiHapiPlugin {
       method: 'DELETE',
       path: '/notifications/{id}',
       handler: {
-        async: this.deleteNotificationConfigurationHandler.bind(this),
+        async: this.deleteNotificationConfigurationHandler,
       },
       config: {
+        bind: this,
         validate: {
           params: {
             id: Joi.number().required(),
@@ -327,9 +340,10 @@ export class JsonApiHapiPlugin {
       method: 'POST',
       path: '/notifications',
       handler: {
-        async: this.postNotificationConfigurationHandler.bind(this),
+        async: this.postNotificationConfigurationHandler,
       },
       config: {
+        bind: this,
         validate: {
           payload: {
             data: Joi.object({
@@ -426,7 +440,6 @@ export class JsonApiHapiPlugin {
   private async getBranchCommitsHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const matches = parseApiBranchId((<any> request.params).branchId);
     if (!matches) {
-      console.log('here');
       throw Boom.badRequest('Invalid branch id');
     }
     const { projectId, branchName } = matches;

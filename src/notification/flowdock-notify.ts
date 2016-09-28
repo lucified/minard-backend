@@ -1,10 +1,12 @@
 
-import { injectable } from 'inversify';
+import { inject, injectable } from 'inversify';
 
 import {
   MinardDeployment,
   MinardDeploymentStatus,
 } from '../deployment';
+import { IFetch } from '../shared/fetch';
+import { fetchInjectSymbol } from '../shared/types';
 
 type ThreadField = { label: string, value: string };
 
@@ -12,6 +14,12 @@ type ThreadField = { label: string, value: string };
 export class FlowdockNotify {
 
   public static injectSymbol = Symbol('flowdock-notify');
+
+  private fetch: IFetch;
+
+  public constructor(@inject(fetchInjectSymbol) fetch: IFetch) {
+    this.fetch = fetch;
+  }
 
   public async getBody(
     deployment: MinardDeployment,
@@ -57,7 +65,7 @@ export class FlowdockNotify {
       body: JSON.stringify(body),
     };
 
-    let ret = await fetch(url, options);
+    let ret = await this.fetch(url, options);
     if (ret.status === 202 || ret.status === 200 || ret.status === 201) {
       return;
     }
@@ -100,7 +108,6 @@ export class FlowdockNotify {
     switch (deployment.status) {
       case 'success':
         return `Created preview for ${fullName}`;
-      case 'error':
       case 'failed':
       case 'canceled':
         return `Error creating preview for ${fullName}`;
@@ -116,7 +123,6 @@ export class FlowdockNotify {
     switch (state) {
       case 'success':
         return 'green';
-      case 'error':
       case 'failed':
       case 'canceled':
         return 'red';

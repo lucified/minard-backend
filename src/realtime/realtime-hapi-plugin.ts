@@ -3,10 +3,10 @@ import { Observable, Subscription } from '@reactivex/rxjs';
 import { inject, injectable } from 'inversify';
 import * as moment from 'moment';
 
-import * as Hapi from 'hapi';
 import * as Joi from 'joi';
 
 import { ApiProject, JsonApiHapiPlugin } from '../json-api';
+import * as Hapi from '../server/hapi';
 import { HapiRegister } from '../server/hapi-register';
 import * as logger from '../shared/logger';
 import { ObservableWrapper } from './observable-wrapper';
@@ -103,8 +103,11 @@ export class RealtimeHapiPlugin {
     server.route({
       method: 'GET',
       path: '/events/{teamId}',
-      handler: this.requestHandler.bind(this),
+      handler: {
+        async: this.requestHandler,
+      },
       config: {
+        bind: this,
         cors: true,
         validate: {
           params: {
@@ -118,8 +121,11 @@ export class RealtimeHapiPlugin {
     server.route({
       method: 'POST',
       path: '/events/{teamId}',
-      handler: this.postHandler.bind(this),
+      handler: {
+        async: this.postHandler,
+      },
       config: {
+        bind: this,
         validate: {
           params: {
             teamId: Joi.number().required(),

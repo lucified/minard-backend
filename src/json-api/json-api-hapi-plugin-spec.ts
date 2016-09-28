@@ -3,17 +3,14 @@ import { expect } from 'chai';
 import * as moment from 'moment';
 import * as queryString from 'querystring';
 import 'reflect-metadata';
-import Hapi = require('hapi');
 
+import * as Hapi from '../server/hapi';
 import { MINARD_ERROR_CODE } from '../shared/minard-error';
 import { JsonApiHapiPlugin, parseActivityFilter } from './json-api-hapi-plugin';
 
-const hapiAsyncHandler = require('hapi-async-handler');
-
 const provisionServer = async (plugin: JsonApiHapiPlugin) => {
-  const server = new Hapi.Server();
+  const server = Hapi.getServer();
   server.connection({ port: 8080 });
-  await server.register([hapiAsyncHandler]);
   await server.register([plugin]);
   return server;
 };

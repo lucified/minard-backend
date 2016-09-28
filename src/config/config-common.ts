@@ -25,6 +25,10 @@ import {
 } from '../shared/types';
 
 import {
+  fetch,
+} from '../shared/fetch';
+
+import {
   JsonApiHapiPlugin,
   JsonApiModule,
   MemoizedJsonApiModule,

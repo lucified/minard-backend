@@ -16,7 +16,6 @@ if (process.env.LUCIFY_ENV) {
   serviceName.push(process.env.LUCIFY_ENV);
 }
 
-
 async function start() {
   try {
     await migrations.prepareDatabase();

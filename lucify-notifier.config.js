@@ -9,6 +9,7 @@ module.exports = {
     },
     committer: env.CIRCLE_USERNAME,
     build_url: env.CIRCLE_BUILD_URL,
+    url: 'https://charles-staging.lucify.com/status',
     environment: 'staging',
   },
   github: {

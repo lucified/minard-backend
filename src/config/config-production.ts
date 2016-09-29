@@ -135,7 +135,6 @@ const MINARD_UI_BASEURL = env.MINARD_UI_BASEURL ? env.MINARD_UI_BASEURL : `http:
 // Service locator URL
 const REGISTER_SERVICE = env.REGISTER_SERVICE ? env.REGISTER_SERVICE : `http://locator`;
 
-
 // Database configuration
 // ----------------------
 

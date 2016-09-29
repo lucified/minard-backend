@@ -5,7 +5,6 @@ import { IFetch } from './fetch';
 import { Logger, loggerInjectSymbol } from './logger';
 import { fetchInjectSymbol } from './types';
 
-
 export const locatorBaseUrlInjectSymbol = Symbol('locator-base-url');
 
 // The IP below is the IP for the AWS metadata URL
@@ -52,7 +51,8 @@ export class ServiceRegistrator {
     }
 
     // Try to register with the register service
-    const success = await Observable.interval(this.retryDelay)
+    let innerResult = false;
+    await Observable.interval(this.retryDelay)
       .flatMap(async (i) => {
         try {
           const response = await this.fetch(this.locator + '/' + name, {method: 'PUT'});
@@ -62,6 +62,7 @@ export class ServiceRegistrator {
         }
       })
       .takeWhile((result, i) => {
+        innerResult = result;
         const retry = result === false && i <= 5;
         if (retry) {
           this.logger.info('[DNS] Retrying in %sms', this.retryDelay);
@@ -70,11 +71,11 @@ export class ServiceRegistrator {
       })
       .toPromise();
 
-    if (success) {
+    if (innerResult) {
       this.logger.info('[DNS] Registered %s for ip %s', name, ip);
     } else {
       this.logger.info('[DNS] Failed to register %s for ip %s', name, ip);
     }
-    return success;
+    return innerResult;
   }
 }

@@ -38,6 +38,10 @@ import {
   cacheInjectSymbol,
 } from '../shared/cache';
 
+import {
+  locatorBaseUrlInjectSymbol,
+} from '../shared/dns-register';
+
 const redisStore = require('cache-manager-redis');
 
 // Logging configuration
@@ -127,6 +131,10 @@ const SCREENSHOT_URL_PATTERN = env.SCREENSHOT_URL_PATTERN ? env.SCREENSHOT_URL_P
 
 // Base URL for minard-ui
 const MINARD_UI_BASEURL = env.MINARD_UI_BASEURL ? env.MINARD_UI_BASEURL : `http://localhost:3000`;
+
+// Service locator URL
+const REGISTER_SERVICE = env.REGISTER_SERVICE ? env.REGISTER_SERVICE : `http://locator`;
+
 
 // Database configuration
 // ----------------------
@@ -236,4 +244,5 @@ export default (kernel: interfaces.Kernel) => {
   kernel.bind(gitBaseUrlInjectSymbol).toConstantValue(EXTERNAL_GIT_BASEURL);
   kernel.bind(cacheInjectSymbol).toConstantValue(cache);
   kernel.bind(minardUiBaseUrlInjectSymbol).toConstantValue(MINARD_UI_BASEURL);
+  kernel.bind(locatorBaseUrlInjectSymbol).toConstantValue(REGISTER_SERVICE);
 };

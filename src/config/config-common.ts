@@ -11,6 +11,11 @@ import {
   DeploymentHapiPlugin,
   DeploymentModule,
 } from '../deployment';
+
+import {
+  ServiceRegistrator,
+} from '../shared/dns-register';
+
 import {
   PersistentEventBus,
   eventBusInjectSymbol,
@@ -113,4 +118,5 @@ export default new KernelModule(bind => {
   bind(RemoteScreenshotter.injectSymbol).to(RemoteScreenshotter).inSingletonScope();
   bind(Migrations.injectSymbol).to(Migrations);
   bind(screenshotterInjectSymbol).to(RemoteScreenshotter);
+  bind(ServiceRegistrator.injectSymbol).to(ServiceRegistrator);
 });

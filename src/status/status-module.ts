@@ -1,9 +1,12 @@
 
 import { inject, injectable } from 'inversify';
 import * as moment from 'moment';
+import { tmpdir } from 'os';
+import { join } from 'path';
 
 import { AuthenticationModule } from '../authentication';
 import { Event, EventBus, eventBusInjectSymbol } from '../event-bus';
+import { Screenshotter, screenshotterInjectSymbol } from '../screenshot/types';
 import { GitlabClient } from '../shared/gitlab-client';
 import { SYSTEM_HOOK_REGISTRATION_EVENT_TYPE, SystemHookRegistrationEvent } from '../system-hook';
 
@@ -46,6 +49,7 @@ export default class StatusModule {
   public static injectSymbol = Symbol('status-module');
 
   private readonly gitlab: GitlabClient;
+  private readonly screenshotter: Screenshotter;
   private readonly eventBus: EventBus;
   private readonly authentication: AuthenticationModule;
 
@@ -53,9 +57,11 @@ export default class StatusModule {
 
   public constructor(
     @inject(GitlabClient.injectSymbol) gitlab: GitlabClient,
+    @inject(screenshotterInjectSymbol) screenshotter: Screenshotter,
     @inject(eventBusInjectSymbol) eventBus: EventBus,
     @inject(AuthenticationModule.injectSymbol) authentication: AuthenticationModule) {
     this.gitlab = gitlab;
+    this.screenshotter = screenshotter;
     this.eventBus = eventBus;
     this.authentication = authentication;
     this.subscribeToEvents();
@@ -129,7 +135,24 @@ export default class StatusModule {
     } catch (err) {
       return {
         status: 'error',
-        message: 'Gitlab is responding with statusCode ${err.output.statusCode}',
+        message: `Gitlab is responding with statusCode ${err.output.statusCode}`,
+      };
+    }
+  }
+
+  public async getScreenshotterStatus() {
+    const imageFile = join(tmpdir(), 'status-screenshot-test.jpg');
+    try {
+      await this.screenshotter.webshot('https://google.com', imageFile);
+      return {
+        status: 'ok',
+        statusCode: 200,
+        message: 'Screenshotter is responding',
+      };
+    } catch (err) {
+      return {
+        status: 'error',
+        message: `Screenshotter: ${err.message}`,
       };
     }
   }
@@ -159,17 +182,20 @@ export default class StatusModule {
     const postgreStatusPromise = this.getPostgreSqlStatus();
     const gitlabStatusPromise = this.getGitlabStatus();
     const runnersStatusPromise = this.getRunnersStatus();
+    const screenshotterStatusPromise = this.getScreenshotterStatus();
 
     const systemHook = this.getSystemHookStatus();
     const gitlab = await gitlabStatusPromise;
     const runners = await runnersStatusPromise;
-    const postresql = await postgreStatusPromise;
+    const postgresql = await postgreStatusPromise;
+    const screenshotter = await screenshotterStatusPromise;
 
     return {
        systemHook,
        gitlab,
+       screenshotter,
        runners,
-       postresql,
+       postgresql,
     };
   }
 

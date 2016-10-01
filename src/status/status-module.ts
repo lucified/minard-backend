@@ -142,12 +142,13 @@ export default class StatusModule {
 
   public async getScreenshotterStatus() {
     const imageFile = join(tmpdir(), 'status-screenshot-test.jpg');
+    const url = 'https://google.com';
     try {
-      await this.screenshotter.webshot('https://google.com', imageFile);
+      await this.screenshotter.webshot(url, imageFile);
       return {
         status: 'ok',
         statusCode: 200,
-        message: 'Screenshotter is responding',
+        message: `Succesfully took a screenshot of '${url}'`,
       };
     } catch (err) {
       return {

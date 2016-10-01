@@ -17,7 +17,8 @@ const route53Zone = process.env.ROUTE53_ZONE_LOCAL;
 async function start() {
   try {
     await migrations.prepareDatabase();
-    await Promise.all([server.start(), route53updater.update(localBaseUrl, route53Zone)]);
+    await server.start();
+    await route53updater.update(localBaseUrl, route53Zone);
   } catch (err) {
     server.logger.error('Error starting charles', err);
   }

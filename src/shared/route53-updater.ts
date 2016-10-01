@@ -18,8 +18,6 @@ export interface Route53UpdaterFunction {
 
 const route53Updater: Route53UpdaterFunction = require('route53-updater');
 
-export const locatorBaseUrlInjectSymbol = Symbol('locator-base-url');
-
 // The IP below is the IP for the AWS metadata URL
 const ec2IpUrl = 'http://169.254.169.254/latest/meta-data/local-ipv4';
 @injectable()

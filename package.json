@@ -38,7 +38,6 @@
     "sprintf-js": "^1.0.3",
     "url-join": "^1.1.0",
     "winston": "^2.2.0",
-    "wreck": "^10.0.0",
     "yamljs": "^0.2.8"
   },
   "devDependencies": {

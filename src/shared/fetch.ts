@@ -22,6 +22,7 @@ export interface RequestInit {
   redirect?: RequestRedirect;
   credentials?: RequestCredentials;
   cache?: RequestCache;
+  timeout?: number;
 }
 
 type RequestContext =

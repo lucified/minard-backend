@@ -1,14 +1,11 @@
 
 machine:
+  node:
+    version: 6.7
   pre:
     - curl -sSL https://s3.amazonaws.com/circle-downloads/install-circleci-docker.sh | bash -s -- 1.10.0
   services:
     - docker
-
-dependencies:
-  pre:
-    - nvm install && nvm use && nvm alias default $(nvm current)
-    - npm install tslint ecs-updater@~0.2.1 lucify-notifier
 
 test:
   override:

@@ -6,20 +6,19 @@ import Migrations from './migrations';
 import { MinardServer } from './server';
 
 import { get } from './config';
-import { registerService } from './shared/dns-register';
+import { Route53Updater } from './shared/route53-updater';
 
 const migrations = get<Migrations>(Migrations.injectSymbol);
+const route53updater = get<Route53Updater>(Route53Updater.injectSymbol);
 const server = get<MinardServer>(MinardServer.injectSymbol);
-
-const serviceName = ['charles'];
-if (process.env.LUCIFY_ENV) {
-  serviceName.push(process.env.LUCIFY_ENV);
-}
+const localBaseUrl = process.env.ROUTE53_BASEURL_LOCAL;
+const route53Zone = process.env.ROUTE53_ZONE_LOCAL;
 
 async function start() {
   try {
     await migrations.prepareDatabase();
-    await Promise.all([server.start(), registerService(serviceName.join('-'))]);
+    await server.start();
+    await route53updater.update(localBaseUrl, route53Zone);
   } catch (err) {
     server.logger.error('Error starting charles', err);
   }

@@ -11,6 +11,11 @@ import {
   DeploymentHapiPlugin,
   DeploymentModule,
 } from '../deployment';
+
+import {
+  Route53Updater,
+} from '../shared/route53-updater';
+
 import {
   PersistentEventBus,
   eventBusInjectSymbol,
@@ -113,4 +118,5 @@ export default new KernelModule(bind => {
   bind(RemoteScreenshotter.injectSymbol).to(RemoteScreenshotter).inSingletonScope();
   bind(Migrations.injectSymbol).to(Migrations);
   bind(screenshotterInjectSymbol).to(RemoteScreenshotter);
+  bind(Route53Updater.injectSymbol).to(Route53Updater);
 });

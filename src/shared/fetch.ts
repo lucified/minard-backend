@@ -1,7 +1,6 @@
 import { Readable } from 'stream';
 
 export const fetch: IFetch = require('node-fetch');
-const _fetchMock = require('fetch-mock');
 
 interface Request extends Body {
   method: string;
@@ -23,6 +22,7 @@ export interface RequestInit {
   redirect?: RequestRedirect;
   credentials?: RequestCredentials;
   cache?: RequestCache;
+  timeout?: number;
 }
 
 type RequestContext =
@@ -103,9 +103,17 @@ export interface IFetch {
   Headers: HeadersConstructor;
 }
 
-export const fetchMock = {
-  fetchMock: _fetchMock.fetchMock as IFetch,
-  restore: _fetchMock.restore.bind(_fetchMock),
-  mock: _fetchMock.mock.bind(_fetchMock),
-  called: _fetchMock.called.bind(_fetchMock),
-};
+export interface FetchMock {
+  fetchMock: IFetch;
+  restore: () => this;
+  mock: (matcher: any, response: any, options?: any) => this;
+  called: (name?: string) => boolean;
+}
+
+let _fetchMock: any = undefined;
+try {
+  _fetchMock = require('fetch-mock');
+} catch (err) {
+  _fetchMock = {};
+}
+export const fetchMock: FetchMock = _fetchMock;

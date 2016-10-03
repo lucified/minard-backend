@@ -15,6 +15,22 @@ charles is written in Typescript 2 and runs a [Hapi.js](http://hapijs.com) based
 
 [Docker for Mac](https://docs.docker.com/docker-for-mac/)
 
+[AWS CLI](https://aws.amazon.com/cli/)
+```bash
+brew install awscli
+```
+
+Pulling the Docker images from Lucify's private Docker registry
+requires authorization and logging into the Elastic Container Registry.
+Lucify's team members have authorization when using their personal
+AWS credentials. Logging in can be done with
+
+```
+./ecr-login
+```
+
+A single login works for 12h.
+
 ## Running
 
 Since it's all Docker, just run the following in the project root:
@@ -162,6 +178,7 @@ npm run transpile -- -w
 ## Deployments
 
 - staging: `https://charles-staging.lucify.com`
+- production: `https://charles.lucify.com`
 
 ### Locally
 
@@ -182,10 +199,19 @@ configured in your AWS credentials (`~/.aws/credentials`).
 
 This will deploy charles to the staging endpoint.
 
-### Continuous integration
+### Continuous integration (staging)
 
 Once pull requests are merged to master in GitHub, on the condition that the tests pass, CircleCI
 will deploy to staging automatically.
+
+### Devops (production)
+
+After the deployment has been tested in staging and deemed suitable,
+a production deployment can be initiated from Flowdock with
+```
+lucifer deploy minard-backend to production <OTP>
+````
+where `OTP` is the one time password.
 
 ## Debugging
 

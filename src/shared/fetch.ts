@@ -103,20 +103,17 @@ export interface IFetch {
   Headers: HeadersConstructor;
 }
 
+export interface FetchMock {
+  fetchMock: IFetch;
+  restore: () => this;
+  mock: (matcher: any, response: any, options?: any) => this;
+  called: (name?: string) => boolean;
+}
+
 let _fetchMock: any = undefined;
 try {
   _fetchMock = require('fetch-mock');
 } catch (err) {
-  _fetchMock = {
-    fetchMock: {},
-    restore: () => ({}),
-    mock: () => ({}),
-    called: () => ({}),
-  };
+  _fetchMock = {};
 }
-export const fetchMock = {
-  fetchMock: _fetchMock.fetchMock as IFetch,
-  restore: _fetchMock.restore.bind(_fetchMock),
-  mock: _fetchMock.mock.bind(_fetchMock),
-  called: _fetchMock.called.bind(_fetchMock),
-};
+export const fetchMock: FetchMock = _fetchMock;

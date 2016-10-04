@@ -23,10 +23,19 @@ brew install awscli
 Pulling the Docker images from Lucify's private Docker registry
 requires authorization and logging into the Elastic Container Registry.
 Lucify's team members have authorization when using their personal
-AWS credentials. Logging in can be done with
+AWS credentials.
+
+To configure your AWS credentials, run
 
 ```
-./ecr-login
+aws configure
+```
+
+and enter your personal access key and secret along with `eu-west-1` as
+the region. After that, log in with
+
+```
+./ecr-login.sh
 ```
 
 A single login works for 12h.

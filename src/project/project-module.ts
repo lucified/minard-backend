@@ -1,6 +1,7 @@
 
 import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
+import { isNil, omitBy } from 'lodash';
 import * as moment from 'moment';
 import * as queryString from 'querystring';
 
@@ -359,7 +360,7 @@ export default class ProjectModule {
     description?: string,
     importUrl?: string): Promise<Project> {
 
-    const params = {
+    const params = omitBy({
       name: path,
       path,
       public: false,
@@ -369,8 +370,7 @@ export default class ProjectModule {
       // corresponds to GitLab teamId:s
       namespace_id: teamId,
       import_url: importUrl,
-    };
-
+    }, isNil);
 
     const res = await this.gitlab.fetchJsonAnyStatus<any>(
       `projects?${queryString.stringify(params)}`, { method: 'POST' });
@@ -514,7 +514,7 @@ export default class ProjectModule {
       // It might make sense to cleanup the project if this happens, but
       // this should really never happen and leaving the project there allows
       // us to investigate the problem, if this ever happens
-      throw Boom.badImplementation();
+      throw Boom.badImplementation('never-acquired-default-branch');
     }
 
     this.eventBus.post(projectCreated({

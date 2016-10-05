@@ -31,5 +31,6 @@ export function toMinardCommit(gitlabCommit: Commit): MinardCommit {
       name: gitlabCommit.committer_name || gitlabCommit.author_name,
       timestamp: gitlabCommit.committed_date || gitlabCommit.created_at,
     },
+    parentIds: gitlabCommit.parent_ids,
   };
 }

@@ -7,6 +7,7 @@ import AuthenticationModule from '../authentication/authentication-module';
 import { EventBus, LocalEventBus } from '../event-bus';
 import { GitlabClient } from '../shared/gitlab-client';
 import Logger from '../shared/logger';
+import { MINARD_ERROR_CODE } from '../shared/minard-error';
 import { toGitlabTimestamp } from '../shared/time-conversion';
 import SystemHookModule from '../system-hook/system-hook-module';
 import * as queryString from 'querystring';
@@ -856,9 +857,7 @@ describe('project-module', () => {
     const namespacePath = 'foo-namespace';
     const rootPassword = 'foo-password';
 
-    it('it should return id and create event when project creation is succesful ', async () => {
-      // Arrange
-      const bus = new LocalEventBus();
+    function arrangeProjectModule(bus: LocalEventBus = new LocalEventBus()) {
       const gitlab = new GitlabClient(
         '',
         {} as any,
@@ -874,6 +873,23 @@ describe('project-module', () => {
         logger,
         '');
       projectModule.failSleepTime = 0;
+      projectModule.createGitlabProject = async (
+        _teamId: number, _path: string, _description: string, _importUrl: string) => {
+        expect(_teamId).to.equal(teamId);
+        expect(_path).to.equal(_path);
+        expect(_description).to.equal(description);
+        expect(_importUrl).to.equal('http://root:foo-password@localhost/foo-namespace/bar-project-name.git');
+        return {
+          id: projectId,
+        };
+      };
+      return projectModule;
+    }
+
+    it('it should return id and create event when project creation is succesful ', async () => {
+      // Arrange
+      const bus = new LocalEventBus();
+      const projectModule = arrangeProjectModule(bus);
       let callCount = 0;
       projectModule.getProject = async (_projectId: number) => {
         callCount++;
@@ -901,17 +917,6 @@ describe('project-module', () => {
         throw Error('callCount should not go over 2');
       };
 
-      projectModule.createGitlabProject = async (
-        _teamId: number, _path: string, _description: string, _importUrl: string) => {
-        expect(_teamId).to.equal(teamId);
-        expect(_path).to.equal(_path);
-        expect(_description).to.equal(description);
-        expect(_importUrl).to.equal('http://root:foo-password@localhost/foo-namespace/bar-project-name.git');
-        return {
-          id: projectId,
-        };
-      };
-
       const promise = bus.filterEvents<ProjectCreatedEvent>(PROJECT_CREATED_EVENT_TYPE)
         .map(event => event.payload)
         .take(1)
@@ -929,10 +934,67 @@ describe('project-module', () => {
       expect(payload.id).to.equal(projectId);
       expect(createdProjectId).to.equal(createdProjectId);
     });
+
+    it('should throw if project never acquires default branch', async () => {
+      // Arrange
+      const projectModule = arrangeProjectModule();
+      let callCount = 0;
+      projectModule.getProject = async (_projectId: number) => {
+        callCount++;
+        if (callCount === 1) {
+          expect(_projectId).to.equal(templateProjectId);
+          return {
+            namespacePath,
+            path: templateProjectPath,
+            defaultBranch: 'master',
+          };
+        }
+        expect(_projectId).to.equal(projectId);
+        return {
+          defaultBranch: null,
+        };
+      };
+
+      // Act
+      let error: Boom.BoomError | undefined = undefined;
+      await projectModule.doCreateProjectFromTemplate(
+        templateProjectId, teamId, projectName, description)
+        .catch((err) => error = err as Boom.BoomError);
+
+      // Assert
+      expect(error).to.exist;
+      expect(error!.isBoom).to.equal(true);
+      expect(error!.message).to.equal('never-acquired-default-branch');
+      expect(error!.isServer).to.equal(true);
+    });
+
+    it('should throw if project be copied does not include default branch', async () => {
+      // Arrange
+      const projectModule = arrangeProjectModule();
+      projectModule.getProject = async (_projectId: number) => {
+        expect(_projectId).to.equal(templateProjectId);
+        return {
+          namespacePath,
+          path: templateProjectPath,
+          defaultBranch: null,
+        };
+      };
+
+      // Act
+      let error: Boom.BoomError | undefined = undefined;
+      await projectModule.doCreateProjectFromTemplate(
+        templateProjectId, teamId, projectName, description)
+        .catch((err) => error = err as Boom.BoomError);
+
+      // Assert
+      expect(error).to.exist;
+      expect(error!.isBoom).to.equal(true);
+      expect(error!.output.statusCode).to.equal(MINARD_ERROR_CODE.BAD_REQUEST);
+      expect(error!.message).to.equal('Cannot use an empty project as template');
+    });
   });
 
   describe('doCreateProject()', () => {
-
     const projectId = 10;
     const teamId = 5;
     const name = 'foo-project';
@@ -946,7 +1008,6 @@ describe('project-module', () => {
         public: false,
         description,
         namespace_id: teamId,
-        importUrl: undefined,
       };
       const url = `/projects?${queryString.stringify(params)}`;
       return prepareProjectModule(status, body, url, 'POST', eventBus);

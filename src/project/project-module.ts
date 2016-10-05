@@ -371,7 +371,6 @@ export default class ProjectModule {
       import_url: importUrl,
     };
 
-    console.log(importUrl);
 
     const res = await this.gitlab.fetchJsonAnyStatus<any>(
       `projects?${queryString.stringify(params)}`, { method: 'POST' });

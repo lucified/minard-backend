@@ -43,6 +43,7 @@ describe('minard-commit', () => {
       expect(commit.committer.email).to.equal('foobar@gmail.com');
       expect(commit.committer.name).to.equal('fooman');
       expect(commit.committer.timestamp).to.equal('2012-09-20T09:09:12+03:00');
+      expect(commit.parentIds).to.equal(gitlabCommit.parent_ids);
     });
   });
 

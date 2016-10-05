@@ -208,6 +208,7 @@ describe('system-integration', () => {
         expect(repoUrl).to.exist;
         log(`Repository url for new project is ${repoUrl}`);
         _projectId = parseInt(json.data.id, 10);
+        expect(_projectId).to.exist;
       }
     }
     log(`Project created (projectId: ${_projectId})`);
@@ -294,7 +295,7 @@ describe('system-integration', () => {
 
   it('branch information should include information on deployment', async function() {
     logTitle(`Fetching info on project`);
-    this.timeout(1000 * 30);
+    this.timeout(1000 * 45);
     // sleep a to give some time got GitLab
     const url = `${charles}/api/projects/${projectId}/relationships/branches`;
     log(`Using URL ${prettyUrl(url)}`);
@@ -516,7 +517,7 @@ describe('system-integration', () => {
   });
 
   it('should be able to create project based on template', async function() {
-    this.timeout(1000 * 30);
+    this.timeout(1000 * 60);
     logTitle('Creating project from template');
     copyProjectId = await shouldSuccessfullyCreateProject(projectCopyName, projectId);
   });

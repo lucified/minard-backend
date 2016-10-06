@@ -1,4 +1,8 @@
 {
+  "exclude": [
+    "gitlab-data",
+    "node_modules"
+  ],
   "compilerOptions": {
     "outDir": "./dist/",
     "sourceMap": true,

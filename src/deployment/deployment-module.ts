@@ -304,6 +304,7 @@ export default class DeploymentModule {
         `${deployment.ref}-${deployment.commit.shortId}-${deployment.projectId}-${deployment.id}`
       );
     }
+
     if (deployment.screenshotStatus === 'success') {
       deployment.screenshot = this.screenshotModule.getPublicUrl(deployment.projectId, deployment.id);
     }
@@ -492,7 +493,7 @@ export default class DeploymentModule {
     }, isNil);
 
     if (values(realUpdates).length > 0) {
-      await this.knex('deployment').update(realUpdates);
+      await this.knex('deployment').update(realUpdates).where('id', deploymentId);
       // this is a bit clumsy, but we need to fetch the deployment again
       // after performing the updates, as otherwise the deployment will
       // not have correct url and screenshot urls set

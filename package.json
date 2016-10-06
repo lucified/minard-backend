@@ -78,6 +78,7 @@
     "dev": "npm run transpile && node-dev --debug=${DEBUG_PORT:-5858} --nolazy dist/app.js",
     "start": "node dist/app.js",
     "transpile": "tsc",
+    "watch": "tsc -w",
     "lint": "tslint --format=verbose 'src/**/*.ts'",
     "deploy": "lucify-notifier ecs-updater"
   },

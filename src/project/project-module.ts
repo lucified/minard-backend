@@ -170,11 +170,13 @@ export default class ProjectModule {
   }
 
   public toMinardBranch(projectId: number, branch: Branch): MinardBranch {
+    const latestActivityTimestamp = (branch.commit.created_at
+      || branch.commit.committed_date || branch.commit.authored_date) as string;
     return {
       project: projectId,
       name: branch.name,
       latestCommit: toMinardCommit(branch.commit),
-      latestActivityTimestamp: branch.commit.created_at,
+      latestActivityTimestamp,
     };
   }
 

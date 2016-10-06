@@ -193,6 +193,7 @@ describe('project-module', () => {
       expect(branch!.latestCommit).to.exist;
       expect(branch!.latestCommit.id).to.equal(gitlabResponse.commit.id);
       expect(branch!.latestCommit.author.email).to.equal(gitlabResponse.commit.author_email);
+      expect(branch!.latestActivityTimestamp).to.equal(gitlabResponse.commit.committed_date);
     });
 
     it('should return null when gitlab responds 404', async () => {

@@ -986,6 +986,7 @@ describe('deployment-module', () => {
   describe('updateDeploymentStatus', () => {
 
     const deploymentId = 20;
+    const otherDeploymentId = 21;
     const teamId = 9;
 
     async function initializeDb(beforeState: any) {
@@ -1007,6 +1008,24 @@ describe('deployment-module', () => {
         finishedAt: undefined,
         teamId,
       }, beforeState)));
+      await knex('deployment').insert(toDbDeployment({
+        id: otherDeploymentId,
+        status: 'pending',
+        buildStatus: 'pending',
+        extractionStatus: 'pending',
+        screenshotStatus: 'pending',
+        createdAt: moment(),
+        commit: {
+          id: 'foo',
+          committer: {
+            email: 'fooman@foomail.com',
+            name: 'foo',
+          },
+        } as any,
+        finishedAt: undefined,
+        teamId,
+      } as any));
+
       return knex;
     }
 
@@ -1048,6 +1067,11 @@ describe('deployment-module', () => {
       const deployment = await deploymentModule.getDeployment(deploymentId);
       expect(deployment).to.exist;
       expect(deployment!.status).to.equal(resultingStatus);
+
+      // status for other deployment should not change
+      const otherDeployment = await deploymentModule.getDeployment(otherDeploymentId);
+      expect(otherDeployment).to.exist;
+      expect(otherDeployment!.status).to.equal('pending');
       return deployment;
     }
 

@@ -484,6 +484,9 @@ export default class ProjectModule {
       throw Boom.badRequest(`Cannot use an empty project as template`);
     }
     // localhost is valid, since this is something gitlab always accesses locally
+    // note that this assumes that the internal port where gitlab listens on is port 80
+    // if we need to use another port, we need to change this to support injecting
+    // the port as another environment variable
     const importUrl = `http://root:${this.authenticationModule.getRootPassword()}@` +
       `localhost/${templateProject.namespacePath}/${templateProject.path}.git`;
     let gitlabProject = await this.createGitlabProject(teamId, name, description, importUrl);

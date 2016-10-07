@@ -27,12 +27,15 @@ interface SSE {
 const teamId = process.env.TEAM_ID ? process.env.TEAM_ID : 2;
 const flowToken = process.env.FLOWDOCK_FLOW_TOKEN;
 const projectFolder = process.env.SYSTEM_TEST_PROJECT ? process.env.SYSTEM_TEST_PROJECT : 'blank';
-const charles = process.env.CHARLES ? process.env.CHARLES : 'http://localhost:8000';
+const charles_credentials = process.env.CHARLES_CREDENTIALS ? process.env.CHARLES_CREDENTIALS + '@' : '';
+let charles = process.env.CHARLES ? process.env.CHARLES : 'http://localhost:8000';
+const git_password = process.env.GIT_PASSWORD ? process.env.GIT_PASSWORD : '12345678';
 const hipchatRoomId = process.env.HIPCHAT_ROOM_ID ? process.env.HIPCHAT_ROOM_ID : 3140019;
 const hipchatAuthToken = process.env.HIPCHAT_AUTH_TOKEN ? process.env.HIPCHAT_AUTH_TOKEN : undefined;
 
 const skipDeleteProject = process.env.SKIP_DELETE_PROJECT ? true : false;
 
+charles = charles.replace('//', `//${charles_credentials}`);
 console.log(`Project is ${projectFolder}`);
 console.log(`Charles is ${charles}`);
 
@@ -286,7 +289,8 @@ describe('system-integration', () => {
       throw Error('Could not match server url from repo url'); // make typescript happy
     }
     const gitserver = matches[0];
-    const credentialsFileContent = gitserver.replace(/:(\d+)$/gi, '%3a$1').replace('//', '//root:12345678@') + '\n';
+    const credentialsFileContent = gitserver.replace(/:(\d+)$/gi, '%3a$1')
+      .replace('//', `//root:${git_password}@`) + '\n';
     fs.writeFileSync(`/tmp/git-credentials`, credentialsFileContent, 'utf-8');
     await runCommand('src/integration-test/setup-repo');
     await runCommand('git', '-C', repoFolder, 'remote', 'add', 'minard', repoUrl!);
@@ -378,6 +382,7 @@ describe('system-integration', () => {
       }
     }
     log(`Fetching screenshot from ${prettyUrl(screenshot)}`);
+    screenshot = screenshot.replace('//', `//${charles_credentials}`);
     const ret = await fetchWithRetry(screenshot);
     expect(ret.status).to.equal(200);
   });

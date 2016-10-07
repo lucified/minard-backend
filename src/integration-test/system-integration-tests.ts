@@ -86,11 +86,14 @@ function prettyUrl(url: string) {
 describe('system-integration', () => {
 
   const projectName = 'integration-test-project';
+  const projectCopyName = 'integration-test-project-copy';
   let projectId: number | undefined;
+  let copyProjectId: number | undefined;
   let deploymentId: string | undefined;
   let deployment: any;
   let oldProjectId: number | undefined;
   let repoUrl: string | undefined;
+  let oldCopyProjectId: number | undefined;
 
   it('status should be ok', async function() {
     logTitle('Checking that status is ok');
@@ -134,19 +137,26 @@ describe('system-integration', () => {
     expect(ret.status).to.equal(200);
     const json = await ret.json();
     expect(json.data).to.exist;
-    const project = json.data.find((proj: JsonApiEntity) => proj.attributes.name === projectName) as JsonApiEntity;
+    const project = json.data.find((proj: JsonApiEntity) =>
+      proj.attributes.name === projectName) as JsonApiEntity;
     if (project) {
       expect(project.id).to.exist;
       oldProjectId = Number(project.id);
       log(`Found old integration-test-project with id ${oldProjectId}`);
     }
+    const templateProject = json.data.find((proj: JsonApiEntity) =>
+      proj.attributes.name === projectCopyName) as JsonApiEntity;
+    if (templateProject) {
+      expect(templateProject.id).to.exist;
+      oldCopyProjectId = Number(templateProject.id);
+      log(`Found old integration-test-project-copy with id ${oldCopyProjectId}`);
+    }
   });
 
-  it('should allow for deleting old integration-test-project', async function() {
-    this.timeout(1000 * 30);
-    if (oldProjectId) {
-      logTitle(`Deleting old integration-test-project (${oldProjectId})`);
-      const ret = await fetchWithRetry(`${charles}/api/projects/${oldProjectId}`, {
+  async function shouldAllowForDeletingProject(_oldProjectId?: number) {
+    if (_oldProjectId) {
+      logTitle(`Deleting old integration-test-project (${_oldProjectId})`);
+      const ret = await fetchWithRetry(`${charles}/api/projects/${_oldProjectId}`, {
         method: 'DELETE',
       });
       expect(ret.status).to.equal(200);
@@ -155,17 +165,21 @@ describe('system-integration', () => {
     } else {
       log('Nothing to delete');
     }
+  }
+
+  it('should allow for deleting old integration-test-project', async function() {
+    this.timeout(1000 * 30);
+    await shouldAllowForDeletingProject(oldProjectId);
   });
 
-  it('should successfully create project', async function() {
-    this.timeout(1000 * 60);
-    logTitle('Creating project');
+  async function shouldSuccessfullyCreateProject(_projectName: string, _templateProjectId?: number) {
     const createProjectPayload = {
       'data': {
         'type': 'projects',
         'attributes': {
-          'name': projectName,
+          'name': _projectName,
           'description': 'foo bar',
+          'templateProjectId': _templateProjectId,
         },
         'relationships': {
           'team': {
@@ -177,7 +191,8 @@ describe('system-integration', () => {
         },
       },
     };
-    while (!projectId) {
+    let _projectId: number | undefined;
+    while (!_projectId) {
       const ret = await fetchWithRetry(`${charles}/api/projects`, {
         method: 'POST',
         body: JSON.stringify(createProjectPayload),
@@ -189,13 +204,21 @@ describe('system-integration', () => {
         expect(ret.status).to.equal(201);
         const json = await ret.json();
         expect(json.data.id).to.exist;
-        projectId = parseInt(json.data.id, 10);
         repoUrl = json.data.attributes['repo-url'];
         expect(repoUrl).to.exist;
         log(`Repository url for new project is ${repoUrl}`);
+        _projectId = parseInt(json.data.id, 10);
+        expect(_projectId).to.exist;
       }
     }
-    log(`Project created (projectId: ${projectId})`);
+    log(`Project created (projectId: ${_projectId})`);
+    return _projectId;
+  }
+
+  it('should successfully create project', async function() {
+    this.timeout(1000 * 60);
+    logTitle('Creating project');
+    projectId = await shouldSuccessfullyCreateProject(projectName);
   });
 
   let flowdockNotificationId: number | undefined;
@@ -272,7 +295,7 @@ describe('system-integration', () => {
 
   it('branch information should include information on deployment', async function() {
     logTitle(`Fetching info on project`);
-    this.timeout(1000 * 30);
+    this.timeout(1000 * 45);
     // sleep a to give some time got GitLab
     const url = `${charles}/api/projects/${projectId}/relationships/branches`;
     log(`Using URL ${prettyUrl(url)}`);
@@ -488,18 +511,25 @@ describe('system-integration', () => {
     log('Notification configuration deleted');
   });
 
-  it('should be able to delete project', async function() {
+  it('should be able to delete old integration-test-project-copy', async function() {
+    this.timeout(1000 * 20);
+    await shouldAllowForDeletingProject(oldCopyProjectId);
+  });
+
+  it('should be able to create project based on template', async function() {
+    this.timeout(1000 * 60);
+    logTitle('Creating project from template');
+    copyProjectId = await shouldSuccessfullyCreateProject(projectCopyName, projectId);
+  });
+
+  it('should be able to delete test projects', async function() {
     if (skipDeleteProject) {
-      log('Skipping deletion of project');
+      log('Skipping deletion of projects');
       return;
     }
     this.timeout(1000 * 30);
-    logTitle('Deleting the project');
-    const ret = await fetchWithRetry(`${charles}/api/projects/${projectId}`, {
-      method: 'DELETE',
-    });
-    expect(ret.status).to.equal(200);
-    log('Project deleted');
+    await shouldAllowForDeletingProject(projectId);
+    await shouldAllowForDeletingProject(copyProjectId);
   });
 
   it('cleanup repository', async function() {

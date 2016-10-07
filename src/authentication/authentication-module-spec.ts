@@ -21,7 +21,7 @@ describe('authentication-module', () => {
       id: 1,
       authentication_token: 'GG3TDoKuXXJVFw8nmQ7G',
     });
-    const authenticationModule = new AuthenticationModule(knex);
+    const authenticationModule = new AuthenticationModule(knex, '');
     const token = await authenticationModule.getPrivateAuthenticationToken(1);
     expect(token).to.equal('GG3TDoKuXXJVFw8nmQ7G');
   });

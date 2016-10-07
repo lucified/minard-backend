@@ -1,6 +1,7 @@
 
 import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
+import { isNil, omitBy } from 'lodash';
 import * as moment from 'moment';
 import * as queryString from 'querystring';
 
@@ -255,6 +256,8 @@ export default class ProjectModule {
       activeCommitters,
       latestActivityTimestamp: project.last_activity_at,
       repoUrl,
+      namespacePath: project.namespace.path,
+      defaultBranch: project.default_branch,
     };
   }
 
@@ -350,8 +353,14 @@ export default class ProjectModule {
     return `/project/hook`;
   }
 
-  private async createGitlabProject(teamId: number, path: string, description?: string): Promise<Project> {
-    const params = {
+  // internal function
+  public async createGitlabProject(
+    teamId: number,
+    path: string,
+    description?: string,
+    importUrl?: string): Promise<Project> {
+
+    const params = omitBy({
       name: path,
       path,
       public: false,
@@ -360,7 +369,8 @@ export default class ProjectModule {
       // those id's do not overlap. Here we set it as the teamId, which
       // corresponds to GitLab teamId:s
       namespace_id: teamId,
-    };
+      import_url: importUrl,
+    }, isNil);
 
     const res = await this.gitlab.fetchJsonAnyStatus<any>(
       `projects?${queryString.stringify(params)}`, { method: 'POST' });
@@ -455,7 +465,72 @@ export default class ProjectModule {
     }));
   }
 
-  public async createProject(teamId: number, name: string, description?: string): Promise<number> {
+  public createProject(
+    teamId: number, name: string, description?: string, templateProjectId?: number): Promise<number> {
+    if (!templateProjectId) {
+      return this.doCreateProject(teamId, name, description);
+    }
+    return this.doCreateProjectFromTemplate(templateProjectId, teamId, name, description);
+  };
+
+  // internal function
+  public async doCreateProjectFromTemplate(
+    templateProjectId: number, teamId: number, name: string, description?: string): Promise<number> {
+    const templateProject = await this.getProject(templateProjectId);
+    if (!templateProject) {
+      throw Boom.notFound(`Template project ${templateProjectId} not found`);
+    }
+    if (!templateProject.defaultBranch) {
+      throw Boom.badRequest(`Cannot use an empty project as template`);
+    }
+    // localhost is valid, since this is something gitlab always accesses locally
+    // note that this assumes that the internal port where gitlab listens on is port 80
+    // if we need to use another port, we need to change this to support injecting
+    // the port as another environment variable
+    const importUrl = `http://root:${this.authenticationModule.getRootPassword()}@` +
+      `localhost/${templateProject.namespacePath}/${templateProject.path}.git`;
+    let gitlabProject = await this.createGitlabProject(teamId, name, description, importUrl);
+
+    // wait for project to get a default branch
+    let project: MinardProject | null;
+    let count = 0;
+    do {
+      project = await this.getProject(gitlabProject.id);
+      if (!project) {
+        this.logger.error(
+          `Failed to get project ${gitlabProject.id} after creating it from template ${templateProjectId}`);
+        throw Boom.badGateway();
+      }
+      if (!project.defaultBranch) {
+        this.logger.info(
+          `Project ${gitlabProject.id} does not yet have default branch ` +
+          `after creating it from template project ${templateProjectId}. ` +
+          `Waiting for two seconds.`);
+      }
+      count++;
+      await sleep(this.failSleepTime);
+    } while (!project.defaultBranch && count < 60 * 2);
+
+    if (!project.defaultBranch) {
+      this.logger.error(
+        `Project ${project.id} created from template ${templateProjectId} did not acquire default branch`);
+      // It might make sense to cleanup the project if this happens, but
+      // this should really never happen and leaving the project there allows
+      // us to investigate the problem, if this ever happens
+      throw Boom.badImplementation('never-acquired-default-branch');
+    }
+
+    this.eventBus.post(projectCreated({
+      id: project.id,
+      description,
+      name,
+      teamId,
+    }));
+    return project.id;
+  }
+
+  // internal function
+  public async doCreateProject(teamId: number, name: string, description?: string): Promise<number> {
     const project = await this.createGitlabProject(teamId, name, description);
     this.eventBus.post(projectCreated({
       id: project.id,

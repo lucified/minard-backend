@@ -38,6 +38,10 @@ import {
   cacheInjectSymbol,
 } from '../shared/cache';
 
+import {
+  gitlabRootPasswordInjectSymbol,
+} from '../authentication';
+
 const redisStore = require('cache-manager-redis');
 
 // Logging configuration
@@ -163,9 +167,12 @@ const charlesKnex = getKnex(CHARLES_DB_NAME);
 const postgresKnex = getKnex('postgres');
 
 // EventStore / Redis configuration
-// https://github.com/adrai/node-eventstore
-// http://redis.js.org/#api-rediscreateclient
-// ----------------------
+//
+// Reference:
+//  (a) https://github.com/adrai/node-eventstore
+//  (b) http://redis.js.org/#api-rediscreateclient
+//
+// -----------------------------------------------
 const REDIS_HOST = env.REDIS_HOST ? env.REDIS_HOST : 'localhost';
 const REDIS_PORT = env.REDIS_PORT ? parseInt(env.REDIS_PORT, 10) : 6379;
 
@@ -212,6 +219,11 @@ const cache = cacheManager.caching({
   ttl: 60 * 60 * 24 * 30, // 30 days
 } as any);
 
+// Authentication
+// --------------
+
+const GITLAB_ROOT_PASSWORD = env.GITLAB_ROOT_PASSWORD ? env.GITLAB_ROOT_PASSWORD : '12345678';
+
 // Inversify kernel bindings
 // -------------------------
 
@@ -236,4 +248,5 @@ export default (kernel: interfaces.Kernel) => {
   kernel.bind(gitBaseUrlInjectSymbol).toConstantValue(EXTERNAL_GIT_BASEURL);
   kernel.bind(cacheInjectSymbol).toConstantValue(cache);
   kernel.bind(minardUiBaseUrlInjectSymbol).toConstantValue(MINARD_UI_BASEURL);
+  kernel.bind(gitlabRootPasswordInjectSymbol).toConstantValue(GITLAB_ROOT_PASSWORD);
 };

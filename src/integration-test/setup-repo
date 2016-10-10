@@ -9,6 +9,5 @@ rm -rf $FOLDER/.git
 git -C $FOLDER init
 git -C $FOLDER config user.email foo@bar.com
 git -C $FOLDER config user.name 'Foo Bar'
-git -C $FOLDER config credential.helper 'store --file=/tmp/git-credentials'
 git -C $FOLDER add -A .
 git -C $FOLDER commit -m 'test commit'

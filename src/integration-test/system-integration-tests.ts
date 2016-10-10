@@ -289,11 +289,11 @@ describe('system-integration', () => {
       throw Error('Could not match server url from repo url'); // make typescript happy
     }
     const gitserver = matches[0];
-    const credentialsFileContent = gitserver.replace(/:(\d+)$/gi, '%3a$1')
-      .replace('//', `//root:${git_password}@`) + '\n';
-    fs.writeFileSync(`/tmp/git-credentials`, credentialsFileContent, 'utf-8');
+    const gitServerWithCredentials = gitserver.replace(/:(\d+)$/gi, '%3a$1')
+      .replace('//', `//root:${encodeURIComponent(git_password)}@`);
+    const repoUrlWithCredentials = repoUrl!.replace(gitserver, gitServerWithCredentials);
     await runCommand('src/integration-test/setup-repo');
-    await runCommand('git', '-C', repoFolder, 'remote', 'add', 'minard', repoUrl!);
+    await runCommand('git', '-C', repoFolder, 'remote', 'add', 'minard', repoUrlWithCredentials);
     await runCommand('git', '-C', repoFolder, 'push', 'minard', 'master');
   });
 

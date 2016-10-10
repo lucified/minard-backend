@@ -8,7 +8,6 @@
 import { Observable } from '@reactivex/rxjs';
 import { expect } from 'chai';
 import { spawn } from 'child_process';
-import * as fs from 'fs';
 import { keys } from 'lodash';
 
 import { JsonApiEntity, JsonApiResponse } from '../json-api';

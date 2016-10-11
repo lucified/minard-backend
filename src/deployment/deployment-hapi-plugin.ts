@@ -2,18 +2,18 @@
 import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
 import * as Joi from 'joi';
+import * as path from 'path';
 
 import * as Hapi from '../server/hapi';
 import { HapiRegister } from '../server/hapi-register';
 import DeploymentModule, {
   getDeploymentKeyFromHost,
   getDeploymentKeyFromId,
-  isRawDeploymentHostname }
+  isRawDeploymentHostname,
+}
 from './deployment-module';
 
 import { gitlabHostInjectSymbol } from '../shared/gitlab-client';
-
-import * as path from 'path';
 
 @injectable()
 class DeploymentHapiPlugin {
@@ -108,12 +108,34 @@ class DeploymentHapiPlugin {
       },
     });
 
+    server.route({
+      method: 'GET',
+      path: '/ci/deployments/{id}/trace',
+      handler: {
+        async: this.getTraceRequestHandler,
+      },
+      config: {
+        bind: this,
+        pre: [
+          { method: this.parsePath.bind(this), assign: 'key' },
+        ],
+      },
+    });
     next();
   };
 
   private async getGitlabYmlRequestHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const { projectId, ref } = (<any> request.params);
     return reply(this.deploymentModule.getGitlabYml(projectId, ref))
+      .header('content-type', 'text/plain');
+  }
+
+  private async getTraceRequestHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    const pre = <any> request.pre;
+    const projectId = pre.key.projectId;
+    const deploymentId = pre.key.deploymentId;
+    const text = await this.deploymentModule.getBuildTrace(projectId, deploymentId);
+    return reply(text)
       .header('content-type', 'text/plain');
   }
 

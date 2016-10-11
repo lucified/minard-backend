@@ -198,7 +198,7 @@ export default class DeploymentModule {
 
   public async createDeployment(event: Event<BuildCreatedEvent>) {
     const payload = event.payload;
-    const [ commit, project ] = await Promise.all([
+    const [commit, project] = await Promise.all([
       this.projectModule.getCommit(payload.project_id, payload.sha),
       this.projectModule.getProject(payload.project_id),
     ]);
@@ -300,7 +300,7 @@ export default class DeploymentModule {
     const deployment = toMinardDeployment(_deployment);
     if (deployment.extractionStatus === 'success') {
       deployment.url = sprintf(
-         this.urlPattern,
+        this.urlPattern,
         `${deployment.ref}-${deployment.commit.shortId}-${deployment.projectId}-${deployment.id}`
       );
     }
@@ -361,6 +361,19 @@ export default class DeploymentModule {
       throw Boom.badGateway();
     }
     return await ret.text();
+  }
+
+  public async getBuildTrace(projectId: number, deploymentId: number): Promise<any> {
+    const url = `/projects/${projectId}/builds/${deploymentId}/trace`;
+    const ret = await this.gitlab.fetch(url);
+    if (ret.status === 404) {
+      return undefined;
+    }
+    if (ret.status !== 200) {
+      this.logger.warn(`Unexpected response from GitLab when fetching build trace from ${url}`);
+      throw Boom.badGateway();
+    }
+    return ret.text();
   }
 
   public async getParsedMinardJson(projectId: number, shaOrBranchName: string): Promise<any> {

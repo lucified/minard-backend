@@ -46,29 +46,30 @@ export class PersistentEventBus extends LocalEventBus {
   }
 
   private subscribeToPipe() {
-      let stream: any;
-      if (process.env.DEBUG) {
-        stream = this.prependInit(this.pipe)
-          .flatMap(async job => {
-            const start = Date.now();
-            const result = await job.execute();
-            const duration = Date.now() - start;
-            return {job, result, duration};
-          }, 1)
-          .timeInterval()
-          .do(executedJob => {
-            const result = executedJob.value.result as any;
-            const interval = executedJob.interval;
-            const duration = executedJob.value.duration;
-            const jobType = executedJob.value.job.type;
+    let stream: any;
+    if (process.env.DEBUG) {
+      stream = this.prependInit(this.pipe)
+        .flatMap(async job => {
+          const start = Date.now();
+          const result = await job.execute();
+          const duration = Date.now() - start;
+          return { job, result, duration };
+        }, 1)
+        .timeInterval()
+        .do(_executedJob => {
+          const executedJob = _executedJob as any;
+          const result = executedJob.value.result;
+          const interval = executedJob.interval;
+          const duration = executedJob.value.duration;
+          const jobType = executedJob.value.job.type;
 
-            const event = result && result.type ? result.type : '';
-            this.logger.debug('%sms %sms %s %s', duration, interval, jobType, event);
-          });
-      } else {
-        stream = this.prependInit(this.pipe).flatMap(job => job.execute(), 1);
-      }
-      stream.subscribe();
+          const event = result && result.type ? result.type : '';
+          this.logger.debug('%sms %sms %s %s', duration, interval, jobType, event);
+        });
+    } else {
+      stream = this.prependInit(this.pipe).flatMap(job => job.execute(), 1);
+    }
+    stream.subscribe();
   }
 
   private _publish(event: Event<any>, callback: (err?: any) => void) {

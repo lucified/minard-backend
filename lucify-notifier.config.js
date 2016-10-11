@@ -24,4 +24,5 @@ module.exports = {
       email: 'deploy@lucify.com',
     },
   },
+  decryption_key: 's3://lucify-configuration/lucifer/public-key.pem',
 };

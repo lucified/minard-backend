@@ -22,7 +22,7 @@
     "inversify": "^2.0.0",
     "joi": "^9.0.4",
     "jsonapi-serializer": "^3.4.1",
-    "knex": "^0.12.1",
+    "knex": "0.12.3",
     "lodash": "^4.16.2",
     "memoizee": "^0.4.1",
     "mkpath": "^1.0.0",

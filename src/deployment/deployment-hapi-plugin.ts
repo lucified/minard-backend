@@ -8,7 +8,6 @@ import * as Hapi from '../server/hapi';
 import { HapiRegister } from '../server/hapi-register';
 import DeploymentModule, {
   getDeploymentKeyFromHost,
-  getDeploymentKeyFromId,
   isRawDeploymentHostname,
 }
 from './deployment-module';
@@ -71,7 +70,7 @@ class DeploymentHapiPlugin {
 
     server.route({
       method: 'GET',
-      path: '/deployments/{id}/{path*}',
+      path: '/deployments/{projectId}-{deploymentId}/{path*}',
       handler: {
         directory: {
           path: this.serveDirectory.bind(this),
@@ -83,8 +82,13 @@ class DeploymentHapiPlugin {
         },
       },
       config: {
+        validate: {
+          params: {
+            projectId: Joi.number().required(),
+            deploymentId: Joi.number().required(),
+          },
+        },
         pre: [
-          { method: this.parsePath.bind(this), assign: 'key' },
           { method: this.preCheck.bind(this) },
         ],
       },
@@ -110,15 +114,18 @@ class DeploymentHapiPlugin {
 
     server.route({
       method: 'GET',
-      path: '/ci/deployments/{id}/trace',
+      path: '/ci/deployments/{projectId}-{deploymentId}/trace',
       handler: {
         async: this.getTraceRequestHandler,
       },
       config: {
         bind: this,
-        pre: [
-          { method: this.parsePath.bind(this), assign: 'key' },
-        ],
+        validate: {
+          params: {
+            projectId: Joi.number().required(),
+            deploymentId: Joi.number().required(),
+          },
+        },
       },
     });
     next();
@@ -131,9 +138,8 @@ class DeploymentHapiPlugin {
   }
 
   private async getTraceRequestHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const pre = <any> request.pre;
-    const projectId = pre.key.projectId;
-    const deploymentId = pre.key.deploymentId;
+    const projectId = parseInt(request.paramsArray[0], 10);
+    const deploymentId = parseInt(request.paramsArray[1], 10);
     const text = await this.deploymentModule.getBuildTrace(projectId, deploymentId);
     return reply(text)
       .header('content-type', 'text/plain');
@@ -150,23 +156,6 @@ class DeploymentHapiPlugin {
     return path.join(this.deploymentModule.getDeploymentPath(projectId, deploymentId));
   }
 
-  private parsePath(request: Hapi.Request, reply: Hapi.IReply) {
-    const params = request.params;
-    const idKey = 'id';
-    const id = params[idKey];
-
-    const key = getDeploymentKeyFromId(id);
-
-    if (!key) {
-      return Boom.create(403, `Could not parse deployment URL from id '${id}'`) as any;
-    }
-    // This hack is needed so that the directory-handler doesn't take the id as the path
-    if (request.paramsArray.length < 2) {
-      request.paramsArray.push('');
-    }
-    return reply(key);
-  }
-
   private parseHost(request: Hapi.Request, reply: Hapi.IReply) {
     const key = getDeploymentKeyFromHost(request.info.hostname);
 
@@ -181,8 +170,8 @@ class DeploymentHapiPlugin {
 
   private async preCheck(request: Hapi.Request, reply: Hapi.IReply) {
     const pre = <any> request.pre;
-    const projectId = pre.key.projectId;
-    const deploymentId = pre.key.deploymentId;
+    const projectId = pre ? pre.key.projectId : parseInt(request.paramsArray[0], 10);
+    const deploymentId = pre ? pre.key.deploymentId : parseInt(request.paramsArray[1], 10);
     const isReady = this.deploymentModule.isDeploymentReadyToServe(projectId, deploymentId);
 
     if (!isReady) {

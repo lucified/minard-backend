@@ -367,11 +367,11 @@ export default class DeploymentModule {
     const url = `/projects/${projectId}/builds/${deploymentId}/trace`;
     const ret = await this.gitlab.fetch(url);
     if (ret.status === 404) {
-      return undefined;
+      throw Boom.create(404);
     }
     if (ret.status !== 200) {
       this.logger.warn(`Unexpected response from GitLab when fetching build trace from ${url}`);
-      throw Boom.badGateway();
+      throw Boom.create(ret.status);
     }
     return ret.text();
   }

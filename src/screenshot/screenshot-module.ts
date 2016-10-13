@@ -84,7 +84,11 @@ export default class ScreenshotModule {
       const file = this.getScreenshotterPath(projectId, deploymentId);
       const webshotOptions = {
         defaultWhiteBackground: true,
-        renderDelay: 2000,
+        renderDelay: 5000,
+        windowSize: {
+          width: 1200,
+          height: 750,
+        },
       };
       await this.screenshotter.webshot(url, file, webshotOptions);
       return this.getPublicUrl(projectId, deploymentId);

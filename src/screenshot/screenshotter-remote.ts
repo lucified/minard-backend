@@ -2,10 +2,9 @@
 import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
 
+import { fetch } from '../shared/fetch';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
 import { Screenshotter, screenshotterBaseurlInjectSymbol } from './types';
-
-const _fetch = require('node-fetch');
 
 @injectable()
 export class RemoteScreenshotter implements Screenshotter {
@@ -20,7 +19,7 @@ export class RemoteScreenshotter implements Screenshotter {
     @inject(screenshotterBaseurlInjectSymbol) host: string,
     @inject(loggerInjectSymbol) logger: Logger,
     logging: boolean = false) {
-    this.host = host;
+    this.host = host.replace(/\/$/, '') + '/';
     this.logger = logger;
     this.logging = logging;
   }
@@ -39,6 +38,13 @@ export class RemoteScreenshotter implements Screenshotter {
     return RemoteScreenshotter.webshot(this.host, websiteUrl, imageFile, webshotOptions);
   }
 
+  public async ping() {
+    return fetch(this.host, {
+      method: 'GET',
+      timeout: 0.5 * 60 * 1000,
+    });
+  }
+
   public static async webshot(
     host: string,
     websiteUrl: string,
@@ -50,7 +56,7 @@ export class RemoteScreenshotter implements Screenshotter {
       options: webshotOptions || {},
     };
     try {
-      const response = await _fetch(host.replace(/\/$/, '') + '/', {
+      const response = await fetch(host.replace(/\/$/, '') + '/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

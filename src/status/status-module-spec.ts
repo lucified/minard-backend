@@ -4,7 +4,7 @@ import 'reflect-metadata';
 
 import { getEcsStatus } from './status-module';
 
-describe.only('getEcsStatus', () => {
+describe('getEcsStatus', () => {
   it('should work correctly', async () => {
     if (process.env.TEST_ECS) {
       const response = await getEcsStatus('staging');

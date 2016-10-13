@@ -188,7 +188,7 @@ export class NotificationModule {
       const projectUrl = getUiProjectUrl(projectId, this.uiBaseUrl);
       const branchUrl = getUiBranchUrl(projectId, ref, this.uiBaseUrl);
       const deployment = Object.assign({}, event.payload.deployment,
-        { screenshot: await this.getScreenshotDataUri(event) }) as MinardDeployment;
+        { screenshot: await this.getScreenshotData(event) }) as MinardDeployment;
 
       await this.flowdockNotify.notify(deployment, config.flowToken, projectUrl, branchUrl);
     } catch (error) {

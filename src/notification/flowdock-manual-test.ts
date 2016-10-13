@@ -15,8 +15,8 @@ const projectUrl = 'http://www.foo.com';
 const branchUrl = 'http://www.bar.com';
 
 const deployment: MinardDeployment = {
-  id: 9,
-  projectId: 5,
+  id: 10,
+  projectId: Math.round(Math.random() * 1000),
   status: 'success',
   ref: 'foo-branch',
   projectName: 'foo-project-name',

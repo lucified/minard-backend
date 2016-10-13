@@ -357,7 +357,8 @@ export class JsonApiHapiPlugin {
                 }),
                 Joi.object({
                   type: Joi.string().equal('hipchat').required(),
-                  projectId: Joi.number().required(),
+                  projectId: Joi.number(),
+                  teamId: Joi.number(),
                   hipchatRoomId: Joi.number().required(),
                   hipchatAuthToken: Joi.string().required(),
                 })
@@ -483,6 +484,17 @@ export class JsonApiHapiPlugin {
 
   public async postNotificationConfigurationHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const config = request.payload.data.attributes;
+
+    config.teamId = config.teamId || null;
+    config.projectId = config.projectId || null;
+
+    if (!config.teamId && !config.projectId) {
+      throw Boom.badRequest('teamId or projectId should be defined');
+    }
+    if (config.teamId && config.projectId) {
+      throw Boom.badRequest('teamId and projectId should not both be defined');
+    }
+
     const id = await this.factory().createNotificationConfiguration(config);
     return reply(this.getEntity('notification',
       api => api.getNotificationConfiguration(id))).created('');

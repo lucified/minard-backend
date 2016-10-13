@@ -265,7 +265,7 @@ describe('system-integration', () => {
         'type': 'notifications',
         'attributes': {
           type: 'hipchat',
-          projectId,
+          teamId,
           hipchatAuthToken,
           hipchatRoomId,
         },

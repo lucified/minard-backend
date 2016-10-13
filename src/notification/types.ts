@@ -14,7 +14,8 @@ export interface FlowdockNotificationConfiguration extends NotificationConfigura
 
 export interface NotificationConfiguration {
   id?: number;
-  projectId: number;
+  projectId: number | null;
+  teamId: number | null;
   type: NotificationType;
   [others: string]: any;
 }

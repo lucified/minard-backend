@@ -70,7 +70,7 @@ describe('flowdock-notify', () => {
       'Created preview for foo-project-name/foo-branch');
     expect(body.thread.status.color).to.equal('green');
     expect(body.thread.body.indexOf(`<img src="${deployment.screenshot}"`) !== -1).to.be.true;
-    expect(body.author.avatar).to.equal('https://d2ph5hv9wbwvla.cloudfront.net/heaven/build_ok.png');
+    expect(body.author.avatar).to.equal('//www.gravatar.com/avatar/79f0c978a0b5b6db64cb1484f3d05c74');
     expect(body.thread.external_url).to.equal(deployment.url);
   });
 
@@ -80,7 +80,6 @@ describe('flowdock-notify', () => {
       'Created preview for foo-project-name/foo-branch');
     expect(body.thread.status.color).to.equal('green');
     expect(body.thread.body.indexOf(`<img src="${deployment.screenshot}"`) !== -1).to.be.false;
-    expect(body.author.avatar).to.equal('https://d2ph5hv9wbwvla.cloudfront.net/heaven/build_ok.png');
     expect(body.thread.external_url).to.equal(deployment.url);
   });
 
@@ -89,7 +88,6 @@ describe('flowdock-notify', () => {
     const body = await shouldSendCorrectNotification(deployment,
       'Generating preview for foo-project-name/foo-branch');
     expect(body.thread.status.color).to.equal('yellow');
-    expect(body.author.avatar).to.equal('https://d2ph5hv9wbwvla.cloudfront.net/heaven/build_ok.png');
   });
 
   it('should send correct notification for pending deployment', async () => {
@@ -97,7 +95,6 @@ describe('flowdock-notify', () => {
     const body = await shouldSendCorrectNotification(deployment,
       'Generating preview for foo-project-name/foo-branch');
     expect(body.thread.status.color).to.equal('yellow');
-    expect(body.author.avatar).to.equal('https://d2ph5hv9wbwvla.cloudfront.net/heaven/build_ok.png');
   });
 
   it('should send correct notification for failed deployment', async () => {
@@ -105,7 +102,6 @@ describe('flowdock-notify', () => {
     const body = await shouldSendCorrectNotification(deployment,
       'Error creating preview for foo-project-name/foo-branch');
     expect(body.thread.status.color).to.equal('red');
-    expect(body.author.avatar).to.equal('https://d2ph5hv9wbwvla.cloudfront.net/heaven/build_fail.png');
   });
 
 });

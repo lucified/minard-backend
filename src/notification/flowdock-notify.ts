@@ -1,4 +1,5 @@
 
+import * as gravatar from 'gravatar';
 import { inject, injectable } from 'inversify';
 
 import {
@@ -37,7 +38,6 @@ export class FlowdockNotify {
       author: {
         name: deployment.commit.committer.name,
         email: deployment.commit.committer.email,
-        avatar: this.buildStatusAvatar(state),
         avatar: gravatar.url(deployment.commit.committer.email),
       },
     };

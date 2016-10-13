@@ -288,7 +288,7 @@ describe('system-integration', () => {
       throw Error('Could not match server url from repo url'); // make typescript happy
     }
     const gitserver = matches[0];
-    const gitServerWithCredentials = gitserver.replace(/:(\d+)$/gi, '%3a$1')
+    const gitServerWithCredentials = gitserver
       .replace('//', `//root:${encodeURIComponent(git_password)}@`);
     const repoUrlWithCredentials = repoUrl!.replace(gitserver, gitServerWithCredentials);
     await runCommand('src/integration-test/setup-repo');

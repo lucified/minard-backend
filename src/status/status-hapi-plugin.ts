@@ -35,7 +35,10 @@ class StatusHapiPlugin {
   };
 
   private async getStatusHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    return reply(this.statusModule.getStatus());
+    const state = await this.statusModule.getStatus();
+    const systemStatus = Object.keys(state).map(key => state[key]).every(status => status.active);
+    return reply(state)
+      .code(systemStatus ? 200 : 503);
   }
 
 }

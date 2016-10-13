@@ -23,8 +23,8 @@ export class GitlabClient {
   public readonly host: string;
   public readonly apiPrefix: string = '/api/v3';
   public readonly authenticationHeader = 'PRIVATE-TOKEN';
+  public readonly logger: Logger;
 
-  private logger: Logger;
   private _fetch: IFetch;
   private _logging: boolean;
   private _authentication: AuthenticationModule;

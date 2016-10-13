@@ -1,23 +1,46 @@
 
+import { ECS } from 'aws-sdk';
 import { inject, injectable } from 'inversify';
+import * as _ from 'lodash';
 import * as moment from 'moment';
-import { tmpdir } from 'os';
-import { join } from 'path';
 
 import { AuthenticationModule } from '../authentication';
 import { Event, EventBus, eventBusInjectSymbol } from '../event-bus';
 import { Screenshotter, screenshotterInjectSymbol } from '../screenshot/types';
 import { GitlabClient } from '../shared/gitlab-client';
+import { promisify } from '../shared/promisify';
 import { SYSTEM_HOOK_REGISTRATION_EVENT_TYPE, SystemHookRegistrationEvent } from '../system-hook';
+
+const ecs = new ECS({
+  region: process.env.AWS_DEFAULT_REGION || 'eu-west-1',
+  httpOptions: {
+    timeout: 300,
+  },
+});
+const describeServices = promisify<any>(ecs.describeServices, ecs);
+type describeTaskDefinitionFunc = (params: any) => Promise<{ taskDefinition: RegisteredTaskDefinition }>;
+const describeTaskDefinition: describeTaskDefinitionFunc = promisify<any>(ecs.describeTaskDefinition, ecs);
 
 export const deploymentFolderInjectSymbol = Symbol('deployment-folder');
 
-interface SystemHookStatus {
-  status: string;
-  message?: string;
+interface SystemStatus {
+  [key: string]: Status;
+  charles: Status;
+  systemHook: Status;
+  gitlab: Status;
+  screenshotter: Status;
+  runners: Status;
+  postgresql: Status;
 }
 
-interface RunnerStatus {
+interface Status {
+  active: boolean;
+  status?: string;
+  message?: string;
+  ecs?: any;
+}
+
+interface RunnerStatus extends Status {
   active: boolean;
   description: string;
   id: number;
@@ -25,7 +48,7 @@ interface RunnerStatus {
   name?: any;
 }
 
-interface DetailedRunnerStatus {
+interface DetailedRunnerStatus extends Status {
   id: number;
   description: string;
   active: boolean;
@@ -43,6 +66,18 @@ interface DetailedRunnerStatus {
   projects: any[];
 }
 
+interface Container { image: string; environment: string; name: string; }
+interface TaskDefinition {
+  family: string;
+  volumes?: any;
+  containerDefinitions: Container[];
+}
+interface RegisteredTaskDefinition extends TaskDefinition {
+  taskDefinitionArn: string;
+  revision: number;
+  status: string;
+}
+
 @injectable()
 export default class StatusModule {
 
@@ -52,7 +87,6 @@ export default class StatusModule {
   private readonly screenshotter: Screenshotter;
   private readonly eventBus: EventBus;
   private readonly authentication: AuthenticationModule;
-
   private latestSystemHookRegistration: Event<SystemHookRegistrationEvent>;
 
   public constructor(
@@ -75,15 +109,17 @@ export default class StatusModule {
       });
   }
 
-  public getSystemHookStatus(): SystemHookStatus {
+  public getSystemHookStatus(): Status {
     if (!this.latestSystemHookRegistration) {
       return {
+        active: false,
         status: 'error',
         message: 'No registration attempts yet',
       };
     }
     const status = this.latestSystemHookRegistration.payload.status;
     return {
+      active: status === 'success',
       status: status === 'success' ? 'ok' : 'error',
       message: status === 'success' ?
         `Successfully verified ${this.latestSystemHookRegistration.created.fromNow()}` :
@@ -91,7 +127,7 @@ export default class StatusModule {
     };
   }
 
-  private async getRunnersStatus() {
+  private async getRunnersStatus(): Promise<Status> {
     try {
       const runners = await this.gitlab.fetchJson<RunnerStatus[]>('runners/all/?scope=online');
       const activeRunners = runners.filter(runner => runner.active);
@@ -113,66 +149,71 @@ export default class StatusModule {
       const filtered = timeDiffs.filter((runner) => runner.diff < 120);
 
       return {
+        active: filtered.length > 0,
         status: filtered.length > 0 ? 'ok' : 'error',
         message: `${filtered.length} online runner(s)`,
       };
     } catch (err) {
       return {
+        active: false,
         status: 'error',
         message: 'Could not get information on active runners.',
       };
     }
   }
 
-  public async getGitlabStatus() {
+  public async getGitlabStatus(): Promise<Status> {
     try {
       await this.gitlab.fetchJson<RunnerStatus[]>('runners/all/?scope=online');
       return {
+        active: true,
         status: 'ok',
         statusCode: 200,
         message: 'Gitlab is responding',
       };
     } catch (err) {
       return {
+        active: false,
         status: 'error',
         message: `Gitlab is responding with statusCode ${err.output.statusCode}`,
       };
     }
   }
 
-  public async getScreenshotterStatus() {
-    const imageFile = join(tmpdir(), 'status-screenshot-test.jpg');
-    const url = 'https://google.com';
+  public async getScreenshotterStatus(): Promise<Status> {
     try {
-      await this.screenshotter.webshot(url, imageFile);
+      await this.screenshotter.ping();
       return {
+        active: true,
         status: 'ok',
-        statusCode: 200,
-        message: `Succesfully took a screenshot of '${url}'`,
       };
     } catch (err) {
       return {
+        active: false,
         status: 'error',
         message: `Screenshotter: ${err.message}`,
       };
     }
   }
 
-  public async getPostgreSqlStatus() {
+  public async getPostgreSqlStatus(): Promise<Status> {
     try {
       const privateKey = await this.authentication.getPrivateAuthenticationToken(1);
       if (!privateKey) {
         return {
+          active: false,
           status: 'error',
           message: 'Received invalid data from PostgreSQL. Database not ready?',
         };
       }
       return {
+        active: true,
         status: 'ok',
         message: 'Successfully fetched data from PostgreSQL',
       };
     } catch (err) {
       return {
+        active: false,
         status: 'error',
         message: 'Could not fetch data from postgresql',
       };
@@ -184,20 +225,75 @@ export default class StatusModule {
     const gitlabStatusPromise = this.getGitlabStatus();
     const runnersStatusPromise = this.getRunnersStatus();
     const screenshotterStatusPromise = this.getScreenshotterStatus();
-
     const systemHook = this.getSystemHookStatus();
     const gitlab = await gitlabStatusPromise;
     const runners = await runnersStatusPromise;
     const postgresql = await postgreStatusPromise;
     const screenshotter = await screenshotterStatusPromise;
 
-    return {
-       systemHook,
-       gitlab,
-       screenshotter,
-       runners,
-       postgresql,
-    };
+    const response = {
+      charles: {
+        active: true,
+      },
+      systemHook,
+      gitlab,
+      screenshotter,
+      runners,
+      postgresql,
+    } as any;
+
+    try {
+      const ecsStatus = await getEcsStatus(process.env.LUCIFY_ENV);
+      if (ecsStatus.charles) {
+        response.charles.ecs = ecsStatus.charles;
+      }
+      if (ecsStatus.runner) {
+        response.runners.ecs = ecsStatus.runner;
+      }
+      if (ecsStatus.screenshotter) {
+        response.screenshotter.ecs = ecsStatus.screenshotter;
+      }
+      if (ecsStatus.gitlab) {
+        response.gitlab.ecs = ecsStatus.gitlab;
+      }
+    } catch (err) {
+      this.gitlab.logger.info('Can\'t get ECS status: %s', err.message);
+    }
+    return response as SystemStatus;
   }
 
 };
+
+export async function getEcsStatus(env: 'staging' | 'production') {
+  const services = ['charles', 'gitlab', 'runner', 'screenshotter'];
+  const servicesResponse = await describeServices({
+    services: services.map(service => `minard-${service}-${env}`),
+    cluster: 'minard',
+  });
+  const serviceData = await Promise.all(servicesResponse.services.map(async (service: any, i: number) => {
+
+    const taskDefinition = (await describeTaskDefinition({ taskDefinition: service.taskDefinition })).taskDefinition;
+    const container = taskDefinition.containerDefinitions.find(_container => _container.name === services[i]);
+    let image = 'unknown';
+    if (container) {
+      const _image = container.image.split('/').pop();
+      if (_image) {
+        image = _image;
+      }
+    }
+
+    return Object.assign(_.pick(service, [
+      'serviceName',
+      'status',
+      'runningCount',
+    ]), {
+        revision: parseInt(service.taskDefinition.split(':').pop(), 10),
+        image,
+      });
+  }));
+
+  return serviceData.reduce((response: any, service: any, i: number) => {
+    return Object.assign({}, response, { [services[i]]: service });
+  }, {});
+
+}

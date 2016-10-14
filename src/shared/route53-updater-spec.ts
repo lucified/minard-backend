@@ -10,19 +10,13 @@ const maxRetries = 5;
 const logger = loggerConstructor(undefined, true);
 
 function getRoute53UpdaterFunction(callback: () => void): Route53UpdaterFunction {
-  return (action, params, _callback) => {
-    let err: any = undefined;
-    try {
-      callback();
-    } catch (_err) {
-      err = _err;
-    }
-    _callback(err);
+  return async (values: {Value: string}[], hostedZoneId: string, name: string, type: string, ttl: number) => {
+    return callback();
   };
 }
 function getRegistrator(callback: () => void) {
   const func = getRoute53UpdaterFunction(callback);
-  return new Route53Updater(fetchMock.fetchMock, logger, retryDelay, maxRetries, func);
+  return new Route53Updater(fetchMock.fetchMock, logger, retryDelay, retryDelay, maxRetries, func);
 };
 
 describe('Route53Updater', () => {
@@ -52,6 +46,7 @@ describe('Route53Updater', () => {
     fetchMock.restore().mock('*', (url: any, options: any) => { return '1.2.3.4'; }, {method: 'GET'});
     const result = await getRegistrator(() => {
       called++;
+      return {ChangeInfo: {Status: 'PENDING'}};
     }).update('foo', 'bar');
     expect(called).to.eq(1);
     expect(result).to.be.true;

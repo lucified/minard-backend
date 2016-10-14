@@ -14,7 +14,8 @@ import { StatusHapiPlugin } from '../status';
 const inert = require('inert');
 const h2o2 = require('h2o2');
 const good = require('good');
-const raven = require('hapi-raven');
+const hapiSentry = require('hapi-raven');
+const WinstonSentry = require('winston-sentry'); // tslint:disable-line
 
 import * as Hapi from './hapi';
 import {
@@ -123,6 +124,14 @@ export default class MinardServer {
       basePlugins.push(ravenRegister);
     }
     await server.register(basePlugins);
+    if (ravenRegister) {
+      const ravenClientKey = 'hapi-raven';
+      const raven = server.plugins[ravenClientKey].client;
+      this.logger.add(new WinstonSentry({
+        level: 'warn',
+        raven,
+      }), undefined, true);
+    }
   };
 
   private async getRaven() {
@@ -136,11 +145,11 @@ export default class MinardServer {
           release = ecsStatus.charles.image;
         }
       } catch (err) {
-        this.logger.error('Unable to get ecs status: %s', err.message);
+        this.logger.warn('Unable to get release information for Sentry: %s', err.message);
       }
 
       return {
-        register: raven,
+        register: hapiSentry,
         options: {
           dsn: process.env.SENTRY_DSN,
           client: {

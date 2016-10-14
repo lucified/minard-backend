@@ -30,14 +30,6 @@ function onPreResponse(server: Hapi.Server, request: Hapi.Request, reply: Hapi.I
   }
 
   if (response.isBoom) {
-    const ravenKey = 'hapi-raven';
-    if (server.plugins[ravenKey]) {
-      try {
-        server.plugins[ravenKey].client.captureError(response);
-      } catch (err) {
-        console.log('Error sending error to Sentry: %s', err.message);
-      }
-    }
     const output = (<any> response).output;
     const error = {
       title: output.payload.error,

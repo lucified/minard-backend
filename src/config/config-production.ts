@@ -19,6 +19,7 @@ import {
 
 import { gitBaseUrlInjectSymbol, gitlabHostInjectSymbol } from '../shared/gitlab-client';
 import { loggerInjectSymbol } from '../shared/logger';
+import { sentryDsnInjectSymbol } from '../shared/types';
 import { systemHookBaseUrlSymbol } from '../system-hook/system-hook-module';
 
 import {
@@ -224,6 +225,11 @@ const cache = cacheManager.caching({
 
 const GITLAB_ROOT_PASSWORD = env.GITLAB_ROOT_PASSWORD ? env.GITLAB_ROOT_PASSWORD : '12345678';
 
+// Sentry
+// --------------
+
+const SENTRY_DSN = env.SENTRY_DSN ? env.SENTRY_DSN : undefined;
+
 // Inversify kernel bindings
 // -------------------------
 
@@ -249,4 +255,5 @@ export default (kernel: interfaces.Kernel) => {
   kernel.bind(cacheInjectSymbol).toConstantValue(cache);
   kernel.bind(minardUiBaseUrlInjectSymbol).toConstantValue(MINARD_UI_BASEURL);
   kernel.bind(gitlabRootPasswordInjectSymbol).toConstantValue(GITLAB_ROOT_PASSWORD);
+  kernel.bind(sentryDsnInjectSymbol).toConstantValue(SENTRY_DSN);
 };

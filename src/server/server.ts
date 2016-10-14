@@ -9,6 +9,7 @@ import { ProjectHapiPlugin } from '../project';
 import { RealtimeHapiPlugin } from '../realtime';
 import { ScreenshotHapiPlugin } from '../screenshot';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
+import { sentryDsnInjectSymbol } from '../shared/types';
 import { StatusHapiPlugin } from '../status';
 
 const inert = require('inert');
@@ -58,6 +59,7 @@ export default class MinardServer {
   private port: number;
   private host: string;
   private goodOptions: any;
+  private readonly sentryDsn: string;
   public readonly logger: Logger;
 
   constructor(
@@ -72,7 +74,8 @@ export default class MinardServer {
     @inject(loggerInjectSymbol) logger: Logger,
     @inject(ScreenshotHapiPlugin.injectSymbol) screenshotPlugin: ScreenshotHapiPlugin,
     @inject(OperationsHapiPlugin.injectSymbol) operationsPlugin: OperationsHapiPlugin,
-    @inject(RealtimeHapiPlugin.injectSymbol) realtimePlugin: RealtimeHapiPlugin) {
+    @inject(RealtimeHapiPlugin.injectSymbol) realtimePlugin: RealtimeHapiPlugin,
+    @inject(sentryDsnInjectSymbol) sentryDsn: string) {
     this.deploymentPlugin = deploymentPlugin;
     this.projectPlugin = projectPlugin;
     this.jsonApiPlugin = jsonApiPlugin;
@@ -85,6 +88,7 @@ export default class MinardServer {
     this.port = port;
     this.goodOptions = goodOptions;
     this.logger = logger;
+    this.sentryDsn = sentryDsn;
   }
 
   public async start(): Promise<Hapi.Server> {

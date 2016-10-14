@@ -12,7 +12,7 @@ import { JsonApiModule } from './json-api-module';
 import { serializeApiEntity }  from './serialization';
 import { ApiEntities, ApiEntity } from './types';
 
-function onPreResponse(request: Hapi.Request, reply: Hapi.IReply) {
+function onPreResponse(server: Hapi.Server, request: Hapi.Request, reply: Hapi.IReply) {
   const response = request.response;
 
   if (!request.path.startsWith('/api')) {
@@ -30,6 +30,12 @@ function onPreResponse(request: Hapi.Request, reply: Hapi.IReply) {
   }
 
   if (response.isBoom) {
+    if (response.isBoom && response.statusCode === 404) {
+      const ravenKey = 'raven';
+      if (server.plugins[ravenKey]) {
+        server.plugins[ravenKey].client.captureError(response);
+      }
+    }
     const output = (<any> response).output;
     const error = {
       title: output.payload.error,
@@ -91,7 +97,7 @@ export class JsonApiHapiPlugin {
 
   public register: HapiRegister = (server, _options, next) => {
 
-    server.ext('onPreResponse', onPreResponse);
+    server.ext('onPreResponse', onPreResponse.bind(undefined, server));
 
     server.route({
       method: 'GET',

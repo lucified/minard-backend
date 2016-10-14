@@ -14,6 +14,7 @@ import { StatusHapiPlugin } from '../status';
 const inert = require('inert');
 const h2o2 = require('h2o2');
 const good = require('good');
+const raven = require('hapi-raven');
 
 import * as Hapi from './hapi';
 import {
@@ -108,15 +109,38 @@ export default class MinardServer {
 
   private async loadBasePlugins(server: Hapi.Server) {
 
-    await server.register([
+    const basePlugins = [
       { register: h2o2 },
       { register: inert },
       {
         register: good,
         options: this.goodOptions,
       },
-    ]);
+    ];
+    const ravenRegister = this.getRaven();
+    if (ravenRegister) {
+      basePlugins.push(ravenRegister);
+    }
+    await server.register(basePlugins);
   };
+
+  private getRaven() {
+    const env = process.env.LUCIFY_ENV;
+
+    if (['staging', 'production'].find(_env => _env === env) && process.env.SENTRY_DSN) {
+      return {
+        register: raven,
+        options: {
+          dsn: process.env.SENTRY_DSN,
+          options: {
+            name: 'charles-' + env,
+            environment: env,
+          },
+        },
+      };
+    }
+    return undefined;
+  }
 
   private async loadAppPlugins(server: Hapi.Server) {
     await server.register([

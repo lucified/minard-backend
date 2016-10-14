@@ -9,7 +9,7 @@ The backend consists of the following services:
 - Redis
 - Postgresql
 
-charles is written in Typescript 2 and runs a [Hapi.js](http://hapijs.com) based node server.
+charles is written in TypeScript 2 and runs a [Hapi.js](http://hapijs.com)-based Node server.
 
 ## Requirements
 
@@ -277,7 +277,6 @@ from the command line. As an example, to get auto-updating logs for charles (ass
 ```shell
 awslogs get minard-charles --start='2h ago' -w
 ```
-
 
 ## Maintenance tasks
 

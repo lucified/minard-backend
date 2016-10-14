@@ -9,7 +9,7 @@ import { HapiRegister } from '../server/hapi-register';
 import { externalBaseUrlInjectSymbol } from '../server/types';
 import { parseApiBranchId } from './conversions';
 import { JsonApiModule } from './json-api-module';
-import { serializeApiEntity }  from './serialization';
+import { serializeApiEntity } from './serialization';
 import { ApiEntities, ApiEntity } from './types';
 
 function onPreResponse(server: Hapi.Server, request: Hapi.Request, reply: Hapi.IReply) {
@@ -30,11 +30,13 @@ function onPreResponse(server: Hapi.Server, request: Hapi.Request, reply: Hapi.I
   }
 
   if (response.isBoom) {
-    if (response.isBoom && response.statusCode === 404) {
-      const ravenKey = 'raven';
-      if (server.plugins[ravenKey]) {
-        server.plugins[ravenKey].client.captureError(response);
-      }
+    const ravenKey = 'raven';
+    console.log('Got %d', response.statusCode);
+    try {
+      server.plugins[ravenKey].client.captureError(response);
+      console.log('Sent to raven');
+    } catch (err) {
+      console.log('Got err: %s', err.message);
     }
     const output = (<any> response).output;
     const error = {

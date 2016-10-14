@@ -284,3 +284,17 @@ You can trigger checking of screenshots by going to the url `/operations/check-s
 This will make sure that all successful and extracted deployments have screenshots.
 Normally screenshots are generated after each deployment, but this maintenance task
 may sometimes be useful.
+
+## User and team administration
+
+Teams are mapped to GitLab groups. The first group that is created in GitLab has an ID of `2`,
+and so on. You can manage GitLab groups by logging into GitLab with root credentials at the
+following addresses:
+
+- **Locally**: `http://localhost:10080`
+- **Staging**: `https://git-staging.minard.io/`
+- **Production**: `https://git.minard.io/`
+
+To give a new user access to Git repos, they need to create a GitLab user. This can also
+be done at the URLs above. Once they have signed up, log in to GitLab as root and add them
+to the appropriate group (team).

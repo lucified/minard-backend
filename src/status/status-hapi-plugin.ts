@@ -66,11 +66,10 @@ class StatusHapiPlugin {
   // This is intentionally async
   private async getErrorHandler(request: Hapi.Request, reply: Hapi.IReply) {
 
-    const error = new Error('An intentional error');
-    if (request.paramsArray[0]) {
-      this.logger.error('/error', error);
+    if (request.paramsArray[0] === 'winston') {
+      this.logger.error('winston error', new Error('An intentional winston error'));
     } else {
-      throw error;
+      throw new Error('An intentional hapi error');
     }
 
     return reply('ERROR')

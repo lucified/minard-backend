@@ -264,10 +264,10 @@ export default class StatusModule {
 
 };
 
-export async function getEcsStatus() {
+export async function getEcsStatus(_env?: string) {
 
   // Yes, we access an environment variable here. It's bad. Don't do it.
-  const env = process.env.LUCIFY_ENV;
+  const env = _env || process.env.LUCIFY_ENV;
 
   if (env !== 'staging' || env !== 'production') {
     throw new Error('ECS status can be fetched only in staging and production');

@@ -122,12 +122,15 @@ export default class MinardServer {
         options: this.goodOptions,
       },
     ];
-    const ravenRegister = await this.getRaven();
+    const ravenRegister = await this.getRaven(this.sentryDsn);
+
     if (ravenRegister) {
       this.logger.info('Sentry enabled');
       basePlugins.push(ravenRegister);
     }
+
     await server.register(basePlugins);
+
     if (ravenRegister) {
       const ravenClientKey = 'hapi-raven';
       const raven = server.plugins[ravenClientKey].client;
@@ -138,15 +141,18 @@ export default class MinardServer {
     }
   };
 
-  private async getRaven() {
-    const env = process.env.LUCIFY_ENV;
-
-    if (['staging', 'production'].find(_env => _env === env) && process.env.SENTRY_DSN) {
+  private async getRaven(dsn: string) {
+    try {
       let release = 'unknown';
+      let name = 'charles';
+      let environment = 'development';
       try {
-        const ecsStatus = await this.statusPlugin.getEcsStatus(env);
+        const ecsStatus = await this.statusPlugin.getEcsStatus();
         if (ecsStatus) {
-          release = ecsStatus.charles.image;
+          const charles = ecsStatus.charles;
+          release = charles.image;
+          name = charles.serviceName;
+          environment = charles.environment;
         }
       } catch (err) {
         this.logger.warn('Unable to get release information for Sentry: %s', err.message);
@@ -155,14 +161,16 @@ export default class MinardServer {
       return {
         register: hapiSentry,
         options: {
-          dsn: process.env.SENTRY_DSN,
+          dsn,
           client: {
-            name: 'charles-' + env,
-            environment: env,
+            name,
+            environment,
             release,
           },
         },
       };
+    } catch (err) {
+      this.logger.warn('Unable to register Sentry: %s', err.message);
     }
     return undefined;
   }

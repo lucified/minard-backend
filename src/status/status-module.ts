@@ -242,7 +242,7 @@ export default class StatusModule {
 
     if (withEcs) {
       try {
-        const ecsStatus = await getEcsStatus(process.env.LUCIFY_ENV);
+        const ecsStatus = await getEcsStatus();
         if (ecsStatus.charles) {
           response.charles.ecs = ecsStatus.charles;
         }
@@ -264,9 +264,13 @@ export default class StatusModule {
 
 };
 
-export async function getEcsStatus(env: 'staging' | 'production') {
-  if (env !== 'staging' && env !== 'production') {
-    return undefined;
+export async function getEcsStatus() {
+
+  // Yes, we access an environment variable here. It's bad. Don't do it.
+  const env = process.env.LUCIFY_ENV;
+
+  if (env !== 'staging' || env !== 'production') {
+    throw new Error('ECS status can be fetched only in staging and production');
   }
   const services = ['charles', 'gitlab', 'runner', 'screenshotter'];
   const servicesResponse = await describeServices({
@@ -292,6 +296,7 @@ export async function getEcsStatus(env: 'staging' | 'production') {
     ]), {
         revision: parseInt(service.taskDefinition.split(':').pop(), 10),
         image,
+        environment: env,
       });
   }));
 

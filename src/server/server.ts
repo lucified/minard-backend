@@ -117,7 +117,7 @@ export default class MinardServer {
         options: this.goodOptions,
       },
     ];
-    const ravenRegister = this.getRaven();
+    const ravenRegister = await this.getRaven();
     if (ravenRegister) {
       this.logger.info('Sentry enabled');
       basePlugins.push(ravenRegister);
@@ -125,10 +125,17 @@ export default class MinardServer {
     await server.register(basePlugins);
   };
 
-  private getRaven() {
+  private async getRaven() {
     const env = process.env.LUCIFY_ENV;
 
     if (['staging', 'production'].find(_env => _env === env) && process.env.SENTRY_DSN) {
+      let version = 'unknown';
+      try {
+        version = (await this.statusPlugin.getEcsStatus(env)).charles.image;
+      } catch (err) {
+        this.logger.error('Unable to get ecs status: %s', err.message);
+      }
+
       return {
         register: raven,
         options: {
@@ -136,6 +143,7 @@ export default class MinardServer {
           options: {
             name: 'charles-' + env,
             environment: env,
+            version,
           },
         },
       };

@@ -221,15 +221,13 @@ export default class StatusModule {
   }
 
   public async getStatus(withEcs = false) {
-    const postgreStatusPromise = this.getPostgreSqlStatus();
-    const gitlabStatusPromise = this.getGitlabStatus();
-    const runnersStatusPromise = this.getRunnersStatus();
-    const screenshotterStatusPromise = this.getScreenshotterStatus();
-    const systemHook = this.getSystemHookStatus();
-    const gitlab = await gitlabStatusPromise;
-    const runners = await runnersStatusPromise;
-    const postgresql = await postgreStatusPromise;
-    const screenshotter = await screenshotterStatusPromise;
+    const [gitlab, runners, postgresql, screenshotter, systemHook] = await Promise.all([
+      this.getGitlabStatus(),
+      this.getRunnersStatus(),
+      this.getPostgreSqlStatus(),
+      this.getScreenshotterStatus(),
+      this.getSystemHookStatus(),
+    ]);
 
     const response = {
       charles: {
@@ -267,6 +265,9 @@ export default class StatusModule {
 };
 
 export async function getEcsStatus(env: 'staging' | 'production') {
+  if (env !== 'staging' && env !== 'production') {
+    return undefined;
+  }
   const services = ['charles', 'gitlab', 'runner', 'screenshotter'];
   const servicesResponse = await describeServices({
     services: services.map(service => `minard-${service}-${env}`),

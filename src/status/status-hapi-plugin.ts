@@ -4,7 +4,7 @@ import { HapiRegister } from '../server/hapi-register';
 
 import { inject, injectable } from 'inversify';
 
-import StatusModule from './status-module';
+import { default as StatusModule, getEcsStatus } from './status-module';
 
 @injectable()
 class StatusHapiPlugin {
@@ -33,6 +33,10 @@ class StatusHapiPlugin {
     });
     next();
   };
+
+  public getEcsStatus(env: 'staging' | 'production') {
+    return getEcsStatus(env);
+  }
 
   private async getStatusHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const ecsKey = 'ecs';

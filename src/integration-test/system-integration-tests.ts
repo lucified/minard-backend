@@ -109,10 +109,12 @@ describe('system-integration', () => {
         const ret = await fetch(url);
         expect(ret.status).to.equal(200);
         const statuses = await ret.json();
-        expect(keys(statuses)).to.have.length(5);
+        expect(keys(statuses)).to.have.length(6);
         keys(statuses).forEach(key => {
-          log(`${key} has status ${statuses[key].status}`);
-          if (statuses[key].status !== 'ok') {
+          if (statuses[key].status) {
+            log(`${key} has status ${statuses[key].status}`);
+          }
+          if (statuses[key].active !== true) {
             statusOk = false;
           }
         });

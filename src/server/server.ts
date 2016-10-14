@@ -129,9 +129,12 @@ export default class MinardServer {
     const env = process.env.LUCIFY_ENV;
 
     if (['staging', 'production'].find(_env => _env === env) && process.env.SENTRY_DSN) {
-      let version = 'unknown';
+      let release = 'unknown';
       try {
-        version = (await this.statusPlugin.getEcsStatus(env)).charles.image;
+        const ecsStatus = await this.statusPlugin.getEcsStatus(env);
+        if (ecsStatus) {
+          release = ecsStatus.charles.image;
+        }
       } catch (err) {
         this.logger.error('Unable to get ecs status: %s', err.message);
       }
@@ -140,10 +143,10 @@ export default class MinardServer {
         register: raven,
         options: {
           dsn: process.env.SENTRY_DSN,
-          options: {
+          client: {
             name: 'charles-' + env,
             environment: env,
-            version,
+            release,
           },
         },
       };

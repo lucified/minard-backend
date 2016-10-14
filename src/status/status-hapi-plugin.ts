@@ -23,7 +23,7 @@ class StatusHapiPlugin {
   public register: HapiRegister = (server, _options, next) => {
     server.route({
       method: 'GET',
-      path: '/status',
+      path: '/status/{ecs?}',
       handler: {
         async: this.getStatusHandler,
       },
@@ -35,7 +35,9 @@ class StatusHapiPlugin {
   };
 
   private async getStatusHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const state = await this.statusModule.getStatus();
+    const ecsKey = 'ecs';
+    const withEcs = request.params[ecsKey] === 'ecs';
+    const state = await this.statusModule.getStatus(withEcs);
     const systemStatus = Object.keys(state).map(key => state[key]).every(status => status.active);
     return reply(state)
       .code(systemStatus ? 200 : 503);

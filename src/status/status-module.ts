@@ -220,7 +220,7 @@ export default class StatusModule {
     }
   }
 
-  public async getStatus() {
+  public async getStatus(withEcs = false) {
     const postgreStatusPromise = this.getPostgreSqlStatus();
     const gitlabStatusPromise = this.getGitlabStatus();
     const runnersStatusPromise = this.getRunnersStatus();
@@ -242,22 +242,24 @@ export default class StatusModule {
       postgresql,
     } as any;
 
-    try {
-      const ecsStatus = await getEcsStatus(process.env.LUCIFY_ENV);
-      if (ecsStatus.charles) {
-        response.charles.ecs = ecsStatus.charles;
+    if (withEcs) {
+      try {
+        const ecsStatus = await getEcsStatus(process.env.LUCIFY_ENV);
+        if (ecsStatus.charles) {
+          response.charles.ecs = ecsStatus.charles;
+        }
+        if (ecsStatus.runner) {
+          response.runners.ecs = ecsStatus.runner;
+        }
+        if (ecsStatus.screenshotter) {
+          response.screenshotter.ecs = ecsStatus.screenshotter;
+        }
+        if (ecsStatus.gitlab) {
+          response.gitlab.ecs = ecsStatus.gitlab;
+        }
+      } catch (err) {
+        this.gitlab.logger.info('Can\'t get ECS status: %s', err.message);
       }
-      if (ecsStatus.runner) {
-        response.runners.ecs = ecsStatus.runner;
-      }
-      if (ecsStatus.screenshotter) {
-        response.screenshotter.ecs = ecsStatus.screenshotter;
-      }
-      if (ecsStatus.gitlab) {
-        response.gitlab.ecs = ecsStatus.gitlab;
-      }
-    } catch (err) {
-      this.gitlab.logger.info('Can\'t get ECS status: %s', err.message);
     }
     return response as SystemStatus;
   }

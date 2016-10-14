@@ -94,21 +94,6 @@ export class Route53Updater {
     const recordSetName = baseUrl.replace(/\.$/, '') + '.';
     let ips = [{Value: ip}];
 
-    try {
-      const existing = await this.listResourceRecordSets({
-        'HostedZoneId': hostedZoneId,
-        'StartRecordName': recordSetName,
-        'MaxItems': '1',
-      });
-      const records = existing.ResourceRecordSets[0].ResourceRecords;
-      if (records.find((existing: {Value: string}) => existing.Value === ip)) {
-        this.logger.info(`[route53Update] Existing record ${ip} found for ${baseUrl}`);
-        return false;
-      }
-    } catch (err) {
-      this.logger.info(`[route53Update] No existing records for ${baseUrl}.: %s`, err.message);
-    }
-
     let success = false;
     let i = 0;
     while (!success && i < this.maxTimes) {
@@ -134,6 +119,7 @@ export class Route53Updater {
     return success;
   }
 
+  // Note: copied pretty much directly from route53-updater node package
   private updateRecordSet(
     values: {Value: string}[],
     hostedZoneId: string,
@@ -158,6 +144,7 @@ export class Route53Updater {
     return this.changeResourceRecordSets(params);
   }
 
+  // Note: copied pretty much directly from route53-updater node package
   private async checkINSYNC(changeInfo: ChangeInfo, delay = 3000, counter = 0, maxTimes = 20): Promise<boolean> {
     if (counter >= maxTimes) {
       this.logger.info(`[route53Update] Update didn't complete in ${Math.round((maxTimes * delay) / 1000)}s.`);

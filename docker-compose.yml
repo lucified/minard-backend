@@ -198,5 +198,4 @@ services:
       - SCREENSHOTTER_BASEURL=http://screenshotter
       - DEPLOYMENT_URL_PATTERN=http://deploy-%s.127.0.0.1.xip.io:8000
       - EXTERNAL_GIT_BASEURL=http://localhost:10080
-      - LUCIFY_ENV=staging
       - GITLAB_ROOT_PASSWORD=12345678

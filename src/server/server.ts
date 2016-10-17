@@ -122,13 +122,15 @@ export default class MinardServer {
         options: this.goodOptions,
       },
     ];
-    const ravenRegister = await this.getRaven(this.sentryDsn);
+    let ravenRegister: any = undefined;
+    if (this.sentryDsn) {
+      ravenRegister = await this.getRaven(this.sentryDsn);
 
-    if (ravenRegister) {
-      this.logger.info('Sentry enabled');
-      basePlugins.push(ravenRegister);
+      if (ravenRegister) {
+        this.logger.info('Sentry enabled');
+        basePlugins.push(ravenRegister);
+      }
     }
-
     await server.register(basePlugins);
 
     if (ravenRegister) {

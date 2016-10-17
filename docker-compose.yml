@@ -199,5 +199,4 @@ services:
       - DEPLOYMENT_URL_PATTERN=http://deploy-%s.127.0.0.1.xip.io:8000
       - EXTERNAL_GIT_BASEURL=http://localhost:10080
       - LUCIFY_ENV=staging
-      - SENTRY_DSN=https://85499ac290c94408bc927926995ebc2c:2d8c43e84e5b40e08c6c06ff00fdd421@sentry.io/106116
       - GITLAB_ROOT_PASSWORD=12345678

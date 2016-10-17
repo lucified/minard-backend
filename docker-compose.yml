@@ -199,3 +199,4 @@ services:
       - DEPLOYMENT_URL_PATTERN=http://deploy-%s.127.0.0.1.xip.io:8000
       - EXTERNAL_GIT_BASEURL=http://localhost:10080
       - GITLAB_ROOT_PASSWORD=12345678
+      - SENTRY_DSN=$SENTRY_DSN

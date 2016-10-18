@@ -2,14 +2,11 @@
 // polyfills
 import 'reflect-metadata';
 
-import { Server } from 'hapi';
-
 import { get } from './config';
 import Migrations from './migrations';
 import { MinardServer } from './server';
 import { Logger } from './shared/logger';
 import { Route53Updater } from './shared/route53-updater';
-import { sleep } from './shared/sleep';
 
 const migrations = get<Migrations>(Migrations.injectSymbol);
 const route53updater = get<Route53Updater>(Route53Updater.injectSymbol);
@@ -20,9 +17,8 @@ const route53Zone = process.env.ROUTE53_ZONE_LOCAL;
 async function start() {
   try {
     await migrations.prepareDatabase();
-    const server = await minardServer.start();
-    minardServer.logger.info('Charles listening on %s', server.info.uri);
-    trapSignals(server, minardServer.logger);
+    await minardServer.start();
+    trapSignals(minardServer, minardServer.logger);
     await route53updater.update(localBaseUrl, route53Zone);
   } catch (err) {
     minardServer.logger.error('Error starting charles', err);
@@ -31,14 +27,7 @@ async function start() {
 
 start();
 
-function trapSignals(server: Server, logger: Logger, exitDelay = 15000) {
-
-  server.ext('onPreStop', async (_server, next) => {
-    logger.debug('Starting exit delay');
-    await sleep(exitDelay);
-    logger.debug('Exit delay finished');
-    return next();
-  });
+function trapSignals(server: MinardServer, logger: Logger) {
 
   function stop(signal: string) {
     return async () => {

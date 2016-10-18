@@ -9,6 +9,7 @@ import { ProjectHapiPlugin } from '../project';
 import { RealtimeHapiPlugin } from '../realtime';
 import { ScreenshotHapiPlugin } from '../screenshot';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
+import { sleep } from '../shared/sleep';
 import { sentryDsnInjectSymbol } from '../shared/types';
 import { StatusHapiPlugin } from '../status';
 
@@ -20,6 +21,7 @@ const WinstonSentry = require('winston-sentry'); // tslint:disable-line
 
 import * as Hapi from './hapi';
 import {
+  exitDelayInjectSymbol,
   goodOptionsInjectSymbol,
   hostInjectSymbol,
   portInjectSymbol,
@@ -58,8 +60,10 @@ export default class MinardServer {
   private ciProxy: CIProxy;
   private port: number;
   private host: string;
+  private hapiServer: Hapi.Server;
   private goodOptions: any;
   private readonly sentryDsn: string;
+  private readonly exitDelay: number;
   public readonly logger: Logger;
 
   constructor(
@@ -75,7 +79,8 @@ export default class MinardServer {
     @inject(ScreenshotHapiPlugin.injectSymbol) screenshotPlugin: ScreenshotHapiPlugin,
     @inject(OperationsHapiPlugin.injectSymbol) operationsPlugin: OperationsHapiPlugin,
     @inject(RealtimeHapiPlugin.injectSymbol) realtimePlugin: RealtimeHapiPlugin,
-    @inject(sentryDsnInjectSymbol) sentryDsn: string) {
+    @inject(sentryDsnInjectSymbol) sentryDsn: string,
+    @inject(exitDelayInjectSymbol) exitDelay: number) {
     this.deploymentPlugin = deploymentPlugin;
     this.projectPlugin = projectPlugin;
     this.jsonApiPlugin = jsonApiPlugin;
@@ -89,11 +94,12 @@ export default class MinardServer {
     this.goodOptions = goodOptions;
     this.logger = logger;
     this.sentryDsn = sentryDsn;
+    this.exitDelay = exitDelay;
   }
 
   public async start(): Promise<Hapi.Server> {
     const options = {};
-    const server = Hapi.getServer(options);
+    const server = this.hapiServer = Hapi.getServer(options);
     server.connection({
       host: this.host,
       port: this.port,
@@ -104,13 +110,25 @@ export default class MinardServer {
       },
     });
 
+    server.ext('onPreStop', async (_server, next) => {
+      this.logger.debug('Starting exit delay');
+      await sleep(this.exitDelay);
+      this.logger.debug('Exit delay finished');
+      return next();
+    });
+
     await this.loadBasePlugins(server);
     await this.loadAppPlugins(server);
 
     await server.start();
+    this.logger.info('Charles is up and listening on %s', server.info.uri);
     return server;
 
   };
+
+  public stop(): Hapi.IPromise<void> {
+    return this.hapiServer.stop();
+  }
 
   private async loadBasePlugins(server: Hapi.Server) {
 

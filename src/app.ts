@@ -31,7 +31,7 @@ async function start() {
 
 start();
 
-function trapSignals(server: Server, logger: Logger, exitDelay = 10000) {
+function trapSignals(server: Server, logger: Logger, exitDelay = 15000) {
 
   server.ext('onPreStop', async (_server, next) => {
     logger.debug('Starting exit delay');

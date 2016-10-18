@@ -11,6 +11,7 @@ import {
 
 import {
   DeploymentEvent,
+  DeploymentModule,
   MinardDeployment,
   createDeploymentEvent,
 } from '../deployment';
@@ -111,12 +112,19 @@ describe('activity-module', () => {
     },
   ];
 
+  const deploymentUrl = 'http://foo-bar.com/foo';
+
   async function arrangeActivityModule() {
     const knex = await setupKnex();
     await Promise.all(activities.map(item => knex('activity').insert(toDbActivity(item))));
+    const deploymentModule = {} as DeploymentModule;
+    deploymentModule.toFullMinardDeployment = (_deployment: any) => {
+      return Object.assign({}, _deployment, { url: deploymentUrl });
+    };
+
     const activityModule = new ActivityModule(
       {} as any,
-      {} as any,
+      deploymentModule,
       {} as any,
       getEventBus(),
       knex);
@@ -133,7 +141,7 @@ describe('activity-module', () => {
   });
 
   describe('getProjectActivity(...)', () => {
-    it('should return a single project correcly', async () => {
+    it('should return a single project correctly', async () => {
       // Arrange
       const activityModule = await arrangeActivityModule();
 
@@ -144,7 +152,9 @@ describe('activity-module', () => {
       expect(projectActivity[0].branch).to.equal(activities[2].branch);
       expect(projectActivity[0].timestamp.isSame(activities[2].timestamp)).to.equal(true);
       expect(projectActivity[0].commit).to.deep.equal(activities[2].commit);
-      expect(projectActivity[0].deployment).to.deep.equal(activities[2].deployment);
+      expect(projectActivity[0].deployment.id).to.equal(activities[2].deployment.id);
+      expect(projectActivity[0].deployment.status).to.equal(activities[2].deployment.status);
+      expect(projectActivity[0].deployment.url).to.equal(deploymentUrl);
       expect(projectActivity[0].activityType).to.equal(activities[2].activityType);
       expect(projectActivity[0].teamId).to.equal(activities[2].teamId);
       expect(projectActivity[0].projectName).to.equal(activities[2].projectName);

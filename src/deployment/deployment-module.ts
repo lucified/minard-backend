@@ -296,7 +296,7 @@ export default class DeploymentModule {
     return this.toFullMinardDeployment(ret);
   }
 
-  private toFullMinardDeployment(_deployment: any): MinardDeployment {
+  public toFullMinardDeployment(_deployment: any): MinardDeployment {
     const deployment = toMinardDeployment(_deployment);
     if (deployment.extractionStatus === 'success') {
       deployment.url = sprintf(

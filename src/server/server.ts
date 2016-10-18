@@ -9,11 +9,14 @@ import { ProjectHapiPlugin } from '../project';
 import { RealtimeHapiPlugin } from '../realtime';
 import { ScreenshotHapiPlugin } from '../screenshot';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
+import { sentryDsnInjectSymbol } from '../shared/types';
 import { StatusHapiPlugin } from '../status';
 
 const inert = require('inert');
 const h2o2 = require('h2o2');
 const good = require('good');
+const hapiSentry = require('hapi-raven');
+const WinstonSentry = require('winston-sentry'); // tslint:disable-line
 
 import * as Hapi from './hapi';
 import {
@@ -56,6 +59,7 @@ export default class MinardServer {
   private port: number;
   private host: string;
   private goodOptions: any;
+  private readonly sentryDsn: string;
   public readonly logger: Logger;
 
   constructor(
@@ -70,7 +74,8 @@ export default class MinardServer {
     @inject(loggerInjectSymbol) logger: Logger,
     @inject(ScreenshotHapiPlugin.injectSymbol) screenshotPlugin: ScreenshotHapiPlugin,
     @inject(OperationsHapiPlugin.injectSymbol) operationsPlugin: OperationsHapiPlugin,
-    @inject(RealtimeHapiPlugin.injectSymbol) realtimePlugin: RealtimeHapiPlugin) {
+    @inject(RealtimeHapiPlugin.injectSymbol) realtimePlugin: RealtimeHapiPlugin,
+    @inject(sentryDsnInjectSymbol) sentryDsn: string) {
     this.deploymentPlugin = deploymentPlugin;
     this.projectPlugin = projectPlugin;
     this.jsonApiPlugin = jsonApiPlugin;
@@ -83,6 +88,7 @@ export default class MinardServer {
     this.port = port;
     this.goodOptions = goodOptions;
     this.logger = logger;
+    this.sentryDsn = sentryDsn;
   }
 
   public async start(): Promise<Hapi.Server> {
@@ -108,15 +114,68 @@ export default class MinardServer {
 
   private async loadBasePlugins(server: Hapi.Server) {
 
-    await server.register([
+    const basePlugins = [
       { register: h2o2 },
       { register: inert },
       {
         register: good,
         options: this.goodOptions,
       },
-    ]);
+    ];
+    let ravenRegister: any = undefined;
+    if (this.sentryDsn) {
+      ravenRegister = await this.getRaven(this.sentryDsn);
+
+      if (ravenRegister) {
+        this.logger.info('Sentry enabled');
+        basePlugins.push(ravenRegister);
+      }
+    }
+    await server.register(basePlugins);
+
+    if (ravenRegister) {
+      const ravenClientKey = 'hapi-raven';
+      const raven = server.plugins[ravenClientKey].client;
+      this.logger.add(new WinstonSentry({
+        level: 'warn',
+        raven,
+      }), undefined, true);
+    }
   };
+
+  private async getRaven(dsn: string) {
+    try {
+      let release = 'unknown';
+      let name = 'charles';
+      let environment = 'development';
+      try {
+        const ecsStatus = await this.statusPlugin.getEcsStatus();
+        if (ecsStatus) {
+          const charles = ecsStatus.charles;
+          release = charles.image;
+          name = charles.serviceName;
+          environment = charles.environment;
+        }
+      } catch (err) {
+        this.logger.warn('Unable to get release information for Sentry: %s', err.message);
+      }
+
+      return {
+        register: hapiSentry,
+        options: {
+          dsn,
+          client: {
+            name,
+            environment,
+            release,
+          },
+        },
+      };
+    } catch (err) {
+      this.logger.warn('Unable to register Sentry: %s', err.message);
+    }
+    return undefined;
+  }
 
   private async loadAppPlugins(server: Hapi.Server) {
     await server.register([

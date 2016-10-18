@@ -9,10 +9,10 @@ import { HapiRegister } from '../server/hapi-register';
 import { externalBaseUrlInjectSymbol } from '../server/types';
 import { parseApiBranchId } from './conversions';
 import { JsonApiModule } from './json-api-module';
-import { serializeApiEntity }  from './serialization';
+import { serializeApiEntity } from './serialization';
 import { ApiEntities, ApiEntity } from './types';
 
-function onPreResponse(request: Hapi.Request, reply: Hapi.IReply) {
+function onPreResponse(server: Hapi.Server, request: Hapi.Request, reply: Hapi.IReply) {
   const response = request.response;
 
   if (!request.path.startsWith('/api')) {
@@ -91,7 +91,7 @@ export class JsonApiHapiPlugin {
 
   public register: HapiRegister = (server, _options, next) => {
 
-    server.ext('onPreResponse', onPreResponse);
+    server.ext('onPreResponse', onPreResponse.bind(undefined, server));
 
     server.route({
       method: 'GET',

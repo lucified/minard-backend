@@ -4,16 +4,22 @@ import { HapiRegister } from '../server/hapi-register';
 
 import { inject, injectable } from 'inversify';
 
-import StatusModule from './status-module';
+import * as logger from '../shared/logger';
+import { default as StatusModule, getEcsStatus } from './status-module';
 
 @injectable()
 class StatusHapiPlugin {
 
   public static injectSymbol = Symbol('status-hapi-plugin');
   private statusModule: StatusModule;
+  private readonly logger: logger.Logger;
 
-  constructor(@inject(StatusModule.injectSymbol) statusModule: StatusModule) {
+  constructor(
+    @inject(StatusModule.injectSymbol) statusModule: StatusModule,
+    @inject(logger.loggerInjectSymbol) logger: logger.Logger
+  ) {
     this.statusModule = statusModule;
+    this.logger = logger;
     this.register.attributes = {
       name: 'status-hapi-plugin',
       version: '1.0.0',
@@ -31,8 +37,22 @@ class StatusHapiPlugin {
         bind: this,
       },
     });
+    server.route({
+      method: 'GET',
+      path: '/error/{logger?}',
+      handler: {
+        async: this.getErrorHandler,
+      },
+      config: {
+        bind: this,
+      },
+    });
     next();
   };
+
+  public getEcsStatus() {
+    return getEcsStatus();
+  }
 
   private async getStatusHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const ecsKey = 'ecs';
@@ -41,6 +61,19 @@ class StatusHapiPlugin {
     const systemStatus = Object.keys(state).map(key => state[key]).every(status => status.active);
     return reply(state)
       .code(systemStatus ? 200 : 503);
+  }
+
+  // This is intentionally async
+  private async getErrorHandler(request: Hapi.Request, reply: Hapi.IReply) {
+
+    if (request.paramsArray[0] === 'winston') {
+      this.logger.error('winston error', new Error('An intentional winston error'));
+    } else {
+      throw new Error('An intentional hapi error');
+    }
+
+    return reply('ERROR')
+      .code(503);
   }
 
 }

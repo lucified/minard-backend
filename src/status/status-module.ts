@@ -221,15 +221,13 @@ export default class StatusModule {
   }
 
   public async getStatus(withEcs = false) {
-    const postgreStatusPromise = this.getPostgreSqlStatus();
-    const gitlabStatusPromise = this.getGitlabStatus();
-    const runnersStatusPromise = this.getRunnersStatus();
-    const screenshotterStatusPromise = this.getScreenshotterStatus();
-    const systemHook = this.getSystemHookStatus();
-    const gitlab = await gitlabStatusPromise;
-    const runners = await runnersStatusPromise;
-    const postgresql = await postgreStatusPromise;
-    const screenshotter = await screenshotterStatusPromise;
+    const [gitlab, runners, postgresql, screenshotter, systemHook] = await Promise.all([
+      this.getGitlabStatus(),
+      this.getRunnersStatus(),
+      this.getPostgreSqlStatus(),
+      this.getScreenshotterStatus(),
+      this.getSystemHookStatus(),
+    ]);
 
     const response = {
       charles: {
@@ -244,7 +242,7 @@ export default class StatusModule {
 
     if (withEcs) {
       try {
-        const ecsStatus = await getEcsStatus(process.env.LUCIFY_ENV);
+        const ecsStatus = await getEcsStatus();
         if (ecsStatus.charles) {
           response.charles.ecs = ecsStatus.charles;
         }
@@ -266,7 +264,14 @@ export default class StatusModule {
 
 };
 
-export async function getEcsStatus(env: 'staging' | 'production') {
+export async function getEcsStatus(_env?: string) {
+
+  // Yes, we access an environment variable here. It's bad. Don't do it.
+  const env = _env || process.env.LUCIFY_ENV;
+
+  if (env !== 'staging' || env !== 'production') {
+    throw new Error('ECS status can be fetched only in staging and production');
+  }
   const services = ['charles', 'gitlab', 'runner', 'screenshotter'];
   const servicesResponse = await describeServices({
     services: services.map(service => `minard-${service}-${env}`),
@@ -291,6 +296,7 @@ export async function getEcsStatus(env: 'staging' | 'production') {
     ]), {
         revision: parseInt(service.taskDefinition.split(':').pop(), 10),
         image,
+        environment: env,
       });
   }));
 

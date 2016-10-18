@@ -1,4 +1,6 @@
 
+// Script for manually testing flowdock notifications
+
 import * as fs from 'fs';
 import 'reflect-metadata';
 

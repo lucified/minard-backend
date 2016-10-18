@@ -49,29 +49,29 @@ export class FlowdockNotify {
     return body;
   }
 
-  public async notifyScreenshot(
+  public async notify(
     deployment: MinardDeployment,
     flowToken: string,
     projectUrl: string,
     branchUrl: string): Promise<any> {
 
-    if (!deployment.screenshot) {
-      return;
-    }
-
     const body = this.getBody(deployment, flowToken, projectUrl, branchUrl);
-    const fullName = `${deployment.projectName}/${deployment.ref}`;
-    const title = `Finishing preview for ${fullName}`;
-    body.thread = {
-      title,
-    } as any;
-    body.tags = '';
-    body.title = title;
+    const fields = body.thread.fields;
 
+    delete body.thread.fields;
     const form = objectToFormData(body);
+
+    // Map fields to form data manually to make this work with
+    // Flowdock's approach for representing arrays in form-data
+    fields.forEach(item => {
+      form.append('thread[fields][][label]', item.label);
+      form.append('thread[fields][][value]', item.value);
+    });
+
     if (deployment.screenshot) {
       form.append('attachments[screenshot]', deployment.screenshot, 'screenshot.jpg');
     }
+
     const options = {
       method: 'POST',
       headers: {
@@ -84,31 +84,8 @@ export class FlowdockNotify {
     return this.doFetch(options);
   }
 
-  public async notify(
-    deployment: MinardDeployment,
-    flowToken: string,
-    projectUrl: string,
-    branchUrl: string): Promise<any> {
-
-    await this.notifyScreenshot(deployment, flowToken, projectUrl, branchUrl);
-    const body = await this.getBody(deployment, flowToken, projectUrl, branchUrl);
-
-    const options = {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'User-Agent': 'request',
-        'X-flowdock-wait-for-message': 'true',
-      },
-      body: JSON.stringify(body),
-    };
-
-    return this.doFetch(options);
-  }
-
   private async doFetch(options: any) {
-    let ret = await this.fetch(options);
+    let ret = await this.fetch(url, options);
     if (ret.status === 202 || ret.status === 200 || ret.status === 201) {
       return;
     }

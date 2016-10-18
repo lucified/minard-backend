@@ -120,7 +120,26 @@ export class NotificationModule {
     }
   }
 
+  public async getTeamConfigurations(teamId: number): Promise<NotificationConfiguration[]> {
+    if (!teamId) {
+      throw Boom.badRequest('teamId must be defined');
+    }
+    try {
+      const select = this.knex.select('*')
+        .from('notification_configuration')
+        .where('teamId', teamId);
+      const ret = await select;
+      return ret ? ret : [];
+    } catch (error) {
+      this.logger.error('Failed to fetch notification configurations', error);
+      throw Boom.badImplementation();
+    }
+  }
+
   public async getProjectConfigurations(projectId: number): Promise<NotificationConfiguration[]> {
+    if (!projectId) {
+      throw Boom.badRequest('projectId must be defined');
+    }
     try {
       const select = this.knex.select('*')
         .from('notification_configuration')
@@ -179,7 +198,10 @@ export class NotificationModule {
 
   private async handleDeploymentEvent(event: Event<DeploymentEvent>) {
     try {
-      const configs = await this.getProjectConfigurations(event.payload.deployment.projectId);
+      let configs = await this.getProjectConfigurations(event.payload.deployment.projectId);
+      if (configs.length === 0) {
+        configs = await this.getTeamConfigurations(event.payload.deployment.teamId);
+      }
       await Promise.all(configs.map(item => this.notify(event, item)));
     } catch (error) {
       this.logger.error(`Failed to send notifications for deployment`, error);

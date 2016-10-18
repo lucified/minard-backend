@@ -53,6 +53,7 @@ describe('notification-module', () => {
 
   const uiBaseUrl = 'http://foo-bar.com';
   const flowToken = 'foo-flow-token';
+  const teamId = 66;
   const projectId = 6;
   const deploymentId = 77;
   const screenshotDataUri = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA';
@@ -62,8 +63,6 @@ describe('notification-module', () => {
 
     const screenshotModule = {} as ScreenshotModule;
     screenshotModule.getDataUrl = async(_projectId: number, _deploymentId: number) => {
-      expect(_projectId).to.equal(projectId);
-      expect(_deploymentId).to.equal(deploymentId);
       return screenshotDataUri;
     };
 
@@ -72,12 +71,19 @@ describe('notification-module', () => {
     await notificationModule.addConfiguration({
       type: 'flowdock',
       projectId,
+      teamId: null,
+      flowToken: 'foo-flow-token',
+    });
+    await notificationModule.addConfiguration({
+      type: 'flowdock',
+      projectId: null,
+      teamId,
       flowToken: 'foo-flow-token',
     });
     return notificationModule;
   }
 
-  it('should trigger flowdock notification for DeploymentEvents', async () => {
+  async function shouldTriggerFlowdockNotification(_teamId: number, _projectId: number) {
     // Arrange
     const bus = new LocalEventBus();
     const flowdockNotify = {} as FlowdockNotify;
@@ -95,9 +101,9 @@ describe('notification-module', () => {
     await arrange(flowdockNotify, bus, {} as any);
 
     // Act
-    const deployment = { projectId, ref: 'foo', id: deploymentId, screenshot: 'foo' };
+    const deployment = { projectId: _projectId, ref: 'foo', id: deploymentId, screenshot: 'foo', teamId: _teamId };
     bus.post(createDeploymentEvent({
-      teamId: 7,
+      teamId: _teamId,
       deployment: deployment as any,
       statusUpdate: { status: 'success' },
     }));
@@ -109,8 +115,19 @@ describe('notification-module', () => {
     expect(args.deployment.id).to.equal(deploymentId);
     expect(args.deployment.screenshot).to.equal(screenshotDataUri);
     expect(args._flowToken).to.equal(flowToken);
+    return args;
+  }
+
+  it('should trigger flowdock notification for DeploymentEvents with matching projectId', async () => {
+    const args = await shouldTriggerFlowdockNotification(teamId + 1, projectId);
     expect(args._projectUrl).to.equal(getUiProjectUrl(projectId, uiBaseUrl));
-    expect(args._branchUrl).to.equal(getUiBranchUrl(projectId, deployment.ref, uiBaseUrl));
+    expect(args._branchUrl).to.equal(getUiBranchUrl(projectId, 'foo', uiBaseUrl));
+  });
+
+  it('should trigger flowdock notification for DeploymentEvents with matching teamId', async () => {
+    const args = await shouldTriggerFlowdockNotification(teamId, projectId + 1);
+    expect(args._projectUrl).to.equal(getUiProjectUrl(projectId + 1, uiBaseUrl));
+    expect(args._branchUrl).to.equal(getUiBranchUrl(projectId + 1, 'foo', uiBaseUrl));
   });
 
   it('should trigger hipchat notification for DeploymentEvents', async () => {
@@ -134,6 +151,7 @@ describe('notification-module', () => {
     const config = {
       type: 'hipchat' as 'hipchat',
       projectId: hipchatProjectId,
+      teamId: null,
       hipchatRoomId: 7,
       hipchatAuthToken: 'foo-auth-token',
     };
@@ -142,7 +160,7 @@ describe('notification-module', () => {
     await notificationModule.addConfiguration(config);
 
     // Act
-    const deployment = { projectId: hipchatProjectId, ref: 'foo', id: deploymentId, screenshot: 'foo' };
+    const deployment = { projectId: hipchatProjectId, ref: 'foo', id: deploymentId, screenshot: 'foo', teamId: 7 };
     bus.post(createDeploymentEvent({
       teamId: 7,
       deployment: deployment as any,
@@ -174,7 +192,7 @@ describe('notification-module', () => {
     await arrange(flowdockNotify, bus, {} as any);
 
     // Act
-    const deployment = { projectId: _projectId, ref: 'foo' };
+    const deployment = { projectId: _projectId, ref: 'foo', teamId: 9 };
     bus.post(createDeploymentEvent({
       teamId: 7,
       deployment: deployment as any,
@@ -202,6 +220,7 @@ describe('notification-module', () => {
       flowToken: 'fake-flow-token',
       hipchatAuthToken: null,
       hipchatRoomId: null,
+      teamId: null,
     };
 
     // Act

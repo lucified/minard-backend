@@ -1,4 +1,5 @@
 
+import * as gravatar from 'gravatar';
 import { inject, injectable } from 'inversify';
 
 import {
@@ -37,7 +38,7 @@ export class FlowdockNotify {
       author: {
         name: deployment.commit.committer.name,
         email: deployment.commit.committer.email,
-        avatar: this.buildStatusAvatar(state),
+        avatar: gravatar.url(deployment.commit.committer.email),
       },
     };
 
@@ -87,20 +88,6 @@ export class FlowdockNotify {
 
   private flowdockThreadId(deployment: MinardDeployment) {
     return `minard:deployment:${deployment.projectId}:${deployment.id}`;
-  }
-
-  private buildStatusAvatar(state: MinardDeploymentStatus) {
-    // TODO: show pending build separately, use proper icons
-    switch (state) {
-      case 'success':
-      case 'pending':
-      case 'running':
-        return 'https://d2ph5hv9wbwvla.cloudfront.net/heaven/build_ok.png';
-      case 'failed':
-      case 'canceled':
-      default:
-        return 'https://d2ph5hv9wbwvla.cloudfront.net/heaven/build_fail.png';
-    }
   }
 
   private activityTitle(deployment: MinardDeployment) {

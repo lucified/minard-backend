@@ -1,6 +1,7 @@
 
 import * as FormData from 'form-data';
 
+// adapted from https://gist.github.com/ghinda/8442a57f22099bdb2e34
 function objectToFormData(obj: any, form?: FormData, _namespace?: string) {
   const fd = form || new FormData();
   let formKey: string;
@@ -12,15 +13,9 @@ function objectToFormData(obj: any, form?: FormData, _namespace?: string) {
       } else {
         formKey = property;
       }
-
-      // if the property is an object,
-      // but not a File, use recursivity.
-
       if (typeof obj[property] === 'object' && !(obj[property].constructor === 'File')) {
-      //if (typeof obj[property] === 'object' && !(obj[property] instanceof File)) {
         objectToFormData(obj[property], fd, formKey);
       } else {
-        // if it's a string or a File object
         fd.append(formKey, obj[property]);
       }
     }
@@ -29,4 +24,3 @@ function objectToFormData(obj: any, form?: FormData, _namespace?: string) {
 };
 
 export default objectToFormData;
-

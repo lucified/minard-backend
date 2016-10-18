@@ -9,6 +9,7 @@ import { ProjectHapiPlugin } from '../project';
 import { RealtimeHapiPlugin } from '../realtime';
 import { ScreenshotHapiPlugin } from '../screenshot';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
+import { sleep } from '../shared/sleep';
 import { sentryDsnInjectSymbol } from '../shared/types';
 import { StatusHapiPlugin } from '../status';
 
@@ -106,6 +107,18 @@ export default class MinardServer {
 
     await this.loadBasePlugins(server);
     await this.loadAppPlugins(server);
+
+    server.ext('onPreStop', async (_server, next) => {
+      this.logger.info('Starting exit delay');
+      await sleep(5000);
+      this.logger.info('Exit delay finished');
+      return next();
+    });
+
+    server.on('stop', () => {
+      this.logger.info('Charles is exiting');
+    });
+
     await server.start();
 
     this.logger.info(`Charles running at: ${server.info.uri}`);

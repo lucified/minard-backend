@@ -21,8 +21,8 @@ services:
       - DOCKER_NETWORK_MODE=minardbackend_default
 
   charles:
-    build: .
-    command: "npm run dev"
+    build:
+      dockerfile: Dockerfile-quick
     ports:
       - "5858:5858"
     volumes:
@@ -31,6 +31,7 @@ services:
       - ./migrations:/code/migrations
       - ./src:/code/src
       - ./dist:/code/dist
+      - ./node_modules:/code/node_modules
       - ./tsconfig.json:/code/tsconfig.json
       - ./package.json:/code/package.json
     environment:

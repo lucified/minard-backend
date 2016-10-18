@@ -200,3 +200,4 @@ services:
       - EXTERNAL_GIT_BASEURL=http://localhost:10080
       - GITLAB_ROOT_PASSWORD=12345678
       - SENTRY_DSN=$SENTRY_DSN
+      - EXIT_DELAY=0

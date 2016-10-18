@@ -12,5 +12,6 @@ COPY . /code
 RUN npm run transpile
 RUN npm prune
 
-
-CMD ["npm", "start"]
+# NOTE: don't use npm here since the OS signals, e.g. SIGTERM, won't propagate
+# (read https://github.com/yelp/dumb-init for more)
+CMD ["node", "dist/app.js"]

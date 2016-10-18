@@ -37,6 +37,7 @@ services:
     environment:
       - DEPLOYMENT_FOLDER=/deployments/
       - SCREENSHOT_FOLDER=/screenshots/
+      - EXIT_DELAY=$EXIT_DELAY
 
   screenshotter:
     volumes:

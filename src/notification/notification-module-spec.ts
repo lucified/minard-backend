@@ -56,14 +56,14 @@ describe('notification-module', () => {
   const teamId = 66;
   const projectId = 6;
   const deploymentId = 77;
-  const screenshotDataUri = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA';
+  const screenshotData = 'iVBORw0KGgoAAAANSUhEUgAA';
 
   async function arrange(flowdockNotify: FlowdockNotify, bus: LocalEventBus, hipchatNotify: HipchatNotify) {
     const knex = await setupKnex();
 
     const screenshotModule = {} as ScreenshotModule;
-    screenshotModule.getDataUrl = async(_projectId: number, _deploymentId: number) => {
-      return screenshotDataUri;
+    screenshotModule.getScreenshotData = async(_projectId: number, _deploymentId: number) => {
+      return screenshotData;
     };
 
     const notificationModule = new NotificationModule(
@@ -113,7 +113,7 @@ describe('notification-module', () => {
     expect(args.deployment.projectId).to.equal(deployment.projectId);
     expect(args.deployment.ref).to.equal(deployment.ref);
     expect(args.deployment.id).to.equal(deploymentId);
-    expect(args.deployment.screenshot).to.equal(screenshotDataUri);
+    expect(args.deployment.screenshot).to.equal(screenshotData);
     expect(args._flowToken).to.equal(flowToken);
     return args;
   }

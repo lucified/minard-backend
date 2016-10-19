@@ -178,10 +178,11 @@ export default class StatusModule {
         message: 'Gitlab is responding',
       };
     } catch (err) {
+      const message = err.output ? `Gitlab is responding with statusCode ${err.output.statusCode}` : err.message;
       return {
         active: false,
         status: 'error',
-        message: `Gitlab is responding with statusCode ${err.output.statusCode}`,
+        message,
       };
     }
   }

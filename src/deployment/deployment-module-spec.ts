@@ -580,6 +580,12 @@ describe('deployment-module', () => {
       };
       const retPromise1 = deploymentModule.prepareDeploymentForServing(1, 11);
       const retPromise2 = deploymentModule.prepareDeploymentForServing(2, 22);
+
+      // add catch to prevent warnings for unhandled promise which will
+      // actually be handled later.
+      // http://clarkdave.net/2016/09/node-v6-6-and-asynchronously-handled-promise-rejections/
+      retPromise1.catch(err => null);
+
       expect(firstCalled).to.equal(true);
       expect(secondCalled).to.equal(false);
       // sleep a moment to make sure that the second call
@@ -593,7 +599,6 @@ describe('deployment-module', () => {
       await sleep(10);
       expect(secondCalled).to.equal(true);
       resolve2!('bar');
-
       return [retPromise1, retPromise2];
     }
 
@@ -609,12 +614,11 @@ describe('deployment-module', () => {
       const ret = await shouldQueueCalls((resolve: (arg: any) => void, reject: (arg: any) => void) => {
         reject('foo');
       });
-      try {
-        await ret[0];
-        expect.fail('should throw');
-      } catch (err) {
-        expect(err).to.equal('foo');
-      }
+
+      let error: any;
+      await (ret[0].then(() => expect.fail('should throw')).catch((err) => error = err));
+
+      expect(error).to.equal('foo');
       expect(await ret[1]).to.equal('bar');
     });
 
@@ -805,6 +809,7 @@ describe('deployment-module', () => {
         };
       };
       let called = false;
+      deploymentModule.updateDeploymentStatus = async () => undefined;
       deploymentModule.downloadAndExtractDeployment = async (projectId, deploymentId) => {
         expect(projectId).to.equal(2);
         expect(deploymentId).to.equal(4);
@@ -825,18 +830,19 @@ describe('deployment-module', () => {
       const deploymentModule = getDeploymentModule({} as GitlabClient, '', silentLogger);
       deploymentModule.getDeployment = async (_deploymentId) => {
         return {
-          status: 'success',
+          buildStatus: 'success',
         };
       };
+      deploymentModule.updateDeploymentStatus = async () => undefined;
       deploymentModule.downloadAndExtractDeployment = async (_projectId, _deploymentId) => {
         throw Error('some error');
       };
-      try {
-        await deploymentModule.doPrepareDeploymentForServing(2, 4);
-        expect.fail('should throw exception');
-      } catch (err) {
-        //
-      }
+      let error: any;
+      await (deploymentModule.doPrepareDeploymentForServing(2, 4)
+        .then(() => expect.fail('should throw exception')))
+        .catch((err) => error = err);
+      expect(error.isBoom).to.be.true;
+      expect(error.isServer).to.be.true;
     });
 
   });

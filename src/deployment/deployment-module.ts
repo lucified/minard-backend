@@ -438,7 +438,8 @@ export default class DeploymentModule {
    * is not ready or successfull, or if there is an internal error
    * with preparing the deployment.
    */
-  public async prepareDeploymentForServing(projectId: number, deploymentId: number, checkStatus: boolean = true) {
+  public prepareDeploymentForServing(
+    projectId: number, deploymentId: number, checkStatus: boolean = true): Promise<void> {
     return this.prepareQueue.add(() => this.doPrepareDeploymentForServing(projectId, deploymentId, checkStatus));
   }
 

@@ -56,7 +56,7 @@ export default class SystemHookModule {
         await sleep(3000);
       }
     }
-  };
+  }
 
   public async tryAssureSystemHookRegistered(path: string) {
     if (!(await this.hasSystemHookRegistered(path))) {

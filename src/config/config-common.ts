@@ -102,7 +102,7 @@ export default new KernelModule(bind => {
   bind(DeploymentHapiPlugin.injectSymbol).to(DeploymentHapiPlugin);
   bind(JsonApiHapiPlugin.injectSymbol).to(JsonApiHapiPlugin).inSingletonScope();
   bind(OperationsHapiPlugin.injectSymbol).to(OperationsHapiPlugin);
-  bind(ProjectHapiPlugin.injectSymbol).to(ProjectHapiPlugin);
+  bind(ProjectHapiPlugin.injectSymbol).to(ProjectHapiPlugin).inSingletonScope();
   bind(ScreenshotHapiPlugin.injectSymbol).to(ScreenshotHapiPlugin);
   bind(StatusHapiPlugin.injectSymbol).to(StatusHapiPlugin);
   bind(RealtimeHapiPlugin.injectSymbol).to(RealtimeHapiPlugin);

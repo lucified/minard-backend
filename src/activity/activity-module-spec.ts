@@ -371,7 +371,7 @@ describe('activity-module', () => {
         {} as any,
         {} as any,
         logger,
-        {} as any,
+        new LocalEventBus(),
         {} as any);
 
       // Act

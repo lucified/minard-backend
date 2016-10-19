@@ -11,7 +11,13 @@ import { JsonApiHapiPlugin, parseActivityFilter } from './json-api-hapi-plugin';
 const provisionServer = async (plugin: JsonApiHapiPlugin) => {
   const server = Hapi.getServer();
   server.connection({ port: 8080 });
-  await server.register([plugin]);
+  const options = {
+    register: plugin.register,
+    routes: {
+        prefix: '/api',
+    },
+  };
+  await server.register([options]);
   return server;
 };
 
@@ -40,7 +46,7 @@ describe('json-api-hapi-plugin', () => {
       // Act
       const options: Hapi.IServerInjectOptions = {
         method: 'GET',
-        url: 'http://foo.com/activity?filter=project[2]',
+        url: 'http://foo.com/api/activity?filter=project[2]',
       };
       const ret = await server.inject(options);
 
@@ -74,7 +80,7 @@ describe('json-api-hapi-plugin', () => {
       // Act
       const options: Hapi.IServerInjectOptions = {
         method: 'GET',
-        url: 'http://foo.com/activity?filter=team[6]',
+        url: 'http://foo.com/api/activity?filter=team[6]',
       };
       const ret = await server.inject(options);
 
@@ -131,7 +137,11 @@ describe('json-api-hapi-plugin', () => {
       const server = await provisionServer(plugin);
       const options: Hapi.IServerInjectOptions = {
         method: 'POST',
-        url: 'http://foo.com/projects',
+        url: 'http://foo.com/api/projects',
+        headers: {
+          'Origin': 'foo.com',
+          'Access-Control-Request-Method': 'POST',
+        },
         payload: {
           data: {
             type: 'projects',
@@ -164,6 +174,7 @@ describe('json-api-hapi-plugin', () => {
       expect(parsed.data.id).to.equal(String(projectId));
       expect(parsed.data.attributes.name).to.equal(name);
       expect(parsed.data.attributes.description).to.equal(description);
+      expect(ret.headers['access-control-allow-origin']).to.equal('foo.com');
     });
 
     it('should create project when no description is provided', async() => {
@@ -201,35 +212,6 @@ describe('json-api-hapi-plugin', () => {
       expect(ret).to.exist;
       expect(ret.statusCode).to.equal(MINARD_ERROR_CODE.BAD_REQUEST);
     });
-
-  });
-
-  describe('OPTIONS', () => {
-    async function shouldSupportCors(path: string, method: string) {
-      // Arrange
-      const plugin = new JsonApiHapiPlugin({} as any, baseUrl);
-      const server = await provisionServer(plugin);
-
-      // Act
-      const options: Hapi.IServerInjectOptions = {
-        method: 'OPTIONS',
-        url: 'http://foo.com/projects',
-        headers: {
-          'Origin': '*',
-          'Access-Control-Request-Method': method,
-        },
-      };
-      const ret = await server.inject(options);
-      expect(ret.headers['access-control-allow-origin']).to.equal('*');
-    }
-
-    it ('should support cors for POST /projects', async () => {
-      shouldSupportCors('/projects', 'POST');
-    });
-
-    it ('should support cors for DELETE /projects/:projectId', async () => {
-      shouldSupportCors('/projects/5', 'DELETE');
-    });
   });
 
   describe('PATCH "/projects/:id"', () => {
@@ -250,7 +232,7 @@ describe('json-api-hapi-plugin', () => {
       const server = await provisionServer(plugin);
       const options: Hapi.IServerInjectOptions = {
         method: 'PATCH',
-        url: `http://foo.com/projects/${projectId}`,
+        url: `http://foo.com/api/projects/${projectId}`,
         payload: {
           data: {
             id: projectId,
@@ -312,7 +294,6 @@ describe('json-api-hapi-plugin', () => {
       expect(ret).to.exist;
       expect(ret.statusCode).to.equal(MINARD_ERROR_CODE.BAD_REQUEST);
     });
-
   });
 
   describe('GET "/branches/:id/relationships/commits"', () => {
@@ -344,7 +325,7 @@ describe('json-api-hapi-plugin', () => {
       const server = await provisionServer(plugin);
       const options: Hapi.IServerInjectOptions = {
         method: 'GET',
-        url: `http://foo.com/branches/${projectId}-${branchName}/relationships/commits` +
+        url: `http://foo.com/api/branches/${projectId}-${branchName}/relationships/commits` +
           `?${queryString.stringify(params)}`,
       };
       return await server.inject(options);

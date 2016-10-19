@@ -57,7 +57,6 @@ export class GitlabClient {
   }
 
   public async authenticate(options?: RequestInit) {
-
     // Is set already, no modifications
     const key = this.authenticationHeader;
     if (options && typeof options.headers === 'object') {

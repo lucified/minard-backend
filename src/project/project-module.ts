@@ -552,16 +552,30 @@ export default class ProjectModule {
   }
 
   public async assureProjectHooksRegistered() {
-    const ids = await this.getAllProjectIds();
     let success = false;
+    let count = 0;
     while (!success) {
       try {
+        const ids = await this.getAllProjectIds();
         await Promise.all(ids.map(id => this.assureProjectHookRegistered(id)));
         success = true;
         this.logger.info('Project hooks registered for all projects.');
       } catch (err) {
-        this.logger.error(
-          `Failed to register project hook for all projects. Sleeping for ${this.failSleepTime} ms.`, err);
+        count++;
+        if (err.isBoom && err.output && err.output.statusCode === MINARD_ERROR_CODE.BAD_GATEWAY) {
+          // When starting up in a dev environment, this can happen,
+          // if GitLab is not yet properly running. To prevent annoying
+          // verbose logging, we log this only if it fails 30 times
+          if (count % 30 === 0) {
+            const msg = `Failed to register project hooks on for all projects ` +
+            `because we received "Bad Gateway" when trying to reach GitLab. ` +
+            `Sleeping for ${this.failSleepTime} ms.`;
+            this.logger.error(msg);
+          }
+        } else {
+          this.logger.error(
+            `Failed to register project hook for all projects. Sleeping for ${this.failSleepTime} ms.`, err);
+        }
         await sleep(this.failSleepTime);
       }
     }

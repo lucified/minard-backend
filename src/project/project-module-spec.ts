@@ -1367,7 +1367,7 @@ describe('project-module', () => {
         push_events: true,
       };
       const path = `/projects/${projectId}/hooks?${queryString.stringify(params)}`;
-      return arrangeProjectModuleForProjectHookTest(201, gitlabResponse, path, { method: 'POST' });
+      return arrangeProjectModuleForProjectHookTest(status, gitlabResponse, path, { method: 'POST' });
     }
 
     it('should succeed', async () => {
@@ -1384,7 +1384,7 @@ describe('project-module', () => {
     it('should throw if gitlab responds 404', async () => {
       // Arrange
       const projectModule = arrangeProjectModule(404);
-      projectModule.registerProjectHook(projectId).then(
+      await projectModule.registerProjectHook(projectId).then(
         () => expect.fail('should throw'),
         (err) => {
           expect(<Boom.BoomError> err.isBoom).to.equal(true);
@@ -1395,7 +1395,7 @@ describe('project-module', () => {
     it('should throw if gitlab responds 500', async () => {
       // Arrange
       const projectModule = arrangeProjectModule(500);
-      projectModule.registerProjectHook(projectId).then(
+      await projectModule.registerProjectHook(projectId).then(
         () => expect.fail('should throw'),
         (err) => {
           expect(<Boom.BoomError> err.isBoom).to.equal(true);
@@ -1437,7 +1437,7 @@ describe('project-module', () => {
 
     function arrangeProjectModule(status: number, body: any) {
       const path = `/projects/${projectId}/hooks`;
-      return arrangeProjectModuleForProjectHookTest(201, body, path);
+      return arrangeProjectModuleForProjectHookTest(status, body, path);
     }
 
     it('should return hooks when gitlab responds with two hooks', async () => {
@@ -1455,10 +1455,10 @@ describe('project-module', () => {
 
     it('should throw if response is not array', async () => {
       // Arrange
-      const projectModule = arrangeProjectModule(404, gitlabResponse[0]);
+      const projectModule = arrangeProjectModule(200, gitlabResponse[0]);
 
       // Act & Assert
-      projectModule.fetchProjectHooks(projectId).then(
+      await projectModule.fetchProjectHooks(projectId).then(
         () => expect.fail('should throw'),
         (err) => {
           expect(<Boom.BoomError> err.isBoom).to.equal(true);
@@ -1471,7 +1471,7 @@ describe('project-module', () => {
       const projectModule = arrangeProjectModule(404, gitlabResponse);
 
       // Act & Assert
-      projectModule.fetchProjectHooks(projectId).then(
+      await projectModule.fetchProjectHooks(projectId).then(
         () => expect.fail('should throw'),
         (err) => {
           expect(<Boom.BoomError> err.isBoom).to.equal(true);
@@ -1484,7 +1484,7 @@ describe('project-module', () => {
       const projectModule = arrangeProjectModule(500, gitlabResponse);
 
       // Act & Assert
-      projectModule.fetchProjectHooks(projectId).then(
+      await projectModule.fetchProjectHooks(projectId).then(
         () => expect.fail('should throw'),
         (err) => {
           expect(<Boom.BoomError> err.isBoom).to.equal(true);
@@ -1498,7 +1498,7 @@ describe('project-module', () => {
     const projectId = 5;
     const gitlabResponse = [{
       'id': 41,
-      'url': 'http://foo-bar.com/projects/project-hook',
+      'url': 'http://foo-bar.com/project/project-hook',
       'created_at': '2016-09-13T17:38:15.494+05:30',
       'project_id': projectId,
       'push_events': true,
@@ -1510,16 +1510,20 @@ describe('project-module', () => {
       'enable_ssl_verification': true,
     }];
 
-    it('should not register project hook if one does already exists for this project and corrrect url', async () => {
+    it(
+      'should not register project hook if one does already exists for this project and correct url',
+      async () => {
       // Arrange
       const path = `/projects/${projectId}/hooks`;
       const projectModule = arrangeProjectModuleForProjectHookTest(200, gitlabResponse, path);
 
       // Act & Assert
+      let called = false;
       projectModule.registerProjectHook = async (_projectId: number) => {
-        expect.fail('should not be called');
+        called = true;
       };
       await projectModule.assureProjectHookRegistered(projectId);
+      expect(called).to.equal(false);
     });
 
     it('should register project hook if existing one differs by webhook url', async () => {

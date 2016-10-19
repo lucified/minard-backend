@@ -7,8 +7,10 @@ import * as moment from 'moment';
 import { AuthenticationModule } from '../authentication';
 import { Event, EventBus, eventBusInjectSymbol } from '../event-bus';
 import { Screenshotter, screenshotterInjectSymbol } from '../screenshot/types';
+import { IFetch } from '../shared/fetch';
 import { GitlabClient } from '../shared/gitlab-client';
 import { promisify } from '../shared/promisify';
+import { fetchInjectSymbol } from '../shared/types';
 import { SYSTEM_HOOK_REGISTRATION_EVENT_TYPE, SystemHookRegistrationEvent } from '../system-hook';
 
 const ecs = new ECS({
@@ -88,16 +90,20 @@ export default class StatusModule {
   private readonly eventBus: EventBus;
   private readonly authentication: AuthenticationModule;
   private latestSystemHookRegistration: Event<SystemHookRegistrationEvent>;
+  private fetch: IFetch;
+  private ip: string|undefined = undefined;
 
   public constructor(
     @inject(GitlabClient.injectSymbol) gitlab: GitlabClient,
     @inject(screenshotterInjectSymbol) screenshotter: Screenshotter,
     @inject(eventBusInjectSymbol) eventBus: EventBus,
-    @inject(AuthenticationModule.injectSymbol) authentication: AuthenticationModule) {
+    @inject(AuthenticationModule.injectSymbol) authentication: AuthenticationModule,
+    @inject(fetchInjectSymbol) fetch: IFetch) {
     this.gitlab = gitlab;
     this.screenshotter = screenshotter;
     this.eventBus = eventBus;
     this.authentication = authentication;
+    this.fetch = fetch;
     this.subscribeToEvents();
   }
 
@@ -220,6 +226,15 @@ export default class StatusModule {
     }
   }
 
+  public async getEC2IP() {
+    if (!this.ip) {
+      const ec2IpUrl = 'http://169.254.169.254/latest/meta-data/public-hostname';
+      const response = await this.fetch(ec2IpUrl, { timeout: 500 });
+      this.ip = await response.text();
+    }
+    return this.ip;
+  }
+
   public async getStatus(withEcs = false) {
     const [gitlab, runners, postgresql, screenshotter, systemHook] = await Promise.all([
       this.getGitlabStatus(),
@@ -243,8 +258,10 @@ export default class StatusModule {
     if (withEcs) {
       try {
         const ecsStatus = await getEcsStatus();
+        const ip = await this.getEC2IP();
         if (ecsStatus.charles) {
           response.charles.ecs = ecsStatus.charles;
+          response.charles.ecs.instance = ip;
         }
         if (ecsStatus.runner) {
           response.runners.ecs = ecsStatus.runner;

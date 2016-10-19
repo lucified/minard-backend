@@ -1,4 +1,4 @@
-FROM mhart/alpine-node:6.7
+FROM mhart/alpine-node:6.9
 
 WORKDIR /code
 
@@ -10,7 +10,8 @@ ENV NODE_ENV production
 
 COPY . /code
 RUN npm run transpile
-RUN npm prune
+RUN npm prune && rm -rf src
 
-
-CMD ["npm", "start"]
+# NOTE: don't use npm here since the OS signals, e.g. SIGTERM, won't propagate
+# (read https://github.com/yelp/dumb-init for more)
+CMD ["node", "dist/app.js"]

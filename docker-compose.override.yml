@@ -17,13 +17,13 @@ services:
     volumes:
         - ./gitlab-data/runner:/etc/gitlab-runner
     environment:
-#      - DEBUG=1
       - DOCKER_IMAGE=node
       - DOCKER_NETWORK_MODE=minardbackend_default
 
   charles:
     build: .
-    command: "npm run dev"
+    image: charles_development
+    command: ["npm", "run", "dev"]
     ports:
       - "5858:5858"
     volumes:

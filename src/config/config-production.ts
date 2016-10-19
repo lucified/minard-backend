@@ -10,6 +10,7 @@ import {
 } from '../deployment';
 
 import {
+  exitDelayInjectSymbol,
   externalBaseUrlInjectSymbol,
   goodOptionsInjectSymbol,
   hostInjectSymbol,
@@ -230,6 +231,11 @@ const GITLAB_ROOT_PASSWORD = env.GITLAB_ROOT_PASSWORD ? env.GITLAB_ROOT_PASSWORD
 
 const SENTRY_DSN = env.SENTRY_DSN ? env.SENTRY_DSN : undefined;
 
+// Exit delay
+// --------------
+
+const EXIT_DELAY = env.EXIT_DELAY ? parseInt(env.EXIT_DELAY, 10) : 15000;
+
 // Inversify kernel bindings
 // -------------------------
 
@@ -256,4 +262,5 @@ export default (kernel: interfaces.Kernel) => {
   kernel.bind(minardUiBaseUrlInjectSymbol).toConstantValue(MINARD_UI_BASEURL);
   kernel.bind(gitlabRootPasswordInjectSymbol).toConstantValue(GITLAB_ROOT_PASSWORD);
   kernel.bind(sentryDsnInjectSymbol).toConstantValue(SENTRY_DSN);
+  kernel.bind(exitDelayInjectSymbol).toConstantValue(EXIT_DELAY);
 };

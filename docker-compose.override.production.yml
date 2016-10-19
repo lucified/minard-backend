@@ -1,0 +1,13 @@
+version: '2'
+# Used to simulate the production environment locally.
+# The main differences are that NODE_ENV=production and
+# app.js is executed directly with node, not npm.
+services:
+  charles:
+    command: ["node", "dist/app.js"]
+    build:
+      dockerfile: Dockerfile-production
+    image: charles_production
+    environment:
+      - EXIT_DELAY=$EXIT_DELAY
+

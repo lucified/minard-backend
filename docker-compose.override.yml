@@ -22,7 +22,7 @@ services:
 
   charles:
     build: .
-    command: "npm run dev"
+    command: ["npm", "run", "dev"]
     ports:
       - "5858:5858"
     volumes:

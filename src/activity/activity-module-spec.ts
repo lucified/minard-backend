@@ -118,7 +118,7 @@ describe('activity-module', () => {
     const knex = await setupKnex();
     await Promise.all(activities.map(item => knex('activity').insert(toDbActivity(item))));
     const deploymentModule = {} as DeploymentModule;
-    deploymentModule.toFullMinardDeployment = (_deployment: any) => {
+    deploymentModule.addUrlsToDeployment = (_deployment: any) => {
       return Object.assign({}, _deployment, { url: deploymentUrl });
     };
 

@@ -114,10 +114,10 @@ export default class ActivityModule {
     this.eventBus.post(createActivityEvent(activity));
   }
 
-  public toFullMinardActivity(row: any) {
+  private toFullMinardActivity(row: any) {
     const activity = toMinardActivity(row);
 
-    const deployment = this.deploymentModule.toFullMinardDeployment(activity.deployment);
+    const deployment = this.deploymentModule.addUrlsToDeployment(activity.deployment);
     const ret = Object.assign({}, activity, {
       deployment,
     });

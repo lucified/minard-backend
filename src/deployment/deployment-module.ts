@@ -99,10 +99,16 @@ export function toDbDeployment(deployment: MinardDeployment) {
 
 export function toMinardDeployment(deployment: any): MinardDeployment {
   const commit = deployment.commit instanceof Object ? deployment.commit : JSON.parse(deployment.commit);
+  const createdAt = moment(Number(deployment.createdAt));
   return Object.assign({}, deployment, {
     commit,
     finishedAt: deployment.finishedAt ? moment(Number(deployment.finishedAt)) : undefined,
-    createdAt: deployment.createdAt ? moment(Number(deployment.createdAt)) : undefined,
+    createdAt,
+    creator: {
+      email: commit.committer.email,
+      name: commit.committer.name,
+      timestamp: toGitlabTimestamp(createdAt),
+    },
   }) as MinardDeployment;
 }
 
@@ -236,7 +242,7 @@ export default class DeploymentModule {
       .from('deployment')
       .where('projectId', projectId)
       .orderBy('id', 'DESC');
-    return (await select).map(this.toFullMinardDeployment.bind(this));
+    return (await select).map(this.addUrlsToDeployment.bind(this));
   };
 
   public async getBranchDeployments(projectId: number, branchName: string): Promise<MinardDeployment[]> {
@@ -245,7 +251,7 @@ export default class DeploymentModule {
       .where('projectId', projectId)
       .andWhere('ref', branchName)
       .orderBy('id', 'DESC');
-    return (await select).map(this.toFullMinardDeployment.bind(this));
+    return (await select).map(this.addUrlsToDeployment.bind(this));
   };
 
   public async getLatestSuccessfulProjectDeployment(projectId: number): Promise<MinardDeployment | undefined> {
@@ -257,7 +263,7 @@ export default class DeploymentModule {
       .limit(1)
       .first();
     const ret = await select;
-    return ret ? this.toFullMinardDeployment(ret) : undefined;
+    return ret ? this.addUrlsToDeployment(ret) : undefined;
   }
 
   public async getLatestSuccessfulBranchDeployment(
@@ -271,7 +277,7 @@ export default class DeploymentModule {
       .limit(1)
       .first();
     const ret = await select;
-    return ret ? this.toFullMinardDeployment(ret) : undefined;
+    return ret ? this.addUrlsToDeployment(ret) : undefined;
   }
 
   public async getCommitDeployments(projectId: number, sha: string): Promise<MinardDeployment[]> {
@@ -280,7 +286,7 @@ export default class DeploymentModule {
       .where('projectId', projectId)
       .andWhere('commitHash', sha)
       .orderBy('id', 'DESC');
-    return (await select).map(this.toFullMinardDeployment.bind(this));
+    return (await select).map(this.addUrlsToDeployment.bind(this));
   }
 
   public async getDeployment(deploymentId: number): Promise<MinardDeployment | undefined> {
@@ -293,10 +299,10 @@ export default class DeploymentModule {
     if (!ret) {
       return undefined;
     }
-    return this.toFullMinardDeployment(ret);
+    return this.addUrlsToDeployment(ret);
   }
 
-  public toFullMinardDeployment(_deployment: any): MinardDeployment {
+  public addUrlsToDeployment(_deployment: any): MinardDeployment {
     const deployment = toMinardDeployment(_deployment);
     if (deployment.extractionStatus === 'success') {
       deployment.url = sprintf(
@@ -304,17 +310,9 @@ export default class DeploymentModule {
         `${deployment.ref}-${deployment.commit.shortId}-${deployment.projectId}-${deployment.id}`
       );
     }
-
     if (deployment.screenshotStatus === 'success') {
       deployment.screenshot = this.screenshotModule.getPublicUrl(deployment.projectId, deployment.id);
     }
-
-    deployment.creator = {
-      email: deployment.commit.committer.email,
-      name: deployment.commit.committer.name,
-      timestamp: toGitlabTimestamp(deployment.createdAt),
-    };
-
     return deployment;
   }
 

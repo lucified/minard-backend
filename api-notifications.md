@@ -75,6 +75,6 @@ Response body:
 ## Delete notification configuration
 
 - Method: `POST`
-- URL: `/api/notifications/`
+- URL: `/api/notifications/:id`
 - Payload: empty
 

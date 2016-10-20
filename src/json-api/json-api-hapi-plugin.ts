@@ -26,6 +26,7 @@ function onPreResponse(server: Hapi.Server, request: Hapi.Request, reply: Hapi.I
   function applyHeaders(obj: any) {
     const contentType = 'application/vnd.api+json; charset=utf-8';
     obj.headers['content-type'] = contentType;
+    obj.headers['Access-Control-Allow-Origin'] = '*';
   }
 
   if (response.isBoom) {

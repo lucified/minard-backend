@@ -36,8 +36,9 @@ export function toMinardActivity(activity: any): MinardActivity {
 }
 
 export function toDbActivity(activity: MinardActivity) {
+  const deployment = Object.assign({}, activity.deployment, { url: undefined, screenshot: undefined });
   return Object.assign({}, activity, {
-    deployment: JSON.stringify(activity.deployment),
+    deployment: JSON.stringify(deployment),
     commit: JSON.stringify(activity.commit),
     timestamp: activity.timestamp.valueOf(),
   });
@@ -113,6 +114,16 @@ export default class ActivityModule {
     this.eventBus.post(createActivityEvent(activity));
   }
 
+  private toFullMinardActivity(row: any) {
+    const activity = toMinardActivity(row);
+
+    const deployment = this.deploymentModule.addUrlsToDeployment(activity.deployment);
+    const ret = Object.assign({}, activity, {
+      deployment,
+    });
+    return ret;
+  }
+
   public async getTeamActivity(teamId: number, until?: moment.Moment, count?: number): Promise<MinardActivity[]> {
     const select = this.knex.select('*')
       .from('activity')
@@ -124,7 +135,7 @@ export default class ActivityModule {
     if (count) {
       select.limit(count);
     }
-    return (await select).map(toMinardActivity);
+    return (await select).map((item: any) => this.toFullMinardActivity(item));
   }
 
   public async getProjectActivity(projectId: number, until?: moment.Moment, count?: number): Promise<MinardActivity[]> {
@@ -138,7 +149,7 @@ export default class ActivityModule {
     if (count) {
       select.limit(count);
     }
-    return (await select).map(toMinardActivity);
+    return (await select).map((item: any) => this.toFullMinardActivity(item));
   }
 
 }

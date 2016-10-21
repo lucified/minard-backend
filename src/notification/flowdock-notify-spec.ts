@@ -48,11 +48,10 @@ describe('flowdock-notify', () => {
     });
 
     // Act
-    await notifier.notify(deployment, flowToken, projectUrl, branchUrl);
+    const body = notifier.getBody(deployment, flowToken, projectUrl, branchUrl);
+    notifier.notify(deployment, flowToken, projectUrl, branchUrl);
 
     // Assert
-    const options = await promise;
-    const body = JSON.parse(options.body);
     expect(body.flow_token).to.equal(flowToken);
     expect(body.event).to.equal('activity');
     expect(body.external_thread_id).to.equal('minard:deployment:5:6');
@@ -61,6 +60,9 @@ describe('flowdock-notify', () => {
     expect(body.author.email).to.equal(deployment.commit.committer.email);
     expect(body.thread.title).to.equal(title);
     expect(body.thread.status.value).to.equal(deployment.status);
+
+    const options = await promise;
+    expect(options.method).to.equal('POST');
     return body;
   }
 
@@ -69,7 +71,6 @@ describe('flowdock-notify', () => {
     const body = await shouldSendCorrectNotification(deployment,
       'Created preview for foo-project-name/foo-branch');
     expect(body.thread.status.color).to.equal('green');
-    expect(body.thread.body.indexOf(`<img src="${deployment.screenshot}"`) !== -1).to.be.true;
     expect(body.author.avatar).to.equal('//www.gravatar.com/avatar/79f0c978a0b5b6db64cb1484f3d05c74');
     expect(body.thread.external_url).to.equal(deployment.url);
   });
@@ -79,7 +80,6 @@ describe('flowdock-notify', () => {
     const body = await shouldSendCorrectNotification(deployment,
       'Created preview for foo-project-name/foo-branch');
     expect(body.thread.status.color).to.equal('green');
-    expect(body.thread.body.indexOf(`<img src="${deployment.screenshot}"`) !== -1).to.be.false;
     expect(body.thread.external_url).to.equal(deployment.url);
   });
 

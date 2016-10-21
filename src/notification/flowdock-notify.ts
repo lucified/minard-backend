@@ -2,14 +2,18 @@
 import * as gravatar from 'gravatar';
 import { inject, injectable } from 'inversify';
 
+import objectToFormData from './object-to-form-data';
+
 import {
   MinardDeployment,
   MinardDeploymentStatus,
 } from '../deployment';
-import { IFetch } from '../shared/fetch';
+import { IFetch, RequestInit } from '../shared/fetch';
 import { fetchInjectSymbol } from '../shared/types';
 
 type ThreadField = { label: string, value: string };
+
+const url = 'https://api.flowdock.com/messages';
 
 @injectable()
 export class FlowdockNotify {
@@ -22,7 +26,7 @@ export class FlowdockNotify {
     this.fetch = fetch;
   }
 
-  public async getBody(
+  public getBody(
     deployment: MinardDeployment,
     flowToken: string,
     projectUrl: string,
@@ -32,7 +36,7 @@ export class FlowdockNotify {
       flow_token: flowToken,
       event: 'activity',
       external_thread_id: this.flowdockThreadId(deployment),
-      tags: [deployment.projectName, deployment.ref, 'minard', 'preview', state],
+      tags: [deployment.projectName, deployment.ref, 'minard', 'preview', state].join(','),
       thread: this.threadData(deployment, projectUrl, branchUrl),
       title: this.activityTitle(deployment),
       author: {
@@ -40,32 +44,47 @@ export class FlowdockNotify {
         email: deployment.commit.committer.email,
         avatar: gravatar.url(deployment.commit.committer.email),
       },
+      body: this.threadBody(deployment),
     };
-
     return body;
   }
 
-  public async notify(
+  public notify(
     deployment: MinardDeployment,
     flowToken: string,
     projectUrl: string,
-    branchUrl: string): Promise<any> {
+    branchUrl: string): Promise<void> {
 
-    const url = `https://api.flowdock.com/messages`;
-    const body = await this.getBody(deployment, flowToken, projectUrl, branchUrl);
+    const body = this.getBody(deployment, flowToken, projectUrl, branchUrl);
+    const fields = body.thread.fields;
+
+    delete body.thread.fields;
+    const form = objectToFormData(body);
+
+    // Map fields to form data manually to make this work with
+    // Flowdock's approach for representing arrays in form-data
+    fields.forEach(item => {
+      form.append('thread[fields][][label]', item.label);
+      form.append('thread[fields][][value]', item.value);
+    });
+
+    if (deployment.screenshot) {
+      form.append('attachments[screenshot]', deployment.screenshot, 'screenshot.jpg');
+    }
 
     const options = {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
-        'Content-Type': 'application/json',
         'User-Agent': 'request',
         'X-flowdock-wait-for-message': 'true',
       },
-      json: true,
-      body: JSON.stringify(body),
+      body: form,
     };
+    return this.doFetch(options);
+  }
 
+  private async doFetch(options: RequestInit) {
     let ret = await this.fetch(url, options);
     if (ret.status === 202 || ret.status === 200 || ret.status === 201) {
       return;
@@ -122,17 +141,7 @@ export class FlowdockNotify {
   }
 
   private threadBody(deployment: MinardDeployment) {
-    const style = `border: 1px solid #d8d8d8; border-radius: 3px; ` +
-      `box-shadow: box-shadow: 0 6px 12px 0 rgba(0,0,0,.05); max-width: 100%`;
-    if (deployment.screenshot) {
-      return (
-        `<div>
-          <p style="font-family: monospace">${deployment.commit.message}</p>
-          <img src="${deployment.screenshot}" style="${style}" />
-        </div>`
-      );
-    }
-    return deployment.commit.message;
+    return `<p style="font-family: monospace">${deployment.commit.message}</p>`;
   }
 
   private threadData(deployment: MinardDeployment, projectUrl: string, branchUrl: string) {

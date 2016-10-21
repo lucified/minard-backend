@@ -8,7 +8,7 @@ import {
   MinardDeployment,
   MinardDeploymentStatus,
 } from '../deployment';
-import { IFetch } from '../shared/fetch';
+import { IFetch, RequestInit } from '../shared/fetch';
 import { fetchInjectSymbol } from '../shared/types';
 
 type ThreadField = { label: string, value: string };
@@ -49,11 +49,11 @@ export class FlowdockNotify {
     return body;
   }
 
-  public async notify(
+  public notify(
     deployment: MinardDeployment,
     flowToken: string,
     projectUrl: string,
-    branchUrl: string): Promise<any> {
+    branchUrl: string): Promise<void> {
 
     const body = this.getBody(deployment, flowToken, projectUrl, branchUrl);
     const fields = body.thread.fields;
@@ -84,7 +84,7 @@ export class FlowdockNotify {
     return this.doFetch(options);
   }
 
-  private async doFetch(options: any) {
+  private async doFetch(options: RequestInit) {
     let ret = await this.fetch(url, options);
     if (ret.status === 202 || ret.status === 200 || ret.status === 201) {
       return;

@@ -573,8 +573,11 @@ export default class ProjectModule {
             this.logger.error(msg);
           }
         } else {
-          this.logger.error(
-            `Failed to register project hook for all projects. Sleeping for ${this.failSleepTime} ms.`, err);
+          const connectionErrors = ['ECONNREFUSED', 'ECONNRESET', 'EHOSTUNREACH'];
+          if (!connectionErrors.find(code => code === err.code)) {
+            this.logger.error(
+              `Failed to register project hook for all projects. Sleeping for ${this.failSleepTime} ms.`, err);
+          }
         }
         await sleep(this.failSleepTime);
       }

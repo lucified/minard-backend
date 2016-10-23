@@ -56,6 +56,12 @@ function requestFilter(data: any) {
       && data.statusCode === 404) {
     return false;
   }
+  // filter out successful health checks
+  if (data.path
+      && data.path.indexOf('/status') === 0
+      && data.statusCode === 200) {
+    return false;
+  }
   return true;
 };
 

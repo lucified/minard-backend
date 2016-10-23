@@ -1,16 +1,18 @@
 
-const env = process.env;
+const envVars = process.env;
+const environment = envVars.LUCIFY_ENV === 'production' ? 'production' : 'staging';
+const statusUrl = `https://${environment === 'production' ? '' : 'staging.'}minard.io/charles/status/ecs`;
 module.exports = {
   deployment: {
     branch: {
-      ref: env.CIRCLE_BRANCH,
-      owner: env.CIRCLE_PROJECT_USERNAME,
-      repository: env.CIRCLE_PROJECT_REPONAME,
+      ref: envVars.CIRCLE_BRANCH,
+      owner: envVars.CIRCLE_PROJECT_USERNAME,
+      repository: envVars.CIRCLE_PROJECT_REPONAME,
     },
-    committer: env.CIRCLE_USERNAME,
-    build_url: env.CIRCLE_BUILD_URL,
-    url: 'https://charles-staging.lucify.com/status',
-    environment: 'staging',
+    committer: envVars.CIRCLE_USERNAME,
+    build_url: envVars.CIRCLE_BUILD_URL,
+    url: statusUrl,
+    environment,
   },
   github: {
     s3_credentials: 'lucify-configuration/lucify-notifier/github_integration_credentials.json',

@@ -291,11 +291,15 @@ export default class DeploymentModule {
    * Convert deployment stored in DB to MinardDeployment
    */
   public toMinardDeployment(deployment: any): MinardDeployment {
+    // We need to support timestamps represented also as a string
+    // because in deployments stored within activity the timestamps are
+    // represented as strings (at least for now)
+    const toMoment = (val: any) => isNaN(val) ? moment(val) : moment(Number(val));
     const commit = deployment.commit instanceof Object ? deployment.commit : JSON.parse(deployment.commit);
-    const createdAt = moment(deployment.createdAt);
+    const createdAt = toMoment(deployment.createdAt);
     const ret = Object.assign({}, deployment, {
       commit,
-      finishedAt: deployment.finishedAt ? moment(deployment.finishedAt) : undefined,
+      finishedAt: deployment.finishedAt ? toMoment(deployment.finishedAt) : undefined,
       createdAt,
       creator: {
         email: commit.committer.email,

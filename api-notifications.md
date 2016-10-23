@@ -6,7 +6,7 @@
 ### Request
 
 - Method: `POST`
-- URL: `/api/Notifications`
+- URL: `/api/notifications`
 
 Payload for project-scoped Flowdock notification:
 ```json
@@ -74,7 +74,7 @@ Response body:
 
 ## Delete notification configuration
 
-- Method: `POST`
+- Method: `DELETE`
 - URL: `/api/notifications/:id`
 - Payload: empty
 

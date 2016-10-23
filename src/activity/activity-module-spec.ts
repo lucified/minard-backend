@@ -20,7 +20,6 @@ import Logger from '../shared/logger';
 
 import ActivityModule, {
   toDbActivity,
-  toMinardActivity,
 } from './activity-module';
 
 import {
@@ -49,6 +48,22 @@ describe('activity-module', () => {
     return knex;
   }
 
+  const commit = {
+    id: 'foo-commit-id',
+    shortId: 'foo',
+    message: 'foo-commit-message',
+    author: {
+      name: 'fooman',
+      email: 'fooman@foomail.com',
+      timestamp: '2013-09-30T13:46:02Z',
+    },
+    committer: {
+      name: 'barman',
+      email: 'barman@barmail.com',
+      timestamp: '2013-09-30T13:46:02Z',
+    },
+  };
+
   const activities: MinardActivity[] = [
     {
       activityType: 'deployment',
@@ -59,10 +74,10 @@ describe('activity-module', () => {
       deployment: {
         id: 'foo',
         status: 'success',
+        commit,
+        createdAt: moment(),
       } as any,
-      commit: {
-        id: 'foo',
-      } as any,
+      commit,
       timestamp: moment(),
     },
     {
@@ -74,10 +89,10 @@ describe('activity-module', () => {
       deployment: {
         id: 'foo',
         status: 'failed',
+        commit,
+        createdAt: moment(),
       } as any,
-      commit: {
-        id: 'foo',
-      } as any,
+      commit,
       timestamp: moment().add(1, 'days'),
     },
     {
@@ -89,10 +104,10 @@ describe('activity-module', () => {
       deployment: {
         id: 'foo',
         status: 'success',
+        commit,
+        createdAt: moment(),
       } as any,
-      commit: {
-        id: 'foo',
-      } as any,
+      commit,
       timestamp: moment().add(1, 'minutes'),
     },
     {
@@ -104,10 +119,10 @@ describe('activity-module', () => {
       deployment: {
         id: 'foo',
         status: 'success',
+        commit,
+        createdAt: moment(),
       } as any,
-      commit: {
-        id: 'foo',
-      } as any,
+      commit,
       timestamp: moment(),
     },
   ];
@@ -118,10 +133,9 @@ describe('activity-module', () => {
     const knex = await setupKnex();
     await Promise.all(activities.map(item => knex('activity').insert(toDbActivity(item))));
     const deploymentModule = {} as DeploymentModule;
-    deploymentModule.addUrlsToDeployment = (_deployment: any) => {
+    deploymentModule.toMinardDeployment = (_deployment: any) => {
       return Object.assign({}, _deployment, { url: deploymentUrl });
     };
-
     const activityModule = new ActivityModule(
       {} as any,
       deploymentModule,
@@ -130,15 +144,6 @@ describe('activity-module', () => {
       knex);
     return activityModule;
   }
-
-  describe('toDdbActivity', () => {
-    it('should convert', () => {
-      const activity = activities[0];
-      const dbActivity = toDbActivity(activity);
-      const minardActivity = toMinardActivity(dbActivity);
-      expect(minardActivity.timestamp.isSame(activity.timestamp));
-    });
-  });
 
   describe('getProjectActivity(...)', () => {
     it('should return a single project correctly', async () => {
@@ -363,15 +368,15 @@ describe('activity-module', () => {
       // Arrange
       const teamId = 8;
       const timestamp = moment();
-      const commit = {
+      const _commit = {
         id: 'foo-commit-id',
         message: 'foo-message',
       } as MinardCommit;
       const deployment = {
         deploymentId,
         ref: branch,
-        commit,
-        commitHash: commit.id,
+        commit: _commit,
+        commitHash: _commit.id,
         finishedAt: timestamp,
         projectId,
         projectName,
@@ -403,7 +408,7 @@ describe('activity-module', () => {
         teamId,
         timestamp,
         deployment,
-        commit,
+        commit: _commit,
       };
       expect(activity).to.deep.equal(expected);
     });

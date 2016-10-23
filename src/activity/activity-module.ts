@@ -23,20 +23,12 @@ import {
   createActivityEvent,
 } from './types';
 
-export function toMinardActivity(activity: any): MinardActivity {
-  // when using postgres driver, we get objects,
-  // when using nosql, we get strings
-  const deployment = activity.deployment instanceof Object ? activity.deployment : JSON.parse(activity.deployment);
-  const commit = activity.commit instanceof Object ? activity.commit : JSON.parse(activity.commit);
-  return Object.assign({}, activity, {
-    deployment,
-    commit,
-    timestamp: moment(Number(activity.timestamp)),
-  }) as MinardActivity;
-}
-
 export function toDbActivity(activity: MinardActivity) {
   const deployment = Object.assign({}, activity.deployment, { url: undefined, screenshot: undefined });
+  // Note: It could make sense to use toDbDeployment before storing the
+  // related deployment here. However, we did not do it from the start, and
+  // changing this would require us to transform existing json structures in the
+  // databases.
   return Object.assign({}, activity, {
     deployment: JSON.stringify(deployment),
     commit: JSON.stringify(activity.commit),
@@ -82,7 +74,7 @@ export default class ActivityModule {
       const activity = this.createDeploymentActivity(event.payload);
       await this.addActivity(activity);
     } catch (error) {
-      this.logger.error('Failed to add activity based on deployment event', { error, event });
+      this.logger.error('Failed to add activity based on deployment event', error);
     }
   }
 
@@ -114,14 +106,15 @@ export default class ActivityModule {
     this.eventBus.post(createActivityEvent(activity));
   }
 
-  private toFullMinardActivity(row: any) {
-    const activity = toMinardActivity(row);
-
-    const deployment = this.deploymentModule.addUrlsToDeployment(activity.deployment);
-    const ret = Object.assign({}, activity, {
+  private toMinardActivity(activity: any) {
+    const _deployment = activity.deployment instanceof Object ? activity.deployment : JSON.parse(activity.deployment);
+    const commit = activity.commit instanceof Object ? activity.commit : JSON.parse(activity.commit);
+    const deployment = this.deploymentModule.toMinardDeployment(_deployment);
+    return Object.assign({}, activity, {
       deployment,
-    });
-    return ret;
+      commit,
+      timestamp: moment(Number(activity.timestamp)),
+    }) as MinardActivity;
   }
 
   public async getTeamActivity(teamId: number, until?: moment.Moment, count?: number): Promise<MinardActivity[]> {
@@ -135,7 +128,7 @@ export default class ActivityModule {
     if (count) {
       select.limit(count);
     }
-    return (await select).map((item: any) => this.toFullMinardActivity(item));
+    return (await select).map((item: any) => this.toMinardActivity(item));
   }
 
   public async getProjectActivity(projectId: number, until?: moment.Moment, count?: number): Promise<MinardActivity[]> {
@@ -149,7 +142,7 @@ export default class ActivityModule {
     if (count) {
       select.limit(count);
     }
-    return (await select).map((item: any) => this.toFullMinardActivity(item));
+    return (await select).map((item: any) => this.toMinardActivity(item));
   }
 
 }

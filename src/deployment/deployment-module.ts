@@ -97,21 +97,6 @@ export function toDbDeployment(deployment: MinardDeployment) {
   });
 }
 
-export function toMinardDeployment(deployment: any): MinardDeployment {
-  const commit = deployment.commit instanceof Object ? deployment.commit : JSON.parse(deployment.commit);
-  const createdAt = moment(Number(deployment.createdAt));
-  return Object.assign({}, deployment, {
-    commit,
-    finishedAt: deployment.finishedAt ? moment(Number(deployment.finishedAt)) : undefined,
-    createdAt,
-    creator: {
-      email: commit.committer.email,
-      name: commit.committer.name,
-      timestamp: toGitlabTimestamp(createdAt),
-    },
-  }) as MinardDeployment;
-}
-
 @injectable()
 export default class DeploymentModule {
 
@@ -242,7 +227,7 @@ export default class DeploymentModule {
       .from('deployment')
       .where('projectId', projectId)
       .orderBy('id', 'DESC');
-    return (await select).map(this.addUrlsToDeployment.bind(this));
+    return (await select).map(this.toMinardDeployment.bind(this));
   };
 
   public async getBranchDeployments(projectId: number, branchName: string): Promise<MinardDeployment[]> {
@@ -251,7 +236,7 @@ export default class DeploymentModule {
       .where('projectId', projectId)
       .andWhere('ref', branchName)
       .orderBy('id', 'DESC');
-    return (await select).map(this.addUrlsToDeployment.bind(this));
+    return (await select).map(this.toMinardDeployment.bind(this));
   };
 
   public async getLatestSuccessfulProjectDeployment(projectId: number): Promise<MinardDeployment | undefined> {
@@ -263,7 +248,7 @@ export default class DeploymentModule {
       .limit(1)
       .first();
     const ret = await select;
-    return ret ? this.addUrlsToDeployment(ret) : undefined;
+    return ret ? this.toMinardDeployment(ret) : undefined;
   }
 
   public async getLatestSuccessfulBranchDeployment(
@@ -277,7 +262,7 @@ export default class DeploymentModule {
       .limit(1)
       .first();
     const ret = await select;
-    return ret ? this.addUrlsToDeployment(ret) : undefined;
+    return ret ? this.toMinardDeployment(ret) : undefined;
   }
 
   public async getCommitDeployments(projectId: number, sha: string): Promise<MinardDeployment[]> {
@@ -286,7 +271,7 @@ export default class DeploymentModule {
       .where('projectId', projectId)
       .andWhere('commitHash', sha)
       .orderBy('id', 'DESC');
-    return (await select).map(this.addUrlsToDeployment.bind(this));
+    return (await select).map(this.toMinardDeployment.bind(this));
   }
 
   public async getDeployment(deploymentId: number): Promise<MinardDeployment | undefined> {
@@ -299,21 +284,40 @@ export default class DeploymentModule {
     if (!ret) {
       return undefined;
     }
-    return this.addUrlsToDeployment(ret);
+    return this.toMinardDeployment(ret);
   }
 
-  public addUrlsToDeployment(_deployment: any): MinardDeployment {
-    const deployment = toMinardDeployment(_deployment);
-    if (deployment.extractionStatus === 'success') {
-      deployment.url = sprintf(
+  /*
+   * Convert deployment stored in DB to MinardDeployment
+   */
+  public toMinardDeployment(deployment: any): MinardDeployment {
+    // We need to support timestamps represented also as a string
+    // because in deployments stored within activity the timestamps are
+    // represented as strings (at least for now)
+    const toMoment = (val: any) => isNaN(val) ? moment(val) : moment(Number(val));
+    const commit = deployment.commit instanceof Object ? deployment.commit : JSON.parse(deployment.commit);
+    const createdAt = toMoment(deployment.createdAt);
+    const ret = Object.assign({}, deployment, {
+      commit,
+      finishedAt: deployment.finishedAt ? toMoment(deployment.finishedAt) : undefined,
+      createdAt,
+      creator: {
+        email: commit.committer.email,
+        name: commit.committer.name,
+        timestamp: toGitlabTimestamp(createdAt),
+      },
+    }) as MinardDeployment;
+
+    if (ret.extractionStatus === 'success') {
+      ret.url = sprintf(
         this.urlPattern,
-        `${deployment.ref}-${deployment.commit.shortId}-${deployment.projectId}-${deployment.id}`
+        `${ret.ref}-${ret.commit.shortId}-${ret.projectId}-${ret.id}`
       );
     }
-    if (deployment.screenshotStatus === 'success') {
-      deployment.screenshot = this.screenshotModule.getPublicUrl(deployment.projectId, deployment.id);
+    if (ret.screenshotStatus === 'success') {
+      ret.screenshot = this.screenshotModule.getPublicUrl(ret.projectId, ret.id);
     }
-    return deployment;
+    return ret;
   }
 
   public getDeploymentPath(projectId: number, deploymentId: number) {

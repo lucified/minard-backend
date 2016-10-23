@@ -215,13 +215,6 @@ describe('deployment-module', () => {
     return deploymentModule;
   }
 
-  // function expectDeploymentBasicsEqual(target: MinardDeployment, expected: MinardDeployment) {
-  //   expect(target.id).to.equal(expected.buildStatus);
-  //   expect(target.commit).to.deep.equal(expected.commit);
-  //   expect(target.commitHash).to.equal(expected.commitHash);
-  //   expect(target.finishedAt!.)
-  // }
-
   describe('getDeployment()', () => {
     it('should work for successfull deployment', async () => {
       // Arrange

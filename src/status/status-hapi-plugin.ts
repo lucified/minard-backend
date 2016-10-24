@@ -39,6 +39,16 @@ class StatusHapiPlugin {
     });
     server.route({
       method: 'GET',
+      path: '/health',
+      handler: {
+        async: this.getHealthHandler,
+      },
+      config: {
+        bind: this,
+      },
+    });
+    server.route({
+      method: 'GET',
       path: '/error/{logger?}',
       handler: {
         async: this.getErrorHandler,
@@ -60,6 +70,16 @@ class StatusHapiPlugin {
     const state = await this.statusModule.getStatus(withEcs);
     const systemStatus = Object.keys(state).map(key => state[key]).every(status => status.active);
     return reply(state)
+      .code(systemStatus ? 200 : 503);
+  }
+
+  private async getHealthHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    const state = await this.statusModule.getStatus(false);
+    const compacted = Object.keys(state).reduce((collected, key) => {
+      return Object.assign(collected, {[key]: state[key].active});
+    }, {});
+    const systemStatus = Object.keys(state).map(key => state[key]).every(status => status.active);
+    return reply(compacted)
       .code(systemStatus ? 200 : 503);
   }
 

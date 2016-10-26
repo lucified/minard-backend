@@ -1,7 +1,6 @@
 
 import 'reflect-metadata';
 
-import * as Boom from 'boom';
 import { expect } from 'chai';
 
 import {

@@ -4,6 +4,8 @@ import 'reflect-metadata';
 import Logger from '../shared/logger';
 import { expect } from 'chai';
 
+import { deploymentToken } from '../shared/token';
+
 import {
   ScreenshotModule,
   Screenshotter,
@@ -39,7 +41,9 @@ describe('screenshot-module', () => {
       expect(url).to.exist;
       expect(path).to.exist;
       expect(url).to.equal(`http://4-12.localhost:8000`);
-      expect(publicUrl).to.equal(`${baseUrl}/screenshot/${projectId}/${deploymentId}`);
+      expect(publicUrl).to.equal(`${baseUrl}/screenshot/${projectId}/${deploymentId}` +
+        `?token=${deploymentToken(projectId, deploymentId)}`);
+      console.log(publicUrl);
     });
   });
 

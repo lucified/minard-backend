@@ -7,6 +7,8 @@ import * as Hapi from '../server/hapi';
 import { HapiRegister } from '../server/hapi-register';
 import ScreenshotModule from './screenshot-module';
 
+import { deploymentToken } from '../shared/token';
+
 @injectable()
 export default class ScreenshotHapiPlugin {
 
@@ -37,6 +39,9 @@ export default class ScreenshotHapiPlugin {
             projectId: Joi.number().required(),
             deploymentId: Joi.number().required(),
           },
+          query: {
+            token: Joi.string().alphanum().required(),
+          },
         },
       },
     });
@@ -46,8 +51,12 @@ export default class ScreenshotHapiPlugin {
   public async screenshotHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const projectId = (<any> request.params).projectId;
     const deploymentId = (<any> request.params).deploymentId;
+    const token = (<any> request.query).token;
     if (!this.screenshotModule.deploymentHasScreenshot(projectId, deploymentId)) {
       throw Boom.notFound();
+    }
+    if (deploymentToken(projectId, deploymentId) !== token) {
+      throw Boom.forbidden('Invalid token');
     }
     const path = this.screenshotModule.getScreenshotPath(projectId, deploymentId);
     return reply.file(path, {confine: false} as any);

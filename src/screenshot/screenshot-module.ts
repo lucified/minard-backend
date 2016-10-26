@@ -8,6 +8,8 @@ import { sprintf } from 'sprintf-js';
 import { externalBaseUrlInjectSymbol } from '../server/types';
 import * as logger from '../shared/logger';
 
+import { deploymentToken } from '../shared/token';
+
 import {
   Screenshotter,
   screenshotFolderInjectSymbol,
@@ -48,7 +50,8 @@ export default class ScreenshotModule {
   }
 
   public getPublicUrl(projectId: number, deploymentId: number): string {
-    return urljoin(this.externalBaseUrl, 'screenshot', String(projectId), String(deploymentId));
+    return urljoin(this.externalBaseUrl, 'screenshot', String(projectId), String(deploymentId))
+      + `?token=${deploymentToken(projectId, deploymentId)}`;
   }
 
   public async getDataUrl(projectId: number, deploymentId: number) {

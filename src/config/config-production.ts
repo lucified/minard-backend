@@ -44,6 +44,10 @@ import {
   gitlabRootPasswordInjectSymbol,
 } from '../authentication';
 
+import {
+  tokenSecretInjectSymbol,
+} from '../shared/token-generator';
+
 const redisStore = require('cache-manager-redis');
 
 // Logging configuration
@@ -232,6 +236,11 @@ const cache = cacheManager.caching({
 
 const GITLAB_ROOT_PASSWORD = env.GITLAB_ROOT_PASSWORD ? env.GITLAB_ROOT_PASSWORD : '12345678';
 
+// Url token secret
+// ----------------
+
+const TOKEN_SECRET = env.TOKEN_SECRET ? env.TOKEN_SECRET : DB_PASS;
+
 // Sentry
 // --------------
 
@@ -269,4 +278,5 @@ export default (kernel: interfaces.Kernel) => {
   kernel.bind(gitlabRootPasswordInjectSymbol).toConstantValue(GITLAB_ROOT_PASSWORD);
   kernel.bind(sentryDsnInjectSymbol).toConstantValue(SENTRY_DSN);
   kernel.bind(exitDelayInjectSymbol).toConstantValue(EXIT_DELAY);
+  kernel.bind(tokenSecretInjectSymbol).toConstantValue(TOKEN_SECRET);
 };

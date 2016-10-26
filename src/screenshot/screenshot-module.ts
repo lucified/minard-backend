@@ -8,7 +8,7 @@ import { sprintf } from 'sprintf-js';
 import { externalBaseUrlInjectSymbol } from '../server/types';
 import * as logger from '../shared/logger';
 
-import { deploymentToken } from '../shared/token';
+import TokenGenerator from '../shared/token-generator';
 
 import {
   Screenshotter,
@@ -31,18 +31,21 @@ export default class ScreenshotModule {
   private readonly screenshotter: Screenshotter;
   private readonly folder: string;
   private readonly externalBaseUrl: string;
+  private readonly tokenGenerator: TokenGenerator;
 
   constructor(
     @inject(logger.loggerInjectSymbol) logger: logger.Logger,
     @inject(screenshotUrlPattern) urlPattern: string,
     @inject(screenshotterInjectSymbol) screenshotter: Screenshotter,
     @inject(screenshotFolderInjectSymbol) folder: string,
-    @inject(externalBaseUrlInjectSymbol) baseUrl: string) {
+    @inject(externalBaseUrlInjectSymbol) baseUrl: string,
+    @inject(TokenGenerator.injectSymbol) tokenGenerator: TokenGenerator) {
     this.logger = logger;
     this.urlPattern = urlPattern;
     this.screenshotter = screenshotter;
     this.folder = folder;
     this.externalBaseUrl = baseUrl;
+    this.tokenGenerator = tokenGenerator;
   }
 
   private getScreenshotDir(projectId: number, deploymentId: number) {
@@ -51,7 +54,11 @@ export default class ScreenshotModule {
 
   public getPublicUrl(projectId: number, deploymentId: number): string {
     return urljoin(this.externalBaseUrl, 'screenshot', String(projectId), String(deploymentId))
-      + `?token=${deploymentToken(projectId, deploymentId)}`;
+      + `?token=${this.tokenGenerator.deploymentToken(projectId, deploymentId)}`;
+  }
+
+  public isValidToken(projectId: number, deploymentId: number, token: string) {
+    return this.tokenGenerator.deploymentToken(projectId, deploymentId) === token;
   }
 
   public async getDataUrl(projectId: number, deploymentId: number) {

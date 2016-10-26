@@ -198,7 +198,9 @@ describe('deployment-module', () => {
     },
   ];
 
-  const screenshotModule = new ScreenshotModule({} as any, '', {} as any, '', externalBaseUrl);
+  const screenshotModule = {} as ScreenshotModule;
+  screenshotModule.getPublicUrl = (projectId: number, deploymentId: number) =>
+    `http://foobar.com/screenshot${projectId}/${deploymentId}` ;
 
   async function arrangeDeploymentModule(projectModule: ProjectModule = {} as any, bus: LocalEventBus = getEventBus()) {
     const knex = await setupKnex();

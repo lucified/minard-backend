@@ -16,6 +16,7 @@ describe('operations-module', () => {
   describe('assureScreenshotsGenerated', () => {
     const _projectId = 5;
     const _deploymentId = 10;
+    const _shortId = 7;
 
     function arrangeOperationsModule(
       buildStatus: string,
@@ -30,11 +31,15 @@ describe('operations-module', () => {
             buildStatus,
             screenshotStatus,
             extractionStatus,
+            commit: {
+              shortId: _shortId,
+            },
           }];
         }
-        public async takeScreenshot(projectId: number, deploymentId: number) {
+        public async takeScreenshot(projectId: number, deploymentId: number, shortId: number) {
           expect(projectId).to.equal(_projectId);
           expect(deploymentId).to.equal(_deploymentId);
+          expect(shortId).to.equal(_shortId);
           callback();
           return [_projectId];
         }
@@ -90,11 +95,15 @@ describe('operations-module', () => {
             status: 'success',
             extractionStatus: 'success',
             screenshotStatus: 'failed',
+            commit: {
+              shortId: _shortId,
+            }
           }];
         }
-        public async takeScreenshot(projectId: number, deploymentId: number) {
+        public async takeScreenshot(projectId: number, deploymentId: number, shortId: string) {
           expect(projectId).to.equal(_projectId);
           expect(deploymentId).to.equal(_deploymentId);
+          expect(shortId).to.equal(_shortId);
           called = true;
         }
       }
@@ -129,14 +138,18 @@ describe('operations-module', () => {
             status: 'success',
             extractionStatus: 'success',
             screenshotStatus: 'failed',
+            commit: {
+              shortId: _shortId,
+            },
           }];
         }
-        public async takeScreenshot(projectId: number, deploymentId: number) {
+        public async takeScreenshot(projectId: number, deploymentId: number, shortId: string) {
           if (projectId === failProjectId) {
             throw Error('failed to take screenshot');
           }
           expect(projectId).to.equal(_projectId);
           expect(deploymentId).to.equal(_deploymentId);
+          expect(shortId).to.equal(_shortId);
           called = true;
         }
       }

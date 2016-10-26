@@ -97,7 +97,7 @@ describe('operations-module', () => {
             screenshotStatus: 'failed',
             commit: {
               shortId: _shortId,
-            }
+            },
           }];
         }
         public async takeScreenshot(projectId: number, deploymentId: number, shortId: string) {

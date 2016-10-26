@@ -106,7 +106,6 @@ describe('deployment-module', () => {
   }
 
   const urlPattern = 'http://deploy-%s.localhost:8000';
-  const externalBaseUrl = 'http://foo-bar.com';
 
   const deployments: MinardDeployment[] = [
     {

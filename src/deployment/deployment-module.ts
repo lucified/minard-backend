@@ -68,24 +68,14 @@ export function isRawDeploymentHostname(hostname: string) {
 }
 
 export function getDeploymentKeyFromHost(hostname: string) {
-  const match = hostname.match(/\S+-(\d+)-(\d+)\.\S+$/);
+  const match = hostname.match(/\S+-(\w+)-(\d+)-(\d+)\.\S+$/);
   if (!match) {
     return null;
   }
   return {
-    projectId: Number(match[1]),
-    deploymentId: Number(match[2]),
-  };
-}
-
-export function getDeploymentKeyFromId(id: string) {
-  const match = id.match(/(\d+)-(\d+)$/);
-  if (!match) {
-    return null;
-  }
-  return {
-    projectId: Number(match[1]),
-    deploymentId: Number(match[2]),
+    shortId: match[1],
+    projectId: Number(match[2]),
+    deploymentId: Number(match[3]),
   };
 }
 
@@ -171,16 +161,16 @@ export default class DeploymentModule {
       .filter(event => event.payload.statusUpdate.extractionStatus === 'success')
       .flatMap(event => {
         const { projectId, id } = event.payload.deployment;
-        return this.takeScreenshot(projectId, id);
+        return this.takeScreenshot(projectId, id, event.payload.deployment.commit.shortId);
       }, 1)
       .subscribe();
   }
 
   // internal method
-  public async takeScreenshot(projectId: number, deploymentId: number) {
+  public async takeScreenshot(projectId: number, deploymentId: number, shortId: string) {
     try {
       await this.updateDeploymentStatus(deploymentId, { screenshotStatus: 'running' });
-      await this.screenshotModule.takeScreenshot(projectId, deploymentId);
+      await this.screenshotModule.takeScreenshot(projectId, deploymentId, shortId);
       await this.updateDeploymentStatus(deploymentId, { screenshotStatus: 'success' });
     } catch (err) {
       await this.updateDeploymentStatus(deploymentId, { screenshotStatus: 'failed' });

@@ -88,8 +88,8 @@ export default class ScreenshotModule {
   /*
    * Take a screenshot for given projectId and deploymentId
    */
-  public async takeScreenshot(projectId: number, deploymentId: number) {
-    const url = sprintf(this.urlPattern, `${projectId}-${deploymentId}`);
+  public async takeScreenshot(projectId: number, deploymentId: number, shortId: string) {
+    const url = sprintf(this.urlPattern, `${shortId}-${projectId}-${deploymentId}`);
     try {
       const file = this.getScreenshotterPath(projectId, deploymentId);
       const webshotOptions = {

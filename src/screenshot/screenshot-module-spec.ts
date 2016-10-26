@@ -36,12 +36,12 @@ describe('screenshot-module', () => {
       const screenshotModule = new ScreenshotModule(logger, screenshotUrlPattern, webshot, '', baseUrl, generator);
 
       // Act
-      const publicUrl = await screenshotModule.takeScreenshot(projectId, deploymentId);
+      const publicUrl = await screenshotModule.takeScreenshot(projectId, deploymentId, 'foo');
 
       // Assert
       expect(url).to.exist;
       expect(path).to.exist;
-      expect(url).to.equal(`http://4-12.localhost:8000`);
+      expect(url).to.equal(`http://foo-4-12.localhost:8000`);
       expect(publicUrl).to.equal(`${baseUrl}/screenshot/${projectId}/${deploymentId}` +
         `?token=${generator.deploymentToken(projectId, deploymentId)}`);
     });

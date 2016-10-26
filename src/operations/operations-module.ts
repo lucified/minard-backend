@@ -94,7 +94,7 @@ export default class OperationsModule {
     for (let j = 0; j < filtered.length; j++) {
       const deployment = deployments[j];
       this.logger.info(`Creating missing screenshot for deployment ${deployment.id} of project ${projectId}.`);
-      await this.deploymentModule.takeScreenshot(projectId, deployment.id);
+      await this.deploymentModule.takeScreenshot(projectId, deployment.id, deployment.commit.shortId);
     }
   }
 

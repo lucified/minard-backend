@@ -844,34 +844,37 @@ describe('deployment-module', () => {
   describe('getDeploymentKey()', () => {
 
     it('should match localhost hostname with single-digit ids', () => {
-      const ret = getDeploymentKeyFromHost('fdlkasjs-4-1.localhost');
+      const ret = getDeploymentKeyFromHost('foo-fdl65kasjs-4-1.localhost');
       if (ret === null) { throw new Error(); }
+      expect(ret.shortId).to.equal('fdl65kasjs');
       expect(ret.projectId).to.equal(4);
       expect(ret.deploymentId).to.equal(1);
     });
 
     it('should match localhost hostname with multi-digit ids', () => {
-      const ret = getDeploymentKeyFromHost('fdlkasjs-523-2667.localhost');
+      const ret = getDeploymentKeyFromHost('foo-fdl65kasjs-523-2667.localhost');
       if (ret === null) { throw new Error(); }
+      expect(ret.shortId).to.equal('fdl65kasjs');
       expect(ret.projectId).to.equal(523);
       expect(ret.deploymentId).to.equal(2667);
     });
 
     it('should match minard.io hostname with multi-digit ids', () => {
-      const ret = getDeploymentKeyFromHost('fdlkasjs-145-3.minard.io');
+      const ret = getDeploymentKeyFromHost('foo-fdl65kasjs-145-3.minard.io');
       if (ret === null) { throw new Error(); }
+      expect(ret.shortId).to.equal('fdl65kasjs');
       expect(ret.projectId).to.equal(145);
       expect(ret.deploymentId).to.equal(3);
     });
 
     it('should not match non-matching hostnames', () => {
-      const ret1 = getDeploymentKeyFromHost('fdlkasjs-523-2667');
+      const ret1 = getDeploymentKeyFromHost('foo-fdl65kasjs-523-2667');
       expect(ret1).to.equal(null);
-      const ret2 = getDeploymentKeyFromHost('fdlkasjs-525.localhost');
+      const ret2 = getDeploymentKeyFromHost('foo-fdl65kasjs-525.localhost');
       expect(ret2).to.equal(null);
-      const ret3 = getDeploymentKeyFromHost('fdlkasjs525-52.localhost');
+      const ret3 = getDeploymentKeyFromHost('foo-fdl65kasjs525-52.localhost');
       expect(ret3).to.equal(null);
-      const ret4 = getDeploymentKeyFromHost('fdlkasjs525-52.minard.io');
+      const ret4 = getDeploymentKeyFromHost('foo-fdl65kasjs525-52.minard.io');
       expect(ret4).to.equal(null);
     });
 
@@ -956,15 +959,17 @@ describe('deployment-module', () => {
       // Arrange
       const deploymentId = 5;
       const projectId = 7;
+      const shortId = 'foo';
       const bus = getEventBus();
       const deploymentModule = createDeploymentModule(bus);
 
       // Act & Assert
       const promise = new Promise((resolve, reject) => {
         deploymentModule.takeScreenshot = async (
-          _projectId: number, _deploymentId: number) => {
+          _projectId: number, _deploymentId: number, _shortId: string) => {
           expect(deploymentId).to.equal(_deploymentId);
           expect(projectId).to.equal(_projectId);
+          expect(shortId).to.equal(_shortId);
           resolve();
         };
       });
@@ -973,6 +978,9 @@ describe('deployment-module', () => {
         deployment: {
           id: deploymentId,
           projectId,
+          commit: {
+            shortId,
+          },
         },
         statusUpdate: {
           extractionStatus: 'success',

@@ -6,6 +6,7 @@ import * as path from 'path';
 
 import * as Hapi from '../server/hapi';
 import { HapiRegister } from '../server/hapi-register';
+
 import DeploymentModule, {
   getDeploymentKeyFromHost,
   isRawDeploymentHostname,
@@ -13,6 +14,9 @@ import DeploymentModule, {
 from './deployment-module';
 
 import { gitlabHostInjectSymbol } from '../shared/gitlab-client';
+import { Logger, loggerInjectSymbol } from '../shared/logger';
+
+const memoize = require('memoizee');
 
 @injectable()
 class DeploymentHapiPlugin {
@@ -21,18 +25,25 @@ class DeploymentHapiPlugin {
 
   private deploymentModule: DeploymentModule;
   private gitlabHost: string;
+  private logger: Logger;
 
   constructor(
     @inject(DeploymentModule.injectSymbol) deploymentModule: DeploymentModule,
-    @inject(gitlabHostInjectSymbol) gitlabHost: string) {
-
+    @inject(gitlabHostInjectSymbol) gitlabHost: string,
+    @inject(loggerInjectSymbol) logger: Logger) {
     this.deploymentModule = deploymentModule;
     this.gitlabHost = gitlabHost;
+    this.logger = logger;
 
     this.register.attributes = {
       name: 'deployment-plugin',
       version: '1.0.0',
     };
+
+    this.checkHash = memoize(this.checkHash, {
+      promise: true,
+      normalizer: (args: any) => `${args[0]}-${args[1]}`,
+    });
   }
 
   public register: HapiRegister = (server, _options, next) => {
@@ -70,7 +81,7 @@ class DeploymentHapiPlugin {
 
     server.route({
       method: 'GET',
-      path: '/deployments/{projectId}-{deploymentId}/{path*}',
+      path: '/deployments/{shortId}-{projectId}-{deploymentId}/{path*}',
       handler: {
         directory: {
           path: this.serveDirectory.bind(this),
@@ -168,16 +179,40 @@ class DeploymentHapiPlugin {
     return reply(key);
   }
 
+  // internal method
+  public async checkHash(deploymentId: number, shortId: string): Promise<boolean> {
+    const deployment = await this.deploymentModule.getDeployment(deploymentId);
+    if (!deployment) {
+      return false;
+    }
+    return shortId === deployment.commit.shortId;
+  }
+
   private async preCheck(request: Hapi.Request, reply: Hapi.IReply) {
     const pre = <any> request.pre;
-    const projectId = pre ? pre.key.projectId : parseInt(request.paramsArray[0], 10);
-    const deploymentId = pre ? pre.key.deploymentId : parseInt(request.paramsArray[1], 10);
+    const shortId = pre ? pre.key.shortId : request.paramsArray[0];
+    const projectId = pre ? pre.key.projectId : parseInt(request.paramsArray[1], 10);
+    const deploymentId = pre ? pre.key.deploymentId : parseInt(request.paramsArray[2], 10);
     const isReady = this.deploymentModule.isDeploymentReadyToServe(projectId, deploymentId);
+
+    if (!shortId) {
+      return reply(Boom.badRequest('URL is missing commit hash'));
+    }
+
+    try {
+      if (!(await this.checkHash(deploymentId, shortId))) {
+        this.logger.info(`checkHash failed for deployment`, { deploymentId, projectId, shortId });
+        return reply(Boom.notFound('Invalid commit hash or deployment not found'));
+      }
+    } catch (err) {
+      this.logger.error('Unexpected error in precheck', err);
+      return reply(Boom.badImplementation());
+    }
 
     if (!isReady) {
       try {
         await this.deploymentModule.prepareDeploymentForServing(projectId, deploymentId);
-        console.log(`Prepared deployment for serving (projectId: ${projectId}, deploymentId: ${deploymentId})`);
+        this.logger.info(`Prepared deployment for serving (projectId: ${projectId}, deploymentId: ${deploymentId})`);
       } catch (err) {
         return reply(Boom.notFound(err.message));
       }

@@ -51,11 +51,23 @@ class DeploymentHapiPlugin {
     server.ext('onRequest', (request, reply) => {
       if (isRawDeploymentHostname(request.info.hostname)) {
         // prefix the url with /raw-deployment-handler
-        // to allow hapi to internally route the request to
-        // the correct handler
-        request.setUrl('/raw-deployment-handler' + request.url.href);
+        // (or /deployment-favicon) to allow hapi to
+        // internally route the request to the correct handler
+        if (request.url.href === '/favicon.ico') {
+          request.setUrl('/deployment-favicon');
+        } else {
+          request.setUrl('/raw-deployment-handler' + request.url.href);
+        }
       }
       return reply.continue();
+    });
+
+    server.route({
+      method: 'GET',
+      path: '/deployment-favicon',
+      handler: (request: Hapi.Request, reply: Hapi.IReply) => {
+        reply.file('favicon.ico');
+      },
     });
 
     server.route({

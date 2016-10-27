@@ -72,7 +72,7 @@ describe('deployment-hapi-plugin', () => {
       expect(await plugin.checkHash(deploymentId, 'foo')).to.be.true;
     });
 
-    it('should use memoized version on second check', async () => {
+    it('should not use memoized version when deploymnentIs is different', async () => {
       // Arrange
       const deploymentModule = {} as DeploymentModule;
       deploymentModule.getDeployment = async (_deploymentId: number) => {

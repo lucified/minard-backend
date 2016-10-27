@@ -106,7 +106,6 @@ describe('deployment-module', () => {
   }
 
   const urlPattern = 'http://deploy-%s.localhost:8000';
-  const externalBaseUrl = 'http://foo-bar.com';
 
   const deployments: MinardDeployment[] = [
     {
@@ -198,7 +197,9 @@ describe('deployment-module', () => {
     },
   ];
 
-  const screenshotModule = new ScreenshotModule({} as any, '', {} as any, '', externalBaseUrl);
+  const screenshotModule = {} as ScreenshotModule;
+  screenshotModule.getPublicUrl = (projectId: number, deploymentId: number) =>
+    `http://foobar.com/screenshot${projectId}/${deploymentId}` ;
 
   async function arrangeDeploymentModule(projectModule: ProjectModule = {} as any, bus: LocalEventBus = getEventBus()) {
     const knex = await setupKnex();

@@ -33,6 +33,8 @@ import {
   fetch,
 } from '../shared/fetch';
 
+import TokenGenerator from '../shared/token-generator';
+
 import {
   JsonApiHapiPlugin,
   JsonApiModule,
@@ -119,4 +121,5 @@ export default new KernelModule(bind => {
   bind(Migrations.injectSymbol).to(Migrations);
   bind(screenshotterInjectSymbol).to(RemoteScreenshotter);
   bind(Route53Updater.injectSymbol).to(Route53Updater);
+  bind(TokenGenerator.injectSymbol).to(TokenGenerator);
 });

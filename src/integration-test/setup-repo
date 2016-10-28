@@ -10,4 +10,4 @@ git -C $FOLDER init
 git -C $FOLDER config user.email foo@bar.com
 git -C $FOLDER config user.name 'Foo Bar'
 git -C $FOLDER add -A .
-git -C $FOLDER commit -m 'test commit'
+git -C $FOLDER commit -m 'Improve colors and styling'

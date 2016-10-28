@@ -113,8 +113,8 @@ export class HipchatNotify {
         format: 'html',
       },
       icon: {
-        url: 'https://minard.io/favicon-32x32-c3c3c267.png',
-        'url@2x': 'https://minard.io/favicon-32x32-c3c3c267.png',
+        url: 'https://www.lucify.com/minard/minard-favicon.png',
+        'url@2x': 'https://www.lucify.com/minard/minard-favicon.png',
       },
       thumbnail,
     };

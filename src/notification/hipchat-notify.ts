@@ -1,6 +1,8 @@
 
 import { inject, injectable } from 'inversify';
 
+import { truncate } from 'lodash';
+
 import {
   MinardDeployment,
 } from '../deployment';
@@ -76,6 +78,48 @@ export class HipchatNotify {
     this.fetch = fetch;
   }
 
+  public getCard(deployment: MinardDeployment, projectUrl: string) {
+    const message = truncate(deployment.commit.message.split('\n')[0], { length: 50 });
+    let descriptionValue = `<b>${deployment.commit.committer.name}</b> generated ` +
+      `a new <a href="${deployment.url}">preview</a> ` +
+      `in <b><a href="${projectUrl}">${deployment.projectName}</a></b>.`;
+
+    if (message && message.length > 0) {
+      descriptionValue += ` <i>${message}</i>`;
+    }
+
+    // we need this hack to show proper screenshot in integration
+    // tests, as thumbnails served via localhost will crash the
+    // hipchat android app
+    if (deployment.projectName === 'integration-test-project') {
+      deployment.screenshot = 'http://www.lucify.com/images/lucify-asylum-countries-open-graph-size-5adef1be36.png';
+    }
+
+    // do not include thumbnail if screenshot url points to
+    // localhost, as this will crash the hipchat mobile app
+    const thumbnail = deployment.screenshot && deployment.screenshot.indexOf('//localhost') === -1 ? {
+      url: deployment.screenshot,
+      width: 1200,
+      height: 750,
+    } : undefined;
+
+    return {
+      id: `minard-deployment-${deployment.id}`,
+      style: 'link',
+      url: deployment.url,
+      title: `${deployment.projectName}`,
+      description: {
+        value: descriptionValue,
+        format: 'html',
+      },
+      icon: {
+        url: 'https://minard.io/favicon-32x32-c3c3c267.png',
+        'url@2x': 'https://minard.io/favicon-32x32-c3c3c267.png',
+      },
+      thumbnail,
+    };
+  }
+
   public async notify(
     deployment: MinardDeployment,
     roomId: number,
@@ -100,6 +144,7 @@ export class HipchatNotify {
       notify: false,
       message_format: 'html',
       message,
+      card: this.getCard(deployment, projectUrl),
     };
 
     const options = {

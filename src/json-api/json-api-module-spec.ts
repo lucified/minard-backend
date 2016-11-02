@@ -226,20 +226,6 @@ describe('json-api-module', () => {
         id: 'bar-commit',
       },
     ];
-    const minardDeployments = [
-      {
-        id: 'foo-deployment',
-        commitHash: minardCommits[0].id,
-      },
-      {
-        id: 'bar-deployment',
-        commitHash: minardCommits[1].id,
-      },
-      {
-        id: 'foo-two-deployment',
-        commitHash: minardCommits[0].id,
-      },
-    ];
 
     it('should return commits correctly with two branches having three deployments', async () => {
       // Arrange
@@ -250,10 +236,28 @@ describe('json-api-module', () => {
         return minardCommits;
       };
       const deploymentModule = {} as DeploymentModule;
-      deploymentModule.getBranchDeployments = async (_projectId: number, _branchName: string) => {
-        expect(_projectId).to.equal(projectId);
-        expect(_branchName).to.equal(branchName);
-        return minardDeployments;
+      deploymentModule.getCommitDeployments = async (_projectId: number, _sha: string) => {
+        if (_sha === minardCommits[0].id) {
+          return [
+            {
+              id: 'foo-deployment',
+              commitHash: minardCommits[0].id,
+            },
+            {
+              id: 'foo-two-deployment',
+              commitHash: minardCommits[0].id,
+            },
+          ];
+        }
+        if (_sha === minardCommits[1].id) {
+          return [
+            {
+              id: 'bar-deployment',
+              commitHash: minardCommits[1].id,
+           },
+          ];
+        }
+        throw 'invalid hash';
       };
       const jsonApiModule = new JsonApiModule(
         deploymentModule,
@@ -271,11 +275,11 @@ describe('json-api-module', () => {
       expect(commits![0].deployments).to.have.length(2);
       expect(commits![0].id).to.equal(`${projectId}-${minardCommits[0].id}`);
       expect(commits![0].hash).to.equal(minardCommits[0].id);
-      expect(commits![0].deployments[0].id).to.equal(`${projectId}-${minardDeployments[0].id}`);
-      expect(commits![0].deployments[1].id).to.equal(`${projectId}-${minardDeployments[2].id}`);
+      expect(commits![0].deployments[0].id).to.equal(`${projectId}-foo-deployment`);
+      expect(commits![0].deployments[1].id).to.equal(`${projectId}-foo-two-deployment`);
       expect(commits![1].deployments).to.have.length(1);
       expect(commits![1].id).to.equal(`${projectId}-${minardCommits[1].id}`);
-      expect(commits![1].deployments[0].id).to.equal(`${projectId}-${minardDeployments[1].id}`);
+      expect(commits![1].deployments[0].id).to.equal(`${projectId}-bar-deployment`);
     });
   });
 

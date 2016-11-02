@@ -155,17 +155,12 @@ export class JsonApiModule {
     branchName: string,
     until?: moment.Moment,
     count: number = 10): Promise<ApiCommit[] | null> {
-    const [ minardDeployments, minardCommits ] = await Promise.all([
-      this.deploymentModule.getBranchDeployments(projectId, branchName),
-      this.projectModule.getBranchCommits(projectId, branchName, until, count),
-    ]);
-    const deployments = await Promise.all(minardDeployments.map(item => this.toApiDeployment(projectId, item)));
+    const minardCommits = await this.projectModule.getBranchCommits(projectId, branchName, until, count);
     if (!minardCommits) {
       throw Boom.notFound('branch not found');
     }
     return Promise.all(minardCommits.map(commit => {
-      const commitDeployments = deployments.filter(deployment => deployment.commitHash === commit.id);
-      return this.toApiCommit(projectId, commit, commitDeployments);
+      return this.toApiCommit(projectId, commit);
     }));
   }
 

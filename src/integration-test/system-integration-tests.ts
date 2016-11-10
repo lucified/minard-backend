@@ -300,7 +300,7 @@ describe('system-integration', () => {
 
   it('branch information should include information on deployment', async function() {
     logTitle(`Fetching info on project`);
-    this.timeout(1000 * 60);
+    this.timeout(1000 * 60 * 2);
     // sleep a to give some time got GitLab
     const url = `${charles}/api/projects/${projectId}/relationships/branches`;
     log(`Using URL ${prettyUrl(url)}`);

@@ -9,6 +9,12 @@ import { ProjectModule } from '../project';
 import { ScreenshotModule } from '../screenshot';
 import { OperationsModule } from './';
 
+import {
+  DeploymentModule,
+  DeploymentStatusUpdate,
+  MinardDeploymentStatus,
+} from '../deployment';
+
 const logger = Logger(undefined, true);
 
 describe('operations-module', () => {
@@ -171,7 +177,45 @@ describe('operations-module', () => {
       // Assert
       expect(called).to.equal(true);
     });
+  });
 
+  describe('cleanupRunningDeployments', () => {
+    const deploymentId = 5;
+    it('should work when deployment is stuck at at screenshots phase', async () => {
+      const deploymentModule = {} as DeploymentModule;
+      deploymentModule.getDeploymentsByStatus = async (status: MinardDeploymentStatus) => {
+        return [
+          {
+            id: 5,
+            buildStatus: 'success',
+            extractionStatus: 'success',
+            screenshotStatus: 'running',
+          },
+        ];
+      };
+
+      // Arrange
+      const promise = new Promise((resolve, reject) => {
+        deploymentModule.updateDeploymentStatus = async (id: number, update: DeploymentStatusUpdate) => {
+          resolve({ id, update });
+        };
+      });
+      const operationsModule = new OperationsModule(
+        {} as any,
+        deploymentModule,
+        {} as any,
+        {} as any,
+        logger,
+        {} as any);
+
+      // Act
+      operationsModule.cleanupRunningDeployments();
+      const params = await promise as { id: number, update: DeploymentStatusUpdate };
+
+      // Assert
+      expect(params.id).to.equal(deploymentId);
+      expect(params.update).to.deep.equal({ screenshotStatus: 'failed' });
+    });
   });
 
 });

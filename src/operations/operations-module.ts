@@ -1,7 +1,7 @@
 
 import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
-import { differenceBy } from 'lodash';
+import { differenceBy, isNil, omitBy } from 'lodash';
 
 import { EventBus, eventBusInjectSymbol } from '../event-bus';
 import * as logger from '../shared/logger';
@@ -150,6 +150,23 @@ export default class OperationsModule {
     } catch (err) {
       this.logger.error(
         `Failed to create missing deployment activity for ${projectId}`, err);
+    }
+  }
+
+  public async cleanupRunningDeployments() {
+    try {
+      const deployments = await this.deploymentModule.getDeploymentsByStatus('running');
+      deployments.map(deployment => {
+        const update = omitBy({
+          buildStatus: deployment.buildStatus === 'running' ? 'failed' : undefined,
+          extractionStatus: deployment.extractionStatus === 'running' ? 'failed' : undefined,
+          screenshotStatus: deployment.screenshotStatus === 'running' ? 'failed' : undefined,
+        }, isNil);
+        this.logger.warn(`Cleaning up "running" deployment ${deployment.id}`, update);
+        this.deploymentModule.updateDeploymentStatus(deployment.id, update);
+      });
+    } catch (err) {
+      this.logger.error('Failed to cleanup running deployments', err);
     }
   }
 

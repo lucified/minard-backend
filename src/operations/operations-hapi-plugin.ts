@@ -10,7 +10,7 @@ export default class OperationsHapiPlugin {
 
   public static injectSymbol = Symbol('operations-hapi-plugin');
 
-  private operationsModule: OperationsModule;
+  public operationsModule: OperationsModule;
 
   constructor(
     @inject(OperationsModule.injectSymbol) operationsModule: OperationsModule) {
@@ -42,6 +42,16 @@ export default class OperationsHapiPlugin {
         bind: this,
       },
     });
+    server.route({
+      method: 'GET',
+      path: '/cleanup-running-deployments',
+      handler: {
+        async: this.cleanupRunningDeployments,
+      },
+      config: {
+        bind: this,
+      },
+    });
     next();
   };
 
@@ -58,6 +68,14 @@ export default class OperationsHapiPlugin {
     return reply({
       status: 200,
       message: 'ok',
+    });
+  }
+
+  public async cleanupRunningDeployments(request: Hapi.Request, reply: Hapi.IReply) {
+    this.operationsModule.cleanupRunningDeployments();
+    return reply({
+      status: 200,
+      message: 'cleanup started',
     });
   }
 

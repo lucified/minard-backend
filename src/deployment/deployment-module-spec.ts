@@ -285,6 +285,35 @@ describe('deployment-module', () => {
     });
   });
 
+  describe('getDeploymentsByStatus()', () => {
+    it('it should work with for success deployments', async () => {
+      // Arrange
+      const deploymentModule = await arrangeDeploymentModule();
+
+      // Act
+      const ret = await deploymentModule.getDeploymentsByStatus('success');
+
+      // Assert
+      expect(ret.length).equals(2);
+      expect(ret[0].id).to.equal(deployments[1].id);
+      expect(ret[1].id).to.equal(deployments[0].id);
+      expect(ret[0].url).to.exist;
+      expect(ret[1].url).to.exist;
+    });
+
+    it('it should work for running deployment', async () => {
+      // Arrange
+      const deploymentModule = await arrangeDeploymentModule();
+
+      // Act
+      const ret = await deploymentModule.getDeploymentsByStatus('running');
+
+      // Assert
+      expect(ret.length).equals(1);
+      expect(ret[0].id).to.equal(deployments[2].id);
+    });
+  });
+
   describe('getLatestSuccessfulProjectDeployment()', () => {
     it('it should return correct deployment when it can be found', async () => {
       // Arrange

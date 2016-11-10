@@ -264,6 +264,14 @@ export default class DeploymentModule {
     return (await select).map(this.toMinardDeployment.bind(this));
   }
 
+  public async getDeploymentsByStatus(status: MinardDeploymentStatus): Promise<MinardDeployment[]> {
+    const select = this.knex.select('*')
+      .from('deployment')
+      .where('status', status)
+      .orderBy('id', 'DESC');
+    return (await select).map(this.toMinardDeployment.bind(this));
+  }
+
   public async getDeployment(deploymentId: number): Promise<MinardDeployment | undefined> {
     const select = this.knex.select('*')
       .from('deployment')

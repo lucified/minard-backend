@@ -119,11 +119,11 @@ export default class MinardServer {
 
     await this.loadBasePlugins(server);
     await this.loadAppPlugins(server);
+    await this.operationsPlugin.operationsModule.cleanupRunningDeployments();
 
     await server.start();
     this.logger.info('Charles is up and listening on %s', server.info.uri);
     return server;
-
   };
 
   public stop(): Hapi.IPromise<void> {

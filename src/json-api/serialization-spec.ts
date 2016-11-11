@@ -415,5 +415,4 @@ describe('json-api serialization', () => {
 
   });
 
-
 });

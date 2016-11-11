@@ -14,13 +14,17 @@ import {
   MinardDeploymentStatus,
 } from '../deployment/';
 
+import {
+  NotificationConfiguration,
+} from '../notification';
+
 interface MemoizedJsonApiModule {
   toApiProject: (project: MinardProject) => Promise<ApiProject>;
   toApiBranch: (project: MinardProject, branch: MinardBranch) => Promise<ApiBranch>;
 }
 
 export interface JsonApiEntity {
-  type: 'commits' | 'deployments' | 'projects' | 'branches';
+  type: 'commits' | 'deployments' | 'projects' | 'branches' | 'notifications';
   id: string;
   attributes?: any;
   relationships?: any;
@@ -98,5 +102,8 @@ export interface ApiActivity {
   commit: ApiActivityCommit;
 }
 
-export type ApiEntity = ApiActivity | ApiProject | ApiCommit | ApiDeployment | ApiBranch;
-export type ApiEntities = ApiActivity[] | ApiProject[] | ApiCommit[] | ApiDeployment[] | ApiBranch[];
+export interface ApiNotificationConfiguration extends NotificationConfiguration {}
+
+export type ApiEntity = ApiActivity | ApiProject | ApiCommit | ApiDeployment | ApiBranch | ApiNotificationConfiguration;
+export type ApiEntities = ApiActivity[] | ApiProject[] | ApiCommit[]
+| ApiDeployment[] | ApiBranch[] | ApiNotificationConfiguration[];

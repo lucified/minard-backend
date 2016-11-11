@@ -278,6 +278,11 @@ describe('system-integration', () => {
     expect(ret.status).to.equal(201);
     const json = await ret.json();
     hipchatNotificationId = json.data.id;
+
+    expect(json.data.attributes['hipchat-room-id'])
+      .to.equal(createNotificationPayload.data.attributes.hipchatRoomId);
+    expect(json.data.attributes['hipchat-auth-token'])
+      .to.equal(createNotificationPayload.data.attributes.hipchatAuthToken);
   });
 
   it('should be able to commit code to repo', async function() {

@@ -352,7 +352,8 @@ export class JsonApiHapiPlugin {
               attributes: Joi.alternatives(
                 Joi.object({
                   type: Joi.string().equal('flowdock').required(),
-                  projectId: Joi.number().required(),
+                  teamId: Joi.number(),
+                  projectId: Joi.number(),
                   flowToken: Joi.string().alphanum().required(),
                 }),
                 Joi.object({

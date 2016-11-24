@@ -13,6 +13,11 @@ import {
   JsonApiResponse,
 } from './';
 
+import {
+  FlowdockNotificationConfiguration,
+  HipChatNotificationConfiguration,
+} from '../notification';
+
 import { serializeApiEntity } from './serialization';
 
 import { expect } from 'chai';
@@ -357,6 +362,57 @@ describe('json-api serialization', () => {
       expect(converted.included).to.not.exist;
       expect(data.relationships).to.not.exist;
     });
+  });
+
+  describe('notificationToJsonApi()', () => {
+    it('should work with a flowdock notification', () => {
+      const notification: FlowdockNotificationConfiguration = {
+        id: 5,
+        projectId: 6,
+        teamId: null,
+        flowToken: 'foo',
+        type: 'flowdock',
+      };
+
+      const converted = serializeApiEntity('notification', notification, apiBaseUrl) as JsonApiResponse;
+      const data = converted.data as JsonApiEntity;
+      expect(data).to.exist;
+
+      // id and type
+      expect(data.id).to.equal(String(notification.id));
+      expect(data.type).to.equal('notifications');
+
+      // attributes
+      expect(data.attributes['flow-token']).to.equal(notification.flowToken);
+      expect(data.attributes['project-id']).to.equal(notification.projectId);
+      expect(data.attributes.type).to.equal(notification.type);
+    });
+
+    it('should work with a hipchat notification', () => {
+      const notification: HipChatNotificationConfiguration = {
+        id: 5,
+        projectId: null,
+        teamId: 7,
+        hipchatRoomId: 65,
+        hipchatAuthToken: 'bar',
+        type: 'hipchat',
+      } as any;
+
+      const converted = serializeApiEntity('notification', notification, apiBaseUrl) as JsonApiResponse;
+      const data = converted.data as JsonApiEntity;
+      expect(data).to.exist;
+
+      // id and type
+      expect(data.id).to.equal(String(notification.id));
+      expect(data.type).to.equal('notifications');
+
+      // attributes
+      expect(data.attributes['hipchat-room-id']).to.equal(notification.hipchatRoomId);
+      expect(data.attributes['hipchat-auth-token']).to.equal(notification.hipchatAuthToken);
+      expect(data.attributes['team-id']).to.equal(notification.teamId);
+      expect(data.attributes.type).to.equal(notification.type);
+    });
+
   });
 
 });

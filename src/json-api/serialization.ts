@@ -44,7 +44,7 @@ export const commitSerialization = {
 };
 
 export const notificationSerialization = {
-  attributes: ['type', 'flowToken', 'projectId'],
+  attributes: ['type', 'flowToken', 'projectId', 'teamId', 'hipchatRoomId', 'hipchatAuthToken'],
   ref: standardIdRef,
   included: false,
 };

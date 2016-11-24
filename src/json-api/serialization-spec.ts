@@ -295,7 +295,6 @@ describe('json-api serialization', () => {
 
   describe('commitToJsonApi()', () => {
     it('should work with a single commit', () => {
-
       const commit = exampleCommitOne;
       const converted = serializeApiEntity('commit', commit, apiBaseUrl) as JsonApiResponse;
       const data = converted.data as JsonApiEntity;
@@ -330,7 +329,6 @@ describe('json-api serialization', () => {
       expect(includedDeployment).to.exist;
       expect(includedDeployment.id).to.equal(commit.deployments[0].id);
       expect(includedDeployment.attributes.url).to.equal(commit.deployments[0].url);
-
     });
   });
 

@@ -891,7 +891,7 @@ describe('deployment-module', () => {
 
     function arrangeDeploymentModule(_deployments: MinardDeployment[]) {
       const deploymentModule = getDeploymentModule({} as any, 'foo', silentLogger);
-      deploymentModule.getMinardJsonInfo = async (projectId: number, shaOrBranchName: string) => {
+      deploymentModule.getMinardJsonInfo = async (_projectId: number, shaOrBranchName: string) => {
         const info: MinardJsonInfo = {
           content: '{}',
           effective: {},
@@ -954,7 +954,6 @@ describe('deployment-module', () => {
       expect(yml.indexOf('manual')).to.equal(-1);
     });
   });
-
 
   describe('getDeploymentKey()', () => {
 

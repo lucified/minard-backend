@@ -403,7 +403,7 @@ export default class DeploymentModule {
     console.log(`sha or branch name ${shaOrBranchName}, ${sha}`);
     try {
       const deployments = await this.getCommitDeployments(projectId, sha);
-      const filtered = deployments.filter(item => item.buildStatus == 'success' || item.buildStatus === 'failed');
+      const filtered = deployments.filter(item => item.buildStatus === 'success' || item.buildStatus === 'failed');
       if (filtered.length > 0) {
         return getGitlabYmlNoAutoBuild();
       }

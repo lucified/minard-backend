@@ -16,6 +16,7 @@ interface Payload {
   readonly foo?: string;
   readonly teamId?: number;
   readonly projectId?: number;
+  readonly arr?: string[];
 }
 interface AnotherPayload {
   readonly status: 'foo';
@@ -94,6 +95,22 @@ describe('persistent-event-bus', () => {
     expect(events.length).to.eq(1);
     expect(events[0].type).to.equal(SSE_EVENT_TYPE);
     expect(events[0].type).to.equal(sseEventCreator.type); // the constructor has a reference to the type
+  });
+
+  it('should work with an sse event that has an empty array', async () => {
+    const bus = getEventBus();
+    const promise = bus
+      .getStream()
+      .takeUntil(Observable.timer(100))
+      .toArray()
+      .toPromise();
+
+    bus.post(sseEventCreator({ status: 'bar', teamId: 23234, arr: [] }));
+    const events = await promise;
+    expect(events.length).to.eq(1);
+    expect(events[0].type).to.equal(SSE_EVENT_TYPE);
+    expect(events[0].type).to.equal(sseEventCreator.type); // the constructor has a reference to the type
+    expect(events[0].payload.arr).to.have.length(0);
   });
 
   it('should add id and streamRevision to an sse event', async () => {

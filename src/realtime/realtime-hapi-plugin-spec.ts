@@ -144,10 +144,36 @@ describe('realtime-hapi-plugin', () => {
 
   describe('CodePushedEvent', () => {
     beforeEach(clearDb);
+    const branchName = 'foo-branch-name';
+    const projectId = 5;
+    const payload: CodePushedEvent = {
+      teamId: 5,
+      after: {
+        id: 'foo-after-id',
+      } as any,
+      before: {
+        id: 'foo-before-id',
+      } as any,
+      parents: [
+        {
+          id: 'foo-parent-id',
+        } as any,
+      ],
+      commits: [
+        {
+          id: 'foo-commit-id',
+          message: 'foo-message',
+        } as any,
+        {
+          id: 'bar-commit-id',
+          message: 'bar-message',
+        } as any,
+      ],
+      projectId,
+      ref: branchName,
+    };
 
-    it('is transformed correctly when after is not null', async () => {
-      const branchName = 'foo-branch-name';
-      const projectId = 5;
+    async function testCodePushed(_payload: CodePushedEvent) {
       const mockFactory = () => ({
         getBranch: async (_projectId: number, _branchName: string): Promise<ApiBranch> => ({
           type: 'branch',
@@ -161,37 +187,15 @@ describe('realtime-hapi-plugin', () => {
       const plugin = getPlugin(eventBus, mockFactory);
 
       // Act
-      const payload: CodePushedEvent = {
-        teamId: 5,
-        after: {
-          id: 'foo-after-id',
-        } as any,
-        before: {
-          id: 'foo-before-id',
-        } as any,
-        parents: [
-          {
-            id: 'foo-parent-id',
-          } as any,
-        ],
-        commits: [
-          {
-            id: 'foo-commit-id',
-            message: 'foo-message',
-          } as any,
-          {
-            id: 'bar-commit-id',
-            message: 'bar-message',
-          } as any,
-        ],
-        projectId,
-        ref: branchName,
-      };
       const promise = plugin.persistedEvents.take(1).toPromise();
-      const event = codePushed(payload);
+      const event = codePushed(_payload);
       eventBus.post(event);
+      return await promise;
+    }
 
-      const created = await promise;
+    it('is transformed correctly when after is not null', async () => {
+      // Arrange & Act
+      const created = await testCodePushed(payload);
 
       // Assert
       const createdPayload = created.payload as StreamingCodePushedEvent;
@@ -204,6 +208,16 @@ describe('realtime-hapi-plugin', () => {
       expect(createdPayload.commits[0].id).to.equal(toApiCommitId(projectId, payload.commits[0].id));
       expect(createdPayload.commits[0].type).to.equal('commits');
       expect(createdPayload.commits[0].attributes.message).to.equal(payload.commits[0].message);
+    });
+
+    it('is transformed correctly when commits is an empty array', async () => {
+      // Arrange & Act
+      const _payload = Object.assign(payload, { commits: [] });
+      const created = await testCodePushed(_payload);
+
+      // Assert
+      const createdPayload = created.payload as StreamingCodePushedEvent;
+      expect(createdPayload.commits).to.have.length(0);
     });
   });
 

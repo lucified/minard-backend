@@ -341,12 +341,26 @@ describe('deployment-module', () => {
   });
 
   describe('getLatestSuccessfulBranchDeployment()', () => {
-    it('should return correct deployment when one can be found', async () => {
+    it('should return correct deployment when one can be found by branch name', async () => {
       // Arrange
       const deploymentModule = await arrangeDeploymentModule();
 
       // Act
-      const ret = await deploymentModule.getLatestSuccessfulBranchDeployment(5, 'foo-branch');
+      const ret = await deploymentModule.getLatestSuccessfulBranchDeployment(5, 'foo-branch', 'foo-sha');
+
+      // Assert
+      expect(ret).to.exist;
+      expect(ret!.id).to.equal(deployments[1].id);
+      expect(ret!.url).to.exist;
+    });
+
+    it('should return correct deployment when one can be found by id', async () => {
+      // Arrange
+      const deploymentModule = await arrangeDeploymentModule();
+
+      // Act
+      const ret = await deploymentModule.getLatestSuccessfulBranchDeployment(
+          5, 'fooo-branch', deployments[1].commitHash);
 
       // Assert
       expect(ret).to.exist;
@@ -359,7 +373,7 @@ describe('deployment-module', () => {
       const deploymentModule = await arrangeDeploymentModule();
 
       // Act
-      const ret = await deploymentModule.getLatestSuccessfulBranchDeployment(5, 'nonexistent-branch');
+      const ret = await deploymentModule.getLatestSuccessfulBranchDeployment(5, 'nonexistent-branch', 'foo-sha');
 
       // Assert
       expect(ret).to.equal(undefined);

@@ -155,8 +155,8 @@ class DeploymentHapiPlugin {
   };
 
   private async getGitlabYmlRequestHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const { projectId, ref } = (<any> request.params);
-    return reply(this.deploymentModule.getGitlabYml(projectId, ref))
+    const { projectId, ref, sha } = (<any> request.params);
+    return reply(this.deploymentModule.getGitlabYml(projectId, ref, sha))
       .header('content-type', 'text/plain');
   }
 

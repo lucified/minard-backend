@@ -73,8 +73,8 @@ function isValidMinardJson(obj: any): boolean {
   return errors.length === 0;
 }
 
-export function getGitlabYmlInvalidJson() {
-  return gitlabSpecToYml(getGitlabSpecInvalidMinardJson());
+export function getGitlabYmlNoAutoBuild() {
+  return gitlabSpecToYml(getGitlabSpecNoAutoBuild());
 }
 
 export function getGitlabYml(spec: MinardJson) {
@@ -88,7 +88,7 @@ export function gitlabSpecToYml(spec: GitlabSpec) {
 
 export function getGitlabSpec(spec: MinardJson) {
   if (!isValidMinardJson(spec)) {
-    return getGitlabSpecInvalidMinardJson();
+    return getGitlabSpecNoAutoBuild();
   }
   const mergedSpec = applyDefaults(spec);
   return spec.build ? getGitlabSpecWithBuild(mergedSpec) : getGitlabSpecNoBuild(mergedSpec);
@@ -114,7 +114,7 @@ function getScripts(commands: MinardJsonBuildCommand[] | string[] | MinardJsonBu
   return ret;
 }
 
-function getGitlabSpecInvalidMinardJson(): GitlabSpec {
+function getGitlabSpecNoAutoBuild(): GitlabSpec {
   return {
     image: 'alpine:latest',
     build: {

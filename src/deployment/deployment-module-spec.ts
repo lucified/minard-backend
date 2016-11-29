@@ -870,6 +870,78 @@ describe('deployment-module', () => {
 
   });
 
+  describe('getGitLabYml()', () => {
+
+    const projectId = 9;
+    const sha = 'foo-sha';
+
+    function arrangeDeploymentModule(_deployments: MinardDeployment[]) {
+      const deploymentModule = getDeploymentModule({} as any, 'foo', silentLogger);
+      deploymentModule.getMinardJsonInfo = async (projectId: number, shaOrBranchName: string) => {
+        const info: MinardJsonInfo = {
+          content: '{}',
+          effective: {},
+          errors: [],
+          parsed: {},
+        };
+        return info;
+      };
+      deploymentModule.getCommitDeployments = async (_projectId: number, _sha: string) => {
+        expect(_projectId).to.equal(projectId);
+        expect(_sha).to.equal(sha);
+        return _deployments;
+      };
+      return deploymentModule;
+    }
+
+    it('should return gitlab yml with manual build when there is already a build with status success for given sha',
+      async () => {
+      // Arrange
+      const deploymentModule = arrangeDeploymentModule([{ buildStatus: 'success' } as MinardDeployment]);
+
+      // Act
+      const yml = await deploymentModule.getGitlabYml(projectId, 'foo', sha);
+
+      // Assert
+      expect(yml.indexOf('manual') !== -1).to.equal(true);
+    });
+
+    it('should return gitlab yml with manual build when there is already a build with status success for given sha',
+      async () => {
+      // Arrange
+      const deploymentModule = arrangeDeploymentModule([{ buildStatus: 'failed' } as MinardDeployment]);
+
+      // Act
+      const yml = await deploymentModule.getGitlabYml(projectId, 'foo', sha);
+
+      // Assert
+      expect(yml.indexOf('manual') !== -1).to.equal(true);
+    });
+
+    it('should return normal gitlab yml when there are no builds for given sha sha', async () => {
+      // Arrange
+      const deploymentModule = arrangeDeploymentModule([]);
+
+      // Act
+      const yml = await deploymentModule.getGitlabYml(projectId, 'foo', sha);
+
+      // Assert
+      expect(yml.indexOf('manual')).to.equal(-1);
+    });
+
+    it('should return normal gitlab yml when there is only a running build for given sha ', async () => {
+      // Arrange
+      const deploymentModule = arrangeDeploymentModule([]);
+
+      // Act
+      const yml = await deploymentModule.getGitlabYml(projectId, 'foo', sha);
+
+      // Assert
+      expect(yml.indexOf('manual')).to.equal(-1);
+    });
+  });
+
+
   describe('getDeploymentKey()', () => {
 
     it('should match localhost hostname with single-digit ids', () => {

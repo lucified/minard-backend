@@ -341,12 +341,26 @@ describe('deployment-module', () => {
   });
 
   describe('getLatestSuccessfulBranchDeployment()', () => {
-    it('should return correct deployment when one can be found', async () => {
+    it('should return correct deployment when one can be found by branch name', async () => {
       // Arrange
       const deploymentModule = await arrangeDeploymentModule();
 
       // Act
-      const ret = await deploymentModule.getLatestSuccessfulBranchDeployment(5, 'foo-branch');
+      const ret = await deploymentModule.getLatestSuccessfulBranchDeployment(5, 'foo-branch', 'foo-sha');
+
+      // Assert
+      expect(ret).to.exist;
+      expect(ret!.id).to.equal(deployments[1].id);
+      expect(ret!.url).to.exist;
+    });
+
+    it('should return correct deployment when one can be found by id', async () => {
+      // Arrange
+      const deploymentModule = await arrangeDeploymentModule();
+
+      // Act
+      const ret = await deploymentModule.getLatestSuccessfulBranchDeployment(
+          5, 'fooo-branch', deployments[1].commitHash);
 
       // Assert
       expect(ret).to.exist;
@@ -359,7 +373,7 @@ describe('deployment-module', () => {
       const deploymentModule = await arrangeDeploymentModule();
 
       // Act
-      const ret = await deploymentModule.getLatestSuccessfulBranchDeployment(5, 'nonexistent-branch');
+      const ret = await deploymentModule.getLatestSuccessfulBranchDeployment(5, 'nonexistent-branch', 'foo-sha');
 
       // Assert
       expect(ret).to.equal(undefined);
@@ -868,6 +882,77 @@ describe('deployment-module', () => {
       expect(error.isServer).to.be.true;
     });
 
+  });
+
+  describe('getGitLabYml()', () => {
+
+    const projectId = 9;
+    const sha = 'foo-sha';
+
+    function arrangeDeploymentModule(_deployments: MinardDeployment[]) {
+      const deploymentModule = getDeploymentModule({} as any, 'foo', silentLogger);
+      deploymentModule.getMinardJsonInfo = async (_projectId: number, shaOrBranchName: string) => {
+        const info: MinardJsonInfo = {
+          content: '{}',
+          effective: {},
+          errors: [],
+          parsed: {},
+        };
+        return info;
+      };
+      deploymentModule.getCommitDeployments = async (_projectId: number, _sha: string) => {
+        expect(_projectId).to.equal(projectId);
+        expect(_sha).to.equal(sha);
+        return _deployments;
+      };
+      return deploymentModule;
+    }
+
+    it('should return gitlab yml with manual build when there is already a build with status success for given sha',
+      async () => {
+      // Arrange
+      const deploymentModule = arrangeDeploymentModule([{ buildStatus: 'success' } as MinardDeployment]);
+
+      // Act
+      const yml = await deploymentModule.getGitlabYml(projectId, 'foo', sha);
+
+      // Assert
+      expect(yml.indexOf('manual') !== -1).to.equal(true);
+    });
+
+    it('should return gitlab yml with manual build when there is already a build with status success for given sha',
+      async () => {
+      // Arrange
+      const deploymentModule = arrangeDeploymentModule([{ buildStatus: 'failed' } as MinardDeployment]);
+
+      // Act
+      const yml = await deploymentModule.getGitlabYml(projectId, 'foo', sha);
+
+      // Assert
+      expect(yml.indexOf('manual') !== -1).to.equal(true);
+    });
+
+    it('should return normal gitlab yml when there are no builds for given sha sha', async () => {
+      // Arrange
+      const deploymentModule = arrangeDeploymentModule([]);
+
+      // Act
+      const yml = await deploymentModule.getGitlabYml(projectId, 'foo', sha);
+
+      // Assert
+      expect(yml.indexOf('manual')).to.equal(-1);
+    });
+
+    it('should return normal gitlab yml when there is only a running build for given sha ', async () => {
+      // Arrange
+      const deploymentModule = arrangeDeploymentModule([]);
+
+      // Act
+      const yml = await deploymentModule.getGitlabYml(projectId, 'foo', sha);
+
+      // Assert
+      expect(yml.indexOf('manual')).to.equal(-1);
+    });
   });
 
   describe('getDeploymentKey()', () => {

@@ -254,7 +254,7 @@ export class JsonApiModule {
     const [ minardJson, latestCommit, minardDeployment ] = await Promise.all([
       this.deploymentModule.getMinardJsonInfo(Number(project.id), branch.name),
       this.toApiCommit(Number(project.id), branch.latestCommit),
-      this.deploymentModule.getLatestSuccessfulBranchDeployment(project.id, branch.name),
+      this.deploymentModule.getLatestSuccessfulBranchDeployment(project.id, branch.name, branch.latestCommit.id),
     ]);
     const latestSuccessfullyDeployedCommit = minardDeployment ?
       await this.minardDeploymentToApiCommit(project.id, minardDeployment) : undefined;

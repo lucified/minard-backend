@@ -48,7 +48,7 @@ import {
 import {
   applyDefaults,
   getGitlabYml,
-  getGitlabYmlInvalidJson,
+  getGitlabYmlNoAutoBuild,
   getValidationErrors,
 } from './gitlab-yml';
 
@@ -220,15 +220,6 @@ export default class DeploymentModule {
     return (await select).map(this.toMinardDeployment.bind(this));
   };
 
-  public async getBranchDeployments(projectId: number, branchName: string): Promise<MinardDeployment[]> {
-    const select = this.knex.select('*')
-      .from('deployment')
-      .where('projectId', projectId)
-      .andWhere('ref', branchName)
-      .orderBy('id', 'DESC');
-    return (await select).map(this.toMinardDeployment.bind(this));
-  };
-
   public async getLatestSuccessfulProjectDeployment(projectId: number): Promise<MinardDeployment | undefined> {
     const select = this.knex.select('*')
       .from('deployment')
@@ -242,7 +233,7 @@ export default class DeploymentModule {
   }
 
   public async getLatestSuccessfulBranchDeployment(
-    projectId: number, branchName: string): Promise<MinardDeployment | undefined> {
+    projectId: number, branchName: string, latestSha: string): Promise<MinardDeployment | undefined> {
     const select = this.knex.select('*')
       .from('deployment')
       .where('projectId', projectId)
@@ -251,7 +242,31 @@ export default class DeploymentModule {
       .orderBy('id', 'DESC')
       .limit(1)
       .first();
-    const ret = await select;
+    let ret = await select;
+
+    // The above lookup will only find deployments that
+    // have been done with this branchName, and it will
+    // not find previous commits that have been done in
+    // another branch.
+    //
+    // If we fail to find any deployments with the above lookup, we
+    // check whether there is a deployment for the latest commit
+    // of the branch and return that, if available.
+    //
+    // This overall logic does not cover some rare cases, but
+    // works well for the most typical cases. The 'correct' solution
+    // would search through all commits in the branch for deployments.
+    //
+    if (!ret) {
+      ret = await this.knex.select('*')
+        .from('deployment')
+        .where('projectId', projectId)
+        .andWhere('status', 'success')
+        .andWhere('commitHash', latestSha)
+        .orderBy('id', 'DESC')
+        .limit(1)
+        .first();
+    }
     return ret ? this.toMinardDeployment(ret) : undefined;
   }
 
@@ -384,15 +399,26 @@ export default class DeploymentModule {
     return JSON.parse(raw);
   }
 
-  public async getGitlabYml(projectId: number, shaOrBranchName: string): Promise<string> {
+  public async getGitlabYml(projectId: number, shaOrBranchName: string, sha: string): Promise<string> {
+    console.log(`sha or branch name ${shaOrBranchName}, ${sha}`);
+    try {
+      const deployments = await this.getCommitDeployments(projectId, sha);
+      const filtered = deployments.filter(item => item.buildStatus === 'success' || item.buildStatus === 'failed');
+      if (filtered.length > 0) {
+        return getGitlabYmlNoAutoBuild();
+      }
+    } catch (err) {
+      this.logger.error(`Failed to check deployments for commit ${sha} of project ${projectId}`);
+      return getGitlabYmlNoAutoBuild();
+    }
     try {
       const info = await this.getMinardJsonInfo(projectId, shaOrBranchName);
       if (info.effective) {
         return getGitlabYml(info.effective);
       }
-      return getGitlabYmlInvalidJson();
+      return getGitlabYmlNoAutoBuild();
     } catch (err) {
-      return getGitlabYmlInvalidJson();
+      return getGitlabYmlNoAutoBuild();
     }
   }
 

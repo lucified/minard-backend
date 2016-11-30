@@ -12,7 +12,7 @@
     "cache-manager-redis": "^0.2.4",
     "datauri": "^1.0.4",
     "deepcopy": "^0.6.3",
-    "eventstore": "^1.8.1",
+    "eventstore": "1.9.0",
     "extract-zip": "^1.5.0",
     "form-data": "^2.1.1",
     "good": "^7.0.2",

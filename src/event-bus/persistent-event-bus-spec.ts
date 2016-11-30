@@ -227,6 +227,49 @@ describe('persistent-event-bus', () => {
     expect(events[0].payload.arr).to.have.length(0);
   });
 
+  it('increments streamRevision correctly', async () => {
+    const bus = getEventBus();
+    const teamId = 33423;
+    const since = 2;
+    const numPersisted = 5;
+    const finalNumber = numPersisted - since + 1;
+    // Arrange
+
+    const persistedPromise = bus.getStream()
+      .take(numPersisted)
+      .toArray()
+      .toPromise();
+
+    // Persist some events
+    for (let i = 0; i < numPersisted; i++) {
+      bus.post(sseEventCreator({ status: 'bar', foo: 'baz', teamId }));
+    }
+
+    const persisted = await persistedPromise;
+    expect(persisted.length).to.eq(numPersisted);
+    const existing = await bus.getEvents(teamId, since);
+    expect(existing.length).to.eq(numPersisted - since);
+
+    const combined = Observable.concat(Observable.from(existing), bus.getStream());
+
+    const promise = combined
+      .take(finalNumber)
+      .toArray()
+      .toPromise();
+
+    // This one is realtime
+    bus.post(sseEventCreator({ status: 'bar', foo: 'baz', teamId }));
+
+    const events = await promise;
+
+    expect(events.length).to.eql(finalNumber);
+
+    for (let i = 0; i < finalNumber; i++) {
+      expect(events[i].streamRevision).to.eql(since + i);
+    }
+
+  });
+
   it('should allow filtering by types', async () => {
     const bus = getEventBus();
     const promise = bus

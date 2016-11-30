@@ -218,14 +218,14 @@ describe('persistent-event-bus', () => {
 
     bus.post(sseEventCreator({ status: 'bar', teamId }));
     bus.post(testEventCreator({ status: 'bar', foo: 'foo', teamId }));
-    bus.post(sseEventCreator({ status: 'bar', foo: 'baz', teamId }));
+    bus.post(sseEventCreator({ status: 'bar', foo: 'baz', teamId, arr: [] }));
 
     await promise;
     const events = await bus.getEvents(teamId, 1);
     expect(events.length).to.eql(1);
     expect(events[0].streamRevision).to.eql(1);
     expect(events[0].payload.foo).to.eql('baz');
-
+    expect(events[0].payload.arr).to.have.length(0);
   });
 
   it('should allow filtering by types', async () => {

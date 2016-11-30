@@ -265,7 +265,8 @@ describe('persistent-event-bus', () => {
     expect(events.length).to.eql(finalNumber);
 
     for (let i = 0; i < finalNumber; i++) {
-      expect(events[i].streamRevision).to.eql(since + i);
+      const event = events[i] as any;
+      expect(event.streamRevision).to.eql(since + i);
     }
 
   });

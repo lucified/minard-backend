@@ -4,7 +4,7 @@ import * as moment from 'moment';
 import * as Redis from 'redis';
 import 'reflect-metadata';
 
-import { PersistedEvent, eventCreator } from '../shared/events';
+import { PersistedEvent, eventCreator, isPersistedEvent } from '../shared/events';
 import { default as logger } from '../shared/logger';
 import { PersistentEventBus as EventBus } from './persistent-event-bus';
 
@@ -249,8 +249,9 @@ describe('persistent-event-bus', () => {
     expect(persisted.length).to.eq(numPersisted);
     const existing = await bus.getEvents(teamId, since);
     expect(existing.length).to.eq(numPersisted - since);
-
-    const combined = Observable.concat(Observable.from(existing), bus.getStream());
+    const realTime = bus.getStream().filter(isPersistedEvent)
+      .map(event => <PersistedEvent<any>> event);
+    const combined = Observable.concat(Observable.from(existing), realTime);
 
     const promise = combined
       .take(finalNumber)
@@ -265,8 +266,7 @@ describe('persistent-event-bus', () => {
     expect(events.length).to.eql(finalNumber);
 
     for (let i = 0; i < finalNumber; i++) {
-      const event = events[i] as any;
-      expect(event.streamRevision).to.eql(since + i);
+      expect(events[i].streamRevision).to.eql(since + i);
     }
 
   });

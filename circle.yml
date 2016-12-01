@@ -13,8 +13,11 @@ test:
     - npm run lint
 
 deployment:
-  staging:
+  auto:
     branch: master
     commands:
       - npm run deploy
-
+  chatops:
+    branch: /^(?!nodeploy-).*$/
+    commands:
+      - npm run deploy-chatops

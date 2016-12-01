@@ -88,7 +88,8 @@
     "transpile": "tsc",
     "watch": "tsc -w",
     "lint": "tslint --format=verbose 'src/**/*.ts'",
-    "deploy": "lucify-notifier ecs-updater"
+    "deploy": "lucify-notifier ecs-updater",
+    "deploy-chatops": "[ \"$AWS_TEMPORARY\" ] && npm run deploy || echo 'Skipping deployment'"
   },
   "contributors": [
     {

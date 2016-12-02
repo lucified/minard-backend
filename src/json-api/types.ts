@@ -107,3 +107,18 @@ export interface ApiNotificationConfiguration extends NotificationConfiguration 
 export type ApiEntity = ApiActivity | ApiProject | ApiCommit | ApiDeployment | ApiBranch | ApiNotificationConfiguration;
 export type ApiEntities = ApiActivity[] | ApiProject[] | ApiCommit[]
 | ApiDeployment[] | ApiBranch[] | ApiNotificationConfiguration[];
+
+export interface PreviewView {
+  project: {
+    id: string;
+    name: string;
+  };
+  deployment: JsonApiEntity;
+  commit: JsonApiEntity;
+  branch: {
+    id: string;
+    name: string;
+  };
+  previousDeployment?: string; // previous deployment id in branch
+  nextDeployment?: string;     // next deployment id in branch
+}

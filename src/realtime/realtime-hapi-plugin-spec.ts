@@ -40,7 +40,7 @@ import {
 } from './types';
 
 function getPlugin(bus: PersistentEventBus, factory: any) {
-  const jsonApi = new JsonApiHapiPlugin(factory, baseUrl);
+  const jsonApi = new JsonApiHapiPlugin(factory, baseUrl, {} as any);
   return new RealtimeHapiPlugin(jsonApi, bus, logger(undefined, true));
 }
 

@@ -7,7 +7,7 @@ import * as moment from 'moment';
 import * as Hapi from '../server/hapi';
 import { HapiRegister } from '../server/hapi-register';
 import { externalBaseUrlInjectSymbol } from '../server/types';
-import { parseApiBranchId } from './conversions';
+import { parseApiBranchId, parseApiDeploymentId } from './conversions';
 import { JsonApiModule } from './json-api-module';
 import { serializeApiEntity } from './serialization';
 import { ApiEntities, ApiEntity } from './types';
@@ -392,6 +392,63 @@ export class JsonApiHapiPlugin {
       },
     });
 
+    server.route({
+      method: 'DELETE',
+      path: '/comments/{id}',
+      handler: {
+        async: this.deleteCommentHandler,
+      },
+      config: {
+        bind: this,
+        validate: {
+          params: {
+            id: Joi.number().required(),
+          },
+        },
+      },
+    });
+
+    server.route({
+      method: 'POST',
+      path: '/comments',
+      handler: {
+        async: this.createCommentHander,
+      },
+      config: {
+        bind: this,
+        validate: {
+          payload: {
+            data: Joi.object({
+              type: Joi.string().equal('comments').required(),
+              attributes: Joi.object({
+                email: Joi.string().email().required(),
+                message: Joi.string().required(),
+                name: Joi.string().max(50),
+                deployment: Joi.string().required(),
+              }),
+            }).required(),
+          },
+        },
+      },
+    });
+
+    server.route({
+      method: 'GET',
+      path: '/comments/deployment/{projectId}-{deploymentId}',
+      handler: {
+        async: this.getDeploymentCommentsHandler,
+      },
+      config: {
+        bind: this,
+        validate: {
+          params: {
+            projectId: Joi.number().required(),
+            deploymentId: Joi.number().required(),
+          },
+        },
+      },
+    });
+
     next();
   };
 
@@ -537,6 +594,29 @@ export class JsonApiHapiPlugin {
     const id = (<any> request.params).id;
     await this.factory().deleteNotificationConfiguration(id);
     return reply({});
+  }
+
+  public async createCommentHander(request: Hapi.Request, reply: Hapi.IReply) {
+    const { name, email, message } = request.payload.data.attributes;
+    const deploymentId = request.payload.data.attributes.deployment;
+    const parsed = parseApiDeploymentId(deploymentId);
+    if (!parsed) {
+      throw Boom.badRequest('Invalid deployment id');
+    }
+    const comment = await this.factory().addComment(parsed.deploymentId, email, message, name);
+    return reply(this.serializeApiEntity('comment', comment))
+      .created(`/api/comments/${comment.id}`);
+  }
+
+  public async deleteCommentHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    const { id } = request.params;
+    await this.factory().deleteComment(Number(id));
+    return reply({});
+  }
+
+  public async getDeploymentCommentsHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    const { deploymentId } = request.params;
+    return reply(this.getEntity('comment', api => api.getDeploymentComments(Number(deploymentId))));
   }
 
 }

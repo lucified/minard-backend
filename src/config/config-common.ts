@@ -39,6 +39,7 @@ import {
   JsonApiHapiPlugin,
   JsonApiModule,
   MemoizedJsonApiModule,
+  ViewEndpoints,
 } from '../json-api';
 
 import Migrations from '../migrations';
@@ -99,6 +100,7 @@ export default new KernelModule(bind => {
   bind(StatusModule.injectSymbol).to(StatusModule);
   bind(SystemHookModule.injectSymbol).to(SystemHookModule);
   bind(UserModule.injectSymbol).to(UserModule);
+  bind(ViewEndpoints.injectSymbol).to(ViewEndpoints);
 
   // Bindings for hapi plugins
   bind(DeploymentHapiPlugin.injectSymbol).to(DeploymentHapiPlugin);

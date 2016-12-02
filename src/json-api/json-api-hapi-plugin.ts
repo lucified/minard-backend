@@ -11,6 +11,7 @@ import { parseApiBranchId } from './conversions';
 import { JsonApiModule } from './json-api-module';
 import { serializeApiEntity } from './serialization';
 import { ApiEntities, ApiEntity } from './types';
+import { ViewEndpoints } from './view-endpoints';
 
 function onPreResponse(server: Hapi.Server, request: Hapi.Request, reply: Hapi.IReply) {
   const response = request.response;
@@ -77,16 +78,20 @@ export class JsonApiHapiPlugin {
 
   private baseUrl: string;
   private factory: () => JsonApiModule;
+  private viewEndpoints: ViewEndpoints;
 
   constructor(
     @inject(JsonApiModule.factoryInjectSymbol) factory: interfaces.Factory<JsonApiModule>,
-    @inject(externalBaseUrlInjectSymbol) baseUrl: string) {
+    @inject(externalBaseUrlInjectSymbol) baseUrl: string,
+    @inject(ViewEndpoints.injectSymbol) viewEndpoints: ViewEndpoints,
+    ) {
     this.factory = factory as () => JsonApiModule;
     this.register.attributes = {
       name: 'json-api-plugin',
       version: '1.0.0',
     };
     this.baseUrl = baseUrl + '/api';
+    this.viewEndpoints = viewEndpoints;
   }
 
   public register: HapiRegister = (server, _options, next) => {
@@ -98,6 +103,23 @@ export class JsonApiHapiPlugin {
       path: '/deployments/{projectId}-{deploymentId}',
       handler: {
         async: this.getDeploymentHandler,
+      },
+      config: {
+        bind: this,
+        validate: {
+          params: {
+            projectId: Joi.number().required(),
+            deploymentId: Joi.number().required(),
+          },
+        },
+      },
+    });
+
+    server.route({
+      method: 'GET',
+      path: '/preview/{projectId}-{deploymentId}',
+      handler: {
+        async: this.getPreviewHandler,
       },
       config: {
         bind: this,
@@ -429,6 +451,16 @@ export class JsonApiHapiPlugin {
     const projectId = Number((<any> request.params).projectId);
     const deploymentId = Number((<any> request.params).deploymentId);
     return reply(this.getEntity('deployment', api => api.getDeployment(projectId, deploymentId)));
+  }
+
+  private async getPreviewHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    const projectId = Number((<any> request.params).projectId);
+    const deploymentId = Number((<any> request.params).deploymentId);
+    const preview = this.viewEndpoints.getPreview(projectId, deploymentId);
+    if (!preview) {
+      throw Boom.notFound();
+    }
+    return reply(preview);
   }
 
   private async getBranchHandler(request: Hapi.Request, reply: Hapi.IReply) {

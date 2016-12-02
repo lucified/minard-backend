@@ -40,7 +40,7 @@ describe('json-api-hapi-plugin', () => {
           ];
         },
       });
-      const plugin = new JsonApiHapiPlugin(mockFactory as any, baseUrl);
+      const plugin = new JsonApiHapiPlugin(mockFactory as any, baseUrl, {} as any);
       const server = await provisionServer(plugin);
 
       // Act
@@ -74,7 +74,7 @@ describe('json-api-hapi-plugin', () => {
           ];
         },
       });
-      const plugin = new JsonApiHapiPlugin(mockFactory as any, baseUrl);
+      const plugin = new JsonApiHapiPlugin(mockFactory as any, baseUrl, {} as any);
       const server = await provisionServer(plugin);
 
       // Act
@@ -133,7 +133,7 @@ describe('json-api-hapi-plugin', () => {
           };
         },
       });
-      const plugin = new JsonApiHapiPlugin(mockFactory as any, baseUrl);
+      const plugin = new JsonApiHapiPlugin(mockFactory as any, baseUrl, {} as any);
       const server = await provisionServer(plugin);
       const options: Hapi.IServerInjectOptions = {
         method: 'POST',
@@ -228,7 +228,7 @@ describe('json-api-hapi-plugin', () => {
           };
         },
       });
-      const plugin = new JsonApiHapiPlugin(mockFactory as any, baseUrl);
+      const plugin = new JsonApiHapiPlugin(mockFactory as any, baseUrl, {} as any);
       const server = await provisionServer(plugin);
       const options: Hapi.IServerInjectOptions = {
         method: 'PATCH',
@@ -321,7 +321,7 @@ describe('json-api-hapi-plugin', () => {
           return [{}, {}];
         },
       });
-      const plugin = new JsonApiHapiPlugin(mockFactory as any, baseUrl);
+      const plugin = new JsonApiHapiPlugin(mockFactory as any, baseUrl, {} as any);
       const server = await provisionServer(plugin);
       const options: Hapi.IServerInjectOptions = {
         method: 'GET',

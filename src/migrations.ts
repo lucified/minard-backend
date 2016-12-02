@@ -47,6 +47,10 @@ export default class Migrations {
         directory: 'migrations/notification',
         tableName: 'knex_migrations_notification',
       },
+      {
+        directory: 'migrations/comment',
+        tableName: 'knex_migrations_comment',
+      },
     ];
     for (let i = 0; i < configs.length; i++) {
       this.charlesKnex.migrate.latest(configs[i]);

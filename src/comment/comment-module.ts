@@ -97,8 +97,14 @@ export class CommentModule {
     const comments = await this.knex.select('*')
       .from('comment')
       .where('deploymentId', deploymentId)
+      .andWhere('status', 'n')
       .orderBy('id', 'DESC');
     return comments.map(toMinardComment);
+  }
+
+  public async getCommentCountForDeployment(deploymentId: number): Promise<number> {
+    const comments = await this.getCommentsForDeployment(deploymentId);
+    return comments.length;
   }
 
 }

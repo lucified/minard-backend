@@ -27,12 +27,24 @@ import {
 } from '../screenshot';
 
 import {
+  CommentModule,
+} from '../comment';
+
+import {
   ApiDeployment,
   ApiProject,
   JsonApiModule,
 } from './';
 
 import { toGitlabTimestamp } from '../shared/time-conversion';
+
+function getMockCommentModule() {
+  const commentModule = {} as CommentModule;
+  commentModule.getCommentCountForDeployment = async (deploymentId: number) => {
+    return 2;
+  };
+  return commentModule;
+}
 
 describe('json-api-module', () => {
 
@@ -189,6 +201,7 @@ describe('json-api-module', () => {
     it('should work when commit is not passed', async () => {
       // Arrange
       const projectId = 5;
+      const commentCount = 3;
       const minardDeployment = {
         id: 2,
         commitHash: 'foo',
@@ -200,13 +213,19 @@ describe('json-api-module', () => {
           timestamp: 'fooo',
         },
       } as any as MinardDeployment;
+
+      const commentModule = {} as CommentModule;
+      commentModule.getCommentCountForDeployment = async (deploymentId: number) => {
+        expect(deploymentId).to.equal(minardDeployment.id);
+        return commentCount;
+      };
       const jsonApiModule = new JsonApiModule(
         {} as any,
         {} as any,
         {} as any,
         {} as any,
         {} as any,
-        {} as any);
+        commentModule);
 
       // Act
       const deployment = await jsonApiModule.toApiDeployment(projectId, minardDeployment);
@@ -216,6 +235,7 @@ describe('json-api-module', () => {
       expect(deployment.id).to.equal('5-2');
       expect(deployment.status).to.equal(minardDeployment.status);
       expect(deployment.creator).to.deep.equal(minardDeployment.creator);
+      expect(deployment.commentCount).to.equal(commentCount);
     });
   });
 
@@ -269,7 +289,7 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         {} as any,
-        {} as any);
+        getMockCommentModule());
 
       // Act
       const commits = await jsonApiModule.getBranchCommits(projectId, branchName);
@@ -336,7 +356,7 @@ describe('json-api-module', () => {
         {} as any,
         screenshotModule,
         {} as any,
-        {} as any);
+        getMockCommentModule());
       jsonApiModule.toApiCommit = async(projectId: number, commit: MinardCommit, deployments?: ApiDeployment[]) => {
         expect(commit).to.exist;
         if (commit.id === minardBranch.latestCommit.id) {
@@ -395,7 +415,7 @@ describe('json-api-module', () => {
         {} as any,
         screenshotModule,
         {} as any,
-        {} as any);
+        getMockCommentModule());
 
       // Act
       const project = await jsonApiModule.toApiProject(minardProject);

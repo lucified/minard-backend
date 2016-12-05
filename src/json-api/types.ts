@@ -70,6 +70,7 @@ export interface ApiDeployment {
   creator: MinardDeploymentCreator;
   // this is not exposed in serialized responses, but it is internally helpful
   commitHash: string;
+  commentCount?: number;
 }
 
 export interface ApiCommit extends MinardCommit {

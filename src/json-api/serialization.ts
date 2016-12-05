@@ -31,7 +31,7 @@ export const nonIncludedSerialization = {
 
 export const deploymentSerialization =  {
   attributes: ['status', 'commit', 'url', 'creator',
-  'screenshot', 'buildStatus', 'extractionStatus', 'screenshotStatus'],
+  'screenshot', 'buildStatus', 'extractionStatus', 'screenshotStatus', 'commentCount'],
   ref: standardIdRef,
   included: true,
 };

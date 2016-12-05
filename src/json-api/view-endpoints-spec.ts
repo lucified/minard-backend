@@ -8,11 +8,23 @@ import {
 } from './json-api-module';
 
 import {
+  CommentModule,
+} from '../comment';
+
+import {
   DeploymentModule,
   MinardDeployment,
 } from '../deployment';
 
 import { ViewEndpoints } from './view-endpoints';
+
+function getMockCommentModule() {
+  const commentModule = {} as CommentModule;
+  commentModule.getCommentCountForDeployment = async (deploymentId: number) => {
+    return 2;
+  };
+  return commentModule;
+}
 
 describe('view-endpoints', () => {
 
@@ -63,7 +75,7 @@ describe('view-endpoints', () => {
       {} as any,
       {} as any,
       {} as any,
-      {} as any);
+      getMockCommentModule());
     const viewEndpoints = new ViewEndpoints(jsonApiModule, deploymentModule, 'foo-base-url');
 
     // Act

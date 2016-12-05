@@ -8,6 +8,7 @@ import { toGitlabTimestamp, toMoment } from '../shared/time-conversion';
 import {
   ApiActivity,
   ApiBranch,
+  ApiComment,
   ApiCommit,
   ApiDeployment,
   ApiProject,
@@ -17,6 +18,12 @@ import {
   ActivityModule,
   MinardActivity,
 } from '../activity';
+
+import {
+  CommentModule,
+  MinardComment,
+  NewMinardComment,
+} from '../comment';
 
 import {
   DeploymentModule,
@@ -42,6 +49,10 @@ import {
   MinardCommit,
 } from '../shared/minard-commit';
 
+import {
+  toApiDeploymentId,
+} from './conversions';
+
 const deepcopy = require('deepcopy');
 
 @injectable()
@@ -55,18 +66,21 @@ export class JsonApiModule {
   private readonly activityModule: ActivityModule;
   private readonly screenshotModule: ScreenshotModule;
   private readonly notificationModule: NotificationModule;
+  private readonly commentModule: CommentModule;
 
   constructor(
     @inject(DeploymentModule.injectSymbol) deploymentModule: DeploymentModule,
     @inject(ProjectModule.injectSymbol) projectModule: ProjectModule,
     @inject(ActivityModule.injectSymbol) activityModule: ActivityModule,
     @inject(ScreenshotModule.injectSymbol) screenshotModule: ScreenshotModule,
-    @inject(NotificationModule.injectSymbol) notificationModule: NotificationModule) {
+    @inject(NotificationModule.injectSymbol) notificationModule: NotificationModule,
+    @inject(CommentModule.injectSymbol) commentModule: CommentModule) {
       this.deploymentModule = deploymentModule;
       this.projectModule = projectModule;
       this.activityModule = activityModule;
       this.screenshotModule = screenshotModule;
       this.notificationModule = notificationModule;
+      this.commentModule = commentModule;
   }
 
   public async getCommit(projectId: number, hash: string): Promise<ApiCommit | null> {
@@ -306,6 +320,58 @@ export class JsonApiModule {
 
   public async deleteNotificationConfiguration(id: number) {
     return this.notificationModule.deleteConfiguration(id);
+  }
+
+  public async addComment(
+    deploymentId: number,
+    email: string,
+    message: string,
+    name?: string
+  ): Promise<ApiComment> {
+    const deployment = await this.deploymentModule.getDeployment(deploymentId);
+    if (!deployment) {
+      throw Boom.notFound('deployment not found');
+    }
+    const newMinardComment: NewMinardComment = {
+      projectId: deployment.projectId,
+      deploymentId,
+      email,
+      message,
+      name,
+      teamId: deployment.teamId,
+    };
+    const created = await this.commentModule.addComment(newMinardComment);
+    return this.toApiComment(created);
+  }
+
+  public async getComment(commentId: number): Promise<ApiComment> {
+    const comment = await this.commentModule.getComment(commentId);
+    if (!comment) {
+      throw Boom.notFound();
+    }
+    return this.toApiComment(comment);
+  }
+
+  public async deleteComment(commentId: number): Promise<void> {
+    return this.commentModule.deleteComment(commentId);
+  }
+
+  public async getDeploymentComments(deploymentId: number) {
+    const comments = await this.commentModule.getCommentsForDeployment(deploymentId);
+    const ret = await Promise.all(comments.map(comment => this.toApiComment(comment)));
+    return ret;
+  }
+
+  public async toApiComment(comment: MinardComment): Promise<ApiComment> {
+    return {
+      deployment: toApiDeploymentId(comment.projectId, comment.deploymentId),
+      email: comment.email,
+      message: comment.message,
+      name: comment.name,
+      id: comment.id,
+      createdAt: toGitlabTimestamp(comment.createdAt),
+      project: comment.projectId,
+    };
   }
 
 }

@@ -2,7 +2,7 @@
 import { expect } from 'chai';
 import 'reflect-metadata';
 
-import { parseApiBranchId } from './conversions';
+import { parseApiBranchId, parseApiDeploymentId } from './conversions';
 
 describe('json-api/conversions', () => {
 
@@ -20,6 +20,15 @@ describe('json-api/conversions', () => {
       expect(parseApiBranchId('foo-foo-bar')).to.deep.equal(null);
     });
 
+  });
+
+  describe('parseApiDeploymentId', () => {
+    it('should work for 4-2', () => {
+      expect(parseApiDeploymentId('4-2')).to.deep.equal({ projectId: 4, deploymentId: 2 });
+    });
+    it('should work for 464-43', () => {
+      expect(parseApiDeploymentId('464-43')).to.deep.equal({ projectId: 464, deploymentId: 43 });
+    });
   });
 
 });

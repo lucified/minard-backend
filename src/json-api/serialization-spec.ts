@@ -6,6 +6,7 @@ import { values } from 'lodash';
 import {
   ApiActivity,
   ApiBranch,
+  ApiComment,
   ApiCommit,
   ApiDeployment,
   ApiProject,
@@ -126,6 +127,16 @@ const exampleActivity = {
   commit: exampleCommitOne,
   timestamp: exampleDeploymentOne.creator!.timestamp,
 } as ApiActivity;
+
+const exampleComment: ApiComment = {
+  id: 5,
+  project: 6,
+  email: 'fooman@foomail.com',
+  message: 'foo msg',
+  name: 'foo name',
+  deployment: '9-6',
+  createdAt: '2015-18-24T17:55:31.198Z',
+};
 
 describe('json-api serialization', () => {
 
@@ -355,6 +366,30 @@ describe('json-api serialization', () => {
       expect(data.attributes.project).to.deep.equal(activity.project);
       expect(data.attributes.branch).to.deep.equal(activity.branch);
       expect(data.attributes.commit).to.deep.equal(activity.commit);
+
+      // do not include extra stuff
+      expect(converted.included).to.not.exist;
+      expect(data.relationships).to.not.exist;
+    });
+  });
+
+  describe('commentToJsonApi()', () => {
+    it('should work with a single comment', () => {
+      const comment = exampleComment;
+      const converted = serializeApiEntity('comment', comment, apiBaseUrl) as JsonApiResponse;
+      const data = converted.data as JsonApiEntity;
+      expect(data).to.exist;
+
+      // id and type
+      expect(data.id).to.equal(String(comment.id));
+      expect(data.type).to.equal('comments');
+
+      // attributes
+      expect(data.attributes['created-at']).to.equal(comment.createdAt);
+      expect(data.attributes.deployment).to.equal(comment.deployment);
+      expect(data.attributes.message).to.equal(comment.message);
+      expect(data.attributes.email).to.equal(comment.email);
+      expect(data.attributes.name).to.equal(comment.name);
 
       // do not include extra stuff
       expect(converted.included).to.not.exist;

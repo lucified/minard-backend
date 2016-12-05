@@ -11,6 +11,17 @@ export function toApiDeploymentId(projectId: number, deploymentId: number) {
   return `${projectId}-${deploymentId}`;
 }
 
+export function parseApiDeploymentId(branchId: string) {
+  const matches = branchId.match(/^(\d+)-(\d+)$/);
+  if (matches !== null && matches.length === 3) {
+    return {
+      projectId: Number(matches[1]),
+      deploymentId: Number(matches[2]),
+    };
+  }
+  return null;
+}
+
 export function parseApiBranchId(branchId: string) {
   const matches = branchId.match(/^(\d+)-(\S+)$/);
   if (matches !== null && matches.length === 3) {

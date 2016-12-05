@@ -7,6 +7,10 @@ import { ActivityModule } from '../activity';
 import { AuthenticationModule } from '../authentication';
 
 import {
+  CommentModule,
+} from '../comment';
+
+import {
   CIProxy,
   DeploymentHapiPlugin,
   DeploymentModule,
@@ -90,6 +94,7 @@ export default new KernelModule(bind => {
   // Bindings for modules
   bind(ActivityModule.injectSymbol).to(ActivityModule).inSingletonScope();
   bind(AuthenticationModule.injectSymbol).to(AuthenticationModule);
+  bind(CommentModule.injectSymbol).to(CommentModule);
   bind(DeploymentModule.injectSymbol).to(DeploymentModule).inSingletonScope();
   bind(JsonApiModule.injectSymbol).to(MemoizedJsonApiModule);
   bind(JsonApiModule.factoryInjectSymbol).toAutoFactory(JsonApiModule.injectSymbol);

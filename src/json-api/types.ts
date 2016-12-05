@@ -102,11 +102,17 @@ export interface ApiActivity {
   commit: ApiActivityCommit;
 }
 
-export interface ApiNotificationConfiguration extends NotificationConfiguration {}
+export interface ApiComment {
+  email: string;
+  name?: string;
+  message: string;
+  deployment: string;
+  id?: number;
+  createdAt: string;
+  project: number;
+}
 
-export type ApiEntity = ApiActivity | ApiProject | ApiCommit | ApiDeployment | ApiBranch | ApiNotificationConfiguration;
-export type ApiEntities = ApiActivity[] | ApiProject[] | ApiCommit[]
-| ApiDeployment[] | ApiBranch[] | ApiNotificationConfiguration[];
+export interface ApiNotificationConfiguration extends NotificationConfiguration {}
 
 export interface PreviewView {
   project: {
@@ -122,3 +128,21 @@ export interface PreviewView {
   previousDeployment?: string; // previous deployment id in branch
   nextDeployment?: string;     // next deployment id in branch
 }
+
+export type ApiEntity =
+  ApiActivity |
+  ApiProject |
+  ApiCommit |
+  ApiDeployment |
+  ApiBranch |
+  ApiNotificationConfiguration |
+  ApiComment;
+
+export type ApiEntities =
+  ApiActivity[] |
+  ApiProject[] |
+  ApiCommit[] |
+  ApiDeployment[] |
+  ApiBranch[] |
+  ApiNotificationConfiguration[] |
+  ApiComment[];

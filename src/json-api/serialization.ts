@@ -118,6 +118,12 @@ export const activitySerialization = {
   included: true,
 };
 
+export const commentSerialization = {
+  attributes: ['email', 'name', 'message', 'deployment', 'createdAt'],
+  ref: standardIdRef,
+  included: true,
+};
+
 export const deploymentCompoundSerialization = deepcopy(deploymentSerialization);
 deploymentCompoundSerialization.commit = commitSerialization;
 
@@ -173,12 +179,13 @@ function branchSerializer(apiBaseUrl: string) {
 }
 
 const serializers: (apiBaseUrl: string) => {[name: string]: any} = apiBaseUrl => ({
-  'activity': new Serializer('activity', activitySerialization),
-  'commit': new Serializer('commit', commitSerialization),
-  'project': projectSerializer(apiBaseUrl),
-  'deployment': new Serializer('deployment', deploymentCompoundSerialization),
-  'branch': branchSerializer(apiBaseUrl),
-  'notification': new Serializer('notification', notificationSerialization),
+  activity: new Serializer('activity', activitySerialization),
+  commit: new Serializer('commit', commitSerialization),
+  project: projectSerializer(apiBaseUrl),
+  deployment: new Serializer('deployment', deploymentCompoundSerialization),
+  branch: branchSerializer(apiBaseUrl),
+  notification: new Serializer('notification', notificationSerialization),
+  comment: new Serializer('comment', commentSerialization),
 });
 
 export function serializeApiEntity(type: string, entity: ApiEntity | ApiEntities, apiBaseUrl: string) {

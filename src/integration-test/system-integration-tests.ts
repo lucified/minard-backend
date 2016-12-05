@@ -96,6 +96,7 @@ describe('system-integration', () => {
   let oldProjectId: number | undefined;
   let repoUrl: string | undefined;
   let oldCopyProjectId: number | undefined;
+  let commentId: number | undefined;
 
   it('status should be ok', async function() {
     logTitle('Checking that status is ok');
@@ -432,6 +433,53 @@ describe('system-integration', () => {
     expect(ret.status).to.equal(200);
     expect(json.data.id).to.exist;
     expect(json.data.attributes.description).to.equal(editProjectPayload.data.attributes.description);
+  });
+
+  it('should be able to add comment for deployment', async function() {
+    logTitle('Adding comment');
+    this.timeout(1000 * 10);
+    const addCommentPayload = {
+      data: {
+        type: 'comments',
+        attributes: {
+          email: 'foo@fooman.com',
+          message: 'foo message',
+          name: 'foo',
+          deployment: deploymentId,
+        },
+      },
+    };
+    const ret = await fetch(`${charles}/api/comments`, {
+      method: 'POST',
+      body: JSON.stringify(addCommentPayload),
+    });
+    expect(ret.status).to.equal(201);
+    const json = await ret.json();
+    expect(json.data.attributes.message)
+      .to.equal(addCommentPayload.data.attributes.message);
+    commentId = json.data.id;
+    expect(commentId).to.exist;
+  });
+
+  it('should be able to fetch comments for deployment', async function() {
+    logTitle('Fetching comments for deployment');
+    const url = `${charles}/api/comments/deployment/${deploymentId}`;
+    log(`Using URL ${prettyUrl(url)}`);
+    this.timeout(1000 * 10);
+    const ret = await fetch(url);
+    expect(ret.status).to.equal(200);
+    const json = await ret.json();
+    expect(json.data.length).to.equal(1);
+    expect(json.data[0].attributes.message).to.equal('foo message');
+  });
+
+  it('should be able to delete comment for deployment', async function() {
+    logTitle('Deleting comment');
+    this.timeout(1000 * 10);
+    const url = `${charles}/api/comments/${commentId}`;
+    log(`Using URL ${prettyUrl(url)} (with method DELETE)`);
+    const ret = await fetch(url, { method: 'DELETE' });
+    expect(ret.status).to.equal(200);
   });
 
   it('should be able to get streaming updates', async function() {

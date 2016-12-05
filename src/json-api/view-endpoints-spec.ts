@@ -62,6 +62,7 @@ describe('view-endpoints', () => {
       {} as any,
       {} as any,
       {} as any,
+      {} as any,
       {} as any);
     const viewEndpoints = new ViewEndpoints(jsonApiModule, deploymentModule, 'foo-base-url');
 

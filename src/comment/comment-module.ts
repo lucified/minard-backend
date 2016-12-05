@@ -56,7 +56,6 @@ export class CommentModule {
       projectId: comment.projectId,
     } as any; // cast because at this point id is missing
 
-    // note that after insert dbComment will have id set
     const ids = await this.knex('comment').insert(dbComment).returning('id');
     dbComment.id = ids[0];
     const created = toMinardComment(dbComment);

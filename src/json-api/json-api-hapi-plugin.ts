@@ -412,7 +412,7 @@ export class JsonApiHapiPlugin {
       method: 'POST',
       path: '/comments',
       handler: {
-        async: this.createCommentHander,
+        async: this.createCommentHandler,
       },
       config: {
         bind: this,
@@ -596,7 +596,7 @@ export class JsonApiHapiPlugin {
     return reply({});
   }
 
-  public async createCommentHander(request: Hapi.Request, reply: Hapi.IReply) {
+  public async createCommentHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const { name, email, message } = request.payload.data.attributes;
     const deploymentId = request.payload.data.attributes.deployment;
     const parsed = parseApiDeploymentId(deploymentId);

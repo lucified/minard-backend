@@ -341,7 +341,6 @@ export class JsonApiModule {
       teamId: deployment.teamId,
     };
     const created = await this.commentModule.addComment(newMinardComment);
-    console.log(created);
     return this.toApiComment(created);
   }
 
@@ -359,9 +358,7 @@ export class JsonApiModule {
 
   public async getDeploymentComments(deploymentId: number) {
     const comments = await this.commentModule.getCommentsForDeployment(deploymentId);
-    console.log(comments);
     const ret = await Promise.all(comments.map(comment => this.toApiComment(comment)));
-    console.log(ret);
     return ret;
   }
 

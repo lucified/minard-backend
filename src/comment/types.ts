@@ -26,19 +26,21 @@ export interface BaseComment {
   deploymentId: number;
 }
 
-export const ADD_COMMENT_EVENT_TYPE = 'ADD_COMMENT';
-export const createAddCommentEvent =
-  eventCreator<AddCommentEvent>(ADD_COMMENT_EVENT_TYPE);
+export const COMMENT_ADDED_EVENT_TYPE = 'COMMENT_ADDED';
+export const createCommentAddedEvent =
+  eventCreator<CommentAddedEvent>(COMMENT_ADDED_EVENT_TYPE);
 
-export interface AddCommentEvent extends MinardComment {
+export interface CommentAddedEvent extends MinardComment {
   teamId: number;
 }
 
-export const DELETE_COMMENT_EVENT_TYPE = 'DELETE_COMMENT';
-export const createDeleteCommentEvent =
-  eventCreator<DeleteCommentEvent>(DELETE_COMMENT_EVENT_TYPE);
+export const COMMENT_DELETED_EVENT_TYPE = 'COMMENT_DELETED';
+export const createCommentDeletedEvent =
+  eventCreator<CommentDeletedEvent>(COMMENT_DELETED_EVENT_TYPE);
 
-export interface DeleteCommentEvent {
+export interface CommentDeletedEvent {
   teamId: number;
   commentId: number;
+  deploymentId: number;
+  projectId: number;
 }

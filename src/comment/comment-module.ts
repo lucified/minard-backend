@@ -12,8 +12,8 @@ import {
   DbComment,
   MinardComment,
   NewMinardComment,
-  createAddCommentEvent,
-  createDeleteCommentEvent,
+  createCommentAddedEvent,
+  createCommentDeletedEvent,
 } from './types';
 
 function toMinardComment(comment: DbComment): MinardComment {
@@ -59,7 +59,7 @@ export class CommentModule {
     const ids = await this.knex('comment').insert(dbComment).returning('id');
     dbComment.id = ids[0];
     const created = toMinardComment(dbComment);
-    await this.eventBus.post(createAddCommentEvent(created));
+    await this.eventBus.post(createCommentAddedEvent(created));
     return created;
   }
 
@@ -87,9 +87,11 @@ export class CommentModule {
       .update({ status: 'd'})
       .where('id', commentId);
 
-    this.eventBus.post(createDeleteCommentEvent({
+    this.eventBus.post(createCommentDeletedEvent({
       commentId,
       teamId: comment.teamId,
+      deploymentId: comment.deploymentId,
+      projectId: comment.projectId,
     }));
   }
 

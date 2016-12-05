@@ -1,7 +1,8 @@
-import { Observable } from '@reactivex/rxjs';
-import * as Redis from 'redis';
 
+import { Observable } from '@reactivex/rxjs';
 import { expect } from 'chai';
+import * as moment from 'moment';
+import * as Redis from 'redis';
 import 'reflect-metadata';
 
 import { PersistentEventBus } from '../event-bus';
@@ -9,6 +10,7 @@ import { PersistentEventBus } from '../event-bus';
 import {
   ApiBranch,
   ApiProject,
+  JsonApiEntity,
   JsonApiHapiPlugin,
   JsonApiModule,
   toApiBranchId,
@@ -39,7 +41,15 @@ import {
 } from '../project';
 
 import {
+  CommentAddedEvent,
+  CommentDeletedEvent,
+  createCommentAddedEvent,
+  createCommentDeletedEvent,
+} from '../comment';
+
+import {
   StreamingCodePushedEvent,
+  StreamingCommentDeletedEvent,
   StreamingDeploymentEvent,
 } from './types';
 
@@ -282,6 +292,70 @@ describe('realtime-hapi-plugin', () => {
       expect(createdPayload.deployment.id).to.equal(toApiDeploymentId(projectId, 6));
       expect(createdPayload.deployment.type).to.equal('deployments');
       expect(createdPayload.commit).to.equal(toApiCommitId(projectId, payload.deployment.commitHash));
+    });
+  });
+
+  describe('CommentAddedEvent', () => {
+    beforeEach(clearDb);
+
+    it('is transformed correctly to streaming event', async () => {
+      const mockFactory = () => ({
+        toApiComment: JsonApiModule.prototype.toApiComment,
+      });
+      const eventBus = getEventBus();
+      const plugin = getPlugin(eventBus, mockFactory);
+
+      // Act
+      const payload: CommentAddedEvent = {
+        teamId: 1,
+        projectId: 2,
+        createdAt: moment(),
+        deploymentId: 3,
+        email: 'foo@foomail.com',
+        id: 4,
+        message: 'foo msg',
+        name: 'foo name',
+      };
+      const promise = plugin.persistedEvents.take(1).toPromise();
+      const event = createCommentAddedEvent(payload);
+      eventBus.post(event);
+
+      const created = await promise;
+
+      // Assert
+      expect(created.type).to.equal('SSE_COMMENT_ADDED');
+      const createdPayload = created.payload as JsonApiEntity;
+      expect(createdPayload.attributes.deployment).to.equal('2-3');
+      expect(created.teamId).to.equal(payload.teamId);
+    });
+  });
+
+  describe('CommentDeletedEvent', () => {
+    beforeEach(clearDb);
+
+    it('is transformed correctly to streaming event', async () => {
+      const eventBus = getEventBus();
+      const plugin = getPlugin(eventBus, {} as any);
+
+      // Act
+      const payload: CommentDeletedEvent = {
+        teamId: 1,
+        projectId: 2,
+        deploymentId: 3,
+        commentId: 4,
+      };
+      const promise = plugin.persistedEvents.take(1).toPromise();
+      const event = createCommentDeletedEvent(payload);
+      eventBus.post(event);
+
+      const created = await promise;
+
+      // Assert
+      expect(created.type).to.equal('SSE_COMMENT_DELETED');
+      const createdPayload = created.payload as StreamingCommentDeletedEvent;
+      expect(createdPayload.deployment).to.equal('2-3');
+      expect(createdPayload.comment).to.equal(String(payload.commentId));
+      expect(created.teamId).to.equal(payload.teamId);
     });
   });
 

@@ -209,6 +209,9 @@ export class JsonApiModule {
       creator: activity.deployment.creator!,
     });
     delete deployment.ref;
+    delete deployment.commit;
+    delete deployment.commitHash;
+    delete deployment.teamId;
     const timestamp = toGitlabTimestamp(activity.timestamp);
     return {
       id: `${activity.projectId}-${activity.deployment.id}`,

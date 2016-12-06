@@ -2,7 +2,6 @@
 // Script for manually testing flowdock notifications
 // during development
 
-import * as fs from 'fs';
 import 'reflect-metadata';
 
 import { MinardDeployment } from '../deployment';
@@ -19,7 +18,7 @@ const branchUrl = 'http://www.bar.com';
 
 const deployment: MinardDeployment = {
   id: 10,
-  projectId: Math.round(Math.random()*10000),
+  projectId: Math.round(Math.random() * 10000),
   status: 'success',
   ref: 'foo-branch',
   projectName: 'foo-project-name',
@@ -47,4 +46,3 @@ async function test() {
 }
 
 test().catch(err => console.log(err));
-

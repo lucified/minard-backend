@@ -3,11 +3,16 @@ import { expect } from 'chai';
 import * as moment from 'moment';
 import 'reflect-metadata';
 
-import { LocalEventBus } from '../event-bus';
+import { Event, LocalEventBus } from '../event-bus';
 
 import {
   MinardCommit,
 } from '../shared/minard-commit';
+
+import {
+  CommentAddedEvent,
+  createCommentAddedEvent,
+} from '../comment';
 
 import {
   DeploymentEvent,
@@ -129,6 +134,17 @@ describe('activity-module', () => {
 
   const deploymentUrl = 'http://foo-bar.com/foo';
 
+  const commentAdded: CommentAddedEvent = {
+    createdAt: moment(),
+    deploymentId: 1,
+    email: 'foo@foomail.com',
+    id: 2,
+    message: 'foo msg',
+    name: 'foo name',
+    projectId: 3,
+    teamId: 4,
+  };
+
   async function arrangeActivityModule() {
     const knex = await setupKnex();
     await Promise.all(activities.map(item => knex('activity').insert(toDbActivity(item))));
@@ -137,7 +153,6 @@ describe('activity-module', () => {
       return Object.assign({}, _deployment, { url: deploymentUrl });
     };
     const activityModule = new ActivityModule(
-      {} as any,
       deploymentModule,
       {} as any,
       getEventBus(),
@@ -264,7 +279,6 @@ describe('activity-module', () => {
   });
 
   describe('subscribeForFinishedDeployments', () => {
-
     const teamId = 7;
     const projectId = 5;
     const deploymentId = 6;
@@ -284,7 +298,6 @@ describe('activity-module', () => {
       // Arrange
       const bus = getEventBus();
       const activityModule = new ActivityModule(
-        {} as any,
         {} as any,
         {} as any,
         bus,
@@ -335,7 +348,6 @@ describe('activity-module', () => {
       const activityModule = new ActivityModule(
         {} as any,
         {} as any,
-        {} as any,
         bus,
         {} as any);
 
@@ -355,7 +367,6 @@ describe('activity-module', () => {
       bus.post(event);
       expect(called).to.be.false;
     });
-
   });
 
   describe('createDeploymentActivity', () => {
@@ -384,7 +395,6 @@ describe('activity-module', () => {
 
       const activityModule = new ActivityModule(
         {} as any,
-        {} as any,
         logger,
         new LocalEventBus(),
         {} as any);
@@ -412,7 +422,68 @@ describe('activity-module', () => {
       };
       expect(activity).to.deep.equal(expected);
     });
+  });
 
+  describe('createCommentActivity', () => {
+    it('should return correct activity', async () => {
+      // Arrange
+      const branch = 'foo-branch';
+      const event = commentAdded;
+      const deploymentModule = {
+        getDeployment: async (deploymentId: number) => {
+          expect(deploymentId).to.equal(event.deploymentId);
+          return {
+            id: event.deploymentId,
+            ref: branch,
+          };
+        },
+      } as DeploymentModule;
+
+      const activityModule = new ActivityModule(
+        deploymentModule,
+        logger,
+        {} as any,
+        {} as any);
+
+      // Act
+      const ret = await activityModule.createCommentActivity(event);
+
+      // Assert
+      expect(ret.activityType).to.equal('comment');
+      expect(ret.branch).to.equal(branch);
+      expect(ret.message).to.equal(event.message);
+      expect(ret.name).to.equal(event.name);
+      expect(ret.teamId).to.equal(event.teamId);
+      expect(ret.email).to.equal(event.email);
+      expect(ret.deployment.ref).to.equal(branch);
+      expect(ret.commentId).to.equal(event.id);
+    });
+  });
+
+  describe('subscribeForComments', () => {
+    it('should create comment activity for comments', async () => {
+      // Arrange
+      const bus = getEventBus();
+      const activityModule = new ActivityModule(
+        {} as any,
+        {} as any,
+        bus,
+        {} as any);
+
+      const promise = new Promise<CommentAddedEvent>((resolve, reject) => {
+        activityModule.handleCommentAdded = async (event: Event<CommentAddedEvent>) => {
+          resolve(event.payload);
+        };
+      });
+
+      // Act
+      const event = createCommentAddedEvent(commentAdded);
+      bus.post(event);
+      const ret = await promise;
+
+      // Assert
+      expect(ret.id).to.equal(commentAdded.id);
+    });
   });
 
 });

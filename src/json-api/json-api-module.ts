@@ -1,6 +1,7 @@
 
 import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
+import { isNil, omitBy } from 'lodash';
 import * as moment from 'moment';
 
 import { toGitlabTimestamp, toMoment } from '../shared/time-conversion';
@@ -213,7 +214,8 @@ export class JsonApiModule {
     delete deployment.commitHash;
     delete deployment.teamId;
     const timestamp = toGitlabTimestamp(activity.timestamp);
-    return {
+
+    const ret: ApiActivity = {
       id: `${activity.projectId}-${activity.deployment.id}`,
       type: 'activity',
       branch,
@@ -222,7 +224,11 @@ export class JsonApiModule {
       timestamp,
       activityType: activity.activityType,
       deployment,
+      message: activity.message,
+      name: activity.name,
+      email: activity.email,
     };
+    return omitBy(ret, isNil) as ApiActivity;
   }
 
   public async toApiCommit(

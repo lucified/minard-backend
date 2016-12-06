@@ -1,5 +1,5 @@
-const Serializer = require('jsonapi-serializer').Serializer; // tslint:disable-line
 
+const Serializer = require('jsonapi-serializer').Serializer; // tslint:disable-line
 const deepcopy = require('deepcopy');
 
 import {
@@ -113,7 +113,16 @@ export const projectSerialization = (apiBaseUrl: string) => {
 };
 
 export const activitySerialization = {
-  attributes: ['timestamp', 'activityType', 'deployment', 'project', 'branch', 'commit'],
+  attributes: [
+    'timestamp',
+    'activityType',
+    'deployment',
+    'project',
+    'branch',
+    'commit',
+    'name',
+    'email',
+    'message'],
   ref: standardIdRef,
   included: true,
 };

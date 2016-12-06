@@ -14,6 +14,12 @@ import {
 } from '../event-bus';
 
 import {
+  MinardActivity,
+  MinardCommentActivity,
+  NEW_ACTIVITY,
+} from '../activity';
+
+import {
   DEPLOYMENT_EVENT_TYPE,
   DeploymentEvent,
   MinardDeployment,
@@ -45,6 +51,21 @@ import {
 import {
   ScreenshotModule,
 } from '../screenshot';
+
+// type for events that trigger notifications
+type NotificationEvent = DeploymentEvent | MinardActivity;
+
+function getComment(event: NotificationEvent) {
+  if ((event as MinardActivity).activityType === 'comment') {
+    const activityEvent = event as MinardCommentActivity;
+    return {
+      name: activityEvent.name,
+      email: activityEvent.email,
+      message: activityEvent.message,
+    };
+  }
+  return undefined;
+}
 
 @injectable()
 export class NotificationModule {
@@ -82,7 +103,13 @@ export class NotificationModule {
       .filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
       // only post event if status changes
       .filter(event => event.payload.statusUpdate.status !== undefined)
-      .flatMap(event => this.handleDeploymentEvent(event))
+      .flatMap(event => this.handleEvent(event))
+      .subscribe();
+
+    this.eventBus
+      .filterEvents<MinardActivity>(NEW_ACTIVITY)
+      .filter(event => event.payload.activityType === 'comment')
+      .flatMap(event => this.handleEvent(event))
       .subscribe();
   }
 
@@ -152,7 +179,7 @@ export class NotificationModule {
     }
   }
 
-  public async notify(event: Event<DeploymentEvent>, config: NotificationConfiguration): Promise<void> {
+  public async notify(event: Event<NotificationEvent>, config: NotificationConfiguration): Promise<void> {
     if (config.type === 'flowdock') {
       return this.notifyFlowdock(event, config as FlowdockNotificationConfiguration, );
     } else if (config.type === 'hipchat') {
@@ -160,17 +187,17 @@ export class NotificationModule {
     }
   }
 
-  public async getScreenshotDataUri(event: Event<DeploymentEvent>) {
+  public async getScreenshotDataUri(event: Event<NotificationEvent>) {
      const { projectId, id, screenshot } = event.payload.deployment;
      return screenshot ? this.screenshotModule.getDataUrl(projectId, id) : undefined;
   }
 
-  public async getScreenshotData(event: Event<DeploymentEvent>) {
+  public async getScreenshotData(event: Event<NotificationEvent>) {
      const { projectId, id, screenshot } = event.payload.deployment;
      return screenshot ? this.screenshotModule.getScreenshotData(projectId, id) : undefined;
   }
 
-  public async notifyHipchat(event: Event<DeploymentEvent>, config: HipChatNotificationConfiguration) {
+  public async notifyHipchat(event: Event<NotificationEvent>, config: HipChatNotificationConfiguration) {
     try {
       const { projectId, ref } = event.payload.deployment;
       const projectUrl = getUiProjectUrl(projectId, this.uiBaseUrl);
@@ -182,29 +209,36 @@ export class NotificationModule {
     }
   }
 
-  public async notifyFlowdock(event: Event<DeploymentEvent>, config: FlowdockNotificationConfiguration) {
+  public async notifyFlowdock(event: Event<NotificationEvent>, config: FlowdockNotificationConfiguration) {
     try {
       const { projectId, ref } = event.payload.deployment;
       const projectUrl = getUiProjectUrl(projectId, this.uiBaseUrl);
       const branchUrl = getUiBranchUrl(projectId, ref, this.uiBaseUrl);
       const deployment = Object.assign({}, event.payload.deployment,
         { screenshot: await this.getScreenshotData(event) }) as MinardDeployment;
-
-      await this.flowdockNotify.notify(deployment, config.flowToken, projectUrl, branchUrl);
+      const comment = getComment(event.payload);
+      await this.flowdockNotify.notify(deployment, config.flowToken, projectUrl, branchUrl, comment);
     } catch (error) {
       this.logger.error(`Failed to send Flowdock notification for deployment`, error);
     }
   }
 
-  private async handleDeploymentEvent(event: Event<DeploymentEvent>) {
+  private async getConfigurations(projectId: number, teamId: number) {
+    let configs = await this.getProjectConfigurations(projectId);
+    if (configs.length === 0) {
+      configs = await this.getTeamConfigurations(teamId);
+    }
+    return configs;
+  }
+
+  private async handleEvent(event: Event<NotificationEvent>) {
+    const teamId = event.payload.deployment.teamId;
+    const projectId = event.payload.deployment.projectId;
     try {
-      let configs = await this.getProjectConfigurations(event.payload.deployment.projectId);
-      if (configs.length === 0) {
-        configs = await this.getTeamConfigurations(event.payload.deployment.teamId);
-      }
+      const configs = await this.getConfigurations(projectId, teamId);
       await Promise.all(configs.map(item => this.notify(event, item)));
     } catch (error) {
-      this.logger.error(`Failed to send notifications for deployment`, error);
+      this.logger.error(`Failed to send notifications`, error);
     }
   }
 

@@ -5,9 +5,14 @@ import { inject, injectable } from 'inversify';
 import objectToFormData from './object-to-form-data';
 
 import {
+  NotificationComment,
+} from './types';
+
+import {
   MinardDeployment,
   MinardDeploymentStatus,
 } from '../deployment';
+
 import { IFetch, RequestInit } from '../shared/fetch';
 import { fetchInjectSymbol } from '../shared/types';
 
@@ -30,21 +35,18 @@ export class FlowdockNotify {
     deployment: MinardDeployment,
     flowToken: string,
     projectUrl: string,
-    branchUrl: string) {
+    branchUrl: string,
+    comment?: NotificationComment) {
     const state = deployment.status;
     const body = {
       flow_token: flowToken,
-      event: 'activity',
+      event: comment ? 'discussion' : 'activity',
       external_thread_id: this.flowdockThreadId(deployment),
-      tags: [deployment.projectName, deployment.ref, 'minard', 'preview', state].join(','),
-      thread: this.threadData(deployment, projectUrl, branchUrl),
-      title: this.activityTitle(deployment),
-      author: {
-        name: deployment.commit.committer.name,
-        email: deployment.commit.committer.email,
-        avatar: gravatar.url(deployment.commit.committer.email),
-      },
-      body: this.threadBody(deployment),
+      tags: this.tags(deployment, state, comment),
+      thread: this.threadData(deployment, projectUrl, branchUrl, comment),
+      title: comment ? 'commented' : this.messageTitle(deployment, comment),
+      author: this.author(deployment, comment),
+      body: comment ? comment.message : this.threadBody(deployment, comment),
     };
     return body;
   }
@@ -53,9 +55,11 @@ export class FlowdockNotify {
     deployment: MinardDeployment,
     flowToken: string,
     projectUrl: string,
-    branchUrl: string): Promise<void> {
+    branchUrl: string,
+    comment?: NotificationComment,
+    ): Promise<void> {
 
-    const body = this.getBody(deployment, flowToken, projectUrl, branchUrl);
+    const body = this.getBody(deployment, flowToken, projectUrl, branchUrl, comment);
     const fields = body.thread.fields;
 
     delete body.thread.fields;
@@ -68,7 +72,7 @@ export class FlowdockNotify {
       form.append('thread[fields][][value]', item.value);
     });
 
-    if (deployment.screenshot) {
+    if (deployment.screenshot && !comment) {
       form.append('attachments[screenshot]', deployment.screenshot, 'screenshot.jpg');
     }
 
@@ -105,11 +109,30 @@ export class FlowdockNotify {
     }
   }
 
+  private tags(deployment: MinardDeployment, state: string, comment?: NotificationComment) {
+    return comment ? '' : [deployment.projectName, deployment.ref, 'minard', 'preview', state].join(',');
+  }
+
+  private author(deployment: MinardDeployment, comment?: NotificationComment) {
+    if (comment) {
+      return {
+        name: comment.name ? comment.name : 'Anonymous',
+        email: comment.email,
+        avatar: gravatar.url(comment.email),
+      };
+    }
+    return {
+      name: deployment.commit.committer.name,
+      email: deployment.commit.committer.email,
+      avatar: gravatar.url(deployment.commit.committer.email),
+    };
+  }
+
   private flowdockThreadId(deployment: MinardDeployment) {
     return `minard:deployment:${deployment.projectId}:${deployment.id}`;
   }
 
-  private activityTitle(deployment: MinardDeployment) {
+  private threadTitle(deployment: MinardDeployment) {
     const fullName = `${deployment.projectName}/${deployment.ref}`;
     switch (deployment.status) {
       case 'success':
@@ -140,14 +163,21 @@ export class FlowdockNotify {
     }
   }
 
-  private threadBody(deployment: MinardDeployment) {
+  private threadBody(deployment: MinardDeployment, comment?: NotificationComment): string {
+    if (comment) {
+      return comment.message;
+    }
     return `<p style="font-family: monospace">${deployment.commit.message}</p>`;
   }
 
-  private threadData(deployment: MinardDeployment, projectUrl: string, branchUrl: string) {
+  private threadData(
+    deployment: MinardDeployment,
+    projectUrl: string,
+    branchUrl: string,
+    comment?: NotificationComment) {
     const state = deployment.status;
     return {
-      title: this.activityTitle(deployment),
+      title: this.threadTitle(deployment),
       body: this.threadBody(deployment),
       external_url: deployment.status === 'success' ? deployment.url : projectUrl,
       status: {
@@ -156,6 +186,10 @@ export class FlowdockNotify {
       },
       fields: this.threadFields(deployment, projectUrl, branchUrl),
     };
+  }
+
+  private messageTitle(deployment: MinardDeployment, comment?: NotificationComment) {
+    return comment ? comment.message : this.threadTitle(deployment);
   }
 
   private threadFields(deployment: MinardDeployment, projectUrl: string, branchUrl: string): ThreadField[] {

@@ -400,6 +400,7 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
+        cors: true,
         validate: {
           params: {
             id: Joi.number().required(),
@@ -416,6 +417,7 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
+        cors: true,
         validate: {
           payload: {
             data: Joi.object({

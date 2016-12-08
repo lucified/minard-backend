@@ -94,13 +94,16 @@ export interface ApiActivityCommit extends MinardCommit {
 
 export interface ApiActivity {
   type: 'activity';
-  activityType: string;
+  activityType: 'comment' | 'deployment';
   id: string;
   timestamp: string;
   deployment: ApiDeployment;
   project: ApiActivityProject;
   branch: ApiActivityBranch;
   commit: ApiActivityCommit;
+  name?: string;
+  email?: string;
+  message?: string;
 }
 
 export interface ApiComment {

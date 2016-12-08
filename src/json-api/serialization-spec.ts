@@ -130,6 +130,20 @@ const exampleActivity = {
   timestamp: exampleDeploymentOne.creator!.timestamp,
 } as ApiActivity;
 
+const exampleCommentActivity = {
+  type: 'activity',
+  id: 'dasfsa',
+  project: { id: '3', name: 'foo' },
+  branch: { id: '3-master', name: 'master' },
+  activityType: 'comment',
+  deployment: exampleDeploymentOne,
+  commit: exampleCommitOne,
+  timestamp: exampleDeploymentOne.creator!.timestamp,
+  message: 'foo msg',
+  name: 'foo name',
+  email: 'foo email',
+} as ApiActivity;
+
 const exampleComment: ApiComment = {
   id: 5,
   project: 6,
@@ -352,8 +366,7 @@ describe('json-api serialization', () => {
   });
 
   describe('activityToJsonApi()', () => {
-    it('should work with a single activity', () => {
-      const activity = exampleActivity as ApiActivity;
+    function testActivity(activity: ApiActivity) {
       const converted = serializeApiEntity('activity', activity, apiBaseUrl) as JsonApiResponse;
       const data = converted.data as JsonApiEntity;
       expect(data).to.exist;
@@ -377,6 +390,21 @@ describe('json-api serialization', () => {
       // do not include extra stuff
       expect(converted.included).to.not.exist;
       expect(data.relationships).to.not.exist;
+      return data;
+    }
+
+    it('should work with a deployment activity', () => {
+      const activity = exampleActivity as ApiActivity;
+      const data = testActivity(activity);
+      expect(data.attributes.email).to.be.undefined;
+    });
+
+    it('should work with a comment activity', () => {
+      const activity = exampleCommentActivity as ApiActivity;
+      const data = testActivity(activity);
+      expect(data.attributes.email).to.equal(activity.email);
+      expect(data.attributes.name).to.equal(activity.name);
+      expect(data.attributes.message).to.equal(activity.message);
     });
   });
 

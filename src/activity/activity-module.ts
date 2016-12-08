@@ -7,7 +7,13 @@ import {
   DEPLOYMENT_EVENT_TYPE,
   DeploymentEvent,
   DeploymentModule,
+  MinardDeployment,
 } from '../deployment';
+
+import {
+  COMMENT_ADDED_EVENT_TYPE,
+  CommentAddedEvent,
+} from '../comment';
 
 import {
   Event,
@@ -15,11 +21,12 @@ import {
   eventBusInjectSymbol,
 } from '../event-bus';
 
-import { ProjectModule } from '../project';
 import * as logger from  '../shared/logger';
 
 import {
   MinardActivity,
+  MinardCommentActivity,
+  MinardDeploymentActivity,
   createActivityEvent,
 } from './types';
 
@@ -36,29 +43,40 @@ export function toDbActivity(activity: MinardActivity) {
   });
 }
 
+function createDeploymentRelatedActivity(deployment: MinardDeployment) {
+  const branch = deployment.ref;
+  const commit = deployment.commit;
+  return {
+    activityType: 'deployment',
+    projectId: deployment.projectId,
+    projectName: deployment.projectName,
+    branch,
+    commit,
+    deployment,
+  };
+}
+
 @injectable()
 export default class ActivityModule {
 
   public static injectSymbol = Symbol('activity-module');
 
-  private readonly projectModule: ProjectModule;
   private readonly deploymentModule: DeploymentModule;
   private readonly logger: logger.Logger;
   private readonly knex: Knex;
   private readonly eventBus: EventBus;
 
   public constructor(
-    @inject(ProjectModule.injectSymbol) projectModule: ProjectModule,
     @inject(DeploymentModule.injectSymbol) deploymentModule: DeploymentModule,
     @inject(logger.loggerInjectSymbol) logger: logger.Logger,
     @inject(eventBusInjectSymbol) eventBus: EventBus,
     @inject('charles-knex') knex: Knex) {
-    this.projectModule = projectModule;
     this.deploymentModule = deploymentModule;
     this.logger = logger;
     this.eventBus = eventBus;
     this.knex = knex;
     this.subscribeForFinishedDeployments();
+    this.subscribeForComments();
   }
 
   public async subscribeForFinishedDeployments() {
@@ -67,6 +85,38 @@ export default class ActivityModule {
         || event.payload.statusUpdate.status === 'success')
       .flatMap(event => this.handleFinishedDeployment(event))
       .subscribe();
+  }
+
+  public async subscribeForComments() {
+    this.eventBus.filterEvents<CommentAddedEvent>(COMMENT_ADDED_EVENT_TYPE)
+      .flatMap(event => this.handleCommentAdded(event))
+      .subscribe();
+  }
+
+  // internal method
+  public async handleCommentAdded(event: Event<CommentAddedEvent>) {
+    try {
+      const activity = await this.createCommentActivity(event.payload);
+      await this.addActivity(activity);
+    } catch (error) {
+      this.logger.error('Failed to add activity based on ', error);
+    }
+  }
+
+  public async createCommentActivity(event: CommentAddedEvent): Promise<MinardCommentActivity> {
+    const deployment = await this.deploymentModule.getDeployment(event.deploymentId);
+    if (!deployment) {
+      throw Error(`Could not get deployment ${event.deploymentId} for comment '${event.id}'`);
+    }
+    return Object.assign(createDeploymentRelatedActivity(deployment), {
+      activityType: 'comment' as 'deployment' | 'comment',
+      timestamp: event.createdAt,
+      teamId: event.teamId,
+      name: event.name,
+      email: event.email,
+      message: event.message,
+      commentId: event.id,
+    });
   }
 
   private async handleFinishedDeployment(event: Event<DeploymentEvent>) {
@@ -78,27 +128,18 @@ export default class ActivityModule {
     }
   }
 
-  public createDeploymentActivity(event: DeploymentEvent): MinardActivity {
+  public createDeploymentActivity(event: DeploymentEvent): MinardDeploymentActivity {
     const deployment = event.deployment;
-    const branch = deployment.ref;
-    const commit = deployment.commit;
-
     let timestamp = deployment.finishedAt;
     if (!timestamp) {
       this.logger.warn(`Finished deployment ${deployment.id} did not have finishedAt defined`);
       timestamp = moment();
     }
-
-    return {
-      activityType: 'deployment',
-      projectId: deployment.projectId,
-      projectName: deployment.projectName,
-      branch,
-      commit,
+    return Object.assign(createDeploymentRelatedActivity(deployment), {
+      activityType: 'deployment' as 'deployment' | 'comment',
       timestamp,
-      deployment,
       teamId: event.teamId,
-    };
+    });
   }
 
   public async addActivity(activity: MinardActivity): Promise<void> {

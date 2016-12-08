@@ -6,24 +6,36 @@ import { MinardCommit } from '../shared/minard-commit';
 
 import * as moment from 'moment';
 
-export interface MinardActivity extends MinardActivityPlain {
+export interface MinardCommentActivity extends MinardActivity {
+  commentId: number;
+  name?: string;
+  email: string;
+  message: string;
+}
+
+export interface MinardDeploymentActivity extends MinardActivity {
+
+}
+
+export interface MinardActivity {
+  activityType: 'deployment' | 'comment';
   deployment: MinardDeployment;
+  id?: number;
+  timestamp: moment.Moment;
+  teamId: number;
+  projectId: number;
+  projectName: string;
+  branch: string;
   commit: MinardCommit;
+  name?: string;
+  email?: string;
+  message?: string;
+  commentId?: number;
 }
 
 export interface MinardActivityBranch {
   id: string;
   name: string;
-}
-
-export interface MinardActivityPlain {
-  id?: number;
-  timestamp: moment.Moment;
-  activityType: 'deployment';
-  teamId: number;
-  projectId: number;
-  projectName: string;
-  branch: string;
 }
 
 export const NEW_ACTIVITY = 'NEW_ACTIVITY';

@@ -12,8 +12,10 @@ import * as logger from '../shared/logger';
 import { ObservableWrapper } from './observable-wrapper';
 
 import {
+  ApiEntity,
   toApiBranchId,
   toApiCommitId,
+  toApiDeploymentId,
 } from '../json-api';
 
 import {
@@ -39,8 +41,16 @@ import {
 
 import {
   StreamingCodePushedEvent,
+  StreamingCommentDeletedEvent,
   StreamingDeploymentEvent,
 } from './types';
+
+import {
+  CommentAddedEvent,
+  CommentDeletedEvent,
+  createCommentAddedEvent,
+  createCommentDeletedEvent,
+} from '../comment';
 
 import { PersistentEventBus, eventBusInjectSymbol } from '../event-bus/';
 
@@ -228,6 +238,14 @@ export class RealtimeHapiPlugin {
           return this.deployment(event);
         }
 
+        if (isType<CommentAddedEvent>(event, createCommentAddedEvent)) {
+          return this.commentAdded(event);
+        }
+
+        if (isType<CommentDeletedEvent>(event, createCommentDeletedEvent)) {
+          return this.commentDeleted(event);
+        }
+
         return Observable.empty<StreamingEvent<any>>();
       }, 3);
   }
@@ -242,8 +260,8 @@ export class RealtimeHapiPlugin {
     try {
       const projectId = event.payload.projectId;
       const commits = await Promise.all(event.payload.commits.map(async item => {
-        const apiCommit = await this.jsonApiPlugin.getJsonApiModule().toApiCommit(projectId, item, []);
-        return this.jsonApiPlugin.serializeApiEntity('commit', apiCommit).data;
+        const apiCommit = await this.getJsonApiModule().toApiCommit(projectId, item, []);
+        return this.serializeApiEntity('commit', apiCommit).data;
       }));
 
       const branch = event.payload.after ?
@@ -265,6 +283,29 @@ export class RealtimeHapiPlugin {
       this.logger.error(`Unable to create StreamingCodePushedEvent`, { error, event });
       throw Error('Unable to create StreamingCodePushedEvent');
     }
+  }
+
+  private getJsonApiModule() {
+    return this.jsonApiPlugin.getJsonApiModule();
+  }
+
+  private serializeApiEntity(type: string, entity: ApiEntity) {
+    return this.jsonApiPlugin.serializeApiEntity(type, entity);
+  }
+
+  private async commentAdded(event: Event<CommentAddedEvent>) {
+    const comment = await this.getJsonApiModule().toApiComment(event.payload);
+    const payload = this.serializeApiEntity('comment', comment).data;
+    return this.toSSE(event, payload);
+  }
+
+  private async commentDeleted(event: Event<CommentDeletedEvent>) {
+    const payload: StreamingCommentDeletedEvent = {
+      comment: String(event.payload.commentId),
+      teamId: event.payload.teamId,
+      deployment: toApiDeploymentId(event.payload.projectId, event.payload.deploymentId),
+    };
+    return this.toSSE(event, payload);
   }
 
   private async projectCreated(event: Event<ProjectCreatedEvent>) {
@@ -307,5 +348,4 @@ export class RealtimeHapiPlugin {
       return true;
     })(payload) as StreamingEvent<T>;
   }
-
 }

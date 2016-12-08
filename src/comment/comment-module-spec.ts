@@ -10,11 +10,11 @@ import {
 } from './comment-module';
 
 import {
-  ADD_COMMENT_EVENT_TYPE,
-  AddCommentEvent,
-  DELETE_COMMENT_EVENT_TYPE,
+  COMMENT_ADDED_EVENT_TYPE,
+  COMMENT_DELETED_EVENT_TYPE,
+  CommentAddedEvent,
+  CommentDeletedEvent,
   DbComment,
-  DeleteCommentEvent,
   NewMinardComment,
 } from './types';
 
@@ -98,7 +98,7 @@ describe('comment-module', () => {
       const bus = getEventBus();
       const commentModule = await arrangeCommentModule(bus);
 
-      const promise = bus.filterEvents<AddCommentEvent>(ADD_COMMENT_EVENT_TYPE)
+      const promise = bus.filterEvents<CommentAddedEvent>(COMMENT_ADDED_EVENT_TYPE)
         .take(1)
         .toPromise();
 
@@ -137,7 +137,7 @@ describe('comment-module', () => {
       const commentModule = await arrangeCommentModule(bus);
 
       const promise = bus
-        .filterEvents<DeleteCommentEvent>(DELETE_COMMENT_EVENT_TYPE)
+        .filterEvents<CommentDeletedEvent>(COMMENT_DELETED_EVENT_TYPE)
         .take(1)
         .toPromise();
 
@@ -150,6 +150,8 @@ describe('comment-module', () => {
       expect(comment).to.equal(undefined);
       expect(event.payload.commentId).to.equal(commentId);
       expect(event.payload.teamId).to.equal(dbComments[1].teamId);
+      expect(event.payload.projectId).to.equal(dbComments[1].projectId);
+      expect(event.payload.deploymentId).to.equal(dbComments[1].deploymentId);
     });
   });
 

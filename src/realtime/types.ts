@@ -20,3 +20,9 @@ export interface StreamingDeploymentEvent {
   project: string;
   branch: string;
 }
+
+export interface StreamingCommentDeletedEvent {
+  teamId: number;
+  comment: string;
+  deployment: string;
+}

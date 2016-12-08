@@ -22,6 +22,10 @@ import { RealtimeHapiPlugin } from './realtime-hapi-plugin';
 import { promisify } from '../shared/promisify';
 
 import {
+  CommentModule,
+} from '../comment';
+
+import {
   DeploymentEvent,
   createDeploymentEvent,
 } from '../deployment';
@@ -42,6 +46,14 @@ import {
 function getPlugin(bus: PersistentEventBus, factory: any) {
   const jsonApi = new JsonApiHapiPlugin(factory, baseUrl, {} as any);
   return new RealtimeHapiPlugin(jsonApi, bus, logger(undefined, true));
+}
+
+function getMockCommentModule() {
+  const commentModule = {} as CommentModule;
+  commentModule.getCommentCountForDeployment = async (deploymentId: number) => {
+    return 2;
+  };
+  return commentModule;
 }
 
 let persistence: any = { type: 'inmemory' };
@@ -227,9 +239,15 @@ describe('realtime-hapi-plugin', () => {
     it('is transformed correctly to StreamingDeploymentEvent', async () => {
       const branchName = 'foo-branch-name';
       const projectId = 5;
-      const mockFactory = () => ({
-        toApiDeployment: JsonApiModule.prototype.toApiDeployment,
-      });
+      const mockFactory = () => new JsonApiModule(
+        {} as any,
+        {} as any,
+        {} as any,
+        {} as any,
+        {} as any,
+        getMockCommentModule(),
+      );
+
       const eventBus = getEventBus();
       const plugin = getPlugin(eventBus, mockFactory);
 

@@ -35,6 +35,7 @@ const exampleDeploymentOne = {
     email: 'fooman@gmail.com',
     timestamp: '2015-12-24T17:54:31.198Z',
   },
+  commentCount: 2,
 } as {} as ApiDeployment;
 
 const exampleDeploymentTwo = {
@@ -46,6 +47,7 @@ const exampleDeploymentTwo = {
     email: 'barwoman@gmail.com',
     timestamp: '2015-12-24T17:55:31.198Z',
   },
+  commentCount: 4,
 } as {} as ApiDeployment;
 
 const exampleCommitOne = {
@@ -228,6 +230,7 @@ describe('json-api serialization', () => {
       expect(data[0].attributes.url).to.equal(exampleDeploymentOne.url);
       expect(data[0].attributes.creator).to.deep.equal(exampleDeploymentOne.creator);
       expect(data[0].attributes.screenshot).to.equal(exampleDeploymentOne.screenshot);
+      expect(data[0].attributes['comment-count']).to.equal(exampleDeploymentOne.commentCount);
 
       // no relationships or includes
       expect(data[0].relationships).to.not.exist;
@@ -362,7 +365,11 @@ describe('json-api serialization', () => {
       // attributes
       expect(data.attributes.timestamp).to.equal(activity.timestamp);
       expect(data.attributes['activity-type']).to.equal(activity.activityType);
-      expect(data.attributes.deployment).to.deep.equal(activity.deployment);
+      expect(data.attributes.deployment.id).to.equal(activity.deployment.id);
+      expect(data.attributes.deployment.url).to.equal(activity.deployment.url);
+      expect(data.attributes.deployment.screenshot).to.equal(activity.deployment.screenshot);
+      expect(data.attributes.deployment.status).to.equal(activity.deployment.status);
+      expect(data.attributes.deployment.creator).to.deep.equal(activity.deployment.creator);
       expect(data.attributes.project).to.deep.equal(activity.project);
       expect(data.attributes.branch).to.deep.equal(activity.branch);
       expect(data.attributes.commit).to.deep.equal(activity.commit);

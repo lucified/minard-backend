@@ -246,10 +246,10 @@ export class JsonApiModule {
     return ret;
   }
 
-  // TODO: this method does not need to be async
   public async toApiDeployment(
     projectId: number,
     deployment: MinardDeployment): Promise<ApiDeployment> {
+    const commentCount = await this.commentModule.getCommentCountForDeployment(deployment.id);
     return {
       id: `${projectId}-${deployment.id}`,
       commitHash: deployment.commitHash,
@@ -261,6 +261,7 @@ export class JsonApiModule {
       buildStatus: deployment.buildStatus,
       extractionStatus: deployment.buildStatus,
       screenshotStatus: deployment.screenshotStatus,
+      commentCount,
     };
   }
 

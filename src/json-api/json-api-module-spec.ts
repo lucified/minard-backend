@@ -142,6 +142,7 @@ describe('json-api-module', () => {
       const branch = 'foo';
 
       const minardActivity: MinardActivity = {
+        id: 5,
         activityType: 'deployment',
         branch: 'foo-branch-name',
         teamId: 1,
@@ -184,6 +185,7 @@ describe('json-api-module', () => {
       const activity = await jsonApiModule.toApiActivity(minardActivity);
 
       // Assert
+      expect(activity.id).to.equal(String(minardActivity.id));
       expect(activity.activityType).to.equal('deployment');
       expect(activity.branch.id).to.equal(`${minardActivity.projectId}-${minardActivity.branch}`);
       expect(activity.branch.name).to.equal(minardActivity.branch);

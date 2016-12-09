@@ -606,7 +606,7 @@ export class JsonApiHapiPlugin {
       throw Boom.badRequest('Invalid deployment id');
     }
     const comment = await this.factory().addComment(
-        parsed.deploymentId, email, message, name === '' ? undefined : name);
+        parsed.deploymentId, email, message, name || undefined);
     return reply(this.serializeApiEntity('comment', comment))
       .created(`/api/comments/${comment.id}`);
   }

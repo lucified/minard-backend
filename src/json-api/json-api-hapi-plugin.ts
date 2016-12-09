@@ -425,7 +425,7 @@ export class JsonApiHapiPlugin {
               attributes: Joi.object({
                 email: Joi.string().email().required(),
                 message: Joi.string().required(),
-                name: Joi.string().max(50),
+                name: Joi.string().allow('').max(50),
                 deployment: Joi.string().required(),
               }),
             }).required(),
@@ -605,7 +605,8 @@ export class JsonApiHapiPlugin {
     if (!parsed) {
       throw Boom.badRequest('Invalid deployment id');
     }
-    const comment = await this.factory().addComment(parsed.deploymentId, email, message, name);
+    const comment = await this.factory().addComment(
+        parsed.deploymentId, email, message, name || undefined);
     return reply(this.serializeApiEntity('comment', comment))
       .created(`/api/comments/${comment.id}`);
   }

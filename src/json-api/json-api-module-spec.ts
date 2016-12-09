@@ -134,45 +134,45 @@ describe('json-api-module', () => {
   });
 
   describe('toApiActivity', () => {
-    it('should work with activity of type deployment', async () => {
-      // Arrange
-      const projectName = 'foo-project-name';
-      const deploymentId = 8;
-      const projectId = 9;
-      const branch = 'foo';
+    const projectName = 'foo-project-name';
+    const deploymentId = 8;
+    const projectId = 9;
+    const branch = 'foo';
 
-      const minardActivity: MinardActivity = {
-        id: 5,
-        activityType: 'deployment',
-        branch: 'foo-branch-name',
-        teamId: 1,
+    const minardActivity: MinardActivity = {
+      id: 5,
+      activityType: 'deployment',
+      branch: 'foo-branch-name',
+      teamId: 1,
+      projectId,
+      projectName,
+      deployment: {
+        id: deploymentId,
         projectId,
         projectName,
-        deployment: {
-          id: deploymentId,
-          projectId,
-          projectName,
-          status: 'success',
-          commit: {
-            id: 'foo-commit-id',
-          } as any,
-          commitHash: 'foo-commit-id',
-          ref: branch,
-          buildStatus: 'success',
-          extractionStatus: 'running',
-          screenshotStatus: 'running',
-        } as MinardDeployment,
+        status: 'success',
         commit: {
           id: 'foo-commit-id',
-          author: {
-            name: 'foo-name',
-            email: 'foo-email',
-            timestamp: '2022-09-20T09:06:12+03:00',
-          },
-        } as MinardCommit,
-        timestamp: moment(),
-      };
+        } as any,
+        commitHash: 'foo-commit-id',
+        ref: branch,
+        buildStatus: 'success',
+        extractionStatus: 'running',
+        screenshotStatus: 'running',
+      } as MinardDeployment,
+      commit: {
+        id: 'foo-commit-id',
+        author: {
+          name: 'foo-name',
+          email: 'foo-email',
+          timestamp: '2022-09-20T09:06:12+03:00',
+        },
+      } as MinardCommit,
+      timestamp: moment(),
+    };
 
+    it('should work with activity of type deployment', async () => {
+      // Arrange
       const jsonApiModule = new JsonApiModule(
         {} as any,
         {} as any,
@@ -196,6 +196,33 @@ describe('json-api-module', () => {
       expect(activity.commit.author).to.deep.equal(minardActivity.commit.author);
       expect(activity.deployment.id).to.equal(`${minardActivity.projectId}-${minardActivity.deployment.id}`);
       expect(activity.deployment.status).to.equal(minardActivity.deployment.status);
+    });
+
+    it('should work with activity of type comment', async () => {
+      // Arrange
+      const attributes = {
+        activityType: 'comment',
+        name: 'foo',
+        message: 'foo msg',
+        email: 'foo@goomail.com',
+        commentId: 4,
+      };
+      const commentActivity = Object.assign({}, minardActivity, attributes);
+      const jsonApiModule = new JsonApiModule(
+        {} as any,
+        {} as any,
+        {} as any,
+        {} as any,
+        {} as any,
+        {} as any);
+
+      // Act
+      const activity = await jsonApiModule.toApiActivity(commentActivity);
+      expect(activity.comment).to.exist;
+      expect(activity.comment!.name).to.equal(attributes.name);
+      expect(activity.comment!.email).to.equal(attributes.email);
+      expect(activity.comment!.message).to.equal(attributes.message);
+      expect(activity.comment!.id).to.equal(String(attributes.commentId));
     });
   });
 

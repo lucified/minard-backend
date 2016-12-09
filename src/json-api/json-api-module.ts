@@ -8,6 +8,7 @@ import { toGitlabTimestamp, toMoment } from '../shared/time-conversion';
 
 import {
   ApiActivity,
+  ApiActivityComment,
   ApiBranch,
   ApiComment,
   ApiCommit,
@@ -215,6 +216,14 @@ export class JsonApiModule {
     delete deployment.teamId;
     const timestamp = toGitlabTimestamp(activity.timestamp);
 
+    const comment: ApiActivityComment | undefined = activity.activityType === 'comment' ?
+    {
+      name: activity.name,
+      email: activity.email!,
+      message: activity.message!,
+      id: String(activity.commentId!),
+    } : undefined;
+
     const id = String(activity.id!);
     const ret: ApiActivity = {
       id,
@@ -225,9 +234,7 @@ export class JsonApiModule {
       timestamp,
       activityType: activity.activityType,
       deployment,
-      message: activity.message,
-      name: activity.name,
-      email: activity.email,
+      comment,
     };
     return omitBy(ret, isNil) as ApiActivity;
   }

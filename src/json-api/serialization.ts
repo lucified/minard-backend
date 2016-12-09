@@ -120,9 +120,7 @@ export const activitySerialization = {
     'project',
     'branch',
     'commit',
-    'name',
-    'email',
-    'message'],
+    'comment'],
   ref: standardIdRef,
   included: true,
 };

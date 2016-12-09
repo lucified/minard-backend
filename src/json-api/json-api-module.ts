@@ -215,8 +215,9 @@ export class JsonApiModule {
     delete deployment.teamId;
     const timestamp = toGitlabTimestamp(activity.timestamp);
 
+    const id = String(activity.id!);
     const ret: ApiActivity = {
-      id: `${activity.projectId}-${activity.deployment.id}`,
+      id,
       type: 'activity',
       branch,
       commit,

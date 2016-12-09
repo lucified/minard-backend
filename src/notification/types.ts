@@ -19,3 +19,9 @@ export interface NotificationConfiguration {
   type: NotificationType;
   [others: string]: any;
 }
+
+export interface NotificationComment {
+  name?: string;
+  email: string;
+  message: string;
+}

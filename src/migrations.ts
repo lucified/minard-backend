@@ -29,7 +29,11 @@ export default class Migrations {
   public async prepareDatabase() {
     this.logger.info('Preparing charles database');
     await this.assureDatabaseCreated();
-    await this.runMigrations();
+    try {
+      await this.runMigrations();
+    } catch (error) {
+      this.logger.error('Failed to run migrations', error);
+    }
   }
 
   private async runMigrations() {
@@ -53,7 +57,7 @@ export default class Migrations {
       },
     ];
     for (let i = 0; i < configs.length; i++) {
-      this.charlesKnex.migrate.latest(configs[i]);
+      await this.charlesKnex.migrate.latest(configs[i]);
     }
     this.logger.info('Migrations finished');
   }

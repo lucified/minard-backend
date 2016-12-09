@@ -1,14 +1,14 @@
 
 // Script for manually testing flowdock notifications
+// during development
 
-import * as fs from 'fs';
 import 'reflect-metadata';
 
 import { MinardDeployment } from '../deployment';
 import { IFetch, fetch } from '../shared/fetch';
 import { FlowdockNotify } from './flowdock-notify';
 
-const data = fs.readFileSync('mini-camel.jpg') as Buffer;
+// const screenshot = fs.readFileSync('mini-camel.jpg') as Buffer;
 
 const flowdockNotify = new FlowdockNotify(fetch as IFetch);
 
@@ -18,7 +18,7 @@ const branchUrl = 'http://www.bar.com';
 
 const deployment: MinardDeployment = {
   id: 10,
-  projectId: Math.round(Math.random() * 1000),
+  projectId: Math.round(Math.random() * 10000),
   status: 'success',
   ref: 'foo-branch',
   projectName: 'foo-project-name',
@@ -32,8 +32,17 @@ const deployment: MinardDeployment = {
       email: 'juho@lucify.com',
     },
   },
-  screenshot: data,
 } as any;
 
-flowdockNotify.notify(deployment, flowToken, projectUrl, branchUrl)
-  .catch(err => console.log(err));
+const comment = {
+  name: 'foo commenter',
+  email: 'foo@gjoo.com',
+  message: 'foo comment',
+};
+
+async function test() {
+ await flowdockNotify.notify(deployment, flowToken, projectUrl, branchUrl);
+ await flowdockNotify.notify(deployment, flowToken, projectUrl, branchUrl, comment);
+}
+
+test().catch(err => console.log(err));

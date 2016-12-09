@@ -203,9 +203,16 @@ export class NotificationModule {
       const projectUrl = getUiProjectUrl(projectId, this.uiBaseUrl);
       const branchUrl = getUiBranchUrl(projectId, ref, this.uiBaseUrl);
       const deployment = event.payload.deployment;
-      await this.hipchatNotify.notify(deployment, config.hipchatRoomId, config.hipchatAuthToken, projectUrl, branchUrl);
+      const comment = getComment(event.payload);
+      await this.hipchatNotify.notify(
+        deployment,
+        config.hipchatRoomId,
+        config.hipchatAuthToken,
+        projectUrl,
+        branchUrl,
+        comment);
     } catch (error) {
-      this.logger.error(`Failed to send Hipchat notification for deployment`, error);
+      this.logger.error(`Failed to send Hipchat notification`, error);
     }
   }
 
@@ -219,7 +226,7 @@ export class NotificationModule {
       const comment = getComment(event.payload);
       await this.flowdockNotify.notify(deployment, config.flowToken, projectUrl, branchUrl, comment);
     } catch (error) {
-      this.logger.error(`Failed to send Flowdock notification for deployment`, error);
+      this.logger.error(`Failed to send Flowdock notification`, error);
     }
   }
 

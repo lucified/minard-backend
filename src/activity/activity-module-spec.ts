@@ -28,6 +28,7 @@ import ActivityModule, {
 } from './activity-module';
 
 import {
+  NEW_ACTIVITY,
   MinardActivity,
 } from './types';
 
@@ -145,7 +146,7 @@ describe('activity-module', () => {
     teamId: 4,
   };
 
-  async function arrangeActivityModule() {
+  async function arrangeActivityModule(eventBus = getEventBus()) {
     const knex = await setupKnex();
     await Promise.all(activities.map(item => knex('activity').insert(toDbActivity(item))));
     const deploymentModule = {} as DeploymentModule;
@@ -155,7 +156,7 @@ describe('activity-module', () => {
     const activityModule = new ActivityModule(
       deploymentModule,
       {} as any,
-      getEventBus(),
+      eventBus,
       knex);
     return activityModule;
   }
@@ -483,6 +484,23 @@ describe('activity-module', () => {
 
       // Assert
       expect(ret.id).to.equal(commentAdded.id);
+    });
+  });
+
+  describe('addActivity', () => {
+    it('should assign id correctly', async () => {
+      const bus = getEventBus();
+      const activityModule = await arrangeActivityModule(bus);
+      const promise = bus.filterEvents<MinardActivity>(NEW_ACTIVITY).take(1).toPromise();
+
+      // Act
+      activityModule.addActivity(activities[0]);
+      const event = await promise;
+
+      // Assert
+      expect(event.payload.id).to.exist;
+      expect(typeof event.payload.id).equals('number');
+      expect(event.payload.id > 0 ).is.true;
     });
   });
 

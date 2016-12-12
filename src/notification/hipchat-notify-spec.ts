@@ -92,7 +92,7 @@ describe('hipchat-notify', () => {
     const options = await promise;
     const body = JSON.parse(options.body);
     expect(body.color).equal('green');
-    expect(body.card.description.value).equals(`<b>${comment.name}</b> added a new comment <i>${comment.message}</i>`);
+    expect(body.card.description.value).equals(`<b>${comment.name}</b> added a new comment: <i>${comment.message}</i>`);
 
     // (just do some basic checks for message)
     expect(body.message).to.exist;

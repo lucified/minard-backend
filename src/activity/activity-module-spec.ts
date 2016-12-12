@@ -28,8 +28,8 @@ import ActivityModule, {
 } from './activity-module';
 
 import {
-  NEW_ACTIVITY,
   MinardActivity,
+  NEW_ACTIVITY,
 } from './types';
 
 import * as Knex from 'knex';

@@ -143,8 +143,8 @@ export default class ActivityModule {
   }
 
   public async addActivity(activity: MinardActivity): Promise<void> {
-    await this.knex('activity').insert(toDbActivity(activity));
-    this.eventBus.post(createActivityEvent(activity));
+    const ids = await this.knex('activity').insert(toDbActivity(activity)).returning('id');
+    this.eventBus.post(createActivityEvent(Object.assign({}, activity, { id: ids[0] })));
   }
 
   private toMinardActivity(activity: any) {

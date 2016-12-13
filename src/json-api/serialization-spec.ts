@@ -139,9 +139,12 @@ const exampleCommentActivity = {
   deployment: exampleDeploymentOne,
   commit: exampleCommitOne,
   timestamp: exampleDeploymentOne.creator!.timestamp,
-  message: 'foo msg',
-  name: 'foo name',
-  email: 'foo email',
+  comment: {
+    id: '5',
+    message: 'foo msg',
+    name: 'foo name',
+    email: 'foo email',
+  },
 } as ApiActivity;
 
 const exampleComment: ApiComment = {
@@ -402,9 +405,7 @@ describe('json-api serialization', () => {
     it('should work with a comment activity', () => {
       const activity = exampleCommentActivity as ApiActivity;
       const data = testActivity(activity);
-      expect(data.attributes.email).to.equal(activity.email);
-      expect(data.attributes.name).to.equal(activity.name);
-      expect(data.attributes.message).to.equal(activity.message);
+      expect(data.attributes.comment).to.deep.equal(activity.comment);
     });
   });
 

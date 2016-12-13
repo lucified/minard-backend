@@ -92,6 +92,13 @@ export interface ApiActivityCommit extends MinardCommit {
   hash: string;
 }
 
+export interface ApiActivityComment {
+  name?: string;
+  email: string;
+  id: string;
+  message: string;
+}
+
 export interface ApiActivity {
   type: 'activity';
   activityType: 'comment' | 'deployment';
@@ -101,9 +108,7 @@ export interface ApiActivity {
   project: ApiActivityProject;
   branch: ApiActivityBranch;
   commit: ApiActivityCommit;
-  name?: string;
-  email?: string;
-  message?: string;
+  comment?: ApiActivityComment;
 }
 
 export interface ApiComment {

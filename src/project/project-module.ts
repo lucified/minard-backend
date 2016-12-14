@@ -241,6 +241,7 @@ export default class ProjectModule {
       if (err.isBoom && err.output.statusCode === MINARD_ERROR_CODE.NOT_FOUND) {
         return null;
       }
+      this.logger.error(`Failed to fetch branches for project ${projectId}`, err);
       throw Boom.badGateway();
     }
   }

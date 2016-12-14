@@ -42,7 +42,6 @@ import TokenGenerator from '../shared/token-generator';
 import {
   JsonApiHapiPlugin,
   JsonApiModule,
-  MemoizedJsonApiModule,
   ViewEndpoints,
 } from '../json-api';
 
@@ -96,7 +95,7 @@ export default new KernelModule(bind => {
   bind(AuthenticationModule.injectSymbol).to(AuthenticationModule);
   bind(CommentModule.injectSymbol).to(CommentModule);
   bind(DeploymentModule.injectSymbol).to(DeploymentModule).inSingletonScope();
-  bind(JsonApiModule.injectSymbol).to(MemoizedJsonApiModule);
+  bind(JsonApiModule.injectSymbol).to(JsonApiModule);
   bind(JsonApiModule.factoryInjectSymbol).toAutoFactory(JsonApiModule.injectSymbol);
   bind(NotificationModule.injectSymbol).to(NotificationModule).inSingletonScope();
   bind(OperationsModule.injectSymbol).to(OperationsModule);

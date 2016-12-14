@@ -1,5 +1,4 @@
 export { JsonApiModule } from './json-api-module';
-export { MemoizedJsonApiModule, memoizeApi } from './memoized-json-api-module';
 export { JsonApiHapiPlugin } from './json-api-hapi-plugin';
 export { ViewEndpoints } from './view-endpoints';
 

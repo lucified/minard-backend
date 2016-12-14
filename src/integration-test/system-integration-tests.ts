@@ -11,7 +11,7 @@ import { spawn } from 'child_process';
 import { keys } from 'lodash';
 
 import { JsonApiEntity, JsonApiResponse } from '../json-api';
-import { Response, fetch } from '../shared/fetch';
+import { fetch, Response } from '../shared/fetch';
 
 import * as chalk from 'chalk';
 

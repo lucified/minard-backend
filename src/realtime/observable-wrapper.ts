@@ -41,7 +41,7 @@ export class ObservableWrapper extends Readable {
         .subscribe(
           event => this.push(event),
           error => { throw error; },
-          () => this.push(null)
+          () => this.push(null),
         );
     }
   }

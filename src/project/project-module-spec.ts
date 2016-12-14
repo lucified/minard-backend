@@ -1,6 +1,7 @@
 
 import * as Boom from 'boom';
 import * as moment from 'moment';
+import * as queryString from 'querystring';
 import 'reflect-metadata';
 
 import AuthenticationModule from '../authentication/authentication-module';
@@ -10,7 +11,6 @@ import Logger from '../shared/logger';
 import { MINARD_ERROR_CODE } from '../shared/minard-error';
 import { toGitlabTimestamp } from '../shared/time-conversion';
 import SystemHookModule from '../system-hook/system-hook-module';
-import * as queryString from 'querystring';
 
 import { expect } from 'chai';
 
@@ -842,7 +842,7 @@ describe('project-module', () => {
       },
       {
         method,
-      }
+      },
     );
     return projectModule;
   }
@@ -1095,7 +1095,7 @@ describe('project-module', () => {
   describe('deleteProject()', () => {
     const projectId = 10;
     const teamId = 5;
-    function arrangeProjectModule(status: number, body: any, eventBus?: EventBus, ) {
+    function arrangeProjectModule(status: number, body: any, eventBus?: EventBus) {
       const bus = eventBus || new LocalEventBus();
       const client = getClient();
       const projectModule = new ProjectModule(
@@ -1120,7 +1120,7 @@ describe('project-module', () => {
         },
         {
           method: 'DELETE',
-        }
+        },
       );
       return projectModule;
     }
@@ -1170,7 +1170,7 @@ describe('project-module', () => {
       const projectModule = arrangeProjectModule(404,
         {
           message: '404 Project Not Found',
-        }
+        },
       );
       // Act & Assert
       try {

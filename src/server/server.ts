@@ -104,7 +104,7 @@ export default class MinardServer {
     await server.start();
     this.logger.info('Charles is up and listening on %s', server.info.uri);
     return server;
-  };
+  }
 
   public stop(): Hapi.IPromise<void> {
     return this.hapiServer.stop();
@@ -139,7 +139,7 @@ export default class MinardServer {
         raven,
       }), undefined, true);
     }
-  };
+  }
 
   private async getRaven(dsn: string) {
     try {

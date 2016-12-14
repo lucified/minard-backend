@@ -28,13 +28,13 @@ import {
 } from '../comment';
 
 import {
-  DeploymentEvent,
   createDeploymentEvent,
+  DeploymentEvent,
 } from '../deployment';
 
 import {
-  CodePushedEvent,
   codePushed,
+  CodePushedEvent,
   projectCreated,
   projectDeleted,
   projectEdited,

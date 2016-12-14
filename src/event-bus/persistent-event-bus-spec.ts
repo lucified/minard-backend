@@ -4,7 +4,7 @@ import * as moment from 'moment';
 import * as Redis from 'redis';
 import 'reflect-metadata';
 
-import { PersistedEvent, eventCreator, isPersistedEvent } from '../shared/events';
+import { eventCreator, isPersistedEvent, PersistedEvent } from '../shared/events';
 import { default as logger } from '../shared/logger';
 import { PersistentEventBus as EventBus } from './persistent-event-bus';
 

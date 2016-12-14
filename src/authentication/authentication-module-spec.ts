@@ -1,8 +1,8 @@
 
 import 'reflect-metadata';
 
-import AuthenticationModule from './authentication-module';
 import { expect } from 'chai';
+import AuthenticationModule from './authentication-module';
 
 import * as Knex from 'knex';
 

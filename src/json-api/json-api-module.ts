@@ -344,7 +344,7 @@ export class JsonApiModule {
     deploymentId: number,
     email: string,
     message: string,
-    name?: string
+    name?: string,
   ): Promise<ApiComment> {
     const deployment = await this.deploymentModule.getDeployment(deploymentId);
     if (!deployment) {

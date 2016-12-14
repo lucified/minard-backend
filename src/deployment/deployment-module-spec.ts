@@ -28,14 +28,14 @@ import {
 
 import {
   BuildCreatedEvent,
+  createBuildCreatedEvent,
+  createBuildStatusEvent,
+  createDeploymentEvent,
   DEPLOYMENT_EVENT_TYPE,
   DeploymentEvent,
   DeploymentStatusUpdate,
   MinardDeployment,
   MinardJsonInfo,
-  createBuildCreatedEvent,
-  createBuildStatusEvent,
-  createDeploymentEvent,
 } from './types';
 
 import { applyDefaults } from './gitlab-yml';

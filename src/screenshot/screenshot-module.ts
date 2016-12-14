@@ -11,10 +11,10 @@ import * as logger from '../shared/logger';
 import TokenGenerator from '../shared/token-generator';
 
 import {
-  Screenshotter,
   screenshotFolderInjectSymbol,
-  screenshotUrlPattern,
+  Screenshotter,
   screenshotterInjectSymbol,
+  screenshotUrlPattern,
 } from './types';
 
 const urljoin = require('url-join');

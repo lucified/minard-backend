@@ -4,8 +4,8 @@ import * as Knex from 'knex';
 import 'reflect-metadata';
 
 import {
-  MinardDeployment,
   createDeploymentEvent,
+  MinardDeployment,
 } from '../deployment';
 
 import {

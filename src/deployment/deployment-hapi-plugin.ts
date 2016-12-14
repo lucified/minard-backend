@@ -152,7 +152,7 @@ class DeploymentHapiPlugin {
       },
     });
     next();
-  };
+  }
 
   private async getGitlabYmlRequestHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const { projectId, ref, sha } = (<any> request.params);
@@ -185,7 +185,7 @@ class DeploymentHapiPlugin {
     if (!key) {
       return reply(Boom.create(
         403,
-        `Could not parse deployment URL from hostname '${request.info.hostname}'`
+        `Could not parse deployment URL from hostname '${request.info.hostname}'`,
       ));
     }
     return reply(key);

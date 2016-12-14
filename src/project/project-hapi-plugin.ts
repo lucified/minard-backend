@@ -42,6 +42,5 @@ export default class ProjectHapiPlugin {
     });
 
     next();
-  };
-
+  }
 }

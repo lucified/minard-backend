@@ -16,7 +16,7 @@ class StatusHapiPlugin {
 
   constructor(
     @inject(StatusModule.injectSymbol) statusModule: StatusModule,
-    @inject(logger.loggerInjectSymbol) logger: logger.Logger
+    @inject(logger.loggerInjectSymbol) logger: logger.Logger,
   ) {
     this.statusModule = statusModule;
     this.logger = logger;
@@ -58,7 +58,7 @@ class StatusHapiPlugin {
       },
     });
     next();
-  };
+  }
 
   public getEcsStatus() {
     return getEcsStatus();

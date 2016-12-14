@@ -44,7 +44,7 @@ export default class ScreenshotHapiPlugin {
       },
     });
     next();
-  };
+  }
 
   public async screenshotHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const projectId = (<any> request.params).projectId;

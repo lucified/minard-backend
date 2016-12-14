@@ -1,8 +1,8 @@
 
 import 'reflect-metadata';
 
-import Logger from '../shared/logger';
 import { expect } from 'chai';
+import Logger from '../shared/logger';
 
 import { LocalEventBus } from '../event-bus';
 import { ProjectModule } from '../project';

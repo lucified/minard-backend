@@ -53,7 +53,7 @@ export default class OperationsHapiPlugin {
       },
     });
     next();
-  };
+  }
 
   public async checkScreenshotsHandler(_request: Hapi.Request, reply: Hapi.IReply) {
     this.operationsModule.assureScreenshotsGenerated();

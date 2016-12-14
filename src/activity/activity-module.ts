@@ -24,10 +24,10 @@ import {
 import * as logger from  '../shared/logger';
 
 import {
+  createActivityEvent,
   MinardActivity,
   MinardCommentActivity,
   MinardDeploymentActivity,
-  createActivityEvent,
 } from './types';
 
 export function toDbActivity(activity: MinardActivity) {

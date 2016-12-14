@@ -384,7 +384,7 @@ export class JsonApiHapiPlugin {
                   teamId: Joi.number(),
                   hipchatRoomId: Joi.number().required(),
                   hipchatAuthToken: Joi.string().required(),
-                })
+                }),
               ),
             }).required(),
           },
@@ -452,7 +452,7 @@ export class JsonApiHapiPlugin {
     });
 
     next();
-  };
+  }
 
   public serializeApiEntity(type: string, entity: any) {
     return serializeApiEntity(type, entity, this.baseUrl);

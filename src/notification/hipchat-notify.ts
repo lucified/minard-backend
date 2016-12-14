@@ -64,7 +64,6 @@ export function getDescription(deployment: MinardDeployment, projectUrl: string,
   return ret;
 }
 
-
 @injectable()
 export class HipchatNotify {
 

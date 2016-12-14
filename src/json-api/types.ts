@@ -4,8 +4,6 @@ import {
 } from '../shared/minard-commit';
 
 import {
-  MinardBranch,
-  MinardProject,
   MinardProjectPlain,
 } from '../project/';
 
@@ -17,11 +15,6 @@ import {
 import {
   NotificationConfiguration,
 } from '../notification';
-
-interface MemoizedJsonApiModule {
-  toApiProject: (project: MinardProject) => Promise<ApiProject>;
-  toApiBranch: (project: MinardProject, branch: MinardBranch) => Promise<ApiBranch>;
-}
 
 export interface JsonApiEntity {
   type: 'commits' | 'deployments' | 'projects' | 'branches' | 'notifications';

@@ -1,5 +1,4 @@
 import { inject, injectable } from 'inversify';
-import * as stream from 'stream';
 
 import { CIProxy } from '../deployment';
 import { DeploymentHapiPlugin } from '../deployment';
@@ -26,25 +25,6 @@ import {
   hostInjectSymbol,
   portInjectSymbol,
 } from './types';
-
-class FilterStream extends stream.Transform {
-
-  constructor() {
-    const options = {
-      objectMode: true,
-    };
-    super(options);
-  }
-
-  public _transform(data: any, _enc: any, next: any) {
-    if (data.path
-      && data.path.indexOf('/ci/api/v1/builds/register.json') !== -1
-      && data.statusCode === 404) {
-      return next(null);
-    }
-    next(null, data);
-  }
-}
 
 @injectable()
 export default class MinardServer {

@@ -47,7 +47,7 @@ export class ObservableWrapper extends Readable {
   }
   // _read will be called when the stream wants to pull more data in
   // the advisory size argument is ignored in this case.
-  public _read(size: any) {
+  public _read(_size: any) {
     this.subscribe();
   }
 

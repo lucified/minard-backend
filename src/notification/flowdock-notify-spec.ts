@@ -43,8 +43,8 @@ describe('flowdock-notify', () => {
     const notifier = new FlowdockNotify(fetchMock.fetchMock);
 
     const mockUrl = `https://api.flowdock.com/messages`;
-    const promise = new Promise<any>((resolve, reject) => {
-      const response = (url: string, options: any) => {
+    const promise = new Promise<any>((resolve, _reject) => {
+      const response = (_url: string, options: any) => {
         resolve(options);
         return {};
       };

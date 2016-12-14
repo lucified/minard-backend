@@ -73,7 +73,7 @@ class StatusHapiPlugin {
       .code(systemStatus ? 200 : 503);
   }
 
-  private async getHealthHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  private async getHealthHandler(_request: Hapi.Request, reply: Hapi.IReply) {
     const state = await this.statusModule.getStatus(false);
     const compacted = Object.keys(state).reduce((collected, key) => {
       return Object.assign(collected, {[key]: state[key].active});

@@ -476,7 +476,7 @@ describe('project-module', () => {
       until: toGitlabTimestamp(until),
     };
 
-    function arrangeProjectModule(status: number, body: any) {
+    function arrangeProjectModule(status: number, _body: any) {
       return genericArrangeProjectModule(status, gitlabResponse,
         `/projects/${projectId}/repository/commits?${queryString.stringify(params)}`);
     }
@@ -1022,7 +1022,7 @@ describe('project-module', () => {
         .toPromise();
       const projectModule = arrangeProjectModule(201, { id: projectId, path }, bus);
 
-      const projectHookPromise = new Promise((resolve, reject) => {
+      const projectHookPromise = new Promise((resolve, _reject) => {
         projectModule.assureProjectHookRegistered = async (_projectId: number) => {
           resolve(_projectId);
         };
@@ -1533,7 +1533,7 @@ describe('project-module', () => {
       const projectModule = arrangeProjectModuleForProjectHookTest(200, body, path);
 
       // Act & Assert
-      const promise = new Promise((resolve, reject) => {
+      const promise = new Promise((resolve, _reject) => {
         projectModule.registerProjectHook = async (_projectId: number) => {
           expect(_projectId).to.equal(projectId);
           resolve();

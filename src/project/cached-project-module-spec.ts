@@ -2,9 +2,9 @@
 import { expect } from 'chai';
 import 'reflect-metadata';
 
+import * as cacheManager from 'cache-manager';
 import { Cache } from '../shared/cache';
 import CachedProjectModule from './cached-project-module';
-import * as cacheManager from 'cache-manager';
 
 describe('cached-project-module', () => {
 
@@ -86,7 +86,7 @@ describe('cached-project-module', () => {
         }
         return [{}, {}, {}];
       };
-      projectModule._handlePushEvent = async (_projectId: number, ref: string, payload: any) => undefined;
+      projectModule._handlePushEvent = async (_projectId: number, _ref: string, _payload: any) => undefined;
       const contributors = await projectModule.getProjectContributors(projectId);
       await projectModule.handlePushEvent(projectId, 'foo', {} as any);
       const contributors2 = await projectModule.getProjectContributors(projectId);

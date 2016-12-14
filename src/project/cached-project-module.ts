@@ -4,7 +4,7 @@ import { inject, injectable } from 'inversify';
 import { AuthenticationModule } from '../authentication';
 import { EventBus, eventBusInjectSymbol } from '../event-bus/';
 import { Cache, cacheInjectSymbol } from '../shared/cache';
-import { GitlabClient, gitBaseUrlInjectSymbol } from '../shared/gitlab-client';
+import { gitBaseUrlInjectSymbol, GitlabClient } from '../shared/gitlab-client';
 import * as logger from '../shared/logger';
 import { SystemHookModule } from '../system-hook';
 import ProjectModule from './project-module';

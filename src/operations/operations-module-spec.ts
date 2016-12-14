@@ -183,7 +183,7 @@ describe('operations-module', () => {
     const deploymentId = 5;
     it('should work when deployment is stuck at at screenshots phase', async () => {
       const deploymentModule = {} as DeploymentModule;
-      deploymentModule.getDeploymentsByStatus = async (status: MinardDeploymentStatus) => {
+      deploymentModule.getDeploymentsByStatus = async (_status: MinardDeploymentStatus) => {
         return [
           {
             id: 5,
@@ -195,7 +195,7 @@ describe('operations-module', () => {
       };
 
       // Arrange
-      const promise = new Promise((resolve, reject) => {
+      const promise = new Promise((resolve, _reject) => {
         deploymentModule.updateDeploymentStatus = async (id: number, update: DeploymentStatusUpdate) => {
           resolve({ id, update });
         };

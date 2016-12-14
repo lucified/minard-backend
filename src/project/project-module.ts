@@ -281,7 +281,7 @@ export default class ProjectModule {
       .assureSystemHookRegistered(this.getSystemHookPath());
   }
 
-  public receiveHook(payload: any) {
+  public receiveHook(_payload: any) {
     // TODO: handle push events
   }
 

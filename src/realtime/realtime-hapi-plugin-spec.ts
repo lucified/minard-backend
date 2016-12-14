@@ -60,7 +60,7 @@ function getPlugin(bus: PersistentEventBus, factory: any) {
 
 function getMockCommentModule() {
   const commentModule = {} as CommentModule;
-  commentModule.getCommentCountForDeployment = async (deploymentId: number) => {
+  commentModule.getCommentCountForDeployment = async (_deploymentId: number) => {
     return 2;
   };
   return commentModule;

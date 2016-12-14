@@ -3,12 +3,15 @@
   "rules": {
     "quotemark": [true, "single", "avoid-escape", "jsx-double"],
     "no-var-requires": false,
-    "interface-name": [],
     "object-literal-sort-keys": false,
     "no-console": [],
-    "variable-name": [true, "allow-leading-underscore"],
     "member-ordering": [false],
-    "object-literal-key-quotes": false
+    "arrow-parens": false,
+    "array-type": [true, "array"],
+    "interface-name": [false, "always-prefix"],
+    "max-classes-per-file": [false],
+    "object-literal-key-quotes": [false, "as-needed"],
+    "variable-name": [true, "ban-keywords", "check-format", "allow-leading-underscore", "allow-pascal-case"]
   },
   "rulesDirectory": []
 }

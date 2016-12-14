@@ -65,7 +65,7 @@ class DeploymentHapiPlugin {
     server.route({
       method: 'GET',
       path: '/deployment-favicon',
-      handler: (request: Hapi.Request, reply: Hapi.IReply) => {
+      handler: (_request: Hapi.Request, reply: Hapi.IReply) => {
         reply.file('favicon.ico');
       },
     });

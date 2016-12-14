@@ -1,4 +1,4 @@
-import { Kernel, interfaces } from 'inversify';
+import { interfaces } from 'inversify';
 
 import { ENV } from '../shared/types';
 

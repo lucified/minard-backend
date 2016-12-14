@@ -342,7 +342,7 @@ export default class DeploymentModule {
     return fs.existsSync(path);
   }
 
-  public async filesAtPath(projectId: number, shaOrBranchName: string, path: string) {
+  public async filesAtPath(projectId: number, _shaOrBranchName: string, path: string) {
     const url = `/projects/${projectId}/repository/tree?path=${path}`;
     const ret = await this.gitlab.fetchJsonAnyStatus(url);
     if (ret.status === 404) {

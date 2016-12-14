@@ -10,6 +10,10 @@ import {
   HipchatNotify,
 } from './hipchat-notify';
 
+import {
+  NotificationComment,
+} from './types';
+
 import { fetchMock } from '../shared/fetch';
 
 describe('hipchat-notify', () => {
@@ -31,15 +35,14 @@ describe('hipchat-notify', () => {
     screenshot: 'http://foo-bar.com/screenshot/foo',
   } as any;
 
-  it('should send correct notification for deployment with screenshot', async () => {
-    const deployment = baseDeployment;
-    // Arrange
-    const authToken = 'fake-hipchat-auth-token';
-    const roomId = 66;
-    const projectUrl = 'http://foo-bar.com/projects/5';
-    const branchUrl = 'http://foo-bar.com/branches/1-5';
-    const notifier = new HipchatNotify(fetchMock.fetchMock);
+  const deployment = baseDeployment;
+  const authToken = 'fake-hipchat-auth-token';
+  const roomId = 66;
+  const projectUrl = 'http://foo-bar.com/projects/5';
+  const branchUrl = 'http://foo-bar.com/branches/1-5';
 
+  function arrange(): { notifier: HipchatNotify, promise: Promise<any> } {
+    const notifier = new HipchatNotify(fetchMock.fetchMock);
     const mockUrl = `https://api.hipchat.com/v2/room/${roomId}/notification?auth_token=${authToken}`;
     const promise = new Promise<any>((resolve, reject) => {
       const response = (url: string, options: any) => {
@@ -48,6 +51,12 @@ describe('hipchat-notify', () => {
       };
       fetchMock.restore().mock(mockUrl, response, { method: 'POST' });
     });
+    return { notifier, promise };
+  }
+
+  it('should send correct notification for deployment with screenshot', async () => {
+    // Arrange
+    const { notifier, promise } = arrange();
 
     // Act
     await notifier.notify(deployment, roomId, authToken, projectUrl, branchUrl);
@@ -56,14 +65,38 @@ describe('hipchat-notify', () => {
     const options = await promise;
     const body = JSON.parse(options.body);
     expect(body.color).equal('green');
+
     // (just do some basic checks for message)
     expect(body.message).to.exist;
     expect(body.message).contains(deployment.projectName);
     expect(body.message).contains(projectUrl);
-    expect(body.message).contains(branchUrl);
     expect(body.message).contains(deployment.url!);
     expect(body.message).contains(deployment.screenshot!);
     expect(body.message).contains(deployment.commit.committer.name);
+    return body;
+  });
+
+  it('should send correct notification for comment', async () => {
+    // Arrange
+    const { notifier, promise } = arrange();
+    const comment: NotificationComment = {
+      email: 'foo@foomail.com',
+      name: 'foo woman',
+      message: 'foo msg',
+    };
+
+    // Act
+    await notifier.notify(deployment, roomId, authToken, projectUrl, branchUrl, comment);
+
+    // Assert
+    const options = await promise;
+    const body = JSON.parse(options.body);
+    expect(body.color).equal('green');
+    expect(body.card.description.value).equals(`<b>${comment.name}</b> added a new comment: <i>${comment.message}</i>`);
+
+    // (just do some basic checks for message)
+    expect(body.message).to.exist;
+    expect(body.message).contains(comment.message);
     return body;
   });
 

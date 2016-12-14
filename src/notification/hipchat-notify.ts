@@ -9,7 +9,14 @@ import {
 import { IFetch } from '../shared/fetch';
 import { fetchInjectSymbol } from '../shared/types';
 
-export function getMessageWithScreenshot(deployment: MinardDeployment, projectUrl: string, branchUrl: string) {
+import {
+  NotificationComment,
+} from './types';
+
+export function getMessageWithScreenshot(
+  deployment: MinardDeployment,
+  projectUrl: string,
+  comment?: NotificationComment) {
   const imgStyle = 'height: 100px; border: 1px solid #d8d8d8;';
   return `
     <table style="background-color: white; border: 1px solid #d8d8d8;">
@@ -22,39 +29,39 @@ export function getMessageWithScreenshot(deployment: MinardDeployment, projectUr
           </a>
         </td>
         <td>
-          ${getBasicMessage(deployment, projectUrl, branchUrl)}
+          ${getBasicMessage(deployment, projectUrl, comment)}
         </td>
       </tr>
     </table>`;
 }
 
-export function getBasicMessage(deployment: MinardDeployment, projectUrl: string, branchUrl: string) {
+export function getBasicMessage(deployment: MinardDeployment, projectUrl: string, comment?: NotificationComment) {
   return `
     <table>
       <tr>
         <td>
-          <img height="27" width="1" src='https://upload.wikimedia.org/wikipedia/commons/5/52/Spacer.gif' />
-          <b>${deployment.commit.committer.name}</b> generated preview
-          <a href='${deployment.url}'><code>${deployment.commit.shortId}</code></a>
-          in
-          <a href='${branchUrl}'>${deployment.ref}</a>
-          in <a href='${projectUrl}'>${deployment.projectName}</a>
+          <img height="81" width="1" src='https://upload.wikimedia.org/wikipedia/commons/5/52/Spacer.gif' />
+          ${getDescription(deployment, projectUrl, comment)}
         </td>
       <tr>
-      <tr>
-        <td>
-          <img height="27" width="1" src='https://upload.wikimedia.org/wikipedia/commons/5/52/Spacer.gif' />
-          <code>${deployment.commit.message}</code>
-        </td>
-      </tr>
-      <tr>
-        <td>
-          <img height="27" width="1" src='https://upload.wikimedia.org/wikipedia/commons/5/52/Spacer.gif' />
-          <a href="${deployment.url}">Open preview</a>
-        </td>
-      </tr>
     </table>
   `;
+}
+
+export function getDescription(deployment: MinardDeployment, projectUrl: string, comment?: NotificationComment) {
+  if (comment) {
+    const name = comment.name || comment.email;
+    return `<b>${name}</b> added a new comment: <i>${comment.message}</i>`;
+  }
+
+  const message = truncate(deployment.commit.message.split('\n')[0], { length: 50 });
+  let ret = `<b>${deployment.commit.committer.name}</b> generated ` +
+    `a new <a href="${deployment.url}">preview</a> ` +
+    `in <b><a href="${projectUrl}">${deployment.projectName}</a></b>.`;
+  if (message && message.length > 0) {
+    ret += ` <i>${message}</i>`;
+  }
+  return ret;
 }
 
 interface CardAttribute {
@@ -78,16 +85,7 @@ export class HipchatNotify {
     this.fetch = fetch;
   }
 
-  public getCard(deployment: MinardDeployment, projectUrl: string) {
-    const message = truncate(deployment.commit.message.split('\n')[0], { length: 50 });
-    let descriptionValue = `<b>${deployment.commit.committer.name}</b> generated ` +
-      `a new <a href="${deployment.url}">preview</a> ` +
-      `in <b><a href="${projectUrl}">${deployment.projectName}</a></b>.`;
-
-    if (message && message.length > 0) {
-      descriptionValue += ` <i>${message}</i>`;
-    }
-
+  private getCard(deployment: MinardDeployment, projectUrl: string, comment?: NotificationComment) {
     // we need this hack to show proper screenshot in integration
     // tests, as thumbnails served via localhost will crash the
     // hipchat android app
@@ -109,7 +107,7 @@ export class HipchatNotify {
       url: deployment.url,
       title: `${deployment.projectName}`,
       description: {
-        value: descriptionValue,
+        value: getDescription(deployment, projectUrl, comment),
         format: 'html',
       },
       icon: {
@@ -125,7 +123,8 @@ export class HipchatNotify {
     roomId: number,
     authToken: string,
     projectUrl: string,
-    branchUrl: string): Promise<any> {
+    branchUrl: string,
+    comment?: NotificationComment): Promise<any> {
 
     const status = deployment.status;
 
@@ -136,15 +135,16 @@ export class HipchatNotify {
 
     const url = `https://api.hipchat.com/v2/room/${roomId}/notification?auth_token=${authToken}`;
 
-    const message = deployment.screenshot ? getMessageWithScreenshot(deployment, projectUrl, branchUrl)
-      : getBasicMessage(deployment, projectUrl, branchUrl);
+    // this is only used for clients that don't support the card
+    const message = deployment.screenshot ? getMessageWithScreenshot(deployment, projectUrl, comment)
+      : getBasicMessage(deployment, projectUrl, comment);
 
     const body = {
       color: 'green',
       notify: false,
       message_format: 'html',
       message,
-      card: this.getCard(deployment, projectUrl),
+      card: this.getCard(deployment, projectUrl, comment),
     };
 
     const options = {
@@ -170,5 +170,4 @@ export class HipchatNotify {
       throw Error(`Unexpected status ${ret.status} when posting HipChat notification.`);
     }
   }
-
 }

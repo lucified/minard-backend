@@ -116,7 +116,7 @@ export class FlowdockNotify {
   private author(deployment: MinardDeployment, comment?: NotificationComment) {
     if (comment) {
       return {
-        name: comment.name ? comment.name : 'Anonymous',
+        name: comment.name ? comment.name : comment.email,
         email: comment.email,
         avatar: gravatar.url(comment.email),
       };

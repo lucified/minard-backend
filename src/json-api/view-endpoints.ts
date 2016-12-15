@@ -1,4 +1,5 @@
 
+import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
 
 import { externalBaseUrlInjectSymbol } from '../server/types';
@@ -45,14 +46,16 @@ export class ViewEndpoints {
       this.baseUrl = baseUrl + '/api';
   }
 
-  public async getPreview(projectId: number, deploymentId: number): Promise<PreviewView | null> {
+  public async getPreview(projectId: number, deploymentId: number, sha: string): Promise<PreviewView | null> {
      const _deployment = await this.deploymentModule.getDeployment(deploymentId);
      if (!_deployment) {
        return null;
      }
      const deployment = await this.jsonApi.toApiDeployment(projectId, _deployment);
      const commit = await this.jsonApi.toApiCommit(projectId, _deployment.commit, [ deployment ]);
-
+     if (commit.hash !== sha) {
+       throw Boom.forbidden('Invalid sha');
+     }
      return {
        project: {
          id: String(projectId),

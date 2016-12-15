@@ -128,6 +128,9 @@ export class JsonApiHapiPlugin {
             projectId: Joi.number().required(),
             deploymentId: Joi.number().required(),
           },
+          query: {
+            sha: Joi.string().required(),
+          },
         },
       },
     });
@@ -515,7 +518,8 @@ export class JsonApiHapiPlugin {
   private async getPreviewHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const projectId = Number((<any> request.params).projectId);
     const deploymentId = Number((<any> request.params).deploymentId);
-    const preview = this.viewEndpoints.getPreview(projectId, deploymentId);
+    const sha = request.query.sha;
+    const preview = await this.viewEndpoints.getPreview(projectId, deploymentId, sha);
     if (!preview) {
       throw Boom.notFound();
     }

@@ -162,7 +162,7 @@ export class JsonApiHapiPlugin {
             data: Joi.object({
               type: Joi.string().equal('projects').required(),
               attributes: Joi.object({
-                name: Joi.string().regex(projectNameRegex).required(),
+                name: Joi.string().regex(projectNameRegex).max(220).required(),
                 description: Joi.string().allow('').max(2000),
                 templateProjectId: Joi.number(),
               }).required(),
@@ -215,7 +215,7 @@ export class JsonApiHapiPlugin {
               id: Joi.number(),
               type: Joi.string().equal('projects').required(),
               attributes: Joi.object({
-                name: Joi.string().regex(projectNameRegex),
+                name: Joi.string().regex(projectNameRegex).max(220),
                 description: Joi.string().allow('').max(2000),
               }).required(),
             }).required(),

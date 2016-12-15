@@ -41,13 +41,13 @@ export class ObservableWrapper extends Readable {
         .subscribe(
           event => this.push(event),
           error => { throw error; },
-          () => this.push(null)
+          () => this.push(null),
         );
     }
   }
   // _read will be called when the stream wants to pull more data in
   // the advisory size argument is ignored in this case.
-  public _read(size: any) {
+  public _read(_size: any) {
     this.subscribe();
   }
 

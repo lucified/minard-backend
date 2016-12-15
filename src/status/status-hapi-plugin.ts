@@ -16,7 +16,7 @@ class StatusHapiPlugin {
 
   constructor(
     @inject(StatusModule.injectSymbol) statusModule: StatusModule,
-    @inject(logger.loggerInjectSymbol) logger: logger.Logger
+    @inject(logger.loggerInjectSymbol) logger: logger.Logger,
   ) {
     this.statusModule = statusModule;
     this.logger = logger;
@@ -58,7 +58,7 @@ class StatusHapiPlugin {
       },
     });
     next();
-  };
+  }
 
   public getEcsStatus() {
     return getEcsStatus();
@@ -73,7 +73,7 @@ class StatusHapiPlugin {
       .code(systemStatus ? 200 : 503);
   }
 
-  private async getHealthHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  private async getHealthHandler(_request: Hapi.Request, reply: Hapi.IReply) {
     const state = await this.statusModule.getStatus(false);
     const compacted = Object.keys(state).reduce((collected, key) => {
       return Object.assign(collected, {[key]: state[key].active});

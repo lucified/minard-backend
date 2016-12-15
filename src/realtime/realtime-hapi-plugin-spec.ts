@@ -28,13 +28,13 @@ import {
 } from '../comment';
 
 import {
-  DeploymentEvent,
   createDeploymentEvent,
+  DeploymentEvent,
 } from '../deployment';
 
 import {
-  CodePushedEvent,
   codePushed,
+  CodePushedEvent,
   projectCreated,
   projectDeleted,
   projectEdited,
@@ -60,7 +60,7 @@ function getPlugin(bus: PersistentEventBus, factory: any) {
 
 function getMockCommentModule() {
   const commentModule = {} as CommentModule;
-  commentModule.getCommentCountForDeployment = async (deploymentId: number) => {
+  commentModule.getCommentCountForDeployment = async (_deploymentId: number) => {
     return 2;
   };
   return commentModule;

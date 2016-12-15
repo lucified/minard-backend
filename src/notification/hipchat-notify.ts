@@ -64,17 +64,6 @@ export function getDescription(deployment: MinardDeployment, projectUrl: string,
   return ret;
 }
 
-interface CardAttribute {
-  label: string;
-  value?: {
-    label?: string,
-    icon?: {
-      url: string,
-    }
-    style?: string,
-  };
-};
-
 @injectable()
 export class HipchatNotify {
 
@@ -123,7 +112,7 @@ export class HipchatNotify {
     roomId: number,
     authToken: string,
     projectUrl: string,
-    branchUrl: string,
+    _branchUrl: string,
     comment?: NotificationComment): Promise<any> {
 
     const status = deployment.status;

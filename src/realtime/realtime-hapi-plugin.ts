@@ -19,24 +19,24 @@ import {
 } from '../json-api';
 
 import {
-  DeploymentEvent,
   createDeploymentEvent,
+  DeploymentEvent,
 } from '../deployment';
 
 import {
-  CodePushedEvent,
-  ProjectCreatedEvent,
-  ProjectDeletedEvent,
-  ProjectEditedEvent,
   codePushed,
+  CodePushedEvent,
   projectCreated,
+  ProjectCreatedEvent,
   projectDeleted,
+  ProjectDeletedEvent,
   projectEdited,
+  ProjectEditedEvent,
 } from '../project';
 
 import {
-  MinardActivity,
   createActivityEvent,
+  MinardActivity,
 } from '../activity';
 
 import {
@@ -52,15 +52,15 @@ import {
   createCommentDeletedEvent,
 } from '../comment';
 
-import { PersistentEventBus, eventBusInjectSymbol } from '../event-bus/';
+import { eventBusInjectSymbol, PersistentEventBus } from '../event-bus/';
 
 import {
   Event,
-  PersistedEvent,
-  StreamingEvent,
   eventCreator,
   isPersistedEvent,
   isType,
+  PersistedEvent,
+  StreamingEvent,
 } from '../shared/events';
 
 export const PING_INTERVAL = 20000;
@@ -146,7 +146,7 @@ export class RealtimeHapiPlugin {
 
     next();
 
-  };
+  }
 
   public readonly register: HapiRegister;
 
@@ -176,7 +176,7 @@ export class RealtimeHapiPlugin {
   private async onRequest(teamId: number, since?: number) {
       let observable = Observable.concat(
         Observable.of(this.pingEvent()),
-        this.persistedEvents.filter(event => event.teamId === teamId)
+        this.persistedEvents.filter(event => event.teamId === teamId),
       );
       if (since) {
         const existing = await this.eventBus.getEvents(teamId, since);
@@ -187,7 +187,7 @@ export class RealtimeHapiPlugin {
       }
       observable = Observable.merge(
         Observable.interval(PING_INTERVAL).map(_ => this.pingEvent()),
-        observable
+        observable,
       );
       return observable;
 

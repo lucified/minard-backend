@@ -25,8 +25,8 @@ import { systemHookBaseUrlSymbol } from '../system-hook/system-hook-module';
 
 import {
   screenshotFolderInjectSymbol,
-  screenshotUrlPattern,
   screenshotterBaseurlInjectSymbol,
+  screenshotUrlPattern,
 } from '../screenshot';
 
 import Logger from '../shared/logger';

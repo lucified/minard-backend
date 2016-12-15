@@ -20,7 +20,7 @@ export function directIdRef(_: any, item: any) {
   return item;
 }
 
-export function linkRef(_: any, item: any) {
+export function linkRef(_: any, _item: any) {
   return 'dummy-id';
 }
 
@@ -66,7 +66,7 @@ export const branchSerialization = (apiBaseUrl: string) => ({
     ignoreRelationshipData: true,
     ref: linkRef,
     relationshipLinks: {
-      self: (record: any, current: any, parent: any) => `${apiBaseUrl}/branches/${parent.id}/commits`,
+      self: (_record: any, _current: any, parent: any) => `${apiBaseUrl}/branches/${parent.id}/commits`,
     },
   },
   project: {
@@ -97,7 +97,7 @@ export const projectSerialization = (apiBaseUrl: string) => {
       ignoreRelationshipData: true,
       ref: linkRef,
       relationshipLinks: {
-        self: (record: any, current: any, parent: any) => `${apiBaseUrl}/projects/${parent.id}/branches`,
+        self: (_record: any, _current: any, parent: any) => `${apiBaseUrl}/projects/${parent.id}/branches`,
       },
     },
     latestSuccessfullyDeployedCommit: commitSerialization,
@@ -160,9 +160,6 @@ export function commitToJsonApi(commit: ApiCommit | ApiCommit[]) {
 export function activityToJsonApi(activity: ApiActivity | ApiActivity[]) {
   return new Serializer('activity', activitySerialization)
     .serialize(activity);
-}
-interface Serializers {
-  [propName: string]: any;
 }
 
 function projectSerializer(apiBaseUrl: string) {

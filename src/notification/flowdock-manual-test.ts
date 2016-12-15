@@ -5,7 +5,7 @@
 import 'reflect-metadata';
 
 import { MinardDeployment } from '../deployment';
-import { IFetch, fetch } from '../shared/fetch';
+import { fetch, IFetch } from '../shared/fetch';
 import { FlowdockNotify } from './flowdock-notify';
 
 // const screenshot = fs.readFileSync('mini-camel.jpg') as Buffer;

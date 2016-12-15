@@ -44,8 +44,8 @@ describe('hipchat-notify', () => {
   function arrange(): { notifier: HipchatNotify, promise: Promise<any> } {
     const notifier = new HipchatNotify(fetchMock.fetchMock);
     const mockUrl = `https://api.hipchat.com/v2/room/${roomId}/notification?auth_token=${authToken}`;
-    const promise = new Promise<any>((resolve, reject) => {
-      const response = (url: string, options: any) => {
+    const promise = new Promise<any>((resolve, _reject) => {
+      const response = (_url: string, options: any) => {
         resolve(options);
         return {};
       };

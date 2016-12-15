@@ -9,7 +9,7 @@ declare module 'hapi' {
 
 type AsyncHandler = (request: Request, reply: IReply ) => Promise<any>;
 
-function asyncHandlerFactory(route: IRoute, asyncHandler: AsyncHandler) {
+function asyncHandlerFactory(_route: IRoute, asyncHandler: AsyncHandler) {
   if (typeof asyncHandler !== 'function') {
     throw new Error('Hapi: route handler should be a function');
   }

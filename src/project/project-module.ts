@@ -6,7 +6,7 @@ import * as moment from 'moment';
 import * as queryString from 'querystring';
 
 import { Branch, Commit } from '../shared/gitlab';
-import { GitlabClient, gitBaseUrlInjectSymbol } from '../shared/gitlab-client';
+import { gitBaseUrlInjectSymbol, GitlabClient } from '../shared/gitlab-client';
 import * as logger from '../shared/logger';
 import { MINARD_ERROR_CODE } from '../shared/minard-error';
 import { sleep } from '../shared/sleep';
@@ -15,11 +15,11 @@ import { toGitlabTimestamp } from '../shared/time-conversion';
 import { GitlabPushEvent } from './gitlab-push-hook-types';
 
 import {
+  codePushed,
   CodePushedEvent,
   MinardBranch,
   MinardProject,
   MinardProjectContributor,
-  codePushed,
   projectCreated,
   projectDeleted,
   projectEdited,
@@ -281,7 +281,7 @@ export default class ProjectModule {
       .assureSystemHookRegistered(this.getSystemHookPath());
   }
 
-  public receiveHook(payload: any) {
+  public receiveHook(_payload: any) {
     // TODO: handle push events
   }
 
@@ -428,7 +428,7 @@ export default class ProjectModule {
     };
     const res = await this.gitlab.fetchJsonAnyStatus<any>(
       `projects/${projectId}?${queryString.stringify(params)}`,
-      { method: 'PUT' }
+      { method: 'PUT' },
     );
     if (res.status === 404) {
       this.logger.warn(`Attempted to edit project ${projectId} which does not exists (according to GitLab)`);
@@ -450,7 +450,7 @@ export default class ProjectModule {
       || (attributes.name && project.name !== attributes.name)) {
       this.logger.error(
         `Unexpected response payload from gitlab when editing project ${projectId}`,
-        { projectId, attributes, res }
+        { projectId, attributes, res },
       );
       throw Boom.badGateway();
     }
@@ -471,7 +471,7 @@ export default class ProjectModule {
       return this.doCreateProject(teamId, name, description);
     }
     return this.doCreateProjectFromTemplate(templateProjectId, teamId, name, description);
-  };
+  }
 
   // internal function
   public async doCreateProjectFromTemplate(

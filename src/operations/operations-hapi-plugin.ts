@@ -53,9 +53,9 @@ export default class OperationsHapiPlugin {
       },
     });
     next();
-  };
+  }
 
-  public async checkScreenshotsHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  public async checkScreenshotsHandler(_request: Hapi.Request, reply: Hapi.IReply) {
     this.operationsModule.assureScreenshotsGenerated();
     return reply({
       status: 200,
@@ -63,7 +63,7 @@ export default class OperationsHapiPlugin {
     });
   }
 
-  public async checkDeploymentActivityHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  public async checkDeploymentActivityHandler(_request: Hapi.Request, reply: Hapi.IReply) {
     this.operationsModule.assureDeploymentActivity();
     return reply({
       status: 200,
@@ -71,7 +71,7 @@ export default class OperationsHapiPlugin {
     });
   }
 
-  public async cleanupRunningDeployments(request: Hapi.Request, reply: Hapi.IReply) {
+  public async cleanupRunningDeployments(_request: Hapi.Request, reply: Hapi.IReply) {
     this.operationsModule.cleanupRunningDeployments();
     return reply({
       status: 200,

@@ -33,16 +33,16 @@ import {
   BUILD_STATUS_EVENT_TYPE,
   BuildCreatedEvent,
   BuildStatusEvent,
+  createDeploymentEvent,
   DEPLOYMENT_EVENT_TYPE,
   DeploymentEvent,
   DeploymentStatusUpdate,
+  deploymentUrlPatternInjectSymbol,
   MinardDeployment,
   MinardDeploymentStatus,
   MinardJson,
   MinardJsonInfo,
   RepositoryObject,
-  createDeploymentEvent,
-  deploymentUrlPatternInjectSymbol,
 } from './types';
 
 import {
@@ -218,7 +218,7 @@ export default class DeploymentModule {
       .where('projectId', projectId)
       .orderBy('id', 'DESC');
     return (await select).map(this.toMinardDeployment.bind(this));
-  };
+  }
 
   public async getLatestSuccessfulProjectDeployment(projectId: number): Promise<MinardDeployment | undefined> {
     const select = this.knex.select('*')
@@ -324,7 +324,7 @@ export default class DeploymentModule {
     if (ret.extractionStatus === 'success') {
       ret.url = sprintf(
         this.urlPattern,
-        `${ret.ref}-${ret.commit.shortId}-${ret.projectId}-${ret.id}`
+        `${ret.ref}-${ret.commit.shortId}-${ret.projectId}-${ret.id}`,
       );
     }
     if (ret.screenshotStatus === 'success') {
@@ -342,7 +342,7 @@ export default class DeploymentModule {
     return fs.existsSync(path);
   }
 
-  public async filesAtPath(projectId: number, shaOrBranchName: string, path: string) {
+  public async filesAtPath(projectId: number, _shaOrBranchName: string, path: string) {
     const url = `/projects/${projectId}/repository/tree?path=${path}`;
     const ret = await this.gitlab.fetchJsonAnyStatus(url);
     if (ret.status === 404) {

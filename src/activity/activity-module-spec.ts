@@ -15,10 +15,10 @@ import {
 } from '../comment';
 
 import {
+  createDeploymentEvent,
   DeploymentEvent,
   DeploymentModule,
   MinardDeployment,
-  createDeploymentEvent,
 } from '../deployment';
 
 import Logger from '../shared/logger';
@@ -471,7 +471,7 @@ describe('activity-module', () => {
         bus,
         {} as any);
 
-      const promise = new Promise<CommentAddedEvent>((resolve, reject) => {
+      const promise = new Promise<CommentAddedEvent>((resolve, _reject) => {
         activityModule.handleCommentAdded = async (event: Event<CommentAddedEvent>) => {
           resolve(event.payload);
         };

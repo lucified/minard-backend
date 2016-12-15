@@ -1,4 +1,4 @@
-import { Kernel, interfaces } from 'inversify';
+import { interfaces, Kernel } from 'inversify';
 
 import { default as common } from './config-common';
 import { default as development } from './config-development';

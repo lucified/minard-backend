@@ -28,14 +28,14 @@ import {
 
 import {
   BuildCreatedEvent,
+  createBuildCreatedEvent,
+  createBuildStatusEvent,
+  createDeploymentEvent,
   DEPLOYMENT_EVENT_TYPE,
   DeploymentEvent,
   DeploymentStatusUpdate,
   MinardDeployment,
   MinardJsonInfo,
-  createBuildCreatedEvent,
-  createBuildStatusEvent,
-  createDeploymentEvent,
 } from './types';
 
 import { applyDefaults } from './gitlab-yml';
@@ -599,7 +599,7 @@ describe('deployment-module', () => {
         resolve1 = resolve;
         reject1 = reject;
       });
-      const promise2 = new Promise((resolve, reject) => {
+      const promise2 = new Promise((resolve, _reject) => {
         resolve2 = resolve;
       });
       let firstCalled = false;
@@ -621,7 +621,7 @@ describe('deployment-module', () => {
       // add catch to prevent warnings for unhandled promise which will
       // actually be handled later.
       // http://clarkdave.net/2016/09/node-v6-6-and-asynchronously-handled-promise-rejections/
-      retPromise1.catch(err => null);
+      retPromise1.catch(_err => null);
 
       expect(firstCalled).to.equal(true);
       expect(secondCalled).to.equal(false);
@@ -640,7 +640,7 @@ describe('deployment-module', () => {
     }
 
     it('should queue calls to doPrepareDeploymentForServing', async () => {
-      const ret = await shouldQueueCalls((resolve: (arg: any) => void, reject: (arg: any) => void) => {
+      const ret = await shouldQueueCalls((resolve: (arg: any) => void, _reject: (arg: any) => void) => {
         resolve('foo');
       });
       expect(await ret[0]).to.equal('foo');
@@ -648,7 +648,7 @@ describe('deployment-module', () => {
     });
 
     it('should queue calls to doPrepareDeploymentForServing after rejected promises', async () => {
-      const ret = await shouldQueueCalls((resolve: (arg: any) => void, reject: (arg: any) => void) => {
+      const ret = await shouldQueueCalls((_resolve: (arg: any) => void, reject: (arg: any) => void) => {
         reject('foo');
       });
 
@@ -891,7 +891,7 @@ describe('deployment-module', () => {
 
     function arrangeDeploymentModule(_deployments: MinardDeployment[]) {
       const deploymentModule = getDeploymentModule({} as any, 'foo', silentLogger);
-      deploymentModule.getMinardJsonInfo = async (_projectId: number, shaOrBranchName: string) => {
+      deploymentModule.getMinardJsonInfo = async (_projectId: number, _shaOrBranchName: string) => {
         const info: MinardJsonInfo = {
           content: '{}',
           effective: {},
@@ -1005,7 +1005,7 @@ describe('deployment-module', () => {
       const bus = getEventBus();
       const deploymentModule = createDeploymentModule(bus, basicLogger);
 
-      const promise = new Promise((resolve, reject) => {
+      const promise = new Promise((resolve, _reject) => {
         deploymentModule.createDeployment = async (event: Event<BuildCreatedEvent>) => {
           expect(event.payload).to.deep.equal(payload);
           resolve();
@@ -1024,7 +1024,7 @@ describe('deployment-module', () => {
       const deploymentModule = createDeploymentModule(bus, basicLogger);
 
       // Act & Assert
-      const promise = new Promise((resolve, reject) => {
+      const promise = new Promise((resolve, _reject) => {
         deploymentModule.updateDeploymentStatus = async (_deploymentId: number, updates: DeploymentStatusUpdate) => {
           expect(_deploymentId).to.equal(deploymentId);
           expect(updates.buildStatus).to.equal(status);
@@ -1046,7 +1046,7 @@ describe('deployment-module', () => {
       const deploymentModule = createDeploymentModule(bus, basicLogger);
 
       // Act & Assert
-      const promise = new Promise((resolve, reject) => {
+      const promise = new Promise((resolve, _reject) => {
         deploymentModule.prepareDeploymentForServing = async (
           _projectId: number, _deploymentId: number, checkStatus: boolean) => {
           expect(deploymentId).to.equal(_deploymentId);
@@ -1078,7 +1078,7 @@ describe('deployment-module', () => {
       const deploymentModule = createDeploymentModule(bus);
 
       // Act & Assert
-      const promise = new Promise((resolve, reject) => {
+      const promise = new Promise((resolve, _reject) => {
         deploymentModule.takeScreenshot = async (
           _projectId: number, _deploymentId: number, _shortId: string) => {
           expect(deploymentId).to.equal(_deploymentId);
@@ -1200,8 +1200,8 @@ describe('deployment-module', () => {
     async function shouldNotUpdate(
       beforeState: any,
       statusUpdate: DeploymentStatusUpdate,
-      resultingUpdate: DeploymentStatusUpdate,
-      resultingStatus: string) {
+      _resultingUpdate: DeploymentStatusUpdate,
+      _resultingStatus: string) {
 
       // Arrange
       const bus = getEventBus();
@@ -1211,7 +1211,7 @@ describe('deployment-module', () => {
 
       let called = false;
       bus.filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
-        .subscribe(item => {
+        .subscribe(_item => {
           called = true;
         });
 

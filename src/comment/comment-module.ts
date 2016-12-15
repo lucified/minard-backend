@@ -9,11 +9,11 @@ import {
 } from '../event-bus';
 
 import {
+  createCommentAddedEvent,
+  createCommentDeletedEvent,
   DbComment,
   MinardComment,
   NewMinardComment,
-  createCommentAddedEvent,
-  createCommentDeletedEvent,
 } from './types';
 
 function toMinardComment(comment: DbComment): MinardComment {

@@ -114,7 +114,7 @@ export class GitlabClient {
   public async fetchJsonAnyStatus<T>(
     path: string,
     options?: RequestInit,
-    logErrors: boolean = true
+    logErrors: boolean = true,
     ): Promise<{status: number, json: T | undefined}> {
     const timerId = this._logging ? randomstring.generate() : null;
     if (this._logging) {

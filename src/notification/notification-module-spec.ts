@@ -4,8 +4,8 @@ import * as Knex from 'knex';
 import 'reflect-metadata';
 
 import {
-  MinardDeployment,
   createDeploymentEvent,
+  MinardDeployment,
 } from '../deployment';
 
 import {
@@ -87,7 +87,7 @@ describe('notification-module', () => {
     // Arrange
     const bus = new LocalEventBus();
     const flowdockNotify = {} as FlowdockNotify;
-    const promise = new Promise<any>((resolve: any, reject: any) => {
+    const promise = new Promise<any>((resolve: any, _reject: any) => {
       flowdockNotify.notify = async (
         deployment: MinardDeployment, _flowToken: string, _projectUrl: string, _branchUrl: string) => {
         resolve({
@@ -135,7 +135,7 @@ describe('notification-module', () => {
     const hipchatProjectId = 77;
     const bus = new LocalEventBus();
     const hipchatNotify = {} as HipchatNotify;
-    const promise = new Promise<any>((resolve: any, reject: any) => {
+    const promise = new Promise<any>((resolve: any, _reject: any) => {
       hipchatNotify.notify = async (
         deployment: MinardDeployment, roomId: number, authToken: string, _projectUrl: string, _branchUrl: string) => {
         resolve({

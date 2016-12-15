@@ -1,7 +1,7 @@
 import { Observable, Subject } from '@reactivex/rxjs';
 import { inject, injectable } from 'inversify';
 
-import { Event, PersistedEvent, isSSE } from '../shared/events';
+import { Event, isSSE, PersistedEvent } from '../shared/events';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
 import { default as LocalEventBus } from './local-event-bus';
 
@@ -41,7 +41,7 @@ export class PersistentEventBus extends LocalEventBus {
   private prependInit(pipe: Subject<Job>) {
     return Observable.concat(
       Observable.of({ type: 'INIT', execute: () => this.ensureInit() }),
-      pipe
+      pipe,
     );
   }
 

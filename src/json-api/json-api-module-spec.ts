@@ -40,7 +40,7 @@ import { toGitlabTimestamp } from '../shared/time-conversion';
 
 function getMockCommentModule() {
   const commentModule = {} as CommentModule;
-  commentModule.getCommentCountForDeployment = async (deploymentId: number) => {
+  commentModule.getCommentCountForDeployment = async (_deploymentId: number) => {
     return 2;
   };
   return commentModule;
@@ -367,15 +367,15 @@ describe('json-api-module', () => {
     it('should return valid ApiBranch when fetching of related data succeeds', async () => {
       // Arrange
       const deploymentModule = {} as DeploymentModule;
-      deploymentModule.getMinardJsonInfo = async (projectId: number, branchName: string) => {
+      deploymentModule.getMinardJsonInfo = async (_projectId: number, _branchName: string) => {
         return minardJsonInfo;
       };
-      deploymentModule.getLatestSuccessfulBranchDeployment = async (projectId: number) => {
+      deploymentModule.getLatestSuccessfulBranchDeployment = async (_projectId: number) => {
         return minardDeployment;
       };
       const projectModule = {} as ProjectModule;
       const screenshotModule = {} as ScreenshotModule;
-      screenshotModule.deploymentHasScreenshot = async (projectId: number, deploymentId: number) => {
+      screenshotModule.deploymentHasScreenshot = async (_projectId: number, _deploymentId: number) => {
         return false;
       };
 
@@ -386,7 +386,7 @@ describe('json-api-module', () => {
         screenshotModule,
         {} as any,
         getMockCommentModule());
-      jsonApiModule.toApiCommit = async(projectId: number, commit: MinardCommit, deployments?: ApiDeployment[]) => {
+      jsonApiModule.toApiCommit = async(_projectId: number, commit: MinardCommit, _deployments?: ApiDeployment[]) => {
         expect(commit).to.exist;
         if (commit.id === minardBranch.latestCommit.id) {
           return latestCommitReturnedFromToApiCommit;
@@ -429,12 +429,12 @@ describe('json-api-module', () => {
       };
 
       const deploymentModule = {} as DeploymentModule;
-      deploymentModule.getLatestSuccessfulProjectDeployment = async (projectId: number) => {
+      deploymentModule.getLatestSuccessfulProjectDeployment = async (_projectId: number) => {
         return minardDeployment;
       };
       const projectModule = {} as ProjectModule;
       const screenshotModule = {} as ScreenshotModule;
-      screenshotModule.deploymentHasScreenshot = async (projectId: number, deploymentId: number) => {
+      screenshotModule.deploymentHasScreenshot = async (_projectId: number, _deploymentId: number) => {
         return false;
       };
 

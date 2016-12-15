@@ -1,11 +1,11 @@
 
-import { createSystemHookRegistrationEvent } from './types';
 import { inject, injectable } from 'inversify';
 
 import { EventBus, eventBusInjectSymbol } from '../event-bus';
 import { SystemHook } from '../shared/gitlab';
 import { GitlabClient } from '../shared/gitlab-client';
 import { Logger, loggerInjectSymbol} from '../shared/logger';
+import { createSystemHookRegistrationEvent } from './types';
 
 const urljoin = require('url-join');
 

@@ -174,7 +174,7 @@ export class FlowdockNotify {
     deployment: MinardDeployment,
     projectUrl: string,
     branchUrl: string,
-    comment?: NotificationComment) {
+    _comment?: NotificationComment) {
     const state = deployment.status;
     return {
       title: this.threadTitle(deployment),

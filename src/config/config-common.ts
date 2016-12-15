@@ -21,8 +21,8 @@ import {
 } from '../shared/route53-updater';
 
 import {
-  PersistentEventBus,
   eventBusInjectSymbol,
+  PersistentEventBus,
 } from '../event-bus';
 
 import {

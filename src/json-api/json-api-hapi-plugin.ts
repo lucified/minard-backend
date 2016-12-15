@@ -13,7 +13,7 @@ import { serializeApiEntity } from './serialization';
 import { ApiEntities, ApiEntity } from './types';
 import { ViewEndpoints } from './view-endpoints';
 
-function onPreResponse(server: Hapi.Server, request: Hapi.Request, reply: Hapi.IReply) {
+function onPreResponse(_server: Hapi.Server, request: Hapi.Request, reply: Hapi.IReply) {
   const response = request.response;
 
   if (!request.path.startsWith('/api')) {
@@ -384,7 +384,7 @@ export class JsonApiHapiPlugin {
                   teamId: Joi.number(),
                   hipchatRoomId: Joi.number().required(),
                   hipchatAuthToken: Joi.string().required(),
-                })
+                }),
               ),
             }).required(),
           },
@@ -452,7 +452,7 @@ export class JsonApiHapiPlugin {
     });
 
     next();
-  };
+  }
 
   public serializeApiEntity(type: string, entity: any) {
     return serializeApiEntity(type, entity, this.baseUrl);

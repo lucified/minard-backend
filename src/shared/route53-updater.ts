@@ -7,13 +7,6 @@ import { promisify } from './promisify';
 import { sleep } from './sleep';
 import { fetchInjectSymbol } from './types';
 
-interface Route53UpdaterParams {
-  hostedZoneId: string;
-  recordSetName: string;
-  type?: string;
-  ttl?: number;
-  metadata?: string;
-}
 export interface ChangeInfo {
   Status: string;
   Id: string;

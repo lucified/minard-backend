@@ -181,7 +181,7 @@ export class NotificationModule {
 
   public async notify(event: Event<NotificationEvent>, config: NotificationConfiguration): Promise<void> {
     if (config.type === 'flowdock') {
-      return this.notifyFlowdock(event, config as FlowdockNotificationConfiguration, );
+      return this.notifyFlowdock(event, config as FlowdockNotificationConfiguration);
     } else if (config.type === 'hipchat') {
       return this.notifyHipchat(event, config as HipChatNotificationConfiguration);
     }

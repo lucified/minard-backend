@@ -1,9 +1,10 @@
 
-import { MINARD_ERROR_CODE } from '../shared/minard-error';
 import * as Boom from 'boom';
 import { expect } from 'chai';
 import * as moment from 'moment';
 import 'reflect-metadata';
+
+import { MINARD_ERROR_CODE } from '../shared/minard-error';
 
 import {
   JsonApiModule,

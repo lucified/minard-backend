@@ -1,6 +1,7 @@
 
 import { Observable, Subscription } from '@reactivex/rxjs';
 import { inject, injectable } from 'inversify';
+import { omitBy, isNil } from 'lodash';
 import * as moment from 'moment';
 
 import * as Joi from 'joi';
@@ -220,10 +221,13 @@ export class RealtimeHapiPlugin {
         if (isType<ProjectCreatedEvent>(event, projectCreated)) {
           return this.projectCreated(event);
         }
-        if (
-          isType<ProjectEditedEvent>(event, projectEdited) ||
-          isType<ProjectDeletedEvent>(event, projectDeleted)) {
+
+        if (isType<ProjectDeletedEvent>(event, projectDeleted)) {
           return Observable.of(this.toSSE(event, event.payload));
+        }
+
+        if (isType<ProjectEditedEvent>(event, projectEdited)) {
+          return this.projectEdited(event);
         }
 
         if (isType<CodePushedEvent>(event, codePushed)) {
@@ -248,6 +252,16 @@ export class RealtimeHapiPlugin {
 
         return Observable.empty<StreamingEvent<any>>();
       }, 3);
+  }
+
+  private async projectEdited(event: Event<ProjectEditedEvent>) {
+    const payload = omitBy({
+      id: event.payload.id,
+      name: event.payload.name,
+      description: event.payload.description,
+      'repo-url': event.payload.repoUrl,
+    }, isNil);
+    return this.toSSE(event, payload);
   }
 
   private async activity(event: Event<MinardActivity>) {

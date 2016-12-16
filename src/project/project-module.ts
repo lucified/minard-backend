@@ -246,8 +246,13 @@ export default class ProjectModule {
     }
   }
 
+  // internal method
+  public getRepoUrl(project: Project) {
+    return `${this.gitBaseUrl}/${project.namespace.path}/${project.path}.git`;
+  }
+
   private toMinardProject(project: Project, activeCommitters: MinardProjectContributor[]): MinardProject {
-    const repoUrl = `${this.gitBaseUrl}/${project.namespace.path}/${project.path}.git`;
+    const repoUrl = this.getRepoUrl(project);
     return {
       teamId: project.namespace.id,
       id: project.id,
@@ -549,6 +554,7 @@ export default class ProjectModule {
       id,
       name: project.name,
       description: project.description,
+      repoUrl: this.getRepoUrl(project),
     }));
   }
 

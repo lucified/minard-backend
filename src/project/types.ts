@@ -17,6 +17,7 @@ export interface ProjectEditedEvent {
   id: number;
   name?: string;
   description?: string;
+  repoUrl?: string;
   teamId: number;
 }
 

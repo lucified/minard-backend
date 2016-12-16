@@ -81,6 +81,8 @@ async function expectServerError(functionToRun: () => any) {
    }
 }
 
+const gitBaseUrl = 'http://foo.git.com';
+
 const gitlabProjectResponse = {
   'id': 3,
   'description': null,
@@ -832,7 +834,7 @@ describe('project-module', () => {
       bus,
       client,
       logger,
-      '');
+      gitBaseUrl);
     const mockUrl = `${host}${client.apiPrefix}${url}`;
     fetchMock.restore().mock(
       mockUrl,
@@ -1224,6 +1226,7 @@ describe('project-module', () => {
         description: resultingDescription,
         'namespace': {
           id: teamId,
+          path: 'foo-path',
         },
       };
       const projectModule = arrangeProjectModule(200, params, bus, body);
@@ -1238,6 +1241,7 @@ describe('project-module', () => {
       expect(payload.id).to.equal(projectId);
       expect(payload.name).to.equal(resultingName);
       expect(payload.teamId).to.equal(teamId);
+      expect(payload.repoUrl).to.equal(`${gitBaseUrl}/foo-path/${resultingName}.git`);
     }
 
     it('should work when editing all editable fields', async () => {

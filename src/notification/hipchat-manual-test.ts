@@ -6,13 +6,15 @@ import 'reflect-metadata';
 
 import { MinardDeployment } from '../deployment';
 import { fetch, IFetch } from '../shared/fetch';
-import { FlowdockNotify } from './flowdock-notify';
+import { HipchatNotify } from './hipchat-notify';
 
 // const screenshot = fs.readFileSync('mini-camel.jpg') as Buffer;
 
-const flowdockNotify = new FlowdockNotify(fetch as IFetch);
+const hipchatNotify = new HipchatNotify(fetch as IFetch);
 
-const flowToken = process.env.FLOWDOCK_FLOW_TOKEN;
+const hipchatRoomId = process.env.HIPCHAT_ROOM_ID ? process.env.HIPCHAT_ROOM_ID : 3140019;
+const hipchatAuthToken = process.env.HIPCHAT_AUTH_TOKEN ? process.env.HIPCHAT_AUTH_TOKEN : undefined;
+
 const projectUrl = 'http://www.foo.com';
 const branchUrl = 'http://www.bar.com';
 const previewUrl = 'http://www.bar-ui.com/preview/5';
@@ -43,8 +45,24 @@ const comment = {
 };
 
 async function test() {
- await flowdockNotify.notify(deployment, flowToken, projectUrl, branchUrl, previewUrl, undefined, undefined);
- await flowdockNotify.notify(deployment, flowToken, projectUrl, branchUrl, previewUrl, commentUrl, comment);
+ await hipchatNotify.notify(
+   deployment,
+   hipchatRoomId,
+   hipchatAuthToken,
+   projectUrl,
+   branchUrl,
+   previewUrl,
+   undefined,
+   undefined);
+ await hipchatNotify.notify(
+   deployment,
+   hipchatRoomId,
+   hipchatAuthToken,
+   projectUrl,
+   branchUrl,
+   previewUrl,
+   commentUrl,
+   comment);
 }
 
 test().catch(err => console.log(err));

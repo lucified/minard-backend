@@ -22,6 +22,8 @@ import {
 import {
   DEPLOYMENT_EVENT_TYPE,
   DeploymentEvent,
+  getUiCommentUrl,
+  getUiPreviewUrl,
   MinardDeployment,
 } from '../deployment';
 
@@ -62,6 +64,7 @@ function getComment(event: NotificationEvent) {
       name: activityEvent.name,
       email: activityEvent.email,
       message: activityEvent.message,
+      id: activityEvent.commentId,
     };
   }
   return undefined;
@@ -197,19 +200,35 @@ export class NotificationModule {
      return screenshot ? this.screenshotModule.getScreenshotData(projectId, id) : undefined;
   }
 
+  public getBasicParams(event: Event<NotificationEvent>) {
+    const { projectId, ref, id, commitHash } = event.payload.deployment;
+    const projectUrl = getUiProjectUrl(projectId, this.uiBaseUrl);
+    const branchUrl = getUiBranchUrl(projectId, ref, this.uiBaseUrl);
+    const previewUrl = getUiPreviewUrl(projectId, id, commitHash, this.uiBaseUrl);
+    const comment = getComment(event.payload);
+    const commentUrl = comment && getUiCommentUrl(projectId, id, commitHash, comment.id, this.uiBaseUrl);
+    const deployment = event.payload.deployment;
+    return {
+      projectUrl,
+      branchUrl,
+      previewUrl,
+      commentUrl,
+      comment,
+      deployment,
+    };
+}
+
   public async notifyHipchat(event: Event<NotificationEvent>, config: HipChatNotificationConfiguration) {
     try {
-      const { projectId, ref } = event.payload.deployment;
-      const projectUrl = getUiProjectUrl(projectId, this.uiBaseUrl);
-      const branchUrl = getUiBranchUrl(projectId, ref, this.uiBaseUrl);
-      const deployment = event.payload.deployment;
-      const comment = getComment(event.payload);
+      const { projectUrl, branchUrl, previewUrl, commentUrl, comment, deployment } = this.getBasicParams(event);
       await this.hipchatNotify.notify(
         deployment,
         config.hipchatRoomId,
         config.hipchatAuthToken,
         projectUrl,
         branchUrl,
+        previewUrl,
+        commentUrl,
         comment);
     } catch (error) {
       this.logger.error(`Failed to send Hipchat notification`, error);
@@ -218,13 +237,17 @@ export class NotificationModule {
 
   public async notifyFlowdock(event: Event<NotificationEvent>, config: FlowdockNotificationConfiguration) {
     try {
-      const { projectId, ref } = event.payload.deployment;
-      const projectUrl = getUiProjectUrl(projectId, this.uiBaseUrl);
-      const branchUrl = getUiBranchUrl(projectId, ref, this.uiBaseUrl);
+      const { projectUrl, branchUrl, previewUrl, commentUrl, comment } = this.getBasicParams(event);
       const deployment = Object.assign({}, event.payload.deployment,
         { screenshot: await this.getScreenshotData(event) }) as MinardDeployment;
-      const comment = getComment(event.payload);
-      await this.flowdockNotify.notify(deployment, config.flowToken, projectUrl, branchUrl, comment);
+      await this.flowdockNotify.notify(
+        deployment,
+        config.flowToken,
+        projectUrl,
+        branchUrl,
+        previewUrl,
+        commentUrl,
+        comment);
     } catch (error) {
       this.logger.error(`Failed to send Flowdock notification`, error);
     }

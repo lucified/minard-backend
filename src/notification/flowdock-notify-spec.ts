@@ -35,7 +35,14 @@ describe('flowdock-notify', () => {
     screenshot: 'http://foo-bar.com/screenshot/foo',
   } as any;
 
-  async function shouldSendCorrectNotification(deployment: MinardDeployment, title: string, comment?: MinardComment) {
+  const previewUrl = 'http://foo-bar-ui.com/preview/43';
+
+  async function shouldSendCorrectNotification(
+    deployment: MinardDeployment,
+    title: string,
+    commentUrl?: string,
+    comment?: MinardComment,
+    ) {
     // Arrange
     const flowToken = 'fake-flow-token';
     const projectUrl = 'http://foo-bar.com/projects/5';
@@ -52,8 +59,8 @@ describe('flowdock-notify', () => {
     });
 
     // Act
-    const body = notifier.getBody(deployment, flowToken, projectUrl, branchUrl, comment);
-    notifier.notify(deployment, flowToken, projectUrl, branchUrl, comment);
+    const body = notifier.getBody(deployment, flowToken, projectUrl, branchUrl, previewUrl, commentUrl, comment);
+    notifier.notify(deployment, flowToken, projectUrl, branchUrl, previewUrl, commentUrl, comment);
 
     // Assert
     expect(body.flow_token).to.equal(flowToken);
@@ -73,7 +80,7 @@ describe('flowdock-notify', () => {
     expect(body.event).to.equal('activity');
     expect(body.thread.status.color).to.equal('green');
     expect(body.author.avatar).to.equal('//www.gravatar.com/avatar/79f0c978a0b5b6db64cb1484f3d05c74');
-    expect(body.thread.external_url).to.equal(deployment.url);
+    expect(body.thread.external_url).to.equal(previewUrl);
     expect(body.author.name).to.equal(deployment.commit.committer.name);
     expect(body.author.email).to.equal(deployment.commit.committer.email);
     expect(body.thread.title).to.equal(body.title);
@@ -84,7 +91,7 @@ describe('flowdock-notify', () => {
     const body = await shouldSendCorrectNotification(deployment,
       'Created preview for foo-project-name/foo-branch');
     expect(body.thread.status.color).to.equal('green');
-    expect(body.thread.external_url).to.equal(deployment.url);
+    expect(body.thread.external_url).to.equal(previewUrl);
   });
 
   it('should send correct notification for running deployment', async () => {
@@ -110,6 +117,7 @@ describe('flowdock-notify', () => {
 
   it('should send correct notification for comment', async () => {
     const deployment = baseDeployment;
+    const commentUrl = 'http://foo-bar-ui.com/preview/comment/5';
     const comment: MinardComment = {
       name: 'foo commenter',
       message: 'foo comment msg',
@@ -122,11 +130,12 @@ describe('flowdock-notify', () => {
     };
     const body = await shouldSendCorrectNotification(
       deployment,
-      'commented',
+      `<a href="${commentUrl}">commented</a>`,
+      commentUrl,
       comment);
     expect(body.event).to.equal('discussion');
     expect(body.thread.status.color).to.equal('green');
-    expect(body.thread.external_url).to.equal(deployment.url);
+    expect(body.thread.external_url).to.equal(previewUrl);
     expect(body.body).to.equal(comment.message);
     expect(body.author.name).to.equal(comment.name);
     expect(body.author.email).to.equal(comment.email);

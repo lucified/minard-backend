@@ -1,7 +1,7 @@
 
 import { Observable, Subscription } from '@reactivex/rxjs';
 import { inject, injectable } from 'inversify';
-import { omitBy, isNil } from 'lodash';
+import { isNil, omitBy } from 'lodash';
 import * as moment from 'moment';
 
 import * as Joi from 'joi';

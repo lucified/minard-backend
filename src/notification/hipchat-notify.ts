@@ -16,39 +16,42 @@ import {
 export function getMessageWithScreenshot(
   deployment: MinardDeployment,
   projectUrl: string,
+  previewUrl: string,
   comment?: NotificationComment) {
   const imgStyle = 'height: 100px; border: 1px solid #d8d8d8;';
   return `
     <table style="background-color: white; border: 1px solid #d8d8d8;">
       <tr>
         <td>
-          <a href='${deployment.url}'>
+          <a href='${previewUrl}'>
             <img
               src='${deployment.screenshot}'
               style='${imgStyle}'/>
           </a>
         </td>
         <td>
-          ${getBasicMessage(deployment, projectUrl, comment)}
+          ${getBasicMessage(deployment, projectUrl, previewUrl, comment)}
         </td>
       </tr>
     </table>`;
 }
 
-export function getBasicMessage(deployment: MinardDeployment, projectUrl: string, comment?: NotificationComment) {
+export function getBasicMessage(
+  deployment: MinardDeployment, projectUrl: string, previewUrl: string, comment?: NotificationComment) {
   return `
     <table>
       <tr>
         <td>
           <img height="81" width="1" src='https://upload.wikimedia.org/wikipedia/commons/5/52/Spacer.gif' />
-          ${getDescription(deployment, projectUrl, comment)}
+          ${getDescription(deployment, projectUrl, previewUrl, comment)}
         </td>
       <tr>
     </table>
   `;
 }
 
-export function getDescription(deployment: MinardDeployment, projectUrl: string, comment?: NotificationComment) {
+export function getDescription(
+  deployment: MinardDeployment, projectUrl: string, previewUrl: string, comment?: NotificationComment) {
   if (comment) {
     const name = comment.name || comment.email;
     return `<b>${name}</b> added a new comment: <i>${comment.message}</i>`;
@@ -56,7 +59,7 @@ export function getDescription(deployment: MinardDeployment, projectUrl: string,
 
   const message = truncate(deployment.commit.message.split('\n')[0], { length: 50 });
   let ret = `<b>${deployment.commit.committer.name}</b> generated ` +
-    `a new <a href="${deployment.url}">preview</a> ` +
+    `a new <a href="${previewUrl}">preview</a> ` +
     `in <b><a href="${projectUrl}">${deployment.projectName}</a></b>.`;
   if (message && message.length > 0) {
     ret += ` <i>${message}</i>`;
@@ -74,7 +77,7 @@ export class HipchatNotify {
     this.fetch = fetch;
   }
 
-  private getCard(deployment: MinardDeployment, projectUrl: string, comment?: NotificationComment) {
+  private getCard(deployment: MinardDeployment, projectUrl: string, previewUrl: string, comment?: NotificationComment) {
     // we need this hack to show proper screenshot in integration
     // tests, as thumbnails served via localhost will crash the
     // hipchat android app
@@ -93,10 +96,10 @@ export class HipchatNotify {
     return {
       id: `minard-deployment-${deployment.id}`,
       style: 'link',
-      url: deployment.url,
+      url: previewUrl,
       title: `${deployment.projectName}`,
       description: {
-        value: getDescription(deployment, projectUrl, comment),
+        value: getDescription(deployment, projectUrl, previewUrl, comment),
         format: 'html',
       },
       icon: {
@@ -113,7 +116,10 @@ export class HipchatNotify {
     authToken: string,
     projectUrl: string,
     _branchUrl: string,
-    comment?: NotificationComment): Promise<any> {
+    previewUrl: string,
+    commentUrl: string | undefined,
+    comment: NotificationComment | undefined,
+    ): Promise<any> {
 
     const status = deployment.status;
 
@@ -124,16 +130,18 @@ export class HipchatNotify {
 
     const url = `https://api.hipchat.com/v2/room/${roomId}/notification?auth_token=${authToken}`;
 
+    const fullPreviewUrl = commentUrl || previewUrl;
+
     // this is only used for clients that don't support the card
-    const message = deployment.screenshot ? getMessageWithScreenshot(deployment, projectUrl, comment)
-      : getBasicMessage(deployment, projectUrl, comment);
+    const message = deployment.screenshot ? getMessageWithScreenshot(deployment, projectUrl, fullPreviewUrl, comment)
+      : getBasicMessage(deployment, projectUrl, fullPreviewUrl, comment);
 
     const body = {
       color: 'green',
       notify: false,
       message_format: 'html',
       message,
-      card: this.getCard(deployment, projectUrl, comment),
+      card: this.getCard(deployment, projectUrl, fullPreviewUrl, comment),
     };
 
     const options = {

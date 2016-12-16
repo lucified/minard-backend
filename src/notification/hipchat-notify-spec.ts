@@ -40,6 +40,7 @@ describe('hipchat-notify', () => {
   const roomId = 66;
   const projectUrl = 'http://foo-bar.com/projects/5';
   const branchUrl = 'http://foo-bar.com/branches/1-5';
+  const previewUrl = 'http://foo-bar-ui.com/preview/1-5';
 
   function arrange(): { notifier: HipchatNotify, promise: Promise<any> } {
     const notifier = new HipchatNotify(fetchMock.fetchMock);
@@ -59,18 +60,19 @@ describe('hipchat-notify', () => {
     const { notifier, promise } = arrange();
 
     // Act
-    await notifier.notify(deployment, roomId, authToken, projectUrl, branchUrl);
+    await notifier.notify(deployment, roomId, authToken, projectUrl, branchUrl, previewUrl, undefined, undefined);
 
     // Assert
     const options = await promise;
     const body = JSON.parse(options.body);
     expect(body.color).equal('green');
+    expect(body.card.url).equals(previewUrl);
 
     // (just do some basic checks for message)
     expect(body.message).to.exist;
     expect(body.message).contains(deployment.projectName);
     expect(body.message).contains(projectUrl);
-    expect(body.message).contains(deployment.url!);
+    expect(body.message).contains(previewUrl);
     expect(body.message).contains(deployment.screenshot!);
     expect(body.message).contains(deployment.commit.committer.name);
     return body;
@@ -78,6 +80,8 @@ describe('hipchat-notify', () => {
 
   it('should send correct notification for comment', async () => {
     // Arrange
+    const commentUrl = 'http://foo-bar-ui.com/preview/1-5/comment/6';
+
     const { notifier, promise } = arrange();
     const comment: NotificationComment = {
       email: 'foo@foomail.com',
@@ -86,17 +90,19 @@ describe('hipchat-notify', () => {
     };
 
     // Act
-    await notifier.notify(deployment, roomId, authToken, projectUrl, branchUrl, comment);
+    await notifier.notify(deployment, roomId, authToken, projectUrl, branchUrl, previewUrl, commentUrl, comment);
 
     // Assert
     const options = await promise;
     const body = JSON.parse(options.body);
     expect(body.color).equal('green');
     expect(body.card.description.value).equals(`<b>${comment.name}</b> added a new comment: <i>${comment.message}</i>`);
+    expect(body.card.url).equals(commentUrl);
 
     // (just do some basic checks for message)
     expect(body.message).to.exist;
     expect(body.message).contains(comment.message);
+    expect(body.message).contains(commentUrl);
     return body;
   });
 

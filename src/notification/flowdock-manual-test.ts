@@ -15,6 +15,8 @@ const flowdockNotify = new FlowdockNotify(fetch as IFetch);
 const flowToken = process.env.FLOWDOCK_FLOW_TOKEN;
 const projectUrl = 'http://www.foo.com';
 const branchUrl = 'http://www.bar.com';
+const previewUrl = 'http://www.bar-ui.com/preview/5';
+const commentUrl = 'http://www.bar-ui.com/preview/5/comment/45';
 
 const deployment: MinardDeployment = {
   id: 10,
@@ -41,8 +43,8 @@ const comment = {
 };
 
 async function test() {
- await flowdockNotify.notify(deployment, flowToken, projectUrl, branchUrl);
- await flowdockNotify.notify(deployment, flowToken, projectUrl, branchUrl, comment);
+ await flowdockNotify.notify(deployment, flowToken, projectUrl, branchUrl, previewUrl, undefined, undefined);
+ await flowdockNotify.notify(deployment, flowToken, projectUrl, branchUrl, previewUrl, commentUrl, comment);
 }
 
 test().catch(err => console.log(err));

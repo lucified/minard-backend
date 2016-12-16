@@ -36,15 +36,17 @@ export class FlowdockNotify {
     flowToken: string,
     projectUrl: string,
     branchUrl: string,
-    comment?: NotificationComment) {
+    previewUrl: string,
+    commentUrl: string | undefined,
+    comment: NotificationComment | undefined) {
     const state = deployment.status;
     const body = {
       flow_token: flowToken,
       event: comment ? 'discussion' : 'activity',
       external_thread_id: this.flowdockThreadId(deployment),
       tags: this.tags(deployment, state, comment),
-      thread: this.threadData(deployment, projectUrl, branchUrl, comment),
-      title: comment ? 'commented' : this.messageTitle(deployment, comment),
+      thread: this.threadData(deployment, projectUrl, branchUrl, previewUrl, comment),
+      title: comment ? `<a href="${commentUrl}">commented</a>` : this.messageTitle(deployment, comment),
       author: this.author(deployment, comment),
       body: comment ? comment.message : this.threadBody(deployment, comment),
     };
@@ -56,10 +58,12 @@ export class FlowdockNotify {
     flowToken: string,
     projectUrl: string,
     branchUrl: string,
-    comment?: NotificationComment,
+    previewUrl: string,
+    commentUrl: string | undefined,
+    comment: NotificationComment | undefined,
     ): Promise<void> {
 
-    const body = this.getBody(deployment, flowToken, projectUrl, branchUrl, comment);
+    const body = this.getBody(deployment, flowToken, projectUrl, branchUrl, previewUrl, commentUrl, comment);
     const fields = body.thread.fields;
 
     delete body.thread.fields;
@@ -67,7 +71,7 @@ export class FlowdockNotify {
 
     // Map fields to form data manually to make this work with
     // Flowdock's approach for representing arrays in form-data
-    fields.forEach(item => {
+    fields.forEach((item: { label: string, value: string}) => {
       form.append('thread[fields][][label]', item.label);
       form.append('thread[fields][][value]', item.value);
     });
@@ -174,17 +178,18 @@ export class FlowdockNotify {
     deployment: MinardDeployment,
     projectUrl: string,
     branchUrl: string,
+    previewUrl: string,
     _comment?: NotificationComment) {
     const state = deployment.status;
     return {
       title: this.threadTitle(deployment),
       body: this.threadBody(deployment),
-      external_url: deployment.status === 'success' ? deployment.url : projectUrl,
+      external_url: deployment.status === 'success' ? previewUrl : projectUrl,
       status: {
         value: state,
         color: this.threadStatusColor(state),
       },
-      fields: this.threadFields(deployment, projectUrl, branchUrl),
+      fields: this.threadFields(deployment, projectUrl, branchUrl, previewUrl),
     };
   }
 
@@ -192,7 +197,12 @@ export class FlowdockNotify {
     return comment ? comment.message : this.threadTitle(deployment);
   }
 
-  private threadFields(deployment: MinardDeployment, projectUrl: string, branchUrl: string): ThreadField[] {
+  private threadFields(
+    deployment: MinardDeployment,
+    projectUrl: string,
+    branchUrl: string,
+    previewUrl: string,
+    ): ThreadField[] {
     const fields: ThreadField[] = [];
 
     fields.push({
@@ -216,8 +226,15 @@ export class FlowdockNotify {
 
     if (deployment.url) {
       fields.push({
-        label: 'Preview',
+        label: 'Deployment',
         value: `<a href="${deployment.url}">${deployment.url}</a>`,
+      });
+    }
+
+    if (previewUrl) {
+      fields.push({
+        label: 'Preview',
+        value: `<a href="${previewUrl}">${previewUrl}</a>`,
       });
     }
 

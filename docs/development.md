@@ -7,8 +7,8 @@ also for Linux.
 
 ## Requirements
 
-[Docker for Mac](https://docs.docker.com/docker-for-mac/)
-[AWS CLI](https://aws.amazon.com/cli/)
+- [Docker for Mac](https://docs.docker.com/docker-for-mac/)
+- [AWS CLI](https://aws.amazon.com/cli/)
 ```bash
 brew install awscli
 ```

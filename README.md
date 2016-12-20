@@ -29,8 +29,8 @@ together with [minard-ui](https://github.com/lucified/minard-ui).
 - [Development](docs/development.md)
 - [Testing](docs/testing.md)
 - [API](docs/api/README.md)
-- [User and team administration](docs/user-and-team-administration.md)
-- [Production setup](docs/production.md)
+- [User and team administration](docs/user-and-team-admin.md)
+- [Production setup](docs/productio-setup.md)
 - [Contributing](docs/contributing.md)
 - [License](docs/license.md)
 

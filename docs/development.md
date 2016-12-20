@@ -51,19 +51,13 @@ services are available:
 - Postgres: port `15432`, password `123456789` for user `gitlab`. Main databases are called `charles` and `gitlabhq_production`.
 - Redis: port `16379`
 
-## Running with UI
-
-Normally it makes the sense to run [minard-ui](https://github.com/lucified/minard-ui)
-along the backend services. See the documentation for minard-ui on how to
-run it against your development backend.
-
 ### First run
 
 When first run, Docker will build an image for charles and pull the rest of the images
 from Docker Hub. Beware that this operation requires some bandwidth/patience, since
 building the image runs `npm install`, and the Gitlab Docker image is quite large.
 
-### Mounted directories
+## Mounted directories
 
 By default (as specified in [docker-compose.override.yml](./docker-compose.override.yml)) the
 containers mount data directories under `gitlab-data`. For example, the (bare) repository data
@@ -102,7 +96,14 @@ rm -rf gitlab-data
 git checkout master -- gitlab-data
 ```
 
-### Rebuilding the image
+## Running with UI
+
+Normally it makes the sense to run [minard-ui](https://github.com/lucified/minard-ui)
+along the backend services. See the documentation for minard-ui on how to
+run it against your development backend.
+
+
+## Rebuilding the image
 
 If you update charles and need to e.g. install new NPM libraries, you will
 need to rebuild the charles Docker image. This is done with:
@@ -125,3 +126,4 @@ npm run watch
 
 A `node-dev` debugger for `charles` is listening at `5858`. A launch
 configuration for debugging in Visual Studio Code is included under `.vscode`.
+

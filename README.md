@@ -30,7 +30,7 @@ together with [minard-ui](https://github.com/lucified/minard-ui).
 - [Testing](docs/testing.md)
 - [API](docs/api/README.md)
 - [User and team administration](docs/user-and-team-admin.md)
-- [Production setup](docs/productio-setup.md)
+- [Production setup](docs/production-setup.md)
 - [Contributing](docs/contributing.md)
 - [License](docs/license.md)
 

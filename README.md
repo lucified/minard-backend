@@ -33,6 +33,7 @@ together with [minard-ui](https://github.com/lucified/minard-ui).
 - [Production setup](docs/production-setup.md)
 - [Contributing](docs/contributing.md)
 - [License](docs/license.md)
+- [Internal](docs/internal.md) (Internal documentation for Lucify)
 
 ## Thanks
 

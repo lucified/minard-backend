@@ -10,8 +10,8 @@ Name|Type|Description
 ----|----|-----------
 `hash`|string|Commit hash (sha)
 `message`|string|Commit message
-`author`|{name, email, timestamp}|Git author of commit
-`committer`|{name, email, timestamp}|Git committer of commit
+`author`|{name: string, email: string, timestamp: date}|Git author of commit
+`committer`|{name: string, email: string, timestamp: date}|Git committer of commit
 
 *Relationships*:
 

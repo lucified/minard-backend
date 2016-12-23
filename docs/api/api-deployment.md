@@ -9,7 +9,7 @@ Name|Type|Description
 `status`|string|Status (valid values are "success", "failed", "running", "pending" and "canceled")
 `screenshot`|string|URL to screenshot. Undefined if not available.
 `comment-count`|number|Amount of comments provided for the deployment
-`creator`|{name, email, timestamp}|Creator of deployment
+`creator`|{name: string, email: string, timestamp: date}|Creator of deployment
 
 ## Get deployment by id
 
@@ -45,6 +45,3 @@ Returns JSON API object with a single deployment resource.
     }
 }
 ```
-
-
-

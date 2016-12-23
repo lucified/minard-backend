@@ -23,11 +23,11 @@ The payload has the following attributes:
 
 Name|Type|Description
 ----|----|-----------
-after|string|The SHA of the most recent commit on ref after the push
-before|string|The SHA of the most recent commit on ref before the push
+after|string|The id of the most recent commit on ref after the push
+before|string|The id of the most recent commit on ref before the push
 project|string|Project id
 commits|[Commit](api-commit.md)[]|Pushed commits as JSON API commit resources
-parents|string|The SHA of the first commit in the push.
+parents|string[]|An array of the ids of the parents of the first commit in the push.
 
 The fields `after` and `before` have the same meanings as
 in [GitHub PushEvents](https://developer.github.com/v3/activity/events/types/#pushevent).
@@ -319,5 +319,5 @@ repo-url|string|New git repository URL for edited project
 
 ### `PING`
 
-Occurs every two seconds, if there are no other events
+Occurs every two seconds if there are no other events
 in the event stream.

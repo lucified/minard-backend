@@ -9,12 +9,12 @@ which have the following attributes:
 Name|Type|Description
 ----|----|-----------
 `activity-type`|string|Type of activity. Valid values are "deployment" and "comment"
-`project`|{id, name}|Related project
-`branch`|{id, name}|Related branch
+`project`|{id: string, name: string}|Related project
+`branch`|{id: string, name: string}|Related branch
 `deployment`|[Deployment](api-deployment.md)|Related deployment
 `commit`|[Commit](api-commit.md)|Related commit
 `timestamp`|date|Timestamp when activity occurred
-`comment`|{id, message, name?, email}|Comment (only present in comment activitities)
+`comment`|{id: string, message: string, name?: string, email: string}|Comment (only present in comment activitities)
 
 ## Get activitity
 

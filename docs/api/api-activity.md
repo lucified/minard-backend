@@ -24,6 +24,7 @@ Name|Type|Description
 - URL: `api/activity`
 
 Query parameters:
+
 Name|Type|Description
 ----|----|-----------
 `filter`|string|Filter by team (`filter=team[:id]`) or project (`filter=project[:id]`).

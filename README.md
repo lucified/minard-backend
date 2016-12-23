@@ -14,9 +14,8 @@ to form the Minard backend. This repository contains only the code
 for the main backend service, `charles`, whereas the code for other
 backend services are in their own repositories.
 
-The backend consists of the following services:
+In addition to `charles`, the backend consists of the following services:
 
-- charles
 - [Forked GitLab CE](https://github.com/lucified/gitlab-ce)
 - [Forked GitLab Runner](https://github.com/lucified/minard-runner)
 - [Screenshotter](https://github.com/lucified/screenshotter)

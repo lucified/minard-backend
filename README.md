@@ -4,7 +4,8 @@
 This is the repository for the Minard backend. The project is in a
 prototype stage and under active development.
 
-Minard is a preview service that integrates with version control, automatically
+[Minard](https://www.lucify.com/minard) is a preview service that
+integrates with version control, automatically
 building and deploying each version of your project. Minard makes it easy
 to share functional versions of quick web projects for feedback.
 

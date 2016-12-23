@@ -40,6 +40,6 @@ together with [minard-ui](https://github.com/lucified/minard-ui).
 
 ## Acknowledgements
 
-Thank you to the Google Digital News Inititiative and
-Helsingin Sanomat foundation for supporting our work
+Thank you to the [Google Digital News Inititiative](https://www.digitalnewsinitiative.com/) and
+[Helsingin Sanomat Foundation](http://www.hssaatio.fi/en/) for supporting our work
 on the Minard prototype.

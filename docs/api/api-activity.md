@@ -8,7 +8,7 @@ which have the following attributes:
 
 Name|Type|Description
 ----|----|-----------
-`activity-type`|string|Type of activity. Valid values are "deployment" and "comment"
+`activity-type`|"deployment"&#124;"comment"|Type of activity.
 `project`|{id: string, name: string}|Related project
 `branch`|{id: string, name: string}|Related branch
 `deployment`|[Deployment](api-deployment.md)|Related deployment

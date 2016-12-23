@@ -12,16 +12,6 @@ it should be easy to adapt the instructions for Linux.
 brew install awscli
 ```
 
-## Initial data
-
-To get up to speed quickly with a couple of projects and some deployments, you can run the
-`fetch-test-data.sh` script, which downloads a complete `gitlab-data` folder from AWS S3.
-The test data has a GitLab user `root` with password `12345678`.
-
-If you do not use this script, you will
-need to [manually create](user-and-team-admin.md) at least
-two teams using the GitLab UI.
-
 ## Running
 
 Since it's all Docker, just run the following in the project root:
@@ -52,8 +42,12 @@ services are available:
 ### First run
 
 When first run, Docker will build an image for charles and pull the rest of the images
-from Docker Hub. Beware that this operation requires some bandwidth/patience, since
+from Docker Hub. Beware that this operation requires some bandwidth and patience, since
 building the image runs `npm install`, and the Gitlab Docker image is quite large.
+
+After the first run, you should [manually create](user-and-team-admin.md) at
+least two teams using the GitLab UI. The first team you create will get id `2`, and
+should be reserved for integration tests.
 
 ## Mounted directories
 

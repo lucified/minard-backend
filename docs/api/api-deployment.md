@@ -1,15 +1,18 @@
 
 # Deployment API
 
-The deployment API deals with JSON API deployment entities,
-which have the following attributes:
+The deployment API deals with JSON API deployment resources.
+Deployment resources represent deployments of specific [commits](api-commit.md)
+within a [project](api-project.md).
+
+Deployment resources have the following attributes and relationships:
 
 Name|Type|Description
 ----|----|-----------
-`status`|string|Status (valid values are "success", "failed", "running", "pending" and "canceled")
+`status`|"success"&#124;"failed"&#124;"running"&#124;"pending"&#124;"canceled"|Status.
 `screenshot`|string|URL to screenshot. Undefined if not available.
 `comment-count`|number|Amount of comments provided for the deployment
-`creator`|{name: string, email: string, timestamp: date}|Creator of deployment
+`creator`|{name?: string, email: string, timestamp: date}|Creator of deployment
 
 ## Get deployment by id
 

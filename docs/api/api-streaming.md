@@ -151,9 +151,9 @@ The data payload has the following attributes:
 Name|Type|Description
 ----|----|-----------
 branch|string|Id of related branch
-commit|string|If of related commit
+commit|string|Id of related commit
 deployment|[Deployment](api-deployment.md)|Updated deployment as JSON API deployment resource
-project|string|If of related project
+project|string|Id of related project
 
 *Example payload:*
 ```json

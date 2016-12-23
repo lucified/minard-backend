@@ -1,8 +1,11 @@
 
 # Projects API
 
-The projects API deals with JSON API project entities,
-which have the following attributes and relationships:
+The projects API deals with JSON API project resources.
+Project resources represent individual projects, each
+associated with a single git repository.
+
+Project resources have the following attributes and relationships:
 
 *Attributes*:
 

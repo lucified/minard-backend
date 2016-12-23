@@ -1,18 +1,21 @@
 
 # Comment API
 
-The comment API deals with JSON API comment resources,
-which have the following attributes:
+The comment API deals with JSON API comment resources.
+Comment resources represent comments that users have
+added to [deployments](api-deployment.md).
+
+Comment resources have the following attributes:
 
 *Attributes*:
 
 Name|Type|Description
 ----|----|-----------
 `name`|string|Project name (max. 220 characters)
-`deployment`|string|If of related deployment
+`deployment`|string|Id of related deployment
 `message`|string|Message contents
 `email`|string|Commenter email address
-`name`|string|Commenter name
+`name?`|string|Commenter name
 
 ## Get comments for deployment
 

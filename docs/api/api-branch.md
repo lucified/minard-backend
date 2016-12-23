@@ -1,14 +1,17 @@
 
 # Branch API
 
-The branch API deals with JSON API branch entities,
-which have the following attributes and relationships:
+The branch API deals with JSON API branch resources.
+Branch resources represent individual git branches
+within a [project](api-project.md).
+
+Branch resources have the following attributes and relationships:
 
 *Attributes*:
 
 Name|Type|Description
 ----|----|-----------
-name|string|Project name (max. 220 characters)
+name|string|Branch name
 minard-json|object|Information object on minard.json
 latest-activity-timestamp|date|Timestamp of latest repo activity
 

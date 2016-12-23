@@ -1,8 +1,8 @@
 
 # Preview API
 
-The preview API provides JSON API deployment and commit
-resources along project and branch information.
+The preview API provides JSON API [deployment](api-deployment.md) and [commit](api-commit.md)
+resources along [project](api-project.md) and [branch](api-branch.md) information.
 
 ## Get preview by deployment id
 

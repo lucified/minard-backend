@@ -1,8 +1,12 @@
 
 # Activity API
 
-The activity API deals with JSON API activity resources,
-which have the following attributes:
+The activity API deals with JSON API activity resources.
+Activity resources represent events that may, in general,
+be of interest to users. Currently, activities are created
+for new [comments](api-comment.md) and [deployments](api-deployment.md).
+
+Activity resources have the following attributes:
 
 *Attributes*:
 

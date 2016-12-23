@@ -1,18 +1,21 @@
 
 # Notification API
 
-The notification API deals with JSON API notification resources,
-which have the following attributes:
+The notification API deals with JSON API notification resources.
+Notification resources represent notification settings that
+apply either to a [project](api-project.md) or a team.
+
+Notification resources have the following attributes:
 
 *Attributes*:
 
 Name|Type|Description
 ----|----|-----------
-`type`|string|Type of activity. Valid values are "flowdock" and "hipchat"
+`type`|"flowdock"&#124;"hipchat"|Type of activity
 `team-id`|string|Project id (only for team-scoped notifications)
 `project-id`|string|Project id (only for project-scoped notifications)
 `flow-token`|string|Flow token (only for `flowdock`)
-`hipchat-auth-token`|string|Hipchat authorization token (only for `flowdock`)
+`hipchat-auth-token`|string|Hipchat authorization token (only for `hipchat`)
 `hipchat-room-id`|string|Hipchat room id(only for `hipchat`)
 
 ## Add notification configuration

@@ -1,8 +1,10 @@
 
 # Commit API
 
-The commit API returns JSON API objects with commit
-resources, which have the following attributes:
+The commit API returns JSON API objects with commit resources.
+Commit resources represent individual git commits.
+
+Commit resources have the following attributes:
 
 *Attributes*:
 
@@ -10,14 +12,14 @@ Name|Type|Description
 ----|----|-----------
 `hash`|string|Commit hash (sha)
 `message`|string|Commit message
-`author`|{name: string, email: string, timestamp: date}|Git author of commit
-`committer`|{name: string, email: string, timestamp: date}|Git committer of commit
+`author`|{name?: string, email: string, timestamp: date}|Git author of commit
+`committer`|{name?: string, email: string, timestamp: date}|Git committer of commit
 
 *Relationships*:
 
 Name|Type|Description
 ----|----|-----------
-`deployments`|data|Project the branch belongs to
+`deployments`|data|JSON API deployment resources for deployments of the commit
 
 ## Get commit by id
 

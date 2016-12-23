@@ -14,7 +14,7 @@ Name|Type|Description
 `email`|string|Commenter email address
 `name`|string|Commenter name
 
-## Get commments for deployment
+## Get comments for deployment
 
 ### Request
 

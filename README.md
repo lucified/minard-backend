@@ -31,7 +31,7 @@ together with [minard-ui](https://github.com/lucified/minard-ui).
 - [Architecture](docs/architecture.md)
 - [Development](docs/development.md)
 - [Testing](docs/testing.md)
-- [API](docs/api/README.md)
+- [Charles API](docs/api/README.md)
 - [User and team administration](docs/user-and-team-admin.md)
 - [Production setup](docs/production-setup.md)
 - [Contributing](docs/contributing.md)

@@ -1,5 +1,22 @@
 
-# Notifications API
+# Notification API
+
+The notification API deals with JSON API notification resources.
+Notification resources represent notification settings that
+apply either to a [project](api-project.md) or a team.
+
+Notification resources have the following attributes:
+
+*Attributes*:
+
+Name|Type|Description
+----|----|-----------
+`type`|"flowdock"&#124;"hipchat"|Type of activity
+`team-id`|string|Project id (only for team-scoped notifications)
+`project-id`|string|Project id (only for project-scoped notifications)
+`flow-token`|string|Flow token (only for `flowdock`)
+`hipchat-auth-token`|string|Hipchat authorization token (only for `hipchat`)
+`hipchat-room-id`|string|Hipchat room id(only for `hipchat`)
 
 ## Add notification configuration
 
@@ -54,9 +71,11 @@ Payload for team-scoped HipChat notification
 
 ### Response
 
-- Response status is `201` when notification is successfully created.
+Returns a JSON API object with a single notification
+resource corresponding to the one that was created.
+Response code is `201`.
 
-Response body:
+*Example response body:*
 ```json
 {
   "data": {
@@ -77,4 +96,3 @@ Response body:
 - Method: `DELETE`
 - URL: `/api/notifications/:id`
 - Payload: empty
-

@@ -2,4 +2,11 @@
 
 rm -f gitlab-data/runner/config.toml
 docker-compose down
-docker-compose up
+
+if [ "$LUCIFY" = "" ]
+then
+   docker-compose up
+else
+   echo "Using images from ECR"
+   docker-compose up -f docker-compose.yml -f docker-compose-override.yml -f docker-compose-ecr.yml
+fi

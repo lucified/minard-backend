@@ -8,18 +8,18 @@ which have the following attributes and relationships:
 
 Name|Type|Description
 ----|----|-----------
-name|string|Project name (max. 220 characters)
-description|string|Project description (max. 2000 characters)
-activeCommitters|Array[{name: string, email: string}]| List of active committers
-repo-url|string|URL to repository for use with git
-latest-activity-timestamp|date|Timestamp of latest repo activity
+`name`|string|Project name (max. 220 characters)
+`description`|string|Project description (max. 2000 characters)
+`activeCommitters`|Array[{name: string, email: string}]| List of active committers
+`repo-url`|string|URL to repository for use with git
+`latest-activity-timestamp`|date|Timestamp of latest repo activity
 
 *Relationships*:
 
 Name|Type|Description
 ----|----|-----------
-latest-successfully-deployed-commit|data|Project name (max. 220 characters)
-branches|link|Project branches
+`latest-successfully-deployed-commit`|data|Project name (max. 220 characters)
+`branches`|link|Project branches
 
 ## Get project by id
 

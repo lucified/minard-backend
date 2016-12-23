@@ -6,10 +6,10 @@ which have the following attributes:
 
 Name|Type|Description
 ----|----|-----------
-status|string|Status (valid values are "success", "failed", "running", "pending" and "canceled")
-screenshot|string|URL to screenshot. Undefined if not available.
-comment-count|number|Amount of comments provided for the deployment
-creator|{name, email, timestamp}|Creator of deployment
+`status`|string|Status (valid values are "success", "failed", "running", "pending" and "canceled")
+`screenshot`|string|URL to screenshot. Undefined if not available.
+`comment-count`|number|Amount of comments provided for the deployment
+`creator`|{name, email, timestamp}|Creator of deployment
 
 ## Get deployment by id
 

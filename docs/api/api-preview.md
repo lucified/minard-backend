@@ -20,10 +20,10 @@ Returns a JSON object with the following attributes:
 
 Name|Type|Description
 ----|----|-----------
-deployment|[Deployment](api-deployment.md)|Related JSON API deployment resource
-commit|[Commit](api-commit.md)|Related JSON API commit resource
-project|{name: string, id: string}|Related project
-branch|{name: string, id: string}|Related branch
+`deployment`|[Deployment](api-deployment.md)|Related JSON API deployment resource
+`commit`|[Commit](api-commit.md)|Related JSON API commit resource
+`project`|{name: string, id: string}|Related project
+`branch`|{name: string, id: string}|Related branch
 
 Note that while the object includes some JSON API resources, it is not
 a JSON API response object.

@@ -8,11 +8,11 @@ which have the following attributes:
 
 Name|Type|Description
 ----|----|-----------
-name|string|Project name (max. 220 characters)
-deployment|string|If of related deployment
-message|string|Message contents
-email|string|Commenter email address
-name|string|Commenter name
+`name`|string|Project name (max. 220 characters)
+`deployment`|string|If of related deployment
+`message`|string|Message contents
+`email`|string|Commenter email address
+`name`|string|Commenter name
 
 ## Get commments for deployment
 

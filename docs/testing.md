@@ -3,7 +3,7 @@
 
 ## Unit tests
 
-Run unit tests with
+The backend has more than 250 unit tests. Run them with
 ```shell
 npm test
 ```

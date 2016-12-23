@@ -43,10 +43,10 @@ trying to access other services that have not started yet.
 
 After the bootup process completes, the following
 services are available:
-- GitLab: `http://localhost:10080`, password `123456789` for user `root`.
+- GitLab: `http://localhost:10080`, password `12345678` for user `root`.
 - Charles: `http://localhost:8000`
 - Git server: `http://localhost:10022`
-- Postgres: port `15432`, password `12345678` for user `gitlab`. Main databases are called `charles` and `gitlabhq_production`.
+- Postgres: port `15432`, password `password` for user `gitlab`. Main databases are called `charles` and `gitlabhq_production`.
 - Redis: port `16379`
 
 ### First run

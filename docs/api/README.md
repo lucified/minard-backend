@@ -18,6 +18,9 @@ by resource type:
 - [Project](api-project.md)
 - [Preview](api-preview.md)
 
+See the [errors section](http://jsonapi.org/format/#errors) in the JSON API
+documentation for information on error responses.
+
 ## Streaming API
 
 The [Streaming API](api-streaming.md) provides support for realtime updates based on

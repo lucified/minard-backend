@@ -2,8 +2,7 @@
 # Development
 
 The documentation is written for OS X, but
-is should be easy to adapt the instructions
-also for Linux.
+it should be easy to adapt the instructions for Linux.
 
 ## Requirements
 
@@ -27,15 +26,14 @@ two teams using the GitLab UI.
 
 Since it's all Docker, just run the following in the project root:
 
-```
+```shell
 docker-compose up
 ```
 
-Alternatively you can run the following script, which will take care
-of stopping any previous `docker-compose` and clean up some build
-runner -related temporary files.
+Alternatively, you can run the following script which will
+take care of stopping any previous running containers:
 
-```
+```shell
 ./compose-all
 ```
 
@@ -48,7 +46,7 @@ services are available:
 - GitLab: `http://localhost:10080`, password `123456789` for user `root`.
 - Charles: `http://localhost:8000`
 - Git server: `http://localhost:10022`
-- Postgres: port `15432`, password `123456789` for user `gitlab`. Main databases are called `charles` and `gitlabhq_production`.
+- Postgres: port `15432`, password `12345678` for user `gitlab`. Main databases are called `charles` and `gitlabhq_production`.
 - Redis: port `16379`
 
 ### First run
@@ -98,15 +96,13 @@ git checkout master -- gitlab-data
 
 ## Running with UI
 
-Normally it makes the sense to run [minard-ui](https://github.com/lucified/minard-ui)
-along the backend services. See the documentation for minard-ui on how to
-run it against your development backend.
-
+To use Minard with a UI, check out
+the [minard-ui](https://github.com/lucified/minard-ui) project.
 
 ## Rebuilding the image
 
-If you update charles and need to e.g. install new NPM libraries, you will
-need to rebuild the charles Docker image. This is done with:
+If you update charles by e.g. installing new NPM packages, you will
+need to rebuild its Docker image. This is done with:
 
 ```shell
 docker-compose build charles
@@ -124,6 +120,6 @@ npm run watch
 
 ## Debugging
 
-A `node-dev` debugger for `charles` is listening at `5858`. A launch
+In development the Node process running `charles` is started with the
+remote Node debugger listening on port `5858`. A launch
 configuration for debugging in Visual Studio Code is included under `.vscode`.
-

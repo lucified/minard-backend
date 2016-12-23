@@ -24,7 +24,7 @@ each other.
 The main service of Minard's backend is `charles`.  Charles is written
 in TypeScript 2 and runs a [Hapi.js](http://hapijs.com)-based Node server.
 
-Charles has been divided to modules, which
+Charles has been divided into modules, which
 correspond to "components" in the C4 model.
 
 Below are module diagrams for the main modules within charles.

@@ -1,10 +1,9 @@
 
 # Production setup
 
-Due to Minard being on a prototype stage,
-we do not provide instructions on running
-Minard in production.
+Since Minard is still being prototyped, we do not have ready-made
+instructions for running Minard in production at this point.
 
 If you are interested in running Minard in
 production, get in touch with the Lucify
-team by sending email to info@lucify.com.
+team by sending an email to info@lucify.com.

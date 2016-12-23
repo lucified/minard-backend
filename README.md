@@ -1,11 +1,14 @@
 
 # Minard backend
 
-This is the repository for the Minard backend.
-Minard is in a prototype stage and
-under active development.
+This is the repository for the Minard backend. The project is in a
+prototype stage and under active development.
 
-The backend consist of many services that are composed together
+Minard is a preview service that integrates with version control, automatically
+building and deploying each version of your project. Minard makes it easy
+to share functional versions of quick web projects for feedback.
+
+The backend consists of many services that are composed together
 to form the Minard backend. This repository contains only the code
 for the main backend service, `charles`, whereas the code for other
 backend services are in their own repositories.
@@ -35,8 +38,8 @@ together with [minard-ui](https://github.com/lucified/minard-ui).
 - [License](docs/license.md)
 - [Internal](docs/internal.md) (Internal documentation for Lucify)
 
-## Thanks
+## Acknowledgements
 
-Thanks to Google Digital News Inititiative and
+Thank you to the Google Digital News Inititiative and
 Helsingin Sanomat foundation for supporting our work
 on the Minard prototype.

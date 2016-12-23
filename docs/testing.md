@@ -23,15 +23,15 @@ the id by running system integration tests using the `TEAM_ID` environment varia
 
 ### Running tests
 
-Start all needed services locally and run system integration tests against them with
+Start the backend locally and run system integration tests against it with:
 ```shell
 npm run-script system-test
 ```
 
 Run system integration tests against an already running local backend with
-```
-npm run-script system-test-mocha
 ```shell
+npm run-script system-test-mocha
+```
 
 You can run system integration tests against a custom backend with
 ```shell

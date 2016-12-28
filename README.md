@@ -34,7 +34,6 @@ together with [minard-ui](https://github.com/lucified/minard-ui).
 - [Charles API](docs/api/README.md)
 - [User and team administration](docs/user-and-team-admin.md)
 - [Contributing](docs/contributing.md)
-- [License](docs/license.md)
 
 ## Acknowledgements
 

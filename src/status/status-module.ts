@@ -150,9 +150,9 @@ export default class StatusModule {
       });
       // gitlab does not seem to refresh the contacted_at time for every
       // request. with a working runner the diff seems to go at maximum
-      // to around 80. Thus comparing to 120 should be a safe to way to
+      // to around 80. Thus comparing to 240 should be a safe to way to
       // figure whether the runner is really OK
-      const filtered = timeDiffs.filter((runner) => runner.diff < 120);
+      const filtered = timeDiffs.filter((runner) => runner.diff < 240);
 
       return {
         active: filtered.length > 0,

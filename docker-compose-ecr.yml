@@ -1,6 +1,6 @@
 
 # Overrides service images with images
-# Lucify's AWS ECR registry
+# in Lucify's AWS ECR registry
 
 version: '2'
 

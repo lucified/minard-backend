@@ -316,8 +316,3 @@ repo-url|string|New git repository URL for edited project
     "repo-url": "http://localhost:10080/test/integration-test-project.git"
 }
 ```
-
-### `PING`
-
-Occurs every two seconds if there are no other events
-in the event stream.

@@ -53,8 +53,8 @@ import {
   StreamingDeploymentEvent,
 } from './types';
 
-function getPlugin(bus: PersistentEventBus, factory: any) {
-  const jsonApi = new JsonApiHapiPlugin(factory, baseUrl, {} as any);
+function getPlugin(bus: PersistentEventBus, jsonApiModule: JsonApiModule) {
+  const jsonApi = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any);
   return new RealtimeHapiPlugin(jsonApi, bus, logger(undefined, true));
 }
 
@@ -119,7 +119,7 @@ describe('realtime-hapi-plugin', () => {
             description,
           };
           const event = eventConstructor(payload);
-          const mockFactory = () => ({
+          const jsonApiModule = {
             getProject: async (_projectId: number): Promise<ApiProject> => ({
                 type: 'project',
                 id: _projectId,
@@ -133,9 +133,9 @@ describe('realtime-hapi-plugin', () => {
                 }],
                 repoUrl: 'foo',
             }),
-          });
+          } as JsonApiModule;
           const eventBus = getEventBus();
-          const plugin = getPlugin(eventBus, mockFactory);
+          const plugin = getPlugin(eventBus, jsonApiModule);
           const promise = plugin.persistedEvents.take(1).toPromise();
           // Act
           await eventBus.post(event);
@@ -196,7 +196,7 @@ describe('realtime-hapi-plugin', () => {
     };
 
     async function testCodePushed(_payload: CodePushedEvent) {
-      const mockFactory = () => ({
+      const jsonApiModule = {
         getBranch: async (_projectId: number, _branchName: string): Promise<ApiBranch> => ({
           type: 'branch',
           name: _branchName,
@@ -204,9 +204,9 @@ describe('realtime-hapi-plugin', () => {
           id: `5-branch`,
         } as any),
         toApiCommit: JsonApiModule.prototype.toApiCommit,
-      });
+      } as JsonApiModule;
       const eventBus = getEventBus();
-      const plugin = getPlugin(eventBus, mockFactory);
+      const plugin = getPlugin(eventBus, jsonApiModule);
 
       // Act
       const promise = plugin.persistedEvents.take(1).toPromise();
@@ -249,7 +249,7 @@ describe('realtime-hapi-plugin', () => {
     it('is transformed correctly to StreamingDeploymentEvent', async () => {
       const branchName = 'foo-branch-name';
       const projectId = 5;
-      const mockFactory = () => new JsonApiModule(
+      const jsonApiModule = new JsonApiModule(
         {} as any,
         {} as any,
         {} as any,
@@ -259,7 +259,7 @@ describe('realtime-hapi-plugin', () => {
       );
 
       const eventBus = getEventBus();
-      const plugin = getPlugin(eventBus, mockFactory);
+      const plugin = getPlugin(eventBus, jsonApiModule);
 
       // Act
       const payload: DeploymentEvent = {
@@ -299,11 +299,11 @@ describe('realtime-hapi-plugin', () => {
     beforeEach(clearDb);
 
     it('is transformed correctly to streaming event', async () => {
-      const mockFactory = () => ({
+      const jsonApiModule = {
         toApiComment: JsonApiModule.prototype.toApiComment,
-      });
+      } as JsonApiModule;
       const eventBus = getEventBus();
-      const plugin = getPlugin(eventBus, mockFactory);
+      const plugin = getPlugin(eventBus, jsonApiModule);
 
       // Act
       const payload: CommentAddedEvent = {

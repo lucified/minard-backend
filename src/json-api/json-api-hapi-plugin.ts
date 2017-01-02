@@ -1,6 +1,6 @@
 
 import * as Boom from 'boom';
-import { inject, injectable, interfaces } from 'inversify';
+import { inject, injectable } from 'inversify';
 import * as Joi from 'joi';
 import * as moment from 'moment';
 
@@ -77,15 +77,15 @@ export class JsonApiHapiPlugin {
   public static injectSymbol = Symbol('json-api-hapi-plugin');
 
   private baseUrl: string;
-  private factory: () => JsonApiModule;
+  private jsonApi: JsonApiModule;
   private viewEndpoints: ViewEndpoints;
 
   constructor(
-    @inject(JsonApiModule.factoryInjectSymbol) factory: interfaces.Factory<JsonApiModule>,
+    @inject(JsonApiModule.injectSymbol) jsonApi: JsonApiModule,
     @inject(externalBaseUrlInjectSymbol) baseUrl: string,
     @inject(ViewEndpoints.injectSymbol) viewEndpoints: ViewEndpoints,
     ) {
-    this.factory = factory as () => JsonApiModule;
+    this.jsonApi = jsonApi;
     this.register.attributes = {
       name: 'json-api-plugin',
       version: '1.0.0',
@@ -462,7 +462,7 @@ export class JsonApiHapiPlugin {
   }
 
   public async getEntity(type: string, entityFetcher: (api: JsonApiModule) => apiReturn) {
-    const entity = await entityFetcher(this.factory());
+    const entity = await entityFetcher(this.jsonApi);
     if (!entity) {
       throw Boom.notFound(`${type} not found`);
     }
@@ -487,7 +487,7 @@ export class JsonApiHapiPlugin {
   private async postProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const { name, description, templateProjectId } = request.payload.data.attributes;
     const teamId = request.payload.data.relationships.team.data.id;
-    const project = await this.factory().createProject(teamId, name, description, templateProjectId);
+    const project = await this.jsonApi.createProject(teamId, name, description, templateProjectId);
     return reply(this.serializeApiEntity('project', project))
       .created(`/api/projects/${project.id}`);
   }
@@ -499,13 +499,13 @@ export class JsonApiHapiPlugin {
       // Require that at least something is edited
       throw Boom.badRequest();
     }
-    const project = await this.factory().editProject(projectId, attributes);
+    const project = await this.jsonApi.editProject(projectId, attributes);
     return reply(this.serializeApiEntity('project', project));
   }
 
   private async deleteProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const projectId = (<any> request.params).projectId;
-    await this.factory().deleteProject(projectId);
+    await this.jsonApi.deleteProject(projectId);
     return reply({});
   }
 
@@ -570,7 +570,7 @@ export class JsonApiHapiPlugin {
   }
 
   public getJsonApiModule() {
-    return this.factory();
+    return this.jsonApi;
   }
 
   public async getProjectNotificationConfigurationsHandler(request: Hapi.Request, reply: Hapi.IReply) {
@@ -591,14 +591,14 @@ export class JsonApiHapiPlugin {
       throw Boom.badRequest('teamId and projectId should not both be defined');
     }
 
-    const id = await this.factory().createNotificationConfiguration(config);
+    const id = await this.jsonApi.createNotificationConfiguration(config);
     return reply(this.getEntity('notification',
       api => api.getNotificationConfiguration(id))).created('');
   }
 
   public async deleteNotificationConfigurationHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const id = (<any> request.params).id;
-    await this.factory().deleteNotificationConfiguration(id);
+    await this.jsonApi.deleteNotificationConfiguration(id);
     return reply({});
   }
 
@@ -609,7 +609,7 @@ export class JsonApiHapiPlugin {
     if (!parsed) {
       throw Boom.badRequest('Invalid deployment id');
     }
-    const comment = await this.factory().addComment(
+    const comment = await this.jsonApi.addComment(
         parsed.deploymentId, email, message, name || undefined);
     return reply(this.serializeApiEntity('comment', comment))
       .created(`/api/comments/${comment.id}`);
@@ -617,7 +617,7 @@ export class JsonApiHapiPlugin {
 
   public async deleteCommentHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const { id } = request.params;
-    await this.factory().deleteComment(Number(id));
+    await this.jsonApi.deleteComment(Number(id));
     return reply({});
   }
 

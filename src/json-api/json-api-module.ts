@@ -61,7 +61,6 @@ const deepcopy = require('deepcopy');
 export class JsonApiModule {
 
   public static injectSymbol = Symbol('json-api-injectsymbol');
-  public static factoryInjectSymbol = Symbol('json-api-factory-injectsymbol');
 
   private readonly deploymentModule: DeploymentModule;
   private readonly projectModule: ProjectModule;

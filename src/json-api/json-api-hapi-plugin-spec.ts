@@ -7,6 +7,7 @@ import 'reflect-metadata';
 import * as Hapi from '../server/hapi';
 import { MINARD_ERROR_CODE } from '../shared/minard-error';
 import { JsonApiHapiPlugin, parseActivityFilter } from './json-api-hapi-plugin';
+import { JsonApiModule } from './json-api-module';
 
 const provisionServer = async (plugin: JsonApiHapiPlugin) => {
   const server = Hapi.getServer();
@@ -28,7 +29,7 @@ describe('json-api-hapi-plugin', () => {
   describe('activity route', () => {
     it('should correctly get project activity', async() => {
       // Arrange
-      const mockFactory = () => ({
+      const jsonApiModule = {
         getProjectActivity: async (_projectId: number) => {
           return [
             {
@@ -39,8 +40,8 @@ describe('json-api-hapi-plugin', () => {
             },
           ];
         },
-      });
-      const plugin = new JsonApiHapiPlugin(mockFactory as any, baseUrl, {} as any);
+      } as JsonApiModule;
+      const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any);
       const server = await provisionServer(plugin);
 
       // Act
@@ -61,7 +62,7 @@ describe('json-api-hapi-plugin', () => {
     it('should correctly get team activity', async() => {
       // Arrange
       const teamId = 6;
-      const mockFactory = () => ({
+      const jsonApiModule = {
         getTeamActivity: async (_teamId: number) => {
           expect(_teamId).to.equal(teamId);
           return [
@@ -73,8 +74,8 @@ describe('json-api-hapi-plugin', () => {
             },
           ];
         },
-      });
-      const plugin = new JsonApiHapiPlugin(mockFactory as any, baseUrl, {} as any);
+      } as JsonApiModule;
+      const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any);
       const server = await provisionServer(plugin);
 
       // Act
@@ -123,7 +124,7 @@ describe('json-api-hapi-plugin', () => {
   describe('POST "/projects"', () => {
     const projectId = 4;
     async function injectRequest(teamId: any, name: string, description: string | undefined) {
-      const mockFactory = () => ({
+      const jsonApiModule = {
         createProject: async (_teamId: number, _name: string, _description: string) => {
           return {
             id: projectId,
@@ -132,8 +133,8 @@ describe('json-api-hapi-plugin', () => {
             description: _description,
           };
         },
-      });
-      const plugin = new JsonApiHapiPlugin(mockFactory as any, baseUrl, {} as any);
+      } as JsonApiModule;
+      const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any);
       const server = await provisionServer(plugin);
       const options: Hapi.IServerInjectOptions = {
         method: 'POST',
@@ -219,7 +220,7 @@ describe('json-api-hapi-plugin', () => {
       projectId: number,
       name: string | undefined,
       description: string | undefined) {
-      const mockFactory = () => ({
+      const jsonApiModule = {
         editProject: async (_projectId: number, attributes: { name: string, description: string}) => {
           return {
             id: _projectId,
@@ -227,8 +228,8 @@ describe('json-api-hapi-plugin', () => {
             description: attributes.description,
           };
         },
-      });
-      const plugin = new JsonApiHapiPlugin(mockFactory as any, baseUrl, {} as any);
+      } as JsonApiModule;
+      const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any);
       const server = await provisionServer(plugin);
       const options: Hapi.IServerInjectOptions = {
         method: 'PATCH',
@@ -301,7 +302,7 @@ describe('json-api-hapi-plugin', () => {
       projectId: number,
       branchName: string,
       params: { until?: string, count?: number }) {
-      const mockFactory = () => ({
+      const jsonApiModule = {
         getBranchCommits: async (_projectId: number, _branchName: string, _until: moment.Moment, _count: number) => {
           try {
             expect(_projectId).to.equal(projectId);
@@ -320,8 +321,8 @@ describe('json-api-hapi-plugin', () => {
           }
           return [{}, {}];
         },
-      });
-      const plugin = new JsonApiHapiPlugin(mockFactory as any, baseUrl, {} as any);
+      } as JsonApiModule;
+      const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any);
       const server = await provisionServer(plugin);
       const options: Hapi.IServerInjectOptions = {
         method: 'GET',

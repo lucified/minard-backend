@@ -1,5 +1,6 @@
 import { inject, injectable } from 'inversify';
 
+import { AuthenticationHapiPlugin } from '../authentication';
 import { CIProxy } from '../deployment';
 import { DeploymentHapiPlugin } from '../deployment';
 import { JsonApiHapiPlugin } from '../json-api';
@@ -30,23 +31,26 @@ import {
 export default class MinardServer {
   public static injectSymbol = Symbol('minard-server');
 
-  private statusPlugin: StatusHapiPlugin;
-  private projectPlugin: ProjectHapiPlugin;
-  private deploymentPlugin: DeploymentHapiPlugin;
-  private jsonApiPlugin: JsonApiHapiPlugin;
-  private screenshotPlugin: ScreenshotHapiPlugin;
-  private operationsPlugin: OperationsHapiPlugin;
-  private realtimePlugin: RealtimeHapiPlugin;
-  private ciProxy: CIProxy;
-  private port: number;
-  private host: string;
-  private hapiServer: Hapi.Server;
-  private goodOptions: any;
+  private readonly authenticationPlugin: AuthenticationHapiPlugin;
+  private readonly statusPlugin: StatusHapiPlugin;
+  private readonly projectPlugin: ProjectHapiPlugin;
+  private readonly deploymentPlugin: DeploymentHapiPlugin;
+  private readonly jsonApiPlugin: JsonApiHapiPlugin;
+  private readonly screenshotPlugin: ScreenshotHapiPlugin;
+  private readonly operationsPlugin: OperationsHapiPlugin;
+  private readonly realtimePlugin: RealtimeHapiPlugin;
+  private readonly ciProxy: CIProxy;
+  private readonly port: number;
+  private readonly host: string;
+  private readonly goodOptions: any;
   private readonly sentryDsn: string;
   private readonly exitDelay: number;
   public readonly logger: Logger;
 
+  private hapiServer: Hapi.Server;
+
   constructor(
+    @inject(AuthenticationHapiPlugin.injectSymbol) authenticationPlugin: AuthenticationHapiPlugin,
     @inject(DeploymentHapiPlugin.injectSymbol) deploymentPlugin: DeploymentHapiPlugin,
     @inject(ProjectHapiPlugin.injectSymbol) projectPlugin: ProjectHapiPlugin,
     @inject(JsonApiHapiPlugin.injectSymbol) jsonApiPlugin: JsonApiHapiPlugin,
@@ -60,7 +64,9 @@ export default class MinardServer {
     @inject(OperationsHapiPlugin.injectSymbol) operationsPlugin: OperationsHapiPlugin,
     @inject(RealtimeHapiPlugin.injectSymbol) realtimePlugin: RealtimeHapiPlugin,
     @inject(sentryDsnInjectSymbol) sentryDsn: string,
-    @inject(exitDelayInjectSymbol) exitDelay: number) {
+    @inject(exitDelayInjectSymbol) exitDelay: number,
+    ) {
+    this.authenticationPlugin = authenticationPlugin;
     this.deploymentPlugin = deploymentPlugin;
     this.projectPlugin = projectPlugin;
     this.jsonApiPlugin = jsonApiPlugin;
@@ -177,6 +183,7 @@ export default class MinardServer {
 
   private async loadAppPlugins(server: Hapi.Server) {
     await server.register([
+      this.authenticationPlugin.register,
       this.deploymentPlugin.register,
       this.projectPlugin.register,
       this.ciProxy.register,

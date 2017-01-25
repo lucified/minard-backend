@@ -4,7 +4,10 @@ import { ContainerModule } from 'inversify';
 // on the last part of the import path.
 
 import { ActivityModule } from '../activity';
-import { AuthenticationModule } from '../authentication';
+import {
+  AuthenticationHapiPlugin,
+  AuthenticationModule
+} from '../authentication';
 
 import {
   CommentModule,
@@ -113,6 +116,7 @@ export default new ContainerModule(bind => {
   bind(ScreenshotHapiPlugin.injectSymbol).to(ScreenshotHapiPlugin);
   bind(StatusHapiPlugin.injectSymbol).to(StatusHapiPlugin);
   bind(RealtimeHapiPlugin.injectSymbol).to(RealtimeHapiPlugin);
+  bind(AuthenticationHapiPlugin.injectSymbol).to(AuthenticationHapiPlugin);
 
   // Other bindings
   bind(eventBusInjectSymbol).to(PersistentEventBus).inSingletonScope();

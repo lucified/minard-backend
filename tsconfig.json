@@ -1,7 +1,8 @@
 {
   "exclude": [
     "gitlab-data",
-    "node_modules"
+    "node_modules",
+    "typings"
   ],
   "compilerOptions": {
     "outDir": "./dist/",
@@ -23,7 +24,6 @@
     "pretty": true,
     "noImplicitReturns": true,
     "noEmitOnError": false, // still transpiles with type errors
-    "baseUrl": ".",
-    "paths": {}
+    "baseUrl": "./typings"
   }
 }

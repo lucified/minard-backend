@@ -6,7 +6,7 @@ import { ContainerModule } from 'inversify';
 import { ActivityModule } from '../activity';
 import {
   AuthenticationHapiPlugin,
-  AuthenticationModule
+  AuthenticationModule,
 } from '../authentication';
 
 import {

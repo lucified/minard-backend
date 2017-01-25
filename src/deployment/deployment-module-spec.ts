@@ -10,6 +10,7 @@ import * as os from 'os';
 import * as path from 'path';
 
 import {
+  MinardProject,
   ProjectModule,
 } from '../project';
 
@@ -50,6 +51,7 @@ import {
 import { fetch, fetchMock } from '../shared/fetch';
 import { GitlabClient } from '../shared/gitlab-client';
 import Logger from '../shared/logger';
+import { MinardCommit } from '../shared/minard-commit';
 import { promisify } from '../shared/promisify';
 
 const rimraf = require('rimraf');
@@ -407,7 +409,7 @@ describe('deployment-module', () => {
           name: 'foo',
           email: 'fooman@foomail.com',
         },
-      };
+      } as MinardCommit;
       const projectModule = {} as ProjectModule;
       projectModule.getCommit = async (projectId: number, commitHash: string) => {
         expect(commitHash).to.equal(commit.id);
@@ -418,7 +420,7 @@ describe('deployment-module', () => {
         expect(projectId).to.equal(6);
         return {
           teamId,
-        };
+        } as MinardProject;
       };
       const bus = getEventBus();
       const deploymentModule = await arrangeDeploymentModule(projectModule, bus);
@@ -813,7 +815,7 @@ describe('deployment-module', () => {
       const deploymentModule = getDeploymentModule({} as GitlabClient, '');
       deploymentModule.getDeployment = async (deploymentId) => {
         expect(deploymentId).to.equal(4);
-        return null;
+        return undefined as MinardDeployment | undefined;
       };
       try {
         await deploymentModule.doPrepareDeploymentForServing(2, 4);
@@ -828,7 +830,7 @@ describe('deployment-module', () => {
       deploymentModule.getDeployment = async (_deploymentId) => {
         return {
           buildStatus: 'failed',
-        };
+        } as MinardDeployment;
       };
       try {
         await deploymentModule.doPrepareDeploymentForServing(2, 4);
@@ -843,7 +845,7 @@ describe('deployment-module', () => {
       deploymentModule.getDeployment = async (_deploymentId) => {
         return {
           buildStatus: 'success',
-        };
+        } as MinardDeployment;
       };
       let called = false;
       deploymentModule.updateDeploymentStatus = async () => undefined;
@@ -851,12 +853,14 @@ describe('deployment-module', () => {
         expect(projectId).to.equal(2);
         expect(deploymentId).to.equal(4);
         called = true;
+        return 'string';
       };
       let moveCalled = false;
       deploymentModule.moveExtractedDeployment = async (projectId, deploymentId) => {
         expect(projectId).to.equal(2);
         expect(deploymentId).to.equal(4);
         moveCalled = true;
+        return 'string';
       };
       await deploymentModule.doPrepareDeploymentForServing(2, 4);
       expect(called).to.equal(true);
@@ -868,7 +872,7 @@ describe('deployment-module', () => {
       deploymentModule.getDeployment = async (_deploymentId) => {
         return {
           buildStatus: 'success',
-        };
+        } as MinardDeployment;
       };
       deploymentModule.updateDeploymentStatus = async () => undefined;
       deploymentModule.downloadAndExtractDeployment = async (_projectId, _deploymentId) => {
@@ -1173,7 +1177,7 @@ describe('deployment-module', () => {
       // Arrange
       const bus = getEventBus();
       const deploymentModule = await arrangeDeploymentModule(bus, await initializeDb(beforeState));
-      deploymentModule.doPrepareDeploymentForServing = async(_projectId: number, _deploymentId: number) => undefined;
+      deploymentModule.doPrepareDeploymentForServing = async(_projectId: number, _deploymentId: number) => 'string';
       deploymentModule.takeScreenshot = async(_projectId: number, _deploymentId: number) => undefined;
 
       const promise = bus.filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
@@ -1206,7 +1210,7 @@ describe('deployment-module', () => {
       // Arrange
       const bus = getEventBus();
       const deploymentModule = await arrangeDeploymentModule(bus, await initializeDb(beforeState));
-      deploymentModule.doPrepareDeploymentForServing = async(_projectId: number, _deploymentId: number) => undefined;
+      deploymentModule.doPrepareDeploymentForServing = async(_projectId: number, _deploymentId: number) => 'string';
       deploymentModule.takeScreenshot = async(_projectId: number, _deploymentId: number) => undefined;
 
       let called = false;

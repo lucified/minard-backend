@@ -13,6 +13,7 @@ import {
   ApiComment,
   ApiCommit,
   ApiDeployment,
+  ApiNotificationConfiguration,
   ApiProject,
 } from './types';
 
@@ -332,7 +333,8 @@ export class JsonApiModule {
   }
 
   public async getNotificationConfiguration(id: number) {
-    return this.notificationModule.getConfiguration(id);
+    const configuration = await this.notificationModule.getConfiguration(id);
+    return configuration ? this.toApiNotificationConfiguration(configuration) : undefined;
   }
 
   public async deleteNotificationConfiguration(id: number) {
@@ -389,6 +391,10 @@ export class JsonApiModule {
       createdAt: toGitlabTimestamp(comment.createdAt),
       project: comment.projectId,
     };
+  }
+
+  public toApiNotificationConfiguration(configuration: NotificationConfiguration): ApiNotificationConfiguration {
+    return configuration as ApiNotificationConfiguration;
   }
 
 }

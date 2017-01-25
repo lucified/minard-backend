@@ -131,7 +131,7 @@ describe('json-api-hapi-plugin', () => {
             teamId: _teamId,
             name: _name,
             description: _description,
-          };
+          } as any;
         },
       } as JsonApiModule;
       const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any);

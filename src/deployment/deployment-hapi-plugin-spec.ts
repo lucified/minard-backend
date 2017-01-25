@@ -22,7 +22,7 @@ describe('deployment-hapi-plugin', () => {
           commit: {
             shortId: 'foo',
           },
-        };
+        } as any;
       };
       return new DeploymentHapiPlugin(deploymentModule, '', {} as any);
     }
@@ -58,7 +58,7 @@ describe('deployment-hapi-plugin', () => {
           commit: {
             shortId: 'foo',
           },
-        };
+        } as any;
       };
       const plugin = new DeploymentHapiPlugin(deploymentModule, '', {} as any);
 
@@ -68,6 +68,7 @@ describe('deployment-hapi-plugin', () => {
       // Second lookup
       deploymentModule.getDeployment = async(_deploymentId: number) => {
         expect.fail('should not be called');
+        return undefined;
       };
       expect(await plugin.checkHash(deploymentId, 'foo')).to.be.true;
     });
@@ -81,14 +82,14 @@ describe('deployment-hapi-plugin', () => {
             commit: {
               shortId: 'foo',
             },
-          };
+          } as any;
         }
         if (_deploymentId === 6) {
           return {
             commit: {
               shortId: 'bar',
             },
-          };
+          } as any;
         }
         throw 'invalid deploymentId';
       };

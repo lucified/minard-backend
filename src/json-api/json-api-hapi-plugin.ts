@@ -592,8 +592,10 @@ export class JsonApiHapiPlugin {
     }
 
     const id = await this.jsonApi.createNotificationConfiguration(config);
-    return reply(this.getEntity('notification',
-      api => api.getNotificationConfiguration(id))).created('');
+    return reply(this.getEntity('notification', async (api) => {
+      const configuration = await api.getNotificationConfiguration(id);
+      return configuration!;
+    })).created('');
   }
 
   public async deleteNotificationConfigurationHandler(request: Hapi.Request, reply: Hapi.IReply) {

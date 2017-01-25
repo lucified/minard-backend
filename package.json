@@ -75,9 +75,9 @@
     "mocha-typescript": "^1.0.15",
     "rimraf": "^2.5.4",
     "sqlite3": "^3.1.8",
-    "ts-node": "^1.7.2",
+    "ts-node": "^2.0.0",
     "tslint": "^4.0.2",
-    "typescript": "^2.0.10"
+    "typescript": "^2.1.5"
   },
   "scripts": {
     "clean-test": "rm -rf dist && npm run-script transpile && mocha ./dist/**/*-spec.js",

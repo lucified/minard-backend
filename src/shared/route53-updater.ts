@@ -8,11 +8,17 @@ import { sleep } from './sleep';
 import { fetchInjectSymbol } from './types';
 
 export interface ChangeInfo {
-  Status: string;
+  Status: 'INSYNC' | 'PENDING';
   Id: string;
 }
 export interface Route53UpdaterFunction {
-  (values: {Value: string}[], hostedZoneId: string, name: string, type: string, ttl: number): Promise<ChangeInfo>;
+  (
+    values: {Value: string}[],
+    hostedZoneId: string,
+    name: string,
+    type: string,
+    ttl: number
+  ): Promise<{ChangeInfo: ChangeInfo}>;
 }
 
 // The IP below is the IP for the AWS metadata URL

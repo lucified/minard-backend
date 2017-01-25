@@ -34,7 +34,7 @@ describe('cached-project-module', () => {
       const projectModule = getProjectModule(cache);
       projectModule._getProjectContributors = async(_projectId: number) => {
         expect(_projectId).to.equal(projectId);
-        return [{}, {}];
+        return [{}, {}] as any;
       };
       const contributors = await projectModule.getProjectContributors(projectId);
       expect(contributors).to.exist;
@@ -49,7 +49,7 @@ describe('cached-project-module', () => {
         expect(callCount).to.equal(0);
         expect(_projectId).to.equal(projectId);
         callCount++;
-        return [{}, {}];
+        return [{}, {}] as any;
       };
       await projectModule.getProjectContributors(projectId);
       const contributors = await projectModule.getProjectContributors(projectId);
@@ -62,7 +62,7 @@ describe('cached-project-module', () => {
       const projectModule = getProjectModule(cache);
       projectModule._getProjectContributors = async(_projectId: number) => {
         if (_projectId === projectId) {
-          return [{}, {}];
+          return [{}, {}] as any;
         }
         return [{}, {}, {}];
       };
@@ -82,7 +82,7 @@ describe('cached-project-module', () => {
       projectModule._getProjectContributors = async(_projectId: number) => {
         callCount++;
         if (callCount === 1) {
-          return [{}, {}];
+          return [{}, {}] as any;
         }
         return [{}, {}, {}];
       };

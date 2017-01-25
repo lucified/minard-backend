@@ -602,8 +602,9 @@ export default class DeploymentModule {
     // move to final directory
     const extractedTempPath = this.getTempArtifactsPath(projectId, deploymentId);
     const finalPath = this.getDeploymentPath(projectId, deploymentId);
-    const sourcePath = minardJson.effective.publicRoot === '.' ? extractedTempPath :
-      path.join(extractedTempPath, minardJson.effective.publicRoot);
+    const publicRoot = minardJson.effective.publicRoot;
+    const sourcePath =  !publicRoot || publicRoot === '.' ? extractedTempPath :
+      path.join(extractedTempPath, publicRoot);
     const exists = fs.existsSync(sourcePath);
     if (!exists) {
       const msg = `Deployment "${projectId}_${deploymentId}" did not have directory at repo path ` +

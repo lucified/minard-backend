@@ -1,4 +1,4 @@
-import { interfaces, Kernel } from 'inversify';
+import { Container, interfaces } from 'inversify';
 
 import { default as common } from './config-common';
 import { default as development } from './config-development';
@@ -7,11 +7,11 @@ import { default as production } from './config-production';
 
 import { ENV } from '../shared/types';
 
-const kernel = new Kernel();
+const kernel = new Container();
 kernel.load(common);
 
 interface Configs {
-  [env: string]: ((kernel: interfaces.Kernel) => void) | undefined;
+  [env: string]: ((kernel: Container) => void) | undefined;
 }
 const configs: Configs = {
   production,

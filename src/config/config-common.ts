@@ -1,4 +1,4 @@
-import { KernelModule } from 'inversify';
+import { ContainerModule } from 'inversify';
 
 // Imports below should be in alphabetical order, based
 // on the last part of the import path.
@@ -88,7 +88,7 @@ import {
 import { SystemHookModule } from '../system-hook';
 import { UserModule } from '../user';
 
-export default new KernelModule(bind => {
+export default new ContainerModule(bind => {
 
   // Bindings for modules
   bind(ActivityModule.injectSymbol).to(ActivityModule).inSingletonScope();

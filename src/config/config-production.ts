@@ -1,6 +1,6 @@
 
 import * as cacheManager from 'cache-manager';
-import { interfaces } from 'inversify';
+import { Container } from 'inversify';
 import * as Knex from 'knex';
 import * as winston from 'winston';
 
@@ -254,7 +254,7 @@ const EXIT_DELAY = env.EXIT_DELAY ? parseInt(env.EXIT_DELAY, 10) : 15000;
 // Inversify kernel bindings
 // -------------------------
 
-export default (kernel: interfaces.Kernel) => {
+export default (kernel: Container) => {
   kernel.bind(eventStoreConfigInjectSymbol).toConstantValue(eventStoreConfig);
   kernel.bind(goodOptionsInjectSymbol).toConstantValue(goodOptions);
   kernel.bind(loggerInjectSymbol).toConstantValue(Logger(winstonOptions));

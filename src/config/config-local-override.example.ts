@@ -1,5 +1,5 @@
 
-import { interfaces } from 'inversify';
+import { Container } from 'inversify';
 import * as winston from 'winston';
 
 import { goodOptionsInjectSymbol } from '../server';
@@ -55,7 +55,7 @@ const winstonOptions = {
   ],
 };
 
-export default (kernel: interfaces.Kernel, _env: ENV) => {
+export default (kernel: Container, _env: ENV) => {
   kernel.unbind(goodOptionsInjectSymbol);
   kernel.bind(goodOptionsInjectSymbol).toConstantValue(goodOptions);
   kernel.unbind(loggerInjectSymbol);

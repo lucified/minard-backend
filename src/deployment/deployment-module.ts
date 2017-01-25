@@ -561,7 +561,7 @@ export default class DeploymentModule {
     const response = await this.gitlab.fetch(url);
     const tempDir = path.join(os.tmpdir(), 'minard');
     await mkpath(tempDir);
-    let readableStream = (<any> response).body;
+    const readableStream = (<any> response).body;
     const tempFileName = path.join(tempDir, `minard-${projectId}-${deploymentId}.zip`);
     const writeStream = fs.createWriteStream(tempFileName);
 

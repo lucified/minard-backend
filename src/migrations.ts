@@ -56,7 +56,7 @@ export default class Migrations {
         tableName: 'knex_migrations_comment',
       },
     ];
-    for (let config of configs) {
+    for (const config of configs) {
       await this.charlesKnex.migrate.latest(config);
     }
     this.logger.info('Migrations finished');

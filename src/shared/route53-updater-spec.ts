@@ -9,7 +9,9 @@ const retryDelay = 1;
 const maxRetries = 5;
 const logger = loggerConstructor(undefined, true);
 
-type UpdaterResult = {ChangeInfo: ChangeInfo};
+interface UpdaterResult {
+  ChangeInfo: ChangeInfo;
+};
 function getRoute53UpdaterFunction(callback: () => UpdaterResult): Route53UpdaterFunction {
   return async (_values: {Value: string}[], _hostedZoneId: string, _name: string, _type: string, _ttl: number) => {
     return callback();

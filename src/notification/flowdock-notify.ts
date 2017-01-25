@@ -16,7 +16,10 @@ import {
 import { IFetch, RequestInit } from '../shared/fetch';
 import { fetchInjectSymbol } from '../shared/types';
 
-type ThreadField = { label: string, value: string };
+interface ThreadField {
+  label: string;
+  value: string;
+}
 
 const url = 'https://api.flowdock.com/messages';
 
@@ -93,7 +96,7 @@ export class FlowdockNotify {
   }
 
   private async doFetch(options: RequestInit) {
-    let ret = await this.fetch(url, options);
+    const ret = await this.fetch(url, options);
     if (ret.status === 202 || ret.status === 200 || ret.status === 201) {
       return;
     }

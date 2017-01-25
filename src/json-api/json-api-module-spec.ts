@@ -310,7 +310,7 @@ describe('json-api-module', () => {
            },
           ];
         }
-        throw 'invalid hash';
+        throw new Error('invalid hash');
       };
       const jsonApiModule = new JsonApiModule(
         deploymentModule,

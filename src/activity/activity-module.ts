@@ -21,7 +21,7 @@ import {
   eventBusInjectSymbol,
 } from '../event-bus';
 
-import * as logger from  '../shared/logger';
+import * as logger from '../shared/logger';
 
 import {
   createActivityEvent,

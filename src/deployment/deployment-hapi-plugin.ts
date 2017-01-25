@@ -10,8 +10,7 @@ import { HapiRegister } from '../server/hapi-register';
 import DeploymentModule, {
   getDeploymentKeyFromHost,
   isRawDeploymentHostname,
-}
-from './deployment-module';
+} from './deployment-module';
 
 import { gitlabHostInjectSymbol } from '../shared/gitlab-client';
 import { Logger, loggerInjectSymbol } from '../shared/logger';

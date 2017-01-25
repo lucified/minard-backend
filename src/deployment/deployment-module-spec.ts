@@ -441,7 +441,7 @@ describe('deployment-module', () => {
 
       // Assert
       const deployment = await deploymentModule.getDeployment(5);
-      let compare = Object.assign({}, deployment, { createdAt: undefined });
+      const compare = Object.assign({}, deployment, { createdAt: undefined });
       const expected = {
         teamId,
         projectId: buildCreatedEvent.payload.project_id,

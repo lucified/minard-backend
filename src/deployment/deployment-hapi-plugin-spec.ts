@@ -91,7 +91,7 @@ describe('deployment-hapi-plugin', () => {
             },
           } as any;
         }
-        throw 'invalid deploymentId';
+        throw new Error('invalid deploymentId');
       };
       const plugin = new DeploymentHapiPlugin(deploymentModule, '', {} as any);
 

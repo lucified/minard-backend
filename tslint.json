@@ -11,7 +11,10 @@
     "interface-name": [false, "always-prefix"],
     "max-classes-per-file": [false],
     "object-literal-key-quotes": [false, "as-needed"],
-    "variable-name": [true, "ban-keywords", "check-format", "allow-leading-underscore", "allow-pascal-case"]
+    "variable-name": [true, "ban-keywords", "check-format", "allow-leading-underscore", "allow-pascal-case"],
+    "space-before-function-paren": false,
+    "no-angle-bracket-type-assertion": false,
+    "no-empty-interface": false
   },
   "rulesDirectory": []
 }

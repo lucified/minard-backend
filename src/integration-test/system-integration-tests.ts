@@ -55,7 +55,7 @@ async function fetchWithRetry(url: string, options?: any, retryCount = 5): Promi
 }
 
 async function runCommand(command: string, ...args: string[]): Promise<boolean> {
-  let stdio: any = 'inherit';
+  const stdio: any = 'inherit';
   return await new Promise<boolean>((resolve, reject) => {
     const child = spawn(command, args, { stdio });
     child.on('close', (code: any) => {

@@ -11,15 +11,13 @@ export interface ChangeInfo {
   Status: 'INSYNC' | 'PENDING';
   Id: string;
 }
-export interface Route53UpdaterFunction {
-  (
+export type Route53UpdaterFunction = (
     values: {Value: string}[],
     hostedZoneId: string,
     name: string,
     type: string,
-    ttl: number
-  ): Promise<{ChangeInfo: ChangeInfo}>;
-}
+    ttl: number,
+  ) => Promise<{ChangeInfo: ChangeInfo}>;
 
 // The IP below is the IP for the AWS metadata URL
 const ec2IpUrl = 'http://169.254.169.254/latest/meta-data/local-ipv4';
@@ -91,7 +89,7 @@ export class Route53Updater {
       return false;
     }
     const recordSetName = baseUrl.replace(/\.$/, '') + '.';
-    let ips = [{Value: ip}];
+    const ips = [{Value: ip}];
 
     let success = false;
     let i = 0;

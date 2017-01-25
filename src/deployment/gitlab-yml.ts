@@ -58,10 +58,9 @@ export function getValidationErrors(obj: any) {
     if (typeof obj.variables !== 'object' && !Array.isArray(obj.variables)) {
       errors.push('obj.variables should be an object');
     }
-    let count = 0;
-    values(obj.variables).forEach(item => {
+    values(obj.variables).forEach((item, i) => {
       if (typeof item !== 'string' && typeof item !== 'number') {
-        errors.push(`variables[${count}] is not a string or number`);
+        errors.push(`variables[${i}] is not a string or number`);
       }
     });
   }

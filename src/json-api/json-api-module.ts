@@ -394,7 +394,7 @@ export class JsonApiModule {
   }
 
   public toApiNotificationConfiguration(configuration: NotificationConfiguration): ApiNotificationConfiguration {
-    return { ...configuration } as ApiNotificationConfiguration;
+    return { ...configuration };
   }
 
 }

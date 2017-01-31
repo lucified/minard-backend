@@ -1,4 +1,3 @@
-
 import * as Boom from 'boom';
 import * as auth from 'hapi-auth-jwt2';
 import { inject, injectable } from 'inversify';

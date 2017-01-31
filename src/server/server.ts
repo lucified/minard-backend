@@ -1,4 +1,4 @@
-import { inject, injectable } from 'inversify';
+import { inject, injectable, optional } from 'inversify';
 
 import { AuthenticationHapiPlugin } from '../authentication';
 import { CIProxy } from '../deployment';
@@ -27,6 +27,8 @@ import {
   portInjectSymbol,
 } from './types';
 
+export const hapiOptionsInjectSymbol = Symbol('hapi-options');
+
 @injectable()
 export default class MinardServer {
   public static injectSymbol = Symbol('minard-server');
@@ -47,7 +49,8 @@ export default class MinardServer {
   private readonly exitDelay: number;
   public readonly logger: Logger;
 
-  private hapiServer: Hapi.Server;
+  private readonly hapiServer: Hapi.Server;
+  private isInitialized = false;
 
   constructor(
     @inject(AuthenticationHapiPlugin.injectSymbol) authenticationPlugin: AuthenticationHapiPlugin,
@@ -65,6 +68,7 @@ export default class MinardServer {
     @inject(RealtimeHapiPlugin.injectSymbol) realtimePlugin: RealtimeHapiPlugin,
     @inject(sentryDsnInjectSymbol) sentryDsn: string,
     @inject(exitDelayInjectSymbol) exitDelay: number,
+    @inject(hapiOptionsInjectSymbol) @optional() hapiOptions?: Hapi.IServerOptions,
     ) {
     this.authenticationPlugin = authenticationPlugin;
     this.deploymentPlugin = deploymentPlugin;
@@ -81,11 +85,8 @@ export default class MinardServer {
     this.logger = logger;
     this.sentryDsn = sentryDsn;
     this.exitDelay = exitDelay;
-  }
 
-  public async start(): Promise<Hapi.Server> {
-    const options = {};
-    const server = this.hapiServer = Hapi.getServer(options);
+    const server = Hapi.getServer(hapiOptions);
     server.connection({
       host: this.host,
       port: this.port,
@@ -95,6 +96,21 @@ export default class MinardServer {
         },
       },
     });
+    this.hapiServer = server;
+
+  }
+
+  public async initialize(): Promise<Hapi.Server> {
+    if (!this.isInitialized) {
+      await this.loadBasePlugins(this.hapiServer);
+      await this.loadAppPlugins(this.hapiServer);
+      this.isInitialized = true;
+    }
+    return this.hapiServer;
+  }
+
+  public async start(): Promise<Hapi.Server> {
+    const server = this.hapiServer;
 
     server.ext('onPreStop', async (_server, next) => {
       this.logger.debug('Starting exit delay');
@@ -103,11 +119,12 @@ export default class MinardServer {
       return next();
     });
 
-    await this.loadBasePlugins(server);
-    await this.loadAppPlugins(server);
-    await this.operationsPlugin.operationsModule.cleanupRunningDeployments();
-
+    await this.initialize();
+    console.log(server);
     await server.start();
+
+    await this.operationsPlugin.operationsModule.cleanupRunningDeployments();
+    await this.projectPlugin.registerHooks();
     this.logger.info('Charles is up and listening on %s', server.info.uri);
     return server;
   }

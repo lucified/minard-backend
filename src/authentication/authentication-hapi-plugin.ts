@@ -1,15 +1,17 @@
 
-// import * as Boom from 'boom';
+import * as Boom from 'boom';
 import * as auth from 'hapi-auth-jwt2';
 import { inject, injectable } from 'inversify';
-// import * as Joi from 'joi';
-import * as jwksRsa from 'jwks-rsa';
+import * as Joi from 'joi';
+import * as qs from 'querystring';
 
 import * as Hapi from '../server/hapi';
 import { HapiPlugin } from '../server/hapi-register';
+import { Group, User } from '../shared/gitlab';
+import { GitlabClient } from '../shared/gitlab-client';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
-import AuthenticationModule from './authentication-module';
-import { authServerBaseUrlInjectSymbol } from './types';
+import {default as AuthenticationModule} from './authentication-module';
+import { AccessToken, authServerBaseUrlInjectSymbol, jwtOptionsInjectSymbol } from './types';
 
 interface UserId {
   id: string;
@@ -20,60 +22,75 @@ interface UserId {
 class AuthenticationHapiPlugin extends HapiPlugin {
 
   public static injectSymbol = Symbol('authentication-hapi-plugin');
-  private authenticationModule: AuthenticationModule;
-  private authServerBaseUrl: string;
-  private logger: Logger;
-  private teamTokenClaim = 'http://team_token';
+  private readonly authenticationModule: AuthenticationModule;
+  private readonly authServerBaseUrl: string;
+  private readonly logger: Logger;
+  private readonly gitlab: GitlabClient;
+  private readonly options: auth.JWTStrategyOptions;
+  private teamTokenClaimKey: 'https://team_token' = 'https://team_token';
+  private subEmailClaimKey: 'https://sub_email' = 'https://sub_email';
 
   constructor(
     @inject(AuthenticationModule.injectSymbol) authenticationModule: AuthenticationModule,
     @inject(authServerBaseUrlInjectSymbol) authServerBaseUrl: string,
-    @inject(loggerInjectSymbol) logger: Logger) {
+    @inject(loggerInjectSymbol) logger: Logger,
+    @inject(GitlabClient.injectSymbol) gitlab: GitlabClient,
+    @inject(jwtOptionsInjectSymbol) jwtOptions: auth.JWTStrategyOptions,
+    ) {
     super({
       name: 'authentication-plugin',
       version: '1.0.0',
     });
     this.authenticationModule = authenticationModule;
-    this.authServerBaseUrl  = authServerBaseUrl;
+    this.authServerBaseUrl = authServerBaseUrl;
     this.logger = logger;
-
+    this.gitlab = gitlab;
+    this.options = jwtOptions;
   }
 
   public async register(server: Hapi.Server, _options: Hapi.IServerOptions, next: () => void) {
     await this.registerAuth(server);
-
-    // server.route({
-    //   method: 'GET',
-    //   path: '/ci/projects/{projectId}/{ref}/{sha}/yml',
-    //   handler: {
-    //     async: this.getGitlabYmlRequestHandler,
-    //   },
-    //   config: {
-    //     bind: this,
-    //     validate: {
-    //       params: {
-    //         projectId: Joi.number().required(),
-    //         ref: Joi.string().required(),
-    //         sha: Joi.string(),
-    //       },
-    //     },
-    //   },
-    // });
+    server.route([{
+      method: 'GET',
+      path: '/signup/{teamToken}',
+      handler: {
+        async: this.signupHandler,
+      },
+      config: {
+        bind: this,
+        validate: {
+          params: {
+            teamToken: Joi.string().alphanum().length(8),
+          },
+        },
+      },
+    },
+    ]);
+    server.route([{
+      method: 'GET',
+      path: '/team',
+      handler: {
+        async: this.getTeamHandler,
+      },
+      config: {
+        bind: this,
+      },
+    }]);
     next();
   }
 
-  public getUserId(sub: string) {
-    if (typeof sub !== 'string') {
-      throw new Error('Invalid \'sub\' claim.');
-    }
-    const parts = sub.split('|');
-    if (parts.length !== 2) {
-      throw new Error('Invalid \'sub\' claim.');
-    }
-    return {
-      id: parts[1],
-      idp: parts[0],
-    };
+  public async signupHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    const credentials = request.auth.credentials as AccessToken;
+    const teamToken = credentials[this.teamTokenClaimKey];
+
+    reply(teamToken);
+  }
+
+  public async getTeamHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    const credentials = request.auth.credentials as AccessToken;
+    const user = await getUserByEmail(credentials[this.subEmailClaimKey], this.gitlab);
+    const teams = getUserTeams(user.id, this.gitlab);
+    return reply(teams);
   }
 
   public async signToTeam(_uid: UserId, teamToken: string) {
@@ -85,56 +102,53 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   }
 
   public async validateUser(
-    decoded: any,
+    payload: AccessToken,
     _request: any,
     callback: (err: any, valid: boolean, credentials?: any) => void,
   ) {
-    this.logger.info('Validating user:', decoded);
-
-    try {
-      const uid = this.getUserId(decoded.sub);
-      let teamId: string;
-      if (decoded[this.teamTokenClaim]) {
-        teamId = await this.signToTeam(uid, decoded[this.teamTokenClaim]);
-      }
-      teamId = await this.getTeam(uid);
-      return callback(null, true, { teamId });
-    } catch (err) {
-      return callback(err, false);
-    }
-
+    // NOTE: we have just a single team at this point so no further checks are necessary
+    callback(undefined, true, payload);
   }
 
   public async registerAuth(server: Hapi.Server) {
     await server.register(auth);
-
-    const jwtOptions: auth.JWTStrategyOptions = {
-
-      // Get the complete decoded token, because we need info from the header (the kid)
-      complete: true,
-
-      // Dynamically provide a signing key based on the kid in the header
-      // and the singing keys provided by the JWKS endpoint.
-      key: jwksRsa.hapiJwt2Key({
-        cache: true,
-        rateLimit: true,
-        jwksRequestsPerMinute: 2,
-        jwksUri: `${this.authServerBaseUrl}/.well-known/jwks.json`,
-      }),
-
-      // Your own logic to validate the user.
+    server.auth.strategy('jwt', 'jwt', true, {
+      ...this.options,
       validateFunc: this.validateUser.bind(this),
-
-      // Validate the audience and the issuer.
-      verifyOptions: {
-        audience: 'urn:my-resource-server',
-        issuer: `${this.authServerBaseUrl}/`,
-        algorithms: [ 'RS256' ],
-      },
-    };
-
-    server.auth.strategy('jwt', 'jwt', 'required', jwtOptions);
+    });
   }
 }
 
 export default AuthenticationHapiPlugin;
+
+export function parseSub(sub: string) {
+  if (typeof sub !== 'string') {
+    throw new Error('Invalid \'sub\' claim.');
+  }
+  const parts = sub.split('|');
+  if (parts.length !== 2) {
+    throw new Error('Invalid \'sub\' claim.');
+  }
+  return {
+    id: parts[1],
+    idp: parts[0],
+  };
+}
+
+export async function getUserByEmail(email: string, gitlab: GitlabClient) {
+  const search = {
+    search: email,
+  };
+  const users = await gitlab.fetchJson<User[]>(`users?${qs.stringify(search)}`);
+  if (!users || !users.length || users.length > 1) {
+    throw Boom.badRequest(`Can\'t find user '${email}'`);
+  }
+  return users[0];
+}
+
+export async function getUserTeams(userId: number, gitlab: GitlabClient) {
+  const sudo = {
+    sudo: userId,
+  };
+  return gitlab.fetchJson<Group[]>(`groups?${qs.stringify(sudo)}`);
+}

@@ -240,6 +240,8 @@ const cache = cacheManager.caching({
 
 const GITLAB_ROOT_PASSWORD = env.GITLAB_ROOT_PASSWORD ? env.GITLAB_ROOT_PASSWORD : '12345678';
 const AUTH_SERVER_BASE_URL = env.AUTH_SERVER_BASE_URL ? env.AUTH_SERVER_BASE_URL : 'https://lucify.eu.auth0.com';
+const AUTH_AUDIENCE = env.AUTH_AUDIENCE || 'https://charles-staging.minard.io';
+
 const jwtOptions: auth.JWTStrategyOptions = {
   // Get the complete decoded token, because we need info from the header (the kid)
   complete: true,
@@ -253,9 +255,9 @@ const jwtOptions: auth.JWTStrategyOptions = {
     jwksUri: `${AUTH_SERVER_BASE_URL}/.well-known/jwks.json`,
   }),
 
-  // Validate the audience and the issuer.
+  // Validate the audience, issuer, algorithm and expiration.
   verifyOptions: {
-    audience: EXTERNAL_BASEURL,
+    audience: AUTH_AUDIENCE,
     issuer: `${AUTH_SERVER_BASE_URL}/`,
     algorithms: ['RS256'],
     ignoreExpiration: false,

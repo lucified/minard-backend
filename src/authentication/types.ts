@@ -11,6 +11,5 @@ export interface AccessToken {
   exp: number;
   iat: number;
   scope: string;
-  'https://team_token': string;
   'https://sub_email': string;
 }

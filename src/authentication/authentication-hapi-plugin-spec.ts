@@ -2,10 +2,10 @@ import { expect } from 'chai';
 import 'reflect-metadata';
 
 import { get } from '../config';
-import { MinardServer } from '../server';
+import { getTestServer } from '../server/hapi';
 import { fetchMock } from '../shared/fetch';
 import { GitlabClient } from '../shared/gitlab-client';
-
+import AuthenticationHapiPlugin from './authentication-hapi-plugin';
 import { getUserByEmail, getUserTeams } from './authentication-hapi-plugin';
 
 const validToken = `eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6Ik1FWTVSVGxCTWtWQk56RTJRam
@@ -26,11 +26,12 @@ d929kmWx_wd2xc9Sr9Do-3LGDF9_OCtfGiFwoU8EksfvLh7NhTHi0ug`.replace(/\s|[^\x20-\x7E
 const invalidToken = validToken.replace(/u/gim, 'i');
 
 async function getServer() {
-  const server = await (get<MinardServer>(MinardServer.injectSymbol)).initialize();
+  const plugin = get<AuthenticationHapiPlugin>(AuthenticationHapiPlugin.injectSymbol);
+  const server = await getTestServer(plugin);
   return server;
 }
 
-describe.only('authentication-hapi-plugin', () => {
+describe('authentication-hapi-plugin', () => {
 
   describe('getUserByEmail', () => {
     it('returns a single user', async () => {

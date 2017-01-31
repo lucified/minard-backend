@@ -17,7 +17,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
 
   constructor(
     @inject(GitlabClient.injectSymbol) private readonly gitlab: GitlabClient,
-    @inject(jwtOptionsInjectSymbol) private readonly options: auth.JWTStrategyOptions,
+    @inject(jwtOptionsInjectSymbol) private readonly hapiOptions: auth.JWTStrategyOptions,
   ) {
     super({
       name: 'authentication-plugin',
@@ -59,7 +59,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   public async registerAuth(server: Hapi.Server) {
     await server.register(auth);
     server.auth.strategy('jwt', 'jwt', true, {
-      ...this.options,
+      ...this.hapiOptions,
       validateFunc: this.validateUser.bind(this),
     });
   }

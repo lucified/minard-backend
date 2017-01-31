@@ -8,8 +8,6 @@ import * as Hapi from '../server/hapi';
 import { HapiPlugin } from '../server/hapi-register';
 import { Group, User } from '../shared/gitlab';
 import { GitlabClient } from '../shared/gitlab-client';
-import { Logger, loggerInjectSymbol } from '../shared/logger';
-import AuthenticationModule from './authentication-module';
 import { AccessToken, jwtOptionsInjectSymbol } from './types';
 
 @injectable()
@@ -19,10 +17,8 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   private readonly subEmailClaimKey: 'https://sub_email' = 'https://sub_email';
 
   constructor(
-    @inject(AuthenticationModule.injectSymbol) readonly authenticationModule: AuthenticationModule,
-    @inject(loggerInjectSymbol) readonly logger: Logger,
-    @inject(GitlabClient.injectSymbol) readonly gitlab: GitlabClient,
-    @inject(jwtOptionsInjectSymbol) readonly options: auth.JWTStrategyOptions,
+    @inject(GitlabClient.injectSymbol) private readonly gitlab: GitlabClient,
+    @inject(jwtOptionsInjectSymbol) private readonly options: auth.JWTStrategyOptions,
   ) {
     super({
       name: 'authentication-plugin',

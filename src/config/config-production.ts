@@ -255,7 +255,7 @@ const jwtOptions: auth.JWTStrategyOptions = {
 
   // Validate the audience and the issuer.
   verifyOptions: {
-    audience: 'https://charles-staging.minard.io',
+    audience: EXTERNAL_BASEURL,
     issuer: `${AUTH_SERVER_BASE_URL}/`,
     algorithms: ['RS256'],
     ignoreExpiration: false,

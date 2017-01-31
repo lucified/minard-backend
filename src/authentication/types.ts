@@ -1,4 +1,4 @@
-export const authServerBaseUrlInjectSymbol = Symbol('authServerBaseUrl');
+export const authServerBaseUrlInjectSymbol = Symbol('auth-server-base-url');
 export const gitlabRootPasswordInjectSymbol = Symbol('gitlab-root-password');
 export const jwtOptionsInjectSymbol = Symbol('token-verify-options');
 

@@ -1,6 +1,8 @@
 
 import * as cacheManager from 'cache-manager';
+import * as auth from 'hapi-auth-jwt2';
 import { Container } from 'inversify';
+import * as jwksRsa from 'jwks-rsa';
 import * as Knex from 'knex';
 import * as winston from 'winston';
 
@@ -41,7 +43,9 @@ import {
 } from '../shared/cache';
 
 import {
+  authServerBaseUrlInjectSymbol,
   gitlabRootPasswordInjectSymbol,
+  jwtOptionsInjectSymbol,
 } from '../authentication';
 
 import {
@@ -235,6 +239,28 @@ const cache = cacheManager.caching({
 // --------------
 
 const GITLAB_ROOT_PASSWORD = env.GITLAB_ROOT_PASSWORD ? env.GITLAB_ROOT_PASSWORD : '12345678';
+const AUTH_SERVER_BASE_URL = env.AUTH_SERVER_BASE_URL ? env.AUTH_SERVER_BASE_URL : 'https://lucify.eu.auth0.com';
+const jwtOptions: auth.JWTStrategyOptions = {
+  // Get the complete decoded token, because we need info from the header (the kid)
+  complete: true,
+
+  // Dynamically provide a signing key based on the kid in the header
+  // and the singing keys provided by the JWKS endpoint.
+  key: jwksRsa.hapiJwt2Key({
+    cache: true,
+    rateLimit: true,
+    jwksRequestsPerMinute: 2,
+    jwksUri: `${AUTH_SERVER_BASE_URL}/.well-known/jwks.json`,
+  }),
+
+  // Validate the audience and the issuer.
+  verifyOptions: {
+    audience: 'https://charles-staging.minard.io',
+    issuer: `${AUTH_SERVER_BASE_URL}/`,
+    algorithms: ['RS256'],
+    ignoreExpiration: false,
+  },
+};
 
 // Url token secret
 // ----------------
@@ -279,4 +305,6 @@ export default (kernel: Container) => {
   kernel.bind(sentryDsnInjectSymbol).toConstantValue(SENTRY_DSN);
   kernel.bind(exitDelayInjectSymbol).toConstantValue(EXIT_DELAY);
   kernel.bind(tokenSecretInjectSymbol).toConstantValue(TOKEN_SECRET);
+  kernel.bind(authServerBaseUrlInjectSymbol).toConstantValue(AUTH_SERVER_BASE_URL);
+  kernel.bind(jwtOptionsInjectSymbol).toConstantValue(jwtOptions);
 };

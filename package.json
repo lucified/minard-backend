@@ -81,7 +81,7 @@
   },
   "scripts": {
     "clean-test": "rm -rf dist && npm run-script transpile && mocha ./dist/**/*-spec.js",
-    "test": "TS_NODE_FAST=true mocha --opts mocha.opts",
+    "test": "TS_NODE_FAST=true NODE_ENV=test mocha --opts mocha.opts",
     "system-test-mocha": "mocha --opts mocha-integration.opts",
     "system-test": "src/integration-test/system-integration-tests",
     "dot-test": "mocha --opts mocha.opts --reporter dot",

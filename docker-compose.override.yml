@@ -30,6 +30,7 @@ services:
       - ./gitlab-data/charles/deployments:/deployments
       - ./gitlab-data/charles/screenshots:/screenshots
       - ./migrations:/code/migrations
+      - ./typings:/code/typings
       - ./src:/code/src
       - ./dist:/code/dist
       - ./tsconfig.json:/code/tsconfig.json

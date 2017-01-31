@@ -1,8 +1,7 @@
 {
   "exclude": [
     "gitlab-data",
-    "node_modules",
-    "typings"
+    "node_modules"
   ],
   "compilerOptions": {
     "outDir": "./dist/",
@@ -10,9 +9,6 @@
     "noImplicitAny": true,
     "target": "es6",
     "module": "commonjs",
-    "typeRoots": [
-      "node_modules/@types"
-    ],
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "strictNullChecks": true,

@@ -120,7 +120,6 @@ export default class MinardServer {
     });
 
     await this.initialize();
-    console.log(server);
     await server.start();
 
     await this.operationsPlugin.operationsModule.cleanupRunningDeployments();

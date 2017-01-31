@@ -13,17 +13,16 @@ import developmentConfig from './config-development';
 
 const logger = Logger(undefined, true);
 
-const host = 'gitlab';
 const getClient = () => {
   class MockAuthModule {
     public async getRootAuthenticationToken() {
       return 'secret-token';
     }
   }
-  return new GitlabClient(host, fetchMock.fetchMock, new MockAuthModule() as AuthenticationModule, logger, false);
+  return new GitlabClient('gitlab', fetchMock.fetchMock, new MockAuthModule() as AuthenticationModule, logger, false);
 };
 
-function ignoreExp(production: auth.JWTStrategyOptions) {
+function ignoreExpiration(production: auth.JWTStrategyOptions) {
   return {
     ...production,
     verifyOptions: {
@@ -41,7 +40,7 @@ export default (kernel: Container) => {
   kernel.bind(goodOptionsInjectSymbol).toConstantValue({});
   kernel.unbind(GitlabClient.injectSymbol);
   kernel.bind(GitlabClient.injectSymbol).toConstantValue(getClient());
-  const jwtTestOptions = ignoreExp(kernel.get(jwtOptionsInjectSymbol));
+  const jwtTestOptions = ignoreExpiration(kernel.get(jwtOptionsInjectSymbol));
   kernel.unbind(jwtOptionsInjectSymbol);
   kernel.bind(jwtOptionsInjectSymbol).toConstantValue(jwtTestOptions);
 };

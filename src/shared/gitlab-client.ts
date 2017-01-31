@@ -2,7 +2,7 @@
 import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
 
-import { AuthenticationModule } from '../authentication';
+import AuthenticationModule from '../authentication/authentication-module';
 import { IFetch, RequestInit, Response } from '../shared/fetch';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
 import { fetchInjectSymbol } from '../shared/types';

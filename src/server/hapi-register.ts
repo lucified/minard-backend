@@ -1,4 +1,4 @@
-
+import { injectable } from 'inversify';
 import * as Hapi from './hapi';
 
 export interface HapiRegister {
@@ -13,9 +13,10 @@ interface HapiPluginAttributes {
   version: string;
 }
 
+@injectable()
 export abstract class HapiPlugin {
   constructor(attributes: HapiPluginAttributes) {
-    this.register = Object.assign(this.register.bind(this), attributes);
+    this.register = Object.assign(this.register.bind(this), { attributes });
   }
   public abstract register(server: Hapi.Server, options: Hapi.IServerOptions, next: () => void): any;
 }

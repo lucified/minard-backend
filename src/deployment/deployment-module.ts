@@ -19,6 +19,7 @@ import { GitlabClient } from '../shared/gitlab-client';
 import * as logger from '../shared/logger';
 
 import { toGitlabTimestamp } from '../shared/time-conversion';
+import { charlesKnexInjectSymbol } from '../shared/types';
 
 import {
   ScreenshotModule,
@@ -110,7 +111,7 @@ export default class DeploymentModule {
     @inject(deploymentUrlPatternInjectSymbol) urlPattern: string,
     @inject(ScreenshotModule.injectSymbol) screenshotModule: ScreenshotModule,
     @inject(ProjectModule.injectSymbol) projectModule: ProjectModule,
-    @inject('charles-knex') knex: Knex) {
+    @inject(charlesKnexInjectSymbol) knex: Knex) {
     this.gitlab = gitlab;
     this.deploymentFolder = deploymentFolder;
     this.logger = logger;

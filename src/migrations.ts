@@ -4,6 +4,11 @@ import * as Knex from 'knex';
 
 import { Logger, loggerInjectSymbol } from './shared/logger';
 import { sleep } from './shared/sleep';
+import {
+  charlesDbNameInjectSymbol,
+  charlesKnexInjectSymbol,
+  postgresKnexInjectSymbol,
+} from './shared/types';
 
 @injectable()
 export default class Migrations {
@@ -16,10 +21,10 @@ export default class Migrations {
   private readonly charlesDbName: string;
 
   public constructor(
-    @inject('charles-knex') charlesKnex: Knex,
-    @inject('postgres-knex') postgresKnex: Knex,
+    @inject(charlesKnexInjectSymbol) charlesKnex: Knex,
+    @inject(postgresKnexInjectSymbol) postgresKnex: Knex,
     @inject(loggerInjectSymbol) logger: Logger,
-    @inject('charles-db-name') charlesDbName: string) {
+    @inject(charlesDbNameInjectSymbol) charlesDbName: string) {
     this.postgresKnex = postgresKnex;
     this.charlesKnex = charlesKnex;
     this.logger = logger;
@@ -54,6 +59,10 @@ export default class Migrations {
       {
         directory: 'migrations/comment',
         tableName: 'knex_migrations_comment',
+      },
+      {
+        directory: 'migrations/authentication',
+        tableName: 'knex_migrations_authentication',
       },
     ];
     for (const config of configs) {

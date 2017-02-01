@@ -22,6 +22,7 @@ import {
 } from '../event-bus';
 
 import * as logger from '../shared/logger';
+import { charlesKnexInjectSymbol } from '../shared/types';
 
 import {
   createActivityEvent,
@@ -70,7 +71,7 @@ export default class ActivityModule {
     @inject(DeploymentModule.injectSymbol) deploymentModule: DeploymentModule,
     @inject(logger.loggerInjectSymbol) logger: logger.Logger,
     @inject(eventBusInjectSymbol) eventBus: EventBus,
-    @inject('charles-knex') knex: Knex) {
+    @inject(charlesKnexInjectSymbol) knex: Knex) {
     this.deploymentModule = deploymentModule;
     this.logger = logger;
     this.eventBus = eventBus;

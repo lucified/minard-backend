@@ -43,6 +43,13 @@ import {
 } from '../shared/cache';
 
 import {
+  charlesDbNameInjectSymbol,
+  charlesKnexInjectSymbol,
+  gitlabKnexInjectSymbol,
+  postgresKnexInjectSymbol,
+} from '../shared/types';
+
+import {
   authServerBaseUrlInjectSymbol,
   gitlabRootPasswordInjectSymbol,
   jwtOptionsInjectSymbol,
@@ -289,10 +296,10 @@ export default (kernel: Container) => {
   kernel.bind(gitlabHostInjectSymbol).toConstantValue(`http://${GITLAB_HOST}:${GITLAB_PORT}`);
   kernel.bind(systemHookBaseUrlSymbol).toConstantValue(SYSTEMHOOK_BASEURL);
   kernel.bind(deploymentFolderInjectSymbol).toConstantValue(DEPLOYMENT_FOLDER);
-  kernel.bind('gitlab-knex').toConstantValue(gitlabKnex);
-  kernel.bind('charles-knex').toConstantValue(charlesKnex);
-  kernel.bind('charles-db-name').toConstantValue(CHARLES_DB_NAME);
-  kernel.bind('postgres-knex').toConstantValue(postgresKnex);
+  kernel.bind(gitlabKnexInjectSymbol).toConstantValue(gitlabKnex);
+  kernel.bind(charlesKnexInjectSymbol).toConstantValue(charlesKnex);
+  kernel.bind(charlesDbNameInjectSymbol).toConstantValue(CHARLES_DB_NAME);
+  kernel.bind(postgresKnexInjectSymbol).toConstantValue(postgresKnex);
   kernel.bind(screenshotFolderInjectSymbol).toConstantValue(SCREENSHOT_FOLDER);
   kernel.bind(screenshotterBaseurlInjectSymbol).toConstantValue(SCREENSHOTTER_BASEURL);
   kernel.bind(externalBaseUrlInjectSymbol).toConstantValue(EXTERNAL_BASEURL);

@@ -4,12 +4,11 @@ export const jwtOptionsInjectSymbol = Symbol('token-verify-options');
 
 export interface AccessToken {
   sub: string;
-  email: string;
-  name: string;
   aud: string[];
   azp: string;
   exp: number;
   iat: number;
   scope: string;
   'https://sub_email': string;
+  'https://team_token'?: string;
 }

@@ -14,3 +14,4 @@ gitlab-data/gitlab-logs
 temp
 npm-debug.log
 src/config/config-local-override.ts
+src/integration-test/gitlab-api-tests.ts

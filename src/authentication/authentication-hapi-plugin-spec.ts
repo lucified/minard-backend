@@ -1,12 +1,20 @@
 import { expect } from 'chai';
+import * as Knex from 'knex';
+import * as moment from 'moment';
 import 'reflect-metadata';
 
 import { get } from '../config';
 import { getTestServer } from '../server/hapi';
 import { fetchMock } from '../shared/fetch';
 import { GitlabClient } from '../shared/gitlab-client';
-import AuthenticationHapiPlugin from './authentication-hapi-plugin';
-import { getUserByEmail, getUserTeams } from './authentication-hapi-plugin';
+import { charlesKnexInjectSymbol } from '../shared/types';
+import {
+  default as AuthenticationHapiPlugin,
+  getUserByEmail,
+  getUserTeams,
+  TeamToken,
+  validateTeamToken,
+} from './authentication-hapi-plugin';
 
 const validToken = `eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6Ik1URkNSVVEzT0VFd09FVXlPRVF3UTBJd0
 5USTJSVGhGTlRCR1JUWkNRa0kwUXpVM1JUaEdOQSJ9.eyJpc3MiOiJodHRwczovL2x1Y2lmeS1kZXYuZXUuYXV0aDAuY29tLyIsInN1YiI6ImF1dGgwfDU4OTg5ZmU2YjBlOGMwMGY3NGIzYTI3ZCIsImF1ZCI6WyJodHRwczovL2NoYXJsZXMtc3RhZ2luZy5taW5hcmQuaW8iLCJodHRwczovL2x1Y2lmeS1kZXYuZXUuYXV0aDAuY29tL3VzZXJpbmZvIl0sImF6cCI6IlphZWlOeVY3UzdNcEk2OWNLTkhyOHdYZTVCZHI4dHZXIiwiZXhwIjoxNDg2NDgzODE1LCJpYXQiOjE0ODYzOTc0MTUsInNjb3BlIjoib3BlbmlkIHByb2ZpbGUifQ.HPmlETaFONwU-l30WwTAJEC89uywiXtc_-1c2ltXhVMcqkhjkyymP1W50i7aS44NeD-3rJho5I7p_cVcRrg77Le-t8Bu7TzaPHBmhu9YECONXp0Y1Yq_0b2y9klhbQrSshQ6Cu90JRTfs5JGd5EhesAyHHFf6tLkPNBWoNEUkWBWwJQpowwpKVGBY-7h_54foO2GsPwyDN8MJo84xV_0D8myFt08X5j97y-go1HszumSgyC2k4ANgU4yYvUDahOSQKo8RyboyM8UZbb55SxahWUjQxq-E4coLiiEf0_MjZANhvGJHCN6bTXbl1aY9s5OL7inJiqNgqmLjiq-0lRQSg`.replace(/\s|[^\x20-\x7E]/gmi, ''); // tslint:disable-line
@@ -17,6 +25,37 @@ async function getServer() {
   const plugin = get<AuthenticationHapiPlugin>(AuthenticationHapiPlugin.injectSymbol);
   const server = await getTestServer(plugin);
   return server;
+}
+
+const validTokens: TeamToken[] = [
+  {
+    token: 'abcd123',
+    teamId: 1,
+    createdAt: moment.utc(),
+  },
+  {
+    token: 'abcd124',
+    teamId: 1,
+    createdAt: moment.utc().subtract(5, 'days'),
+  },
+  {
+    token: 'abcd125',
+    teamId: 2,
+    createdAt: moment.utc(),
+  },
+  {
+    token: 'abcd126',
+    teamId: 2,
+    createdAt: moment.utc().subtract(5, 'days'),
+  },
+];
+
+async function getDb() {
+  const db = get<Knex>(charlesKnexInjectSymbol);
+  await db.migrate.latest({
+    directory: 'migrations/authentication',
+  });
+  return db;
 }
 
 describe('authentication-hapi-plugin', () => {
@@ -161,6 +200,44 @@ describe('authentication-hapi-plugin', () => {
       expect(payload.length, payload).to.equal(1);
       expect(payload[0].id, payload).to.equal(1);
       expect(payload[0].name, payload).to.equal('fooGroup');
+    });
+  });
+
+  describe.only('validateTeamToken', () => {
+
+    it('should return the latest token per team', async () => {
+      const db = await getDb();
+      const toDb = (token: TeamToken) => ({...token, createdAt: token.createdAt.valueOf()});
+      await Promise.all(validTokens.map(item => db('teamtoken').insert(toDb(item))));
+      let teamId = await validateTeamToken(validTokens[0].token, db);
+      expect(teamId).to.eq(validTokens[0].teamId);
+      teamId = await validateTeamToken(validTokens[2].token, db);
+      expect(teamId).to.eq(validTokens[2].teamId);
+    });
+    it('should not accept nonexistent or invalidated tokens', async () => {
+      const db = await getDb();
+      const toDb = (token: TeamToken) => ({...token, createdAt: token.createdAt.valueOf()});
+      await Promise.all(validTokens.map(item => db('teamtoken').insert(toDb(item))));
+
+      const exceptions: Error[] = [];
+      try {
+        await validateTeamToken(validTokens[1].token, db);
+      } catch (err) {
+        exceptions.push(err);
+      }
+      expect(exceptions.length).to.eq(1);
+      try {
+        await validateTeamToken(validTokens[3].token, db);
+      } catch (err) {
+        exceptions.push(err);
+      }
+      expect(exceptions.length).to.eq(2);
+      try {
+        await validateTeamToken(validTokens[0].token.replace('1', '8'), db);
+      } catch (err) {
+        exceptions.push(err);
+      }
+      expect(exceptions.length).to.eq(3);
     });
   });
 });

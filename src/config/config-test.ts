@@ -1,5 +1,6 @@
 import * as auth from 'hapi-auth-jwt2';
 import { Container } from 'inversify';
+import * as Knex from 'knex';
 
 import { jwtOptionsInjectSymbol } from '../authentication';
 import AuthenticationModule from '../authentication/authentication-module';
@@ -7,7 +8,7 @@ import { goodOptionsInjectSymbol } from '../server';
 import { fetchMock } from '../shared/fetch';
 import { GitlabClient } from '../shared/gitlab-client';
 import Logger from '../shared/logger';
-import { fetchInjectSymbol } from '../shared/types';
+import { charlesKnexInjectSymbol, fetchInjectSymbol } from '../shared/types';
 
 import developmentConfig from './config-development';
 
@@ -32,6 +33,12 @@ function ignoreExpiration(production: auth.JWTStrategyOptions) {
   };
 }
 
+const charlesKnex = Knex({
+  client: 'sqlite3',
+  connection: { filename: ':memory:' },
+  useNullAsDefault: true,
+});
+
 export default (kernel: Container) => {
   developmentConfig(kernel);
   kernel.unbind(fetchInjectSymbol);
@@ -43,4 +50,6 @@ export default (kernel: Container) => {
   const jwtTestOptions = ignoreExpiration(kernel.get(jwtOptionsInjectSymbol));
   kernel.unbind(jwtOptionsInjectSymbol);
   kernel.bind(jwtOptionsInjectSymbol).toConstantValue(jwtTestOptions);
+  kernel.unbind(charlesKnexInjectSymbol);
+  kernel.bind(charlesKnexInjectSymbol).toConstantValue(charlesKnex);
 };

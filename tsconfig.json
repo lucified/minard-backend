@@ -9,9 +9,6 @@
     "noImplicitAny": true,
     "target": "es6",
     "module": "commonjs",
-    "typeRoots": [
-      "node_modules/@types"
-    ],
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "strictNullChecks": true,
@@ -23,7 +20,6 @@
     "pretty": true,
     "noImplicitReturns": true,
     "noEmitOnError": false, // still transpiles with type errors
-    "baseUrl": ".",
-    "paths": {}
+    "baseUrl": "./typings"
   }
 }

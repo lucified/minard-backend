@@ -19,10 +19,14 @@ export default class ProjectHapiPlugin {
     };
   }
 
-  public register: HapiRegister = (server, _options, next) => {
-    this.projectModule.assureSystemHookRegistered();
-    this.projectModule.assureProjectHooksRegistered();
+  public registerHooks() {
+    return Promise.all([
+      this.projectModule.assureSystemHookRegistered(),
+      this.projectModule.assureProjectHooksRegistered(),
+    ]);
+  }
 
+  public register: HapiRegister = (server, _options, next) => {
     server.route({
       method: 'GET',
       path: '/project/hook',

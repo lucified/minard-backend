@@ -4,6 +4,7 @@ import { default as common } from './config-common';
 import { default as development } from './config-development';
 import { default as override } from './config-override';
 import { default as production } from './config-production';
+import { default as test } from './config-test';
 
 import { ENV } from '../shared/types';
 
@@ -17,7 +18,7 @@ const configs: Configs = {
   production,
   development,
   staging: production,
-  test: development,
+  test,
 };
 
 // Load bindings that represent configuration

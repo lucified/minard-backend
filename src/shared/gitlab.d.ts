@@ -59,6 +59,16 @@ export interface User {
   website_url: string;
 }
 
+export interface Group {
+  id: number;
+  name: string;
+  path: string;
+  description?: string;
+  visibility_level: number;
+  avatar_url?: string;
+  web_url: string;
+}
+
 interface SystemHook {
   id: number;
   url: string;

@@ -17,7 +17,7 @@ async function getServer() {
   return server;
 }
 
-describe.only('authentication-hapi-plugin', () => {
+describe('authentication-hapi-plugin', () => {
 
   describe('jwt verification', () => {
 
@@ -96,9 +96,8 @@ describe.only('authentication-hapi-plugin', () => {
 
       const result = JSON.parse(response.payload);
       // Assert
-      expect(result.team.id).to.equal(1);
-      expect(result.team.name).to.equal('fooGroup');
-      expect(result.password).to.exist;
+      expect(result.id).to.equal(1);
+      expect(result.name).to.equal('fooGroup');
     });
   });
   describe('generatePassword', () => {

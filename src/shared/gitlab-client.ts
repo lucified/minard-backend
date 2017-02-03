@@ -58,6 +58,10 @@ export class GitlabClient {
     }
   }
 
+  public getToken() {
+    return this._authentication.getRootAuthenticationToken();
+  }
+
   public async authenticate(options?: RequestInit) {
     // Is set already, no modifications
     const key = this.authenticationHeader;
@@ -68,7 +72,7 @@ export class GitlabClient {
       }
     }
 
-    const token = await this._authentication.getRootAuthenticationToken();
+    const token = await this.getToken();
     // Make a shallow copy
     const _options = Object.assign({}, options || {});
 

@@ -7,7 +7,6 @@ import { fetchMock } from '../shared/fetch';
 import { GitlabClient } from './gitlab-client';
 
 const host = 'gitlab';
-const token = 'the-sercret';
 
 const getClient = () => get<GitlabClient>(GitlabClient.injectSymbol);
 
@@ -17,6 +16,7 @@ describe('gitlab-client', () => {
     it('sets authentication if nothing provided', async () => {
       // Arrange
       const gitlabClient = getClient();
+      const token = await gitlabClient.getToken();
 
       // Act
       const h = (await gitlabClient.authenticate()).headers as any;
@@ -29,6 +29,7 @@ describe('gitlab-client', () => {
     it('sets authentication if some headers provided', async () => {
       // Arrange
       const gitlabClient = getClient();
+      const token = await gitlabClient.getToken();
 
       // Act
       const h = (await gitlabClient.authenticate({ headers: { a: 'b' } })).headers as any;

@@ -35,6 +35,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       },
       config: {
         bind: this,
+        cors: true,
       },
     }]);
     next();

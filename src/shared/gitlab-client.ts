@@ -1,11 +1,13 @@
 
 import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
+import * as qs from 'querystring';
 
 import AuthenticationModule from '../authentication/authentication-module';
-import { IFetch, RequestInit, Response } from '../shared/fetch';
-import { Logger, loggerInjectSymbol } from '../shared/logger';
-import { fetchInjectSymbol } from '../shared/types';
+import { IFetch, RequestInit, Response } from './fetch';
+import { Group, User } from './gitlab';
+import { Logger, loggerInjectSymbol } from './logger';
+import { fetchInjectSymbol } from './types';
 
 const perfy = require('perfy');
 const randomstring = require('randomstring');
@@ -61,7 +63,7 @@ export class GitlabClient {
     const key = this.authenticationHeader;
     if (options && typeof options.headers === 'object') {
       const headers = options.headers as any;
-      if ((headers.get && headers.get(key)) || headers[key] ) {
+      if ((headers.get && headers.get(key)) || headers[key]) {
         return options;
       }
     }
@@ -77,7 +79,7 @@ export class GitlabClient {
       return _options;
     }
 
-    _options.headers = Object.assign({[key]: token}, _options.headers || {});
+    _options.headers = Object.assign({ [key]: token }, _options.headers || {});
     return _options;
   }
 
@@ -119,7 +121,7 @@ export class GitlabClient {
     path: string,
     options?: RequestInit,
     logErrors: boolean = true,
-    ): Promise<{status: number, json: T | undefined}> {
+  ): Promise<{ status: number, json: T | undefined }> {
     const timerId = this._logging ? randomstring.generate() : null;
     if (this._logging) {
       perfy.start(timerId);
@@ -151,6 +153,69 @@ export class GitlabClient {
       status: res.status,
       json,
     };
+  }
+
+  public async getUserByEmail(email: string) {
+    const search = {
+      search: email,
+    };
+    const users = await this.fetchJson<User[]>(`users?${qs.stringify(search)}`, true);
+    if (!users || !users.length) {
+      throw Boom.badRequest(`Can\'t find user '${email}'`);
+    }
+    if (users.length > 1) {
+      // This shoud never happen
+      throw Boom.badRequest(`Found multiple users with email '${email}'`);
+    }
+    return users[0];
+  }
+
+  public createUser(
+    email: string,
+    password: string,
+    username: string,
+    name: string,
+    externUid?: string,
+    provider?: string,
+    confirm = false,
+  ) {
+    const newUser = {
+      email,
+      password,
+      username,
+      name,
+      extern_uid: externUid,
+      provider,
+      confirm,
+    };
+    return this.fetchJson<User>(`users`, {
+      method: 'POST',
+      body: JSON.stringify(newUser),
+      headers: {
+        'content-type': 'application/json',
+      },
+    }, true);
+  }
+
+  public addUserToGroup(userId: number, teamId: number, accessLevel = 30) {
+    return this.fetchJson(`groups/${teamId}/members`, {
+      method: 'POST',
+      body: JSON.stringify({
+        id: teamId,
+        user_id: userId,
+        access_level: accessLevel,
+      }),
+      headers: {
+        'content-type': 'application/json',
+      },
+    }, true);
+  }
+
+  public async getUserTeams(userId: number) {
+    const sudo = {
+      sudo: userId,
+    };
+    return this.fetchJson<Group[]>(`groups?${qs.stringify(sudo)}`, true);
   }
 
 }

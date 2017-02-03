@@ -1,6 +1,10 @@
 import * as Knex from 'knex';
 import * as moment from 'moment';
 
+const randomstring = require('randomstring');
+
+export const teamTokenLength = 7;
+
 export interface TeamToken {
   teamId: number;
   token: string;
@@ -28,4 +32,14 @@ export async function validateTeamToken(token: string, db: Knex) {
     throw new Error('Invalid team token');
   }
   return teamTokens[0].teamId;
+}
+
+export async function generateTeamToken(teamId: number, db: Knex) {
+  const token = randomstring.generate({length: teamTokenLength, charset: 'alphanumeric', readable: true});
+  await db('teamtoken').insert({
+    teamId,
+    token,
+    createdAt: moment.utc().valueOf(),
+  });
+  return token;
 }

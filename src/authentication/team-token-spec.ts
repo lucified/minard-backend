@@ -30,7 +30,7 @@ const validTokens: TeamToken[] = [
   },
 ];
 
-async function getDb() {
+export async function getDb() {
   const db = get<Knex>(charlesKnexInjectSymbol);
   await db.migrate.latest({
     directory: 'migrations/authentication',

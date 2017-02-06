@@ -22,15 +22,17 @@ export default class OperationsHapiPlugin {
   }
 
   public register: HapiRegister = (server, _options, next) => {
+    const config = {
+      auth: 'admin',
+      bind: this,
+    };
     server.route({
       method: 'GET',
       path: '/check-screenshots',
       handler: {
         async: this.checkScreenshotsHandler,
       },
-      config: {
-        bind: this,
-      },
+      config,
     });
     server.route({
       method: 'GET',
@@ -38,9 +40,7 @@ export default class OperationsHapiPlugin {
       handler: {
         async: this.checkDeploymentActivityHandler,
       },
-      config: {
-        bind: this,
-      },
+      config,
     });
     server.route({
       method: 'GET',
@@ -48,9 +48,7 @@ export default class OperationsHapiPlugin {
       handler: {
         async: this.cleanupRunningDeployments,
       },
-      config: {
-        bind: this,
-      },
+      config,
     });
     next();
   }

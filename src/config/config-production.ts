@@ -43,6 +43,7 @@ import {
 } from '../shared/cache';
 
 import {
+  adminTeamNameInjectSymbol,
   charlesDbNameInjectSymbol,
   charlesKnexInjectSymbol,
   gitlabKnexInjectSymbol,
@@ -284,6 +285,12 @@ const SENTRY_DSN = env.SENTRY_DSN || undefined;
 
 const EXIT_DELAY = env.EXIT_DELAY ? parseInt(env.EXIT_DELAY, 10) : 15000;
 
+// Admin team name
+// --------------
+
+const ADMIN_TEAM_NAME = env.ADMIN_TEAM_NAME || 'lucify';
+
+
 // Inversify kernel bindings
 // -------------------------
 
@@ -314,4 +321,5 @@ export default (kernel: Container) => {
   kernel.bind(tokenSecretInjectSymbol).toConstantValue(TOKEN_SECRET);
   kernel.bind(authServerBaseUrlInjectSymbol).toConstantValue(AUTH_SERVER_BASE_URL);
   kernel.bind(jwtOptionsInjectSymbol).toConstantValue(jwtOptions);
+  kernel.bind(adminTeamNameInjectSymbol).toConstantValue(ADMIN_TEAM_NAME);
 };

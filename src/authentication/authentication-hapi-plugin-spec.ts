@@ -92,7 +92,6 @@ describe('authentication-hapi-plugin', () => {
         id: 1,
       }]);
 
-
       // Act
       const response = await server.inject({
         method: 'GET',

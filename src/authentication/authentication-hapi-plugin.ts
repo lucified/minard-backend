@@ -129,7 +129,6 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     }
   }
 
-
   public async signupHandler(request: Hapi.Request, reply: Hapi.IReply) {
     try {
       const credentials = request.auth.credentials as AccessToken;

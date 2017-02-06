@@ -104,6 +104,7 @@ class DeploymentHapiPlugin {
         },
       },
       config: {
+        cors: true,
         validate: {
           params: {
             projectId: Joi.number().required(),

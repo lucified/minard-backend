@@ -113,11 +113,11 @@ const env = process.env;
 // ------------------
 
 // Host and port in which we are listening locally
-const HOST = env.HOST ? env.HOST : '0.0.0.0';
+const HOST = env.HOST || '0.0.0.0';
 const PORT = env.PORT ? parseInt(env.PORT, 10) : 8080;
 
 // Host and port from which charles can reach GitLab
-const GITLAB_HOST = env.GITLAB_HOST ? env.GITLAB_HOST : 'localhost';
+const GITLAB_HOST = env.GITLAB_HOST || 'localhost';
 const GITLAB_PORT = env.GITLAB_PORT ? parseInt(env.GITLAB_PORT, 10) : 10080;
 
 // Host loopback IP, used only for local development to define other environment variables
@@ -125,39 +125,37 @@ const HOST_LOOPBACK_IP = process.env.HOST_LOOPBACK_IP;
 
 // Base URL for systemhooks registered to GitLab. This must be an URL from
 // which GitLab can reach charles.
-const SYSTEMHOOK_BASEURL = env.SYSTEMHOOK_BASEURL ? env.SYSTEMHOOK_BASEURL : `http://${HOST_LOOPBACK_IP}:${PORT}`;
+const SYSTEMHOOK_BASEURL = env.SYSTEMHOOK_BASEURL || `http://${HOST_LOOPBACK_IP}:${PORT}`;
 
 // Base URL for the screenshotter service
-const SCREENSHOTTER_BASEURL = env.SCREENSHOTTER_BASEURL ? env.SCREENSHOTTER_BASEURL : 'http://localhost:8002';
+const SCREENSHOTTER_BASEURL = env.SCREENSHOTTER_BASEURL || 'http://localhost:8002';
 
 // Generic external base URL for charles
-const EXTERNAL_BASEURL = env.EXTERNAL_BASEURL ? env.EXTERNAL_BASEURL : `http://localhost:${PORT}`;
+const EXTERNAL_BASEURL = env.EXTERNAL_BASEURL || `http://localhost:${PORT}`;
 
 // External baseUrl for git clone urls
-const EXTERNAL_GIT_BASEURL = env.EXTERNAL_GIT_BASEURL ? env.EXTERNAL_GIT_BASEURL : `http://localhost:${GITLAB_PORT}`;
+const EXTERNAL_GIT_BASEURL = env.EXTERNAL_GIT_BASEURL || `http://localhost:${GITLAB_PORT}`;
 
 // URL pattern used for composing external deployment URLs
 // Users access deployments via urls matching this pattern
-const DEPLOYMENT_URL_PATTERN = env.DEPLOYMENT_URL_PATTERN ? env.DEPLOYMENT_URL_PATTERN
-  : `http://deploy-%s.${HOST_LOOPBACK_IP}.xip.io:${PORT}`;
+const DEPLOYMENT_URL_PATTERN = env.DEPLOYMENT_URL_PATTERN || `http://deploy-%s.${HOST_LOOPBACK_IP}.xip.io:${PORT}`;
 
 // URL pattern used for composing deployment URLs for screenshots
-const SCREENSHOT_URL_PATTERN = env.SCREENSHOT_URL_PATTERN ? env.SCREENSHOT_URL_PATTERN
-  : `http://deploy-%s.${HOST_LOOPBACK_IP}.xip.io:${PORT}`;
+const SCREENSHOT_URL_PATTERN = env.SCREENSHOT_URL_PATTERN || `http://deploy-%s.${HOST_LOOPBACK_IP}.xip.io:${PORT}`;
 
 // Base URL for minard-ui
-const MINARD_UI_BASEURL = env.MINARD_UI_BASEURL ? env.MINARD_UI_BASEURL : `http://localhost:3000`;
+const MINARD_UI_BASEURL = env.MINARD_UI_BASEURL || `http://localhost:3000`;
 
 // Database configuration
 // ----------------------
 
-const DB_ADAPTER = env.DB_ADAPTER ? env.DB_ADAPTER : 'postgresql';
-const DB_HOST = env.DB_HOST ? env.DB_HOST : 'localhost';
+const DB_ADAPTER = env.DB_ADAPTER || 'postgresql';
+const DB_HOST = env.DB_HOST || 'localhost';
 const DB_PORT = env.DB_PORT ? parseInt(env.DB_PORT, 10) : 15432;
-const DB_USER = env.DB_USER ? env.DB_USER : 'gitlab';
-const DB_PASS = env.DB_PASS ? env.DB_PASS : 'password';
-const DB_NAME = env.DB_NAME ? env.DB_NAME : 'gitlabhq_production';
-const CHARLES_DB_NAME = env.CHARLES_DB_NAME ? env.CHARLES_DB_NAME : 'charles';
+const DB_USER = env.DB_USER || 'gitlab';
+const DB_PASS = env.DB_PASS || 'password';
+const DB_NAME = env.DB_NAME || 'gitlabhq_production';
+const CHARLES_DB_NAME = env.CHARLES_DB_NAME || 'charles';
 
 function getKnex(dbName: string) {
   return Knex({
@@ -189,7 +187,7 @@ const postgresKnex = getKnex('postgres');
 //  (b) http://redis.js.org/#api-rediscreateclient
 //
 // -----------------------------------------------
-const REDIS_HOST = env.REDIS_HOST ? env.REDIS_HOST : 'localhost';
+const REDIS_HOST = env.REDIS_HOST || 'localhost';
 const REDIS_PORT = env.REDIS_PORT ? parseInt(env.REDIS_PORT, 10) : 6379;
 
 const eventStoreConfig = {
@@ -221,8 +219,8 @@ const eventStoreConfig = {
 // Filesystem configuration
 // ------------------------
 
-const DEPLOYMENT_FOLDER = env.DEPLOYMENT_FOLDER ? env.DEPLOYMENT_FOLDER : 'gitlab-data/charles/deployments/';
-const SCREENSHOT_FOLDER = env.SCREENSHOT_FOLDER ? env.SCREENSHOT_FOLDER : 'gitlab-data/charles/screenshots/';
+const DEPLOYMENT_FOLDER = env.DEPLOYMENT_FOLDER || 'gitlab-data/charles/deployments/';
+const SCREENSHOT_FOLDER = env.SCREENSHOT_FOLDER || 'gitlab-data/charles/screenshots/';
 
 // Redis cache
 // -----------
@@ -238,8 +236,8 @@ const cache = cacheManager.caching({
 // Authentication
 // --------------
 
-const GITLAB_ROOT_PASSWORD = env.GITLAB_ROOT_PASSWORD ? env.GITLAB_ROOT_PASSWORD : '12345678';
-const AUTH_SERVER_BASE_URL = env.AUTH_SERVER_BASE_URL ? env.AUTH_SERVER_BASE_URL : 'https://lucify.eu.auth0.com';
+const GITLAB_ROOT_PASSWORD = env.GITLAB_ROOT_PASSWORD || '12345678';
+const AUTH_SERVER_BASE_URL = env.AUTH_SERVER_BASE_URL || 'https://lucify-dev.eu.auth0.com';
 const AUTH_AUDIENCE = env.AUTH_AUDIENCE || 'https://charles-staging.minard.io';
 
 const jwtOptions: auth.JWTStrategyOptions = {
@@ -267,12 +265,12 @@ const jwtOptions: auth.JWTStrategyOptions = {
 // Url token secret
 // ----------------
 
-const TOKEN_SECRET = env.TOKEN_SECRET ? env.TOKEN_SECRET : DB_PASS;
+const TOKEN_SECRET = env.TOKEN_SECRET || DB_PASS;
 
 // Sentry
 // --------------
 
-const SENTRY_DSN = env.SENTRY_DSN ? env.SENTRY_DSN : undefined;
+const SENTRY_DSN = env.SENTRY_DSN || undefined;
 
 // Exit delay
 // --------------

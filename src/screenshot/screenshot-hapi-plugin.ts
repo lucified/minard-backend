@@ -32,6 +32,7 @@ export default class ScreenshotHapiPlugin {
       },
       config: {
         bind: this,
+        cors: true,
         validate: {
           params: {
             projectId: Joi.number().required(),

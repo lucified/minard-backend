@@ -12,14 +12,15 @@ export interface TeamToken {
 }
 export function teamTokenQuery(db: Knex, token?: string, teamId?: number) {
   const latestTokens = db('teamtoken')
-    .select(db.raw('teamId, MAX(createdAt) as latestStamp'))
+    .select('teamId')
+    .max('createdAt AS latestStamp')
     .groupBy('teamId')
     .as('latest');
   const query = db('teamtoken')
     .join(latestTokens, ((join: any) => join
       .on('teamtoken.teamId', '=', 'latest.teamId')
       .andOn('teamtoken.createdAt', '=', 'latest.latestStamp')) as any,
-  );
+    );
   if (token) {
     if (token.length !== teamTokenLength || !token.match(/^\w+$/)) {
       throw new Error('Invalid team token');
@@ -47,12 +48,17 @@ export async function validateTeamToken(token: string, db: Knex) {
   return teamTokens[0].teamId;
 }
 
-export async function generateTeamToken(teamId: number, db: Knex) {
-  const token: string = randomstring.generate({ length: teamTokenLength, charset: 'alphanumeric', readable: true });
-  await db('teamtoken').insert({
-    teamId,
-    token,
-    createdAt: moment.utc().valueOf(),
+export async function generateTeamToken(teamId: number, db: Knex): Promise<TeamToken> {
+  const tokenString: string = randomstring.generate({
+    length: teamTokenLength,
+    charset: 'alphanumeric',
+    readable: true,
   });
+  const token = {
+    teamId,
+    token: tokenString,
+    createdAt: moment.utc().valueOf(),
+  };
+  await db('teamtoken').insert(token);
   return token;
 }

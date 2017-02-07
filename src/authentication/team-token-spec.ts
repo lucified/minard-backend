@@ -81,7 +81,7 @@ describe('generateTeamToken', () => {
   it('should return a token of specified length', async () => {
     const db = await getDb();
     const token = await generateTeamToken(342, db);
-    expect(token.length).to.eq(teamTokenLength);
+    expect(token.token.length).to.eq(teamTokenLength);
   });
 
   it('should invalidate the previous token for the same team', async () => {
@@ -92,20 +92,20 @@ describe('generateTeamToken', () => {
 
     // Act
     const token1 = await generateTeamToken(teamId1, db);
-    const valid1 = await validateTeamToken(token1, db);
+    const valid1 = await validateTeamToken(token1.token, db);
     const token2 = await generateTeamToken(teamId1, db);
-    const valid2 = await validateTeamToken(token2, db);
+    const valid2 = await validateTeamToken(token2.token, db);
 
     let valid3 = true;
     try {
-      await validateTeamToken(token1, db);
+      await validateTeamToken(token1.token, db);
     } catch (error) {
       valid3 = false;
     }
 
     const token3 = await generateTeamToken(teamId2, db);
-    const valid4 = await validateTeamToken(token3, db);
-    const valid5 = await validateTeamToken(token2, db);
+    const valid4 = await validateTeamToken(token3.token, db);
+    const valid5 = await validateTeamToken(token2.token, db);
 
     // Assert
     expect(valid1).to.eq(teamId1);

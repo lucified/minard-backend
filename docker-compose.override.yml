@@ -22,7 +22,6 @@ services:
 
   charles:
     build: .
-    image: charles_development
     command: ["npm", "run", "dev"]
     ports:
       - "5858:5858"

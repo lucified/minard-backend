@@ -140,7 +140,7 @@ describe('authentication-hapi-plugin', () => {
       // Assert
       expect(response.statusCode, response.payload).to.equal(200);
       const result = JSON.parse(response.payload);
-      expect(result.token).to.equal(token);
+      expect(result.token).to.equal(token.token);
 
     });
     it('should return 404 if no token found', async () => {
@@ -202,7 +202,8 @@ describe('authentication-hapi-plugin', () => {
 
       // Assert
       expect(response.statusCode).to.equal(201);
-      expect(response.payload.length).to.equal(teamTokenLength);
+      const result = JSON.parse(response.payload);
+      expect(result.token.length).to.equal(teamTokenLength);
     });
   });
 

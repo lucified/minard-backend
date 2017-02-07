@@ -6,10 +6,11 @@ import * as Knex from 'knex';
 
 import * as Hapi from '../server/hapi';
 import { HapiPlugin } from '../server/hapi-register';
+import { IFetch } from '../shared/fetch';
 import { Group } from '../shared/gitlab';
-import { GitlabClient } from '../shared/gitlab-client';
+import { GitlabClient, validateEmail } from '../shared/gitlab-client';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
-import { adminTeamNameInjectSymbol, charlesKnexInjectSymbol } from '../shared/types';
+import { adminTeamNameInjectSymbol, charlesKnexInjectSymbol, fetchInjectSymbol } from '../shared/types';
 import { generateTeamToken, TeamToken, teamTokenQuery, validateTeamToken } from './team-token';
 import { AccessToken, jwtOptionsInjectSymbol } from './types';
 
@@ -29,6 +30,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     @inject(charlesKnexInjectSymbol) private readonly db: Knex,
     @inject(loggerInjectSymbol) private readonly logger: Logger,
     @inject(adminTeamNameInjectSymbol) private readonly adminTeamName: string,
+    @inject(fetchInjectSymbol) private readonly fetch: IFetch,
   ) {
     super({
       name: 'authentication-plugin',
@@ -102,7 +104,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       return reply(teams[0]); // NOTE: we only support a single team for now
     } catch (error) {
       this.logger.error(`Can't fetch user or team`, error);
-      return reply(Boom.wrap(error, 401));
+      return reply(Boom.wrap(error, 404));
     }
   }
 
@@ -159,22 +161,46 @@ class AuthenticationHapiPlugin extends HapiPlugin {
 
   public async validateUser(
     payload: AccessToken,
-    _request: any,
+    request: any,
     callback: (err: any, valid: boolean, credentials?: any) => void,
   ) {
+
+    let valid = false;
+    let email: string | undefined;
+    try {
+      const credentials = payload;
+      email = credentials[subEmailClaimKey];
+      if (!validateEmail(email) && this.hapiOptions.verifyOptions && this.hapiOptions.verifyOptions.issuer) {
+        const userInfo = await getAuth0UserInfo(this.hapiOptions.verifyOptions.issuer, request.auth.token, this.fetch);
+        email = userInfo.email || userInfo.name;
+      }
+      if (validateEmail(email)) {
+        valid = true;
+      }
+    } catch (error) {
+      this.logger.error(`Unable to fetch auth0 userinfo`, error);
+    }
+
     // NOTE: we have just a single team at this point so no further checks are necessary
-    callback(undefined, true, payload);
+    callback(undefined, valid, {...payload, [subEmailClaimKey]: email});
   }
 
   public async validateAdmin(
     payload: AccessToken,
-    _request: any,
+    request: any,
     callback: (err: any, valid: boolean, credentials?: any) => void,
   ) {
     let valid = false;
+    let email: string | undefined;
     try {
       const credentials = payload;
-      const user = await this.gitlab.getUserByEmail(credentials[subEmailClaimKey]);
+      email = credentials[subEmailClaimKey];
+      if (!email && this.hapiOptions.verifyOptions && this.hapiOptions.verifyOptions.issuer) {
+        const userInfo = await getAuth0UserInfo(this.hapiOptions.verifyOptions.issuer, request.auth.token, this.fetch);
+        console.log(userInfo);
+        email = userInfo.email || userInfo.name;
+      }
+      const user = await this.gitlab.getUserByEmail(email || '');
       const teams = await this.gitlab.getUserTeams(user.id);
       valid = teams.reduce((previous, current) =>
         current.name.toLowerCase() === this.adminTeamName ? true : previous, false,
@@ -182,7 +208,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     } catch (error) {
       this.logger.error(`Can't fetch user or team`, error);
     }
-    callback(undefined, valid, payload);
+    callback(undefined, valid, {...payload, [subEmailClaimKey]: email});
   }
 
   public async registerAuth(server: Hapi.Server) {
@@ -212,6 +238,20 @@ export function parseSub(sub: string) {
     id: parts[1],
     idp: parts[0],
   };
+}
+
+export async function getAuth0UserInfo(auth0Domain: string, accessToken: string, fetch: IFetch) {
+  const baseUrl = auth0Domain.replace(/\/$/, '');
+  const options = {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'content-type': 'application/json',
+    },
+  };
+  const response = await fetch(`${baseUrl}/userinfo`, options);
+  const responseBody = await response.json();
+  return responseBody;
 }
 
 export function generatePassword(length = 16) {

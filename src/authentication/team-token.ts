@@ -10,6 +10,12 @@ export interface TeamToken {
   token: string;
   createdAt: number | moment.Moment;
 }
+
+/**
+ * Creates an sql query for fetching team tokens.
+ * The results can be filtered by specifying a token,
+ * a teamId or both.
+ */
 export function teamTokenQuery(db: Knex, token?: string, teamId?: number) {
   const latestTokens = db('teamtoken')
     .select('teamId')
@@ -34,13 +40,13 @@ export function teamTokenQuery(db: Knex, token?: string, teamId?: number) {
     if (token) {
       query.andWhere('teamtoken.teamId', teamId);
     } else {
-      query.andWhere('teamtoken.teamId', teamId);
+      query.where('teamtoken.teamId', teamId);
     }
   }
   return query;
 }
 
-export async function validateTeamToken(token: string, db: Knex) {
+export async function getTeamIdWithToken(token: string, db: Knex) {
   const teamTokens: TeamToken[] = await teamTokenQuery(db, token);
   if (!teamTokens || teamTokens.length !== 1) {
     throw new Error('Invalid team token');

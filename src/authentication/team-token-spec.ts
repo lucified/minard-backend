@@ -5,7 +5,7 @@ import 'reflect-metadata';
 
 import { get } from '../config';
 import { charlesKnexInjectSymbol } from '../shared/types';
-import { generateTeamToken, TeamToken, teamTokenLength, validateTeamToken } from './team-token';
+import { generateTeamToken, TeamToken, teamTokenLength, getTeamIdWithToken } from './team-token';
 
 const validTokens: TeamToken[] = [
   {
@@ -44,9 +44,9 @@ describe('validateTeamToken', () => {
     const db = await getDb();
     const toDb = (token: TeamToken) => ({ ...token, createdAt: token.createdAt.valueOf() });
     await Promise.all(validTokens.map(item => db('teamtoken').insert(toDb(item))));
-    let teamId = await validateTeamToken(validTokens[0].token, db);
+    let teamId = await getTeamIdWithToken(validTokens[0].token, db);
     expect(teamId).to.eq(validTokens[0].teamId);
-    teamId = await validateTeamToken(validTokens[2].token, db);
+    teamId = await getTeamIdWithToken(validTokens[2].token, db);
     expect(teamId).to.eq(validTokens[2].teamId);
   });
   it('should not accept nonexistent or invalidated tokens', async () => {
@@ -56,19 +56,19 @@ describe('validateTeamToken', () => {
 
     const exceptions: Error[] = [];
     try {
-      await validateTeamToken(validTokens[1].token, db);
+      await getTeamIdWithToken(validTokens[1].token, db);
     } catch (err) {
       exceptions.push(err);
     }
     expect(exceptions.length).to.eq(1);
     try {
-      await validateTeamToken(validTokens[3].token, db);
+      await getTeamIdWithToken(validTokens[3].token, db);
     } catch (err) {
       exceptions.push(err);
     }
     expect(exceptions.length).to.eq(2);
     try {
-      await validateTeamToken(validTokens[0].token.replace('1', '8'), db);
+      await getTeamIdWithToken(validTokens[0].token.replace('1', '8'), db);
     } catch (err) {
       exceptions.push(err);
     }
@@ -92,27 +92,27 @@ describe('generateTeamToken', () => {
 
     // Act
     const token1 = await generateTeamToken(teamId1, db);
-    const valid1 = await validateTeamToken(token1.token, db);
+    const check1 = await getTeamIdWithToken(token1.token, db);
     const token2 = await generateTeamToken(teamId1, db);
-    const valid2 = await validateTeamToken(token2.token, db);
+    const check2 = await getTeamIdWithToken(token2.token, db);
 
-    let valid3 = true;
+    let check3 = true;
     try {
-      await validateTeamToken(token1.token, db);
+      await getTeamIdWithToken(token1.token, db);
     } catch (error) {
-      valid3 = false;
+      check3 = false;
     }
 
     const token3 = await generateTeamToken(teamId2, db);
-    const valid4 = await validateTeamToken(token3.token, db);
-    const valid5 = await validateTeamToken(token2.token, db);
+    const check4 = await getTeamIdWithToken(token3.token, db);
+    const check5 = await getTeamIdWithToken(token2.token, db);
 
     // Assert
-    expect(valid1).to.eq(teamId1);
-    expect(valid2).to.eq(teamId1);
-    expect(valid3).to.be.false;
-    expect(valid4).to.eq(teamId2);
-    expect(valid5).to.eq(teamId1);
+    expect(check1).to.eq(teamId1);
+    expect(check2).to.eq(teamId1);
+    expect(check3).to.be.false;
+    expect(check4).to.eq(teamId2);
+    expect(check5).to.eq(teamId1);
 
   });
 

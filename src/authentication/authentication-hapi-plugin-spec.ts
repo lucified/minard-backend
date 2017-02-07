@@ -9,8 +9,7 @@ import { default as AuthenticationHapiPlugin, generatePassword } from './authent
 import { generateTeamToken, teamTokenLength } from './team-token';
 import { getDb } from './team-token-spec';
 
-const validToken = `eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6Ik1URkNSVVEzT0VFd09FVXlPRVF3UTBJd0
-5USTJSVGhGTlRCR1JUWkNRa0kwUXpVM1JUaEdOQSJ9.eyJpc3MiOiJodHRwczovL2x1Y2lmeS1kZXYuZXUuYXV0aDAuY29tLyIsInN1YiI6ImF1dGgwfDU4OTg5ZmU2YjBlOGMwMGY3NGIzYTI3ZCIsImF1ZCI6WyJodHRwczovL2NoYXJsZXMtc3RhZ2luZy5taW5hcmQuaW8iLCJodHRwczovL2x1Y2lmeS1kZXYuZXUuYXV0aDAuY29tL3VzZXJpbmZvIl0sImF6cCI6IlphZWlOeVY3UzdNcEk2OWNLTkhyOHdYZTVCZHI4dHZXIiwiZXhwIjoxNDg2NDgzODE1LCJpYXQiOjE0ODYzOTc0MTUsInNjb3BlIjoib3BlbmlkIHByb2ZpbGUifQ.HPmlETaFONwU-l30WwTAJEC89uywiXtc_-1c2ltXhVMcqkhjkyymP1W50i7aS44NeD-3rJho5I7p_cVcRrg77Le-t8Bu7TzaPHBmhu9YECONXp0Y1Yq_0b2y9klhbQrSshQ6Cu90JRTfs5JGd5EhesAyHHFf6tLkPNBWoNEUkWBWwJQpowwpKVGBY-7h_54foO2GsPwyDN8MJo84xV_0D8myFt08X5j97y-go1HszumSgyC2k4ANgU4yYvUDahOSQKo8RyboyM8UZbb55SxahWUjQxq-E4coLiiEf0_MjZANhvGJHCN6bTXbl1aY9s5OL7inJiqNgqmLjiq-0lRQSg`.replace(/\s|[^\x20-\x7E]/gmi, ''); // tslint:disable-line
+const validToken = `eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6Ik1URkNSVVEzT0VFd09FVXlPRVF3UTBJd05USTJSVGhGTlRCR1JUWkNRa0kwUXpVM1JUaEdOQSJ9.eyJpc3MiOiJodHRwczovL2x1Y2lmeS1kZXYuZXUuYXV0aDAuY29tLyIsInN1YiI6ImF1dGgwfDU4OTg5ZmU2YjBlOGMwMGY3NGIzYTI3ZCIsImF1ZCI6WyJodHRwczovL2NoYXJsZXMtc3RhZ2luZy5taW5hcmQuaW8iLCJodHRwczovL2x1Y2lmeS1kZXYuZXUuYXV0aDAuY29tL3VzZXJpbmZvIl0sImF6cCI6IlphZWlOeVY3UzdNcEk2OWNLTkhyOHdYZTVCZHI4dHZXIiwiZXhwIjoxNDg2NDkxMTM0LCJpYXQiOjE0ODY0MDQ3MzQsInNjb3BlIjoib3BlbmlkIHByb2ZpbGUifQ.t0202VbqxOAxpJjnUJxk8s6mJ4s7gZY3uYgO4fKEAxW7eHC4AXmG_H4zm4_DOSoPi1QyTO3tJ2eQetJBy8O8DKWxdcOVbIoIqf9N5ToCSE2luT31P_71Ip5a24_BryZHo8E453OnUkeXhlni8wILNgnS--NONz5ipAmQsaovNv8E7jSRsh5UcCP46RiuSwhqBdFrpCjmAxmd_P2uRpxil0CiarwaY232RWbecNw1a6CUCQSDnge-5Ipyw5nt_fzm8P7nsZcpYcHuhhVS8y2Sd-E_GzVYNfRUDG5eluwCAMf4cAlSbZIQ1zjCHDSsOIC9lx0mK2Uh-eLQ7bopj5H2zg`.replace(/\s|[^\x20-\x7E]/gmi, ''); // tslint:disable-line
 
 const invalidToken = validToken.replace(/u/gim, 'i');
 
@@ -61,7 +60,9 @@ describe('authentication-hapi-plugin', () => {
         id: 1,
         name: 'fooGroup',
       }]);
-
+      fetchMock.mock(/\/userinfo$/, {
+        email: 'foo@bar.com',
+      });
       // Act
       const response = await server.inject({
         method: 'GET',
@@ -91,6 +92,9 @@ describe('authentication-hapi-plugin', () => {
       fetchMock.mock(/\/users/, [{
         id: 1,
       }]);
+      fetchMock.mock(/\/userinfo$/, {
+        email: 'foo@bar.com',
+      });
 
       // Act
       const response = await server.inject({
@@ -120,6 +124,9 @@ describe('authentication-hapi-plugin', () => {
       fetchMock.mock(/\/users/, [{
         id: 1,
       }]);
+      fetchMock.mock(/\/userinfo$/, {
+        email: 'foo@bar.com',
+      });
 
       // Act
       const response = await server.inject({
@@ -150,6 +157,9 @@ describe('authentication-hapi-plugin', () => {
       fetchMock.mock(/\/users/, [{
         id: 1,
       }]);
+      fetchMock.mock(/\/userinfo$/, {
+        email: 'foo@bar.com',
+      });
 
       // Act
       const response = await server.inject({
@@ -177,6 +187,9 @@ describe('authentication-hapi-plugin', () => {
       fetchMock.mock(/\/users/, [{
         id: 1,
       }]);
+      fetchMock.mock(/\/userinfo$/, {
+        email: 'foo@bar.com',
+      });
 
       // Act
       const response = await server.inject({
@@ -205,6 +218,9 @@ describe('authentication-hapi-plugin', () => {
         id: 1,
         name: 'fooGroup',
       }]);
+      fetchMock.mock(/\/userinfo$/, {
+        email: 'foo@bar.com',
+      });
 
       // Act
       const response = await server.inject({

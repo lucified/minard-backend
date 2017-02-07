@@ -197,7 +197,6 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       email = credentials[subEmailClaimKey];
       if (!email && this.hapiOptions.verifyOptions && this.hapiOptions.verifyOptions.issuer) {
         const userInfo = await getAuth0UserInfo(this.hapiOptions.verifyOptions.issuer, request.auth.token, this.fetch);
-        console.log(userInfo);
         email = userInfo.email || userInfo.name;
       }
       const user = await this.gitlab.getUserByEmail(email || '');

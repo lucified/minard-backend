@@ -7,7 +7,7 @@ import AuthenticationModule from '../authentication/authentication-module';
 import { goodOptionsInjectSymbol } from '../server';
 import { fetchMock } from '../shared/fetch';
 import { GitlabClient } from '../shared/gitlab-client';
-import Logger from '../shared/logger';
+import Logger, { loggerInjectSymbol } from '../shared/logger';
 import { charlesKnexInjectSymbol, fetchInjectSymbol } from '../shared/types';
 
 import developmentConfig from './config-development';
@@ -52,4 +52,6 @@ export default (kernel: Container) => {
   kernel.bind(jwtOptionsInjectSymbol).toConstantValue(jwtTestOptions);
   kernel.unbind(charlesKnexInjectSymbol);
   kernel.bind(charlesKnexInjectSymbol).toConstantValue(charlesKnex);
+  kernel.unbind(loggerInjectSymbol);
+  kernel.bind(loggerInjectSymbol).toConstantValue(logger);
 };

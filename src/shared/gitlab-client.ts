@@ -160,6 +160,9 @@ export class GitlabClient {
   }
 
   public async getUserByEmail(email: string) {
+    if (!validateEmail(email)) {
+      throw Boom.badRequest(`Invalid email '${email}'`);
+    }
     const search = {
       search: email,
     };
@@ -222,4 +225,11 @@ export class GitlabClient {
     return this.fetchJson<Group[]>(`groups?${qs.stringify(sudo)}`, true);
   }
 
+}
+
+export function validateEmail(email: any) {
+  if (typeof email !== 'string') {
+    return false;
+  }
+  return /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,4})+$/.test(email);
 }

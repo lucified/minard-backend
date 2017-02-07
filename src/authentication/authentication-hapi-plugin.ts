@@ -11,7 +11,7 @@ import { Group } from '../shared/gitlab';
 import { GitlabClient, validateEmail } from '../shared/gitlab-client';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
 import { adminTeamNameInjectSymbol, charlesKnexInjectSymbol, fetchInjectSymbol } from '../shared/types';
-import { generateTeamToken, TeamToken, teamTokenQuery, validateTeamToken } from './team-token';
+import { generateTeamToken, getTeamIdWithToken, TeamToken, teamTokenQuery } from './team-token';
 import { AccessToken, jwtOptionsInjectSymbol } from './types';
 
 const randomstring = require('randomstring');
@@ -135,7 +135,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     try {
       const credentials = request.auth.credentials as AccessToken;
       const teamToken = credentials[teamTokenClaimKey]!;
-      const teamId = await validateTeamToken(teamToken, this.db);
+      const teamId = await getTeamIdWithToken(teamToken, this.db);
       const team = await this.gitlab.fetchJson<Group>(`groups/${teamId}`);
       const email = credentials[subEmailClaimKey];
       const password = generatePassword();
@@ -170,6 +170,8 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     try {
       const credentials = payload;
       email = credentials[subEmailClaimKey];
+      // If the email wasn't included in the accessToken, try to fetch it from Auth0
+      // We assume that if the issuer is defined, it's the Auth0 baseUrl
       if (!validateEmail(email) && this.hapiOptions.verifyOptions && this.hapiOptions.verifyOptions.issuer) {
         const userInfo = await getAuth0UserInfo(this.hapiOptions.verifyOptions.issuer, request.auth.token, this.fetch);
         email = userInfo.email || userInfo.name;
@@ -190,24 +192,30 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     request: any,
     callback: (err: any, valid: boolean, credentials?: any) => void,
   ) {
-    let valid = false;
+    let validEmail = false;
+    let validTeam = false;
     let email: string | undefined;
     try {
       const credentials = payload;
       email = credentials[subEmailClaimKey];
-      if (!email && this.hapiOptions.verifyOptions && this.hapiOptions.verifyOptions.issuer) {
+      // If the email wasn't included in the accessToken, try to fetch it from Auth0
+      // We assume that if the issuer is defined, it's the Auth0 baseUrl
+      if (!validateEmail(email) && this.hapiOptions.verifyOptions && this.hapiOptions.verifyOptions.issuer) {
         const userInfo = await getAuth0UserInfo(this.hapiOptions.verifyOptions.issuer, request.auth.token, this.fetch);
         email = userInfo.email || userInfo.name;
       }
-      const user = await this.gitlab.getUserByEmail(email || '');
-      const teams = await this.gitlab.getUserTeams(user.id);
-      valid = teams.reduce((previous, current) =>
-        current.name.toLowerCase() === this.adminTeamName ? true : previous, false,
-      );
+      if (validateEmail(email)) {
+        validEmail = true;
+        const user = await this.gitlab.getUserByEmail(email || '');
+        const teams = await this.gitlab.getUserTeams(user.id);
+        validTeam = teams.reduce((previous, current) =>
+          current.name.toLowerCase() === this.adminTeamName ? true : previous, false,
+        );
+      }
     } catch (error) {
       this.logger.error(`Can't fetch user or team`, error);
     }
-    callback(undefined, valid, {...payload, [subEmailClaimKey]: email});
+    callback(undefined, validEmail && validTeam, {...payload, [subEmailClaimKey]: email});
   }
 
   public async registerAuth(server: Hapi.Server) {

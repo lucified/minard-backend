@@ -11,7 +11,7 @@ import { Group } from '../shared/gitlab';
 import { GitlabClient, validateEmail } from '../shared/gitlab-client';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
 import { adminTeamNameInjectSymbol, charlesKnexInjectSymbol, fetchInjectSymbol } from '../shared/types';
-import { generateTeamToken, getTeamIdWithToken, TeamToken, teamTokenQuery } from './team-token';
+import { generateAndSaveTeamToken, getTeamIdWithToken, TeamToken, teamTokenQuery } from './team-token';
 import { AccessToken, jwtOptionsInjectSymbol } from './types';
 
 const randomstring = require('randomstring');
@@ -124,7 +124,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   public async createTeamTokenHandler(request: Hapi.Request, reply: Hapi.IReply) {
     try {
       const teamId = parseInt(request.paramsArray[0], 10);
-      const teamToken = await generateTeamToken(teamId, this.db);
+      const teamToken = await generateAndSaveTeamToken(teamId, this.db);
       return reply(teamToken).code(201);
     } catch (error) {
       return reply(Boom.badRequest(error.message));

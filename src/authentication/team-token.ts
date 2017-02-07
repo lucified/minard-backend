@@ -54,17 +54,29 @@ export async function getTeamIdWithToken(token: string, db: Knex) {
   return teamTokens[0].teamId;
 }
 
-export async function generateTeamToken(teamId: number, db: Knex): Promise<TeamToken> {
-  const tokenString: string = randomstring.generate({
+export function generateTeamToken(): string {
+  return randomstring.generate({
     length: teamTokenLength,
     charset: 'alphanumeric',
     readable: true,
   });
-  const token = {
-    teamId,
-    token: tokenString,
-    createdAt: moment.utc().valueOf(),
-  };
-  await db('teamtoken').insert(token);
-  return token;
+}
+
+export async function generateAndSaveTeamToken(teamId: number, db: Knex): Promise<TeamToken> {
+  let inserted = false;
+  let token: TeamToken | undefined;
+  while (!inserted) {
+    token = {
+      teamId,
+      token: generateTeamToken(),
+      createdAt: moment.utc().valueOf(),
+    };
+    const existing = await teamTokenQuery(db, token.token);
+    if (existing && existing.length > 0) {
+      continue;
+    }
+    await db('teamtoken').insert(token);
+    inserted = true;
+  }
+  return token!;
 }

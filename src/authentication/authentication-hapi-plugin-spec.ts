@@ -6,7 +6,7 @@ import { getTestServer } from '../server/hapi';
 import { fetchMock } from '../shared/fetch';
 import { adminTeamNameInjectSymbol } from '../shared/types';
 import { default as AuthenticationHapiPlugin, generatePassword } from './authentication-hapi-plugin';
-import { generateTeamToken, teamTokenLength } from './team-token';
+import { generateAndSaveTeamToken, teamTokenLength } from './team-token';
 import { getDb } from './team-token-spec';
 
 const validToken = `eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6Ik1URkNSVVEzT0VFd09FVXlPRVF3UTBJd05USTJSVGhGTlRCR1JUWkNRa0kwUXpVM1JUaEdOQSJ9.eyJpc3MiOiJodHRwczovL2x1Y2lmeS1kZXYuZXUuYXV0aDAuY29tLyIsInN1YiI6ImF1dGgwfDU4OTg5ZmU2YjBlOGMwMGY3NGIzYTI3ZCIsImF1ZCI6WyJodHRwczovL2NoYXJsZXMtc3RhZ2luZy5taW5hcmQuaW8iLCJodHRwczovL2x1Y2lmeS1kZXYuZXUuYXV0aDAuY29tL3VzZXJpbmZvIl0sImF6cCI6IlphZWlOeVY3UzdNcEk2OWNLTkhyOHdYZTVCZHI4dHZXIiwiZXhwIjoxNDg2NDkxMTM0LCJpYXQiOjE0ODY0MDQ3MzQsInNjb3BlIjoib3BlbmlkIHByb2ZpbGUifQ.t0202VbqxOAxpJjnUJxk8s6mJ4s7gZY3uYgO4fKEAxW7eHC4AXmG_H4zm4_DOSoPi1QyTO3tJ2eQetJBy8O8DKWxdcOVbIoIqf9N5ToCSE2luT31P_71Ip5a24_BryZHo8E453OnUkeXhlni8wILNgnS--NONz5ipAmQsaovNv8E7jSRsh5UcCP46RiuSwhqBdFrpCjmAxmd_P2uRpxil0CiarwaY232RWbecNw1a6CUCQSDnge-5Ipyw5nt_fzm8P7nsZcpYcHuhhVS8y2Sd-E_GzVYNfRUDG5eluwCAMf4cAlSbZIQ1zjCHDSsOIC9lx0mK2Uh-eLQ7bopj5H2zg`.replace(/\s|[^\x20-\x7E]/gmi, ''); // tslint:disable-line
@@ -114,8 +114,7 @@ describe('authentication-hapi-plugin', () => {
       const teamId = 2;
       const adminTeamName = get<string>(adminTeamNameInjectSymbol);
       const db = await getDb();
-      const token = await generateTeamToken(teamId, db);
-
+      const token = await generateAndSaveTeamToken(teamId, db);
       fetchMock.restore();
       fetchMock.mock(/\/groups/, [{
         id: 1,

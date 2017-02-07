@@ -4,27 +4,34 @@ import * as moment from 'moment';
 import 'reflect-metadata';
 
 import { get } from '../config';
+// import { sleep } from '../shared/sleep';
 import { charlesKnexInjectSymbol } from '../shared/types';
-import { generateTeamToken, TeamToken, teamTokenLength, getTeamIdWithToken } from './team-token';
+import {
+  generateAndSaveTeamToken,
+  generateTeamToken,
+  getTeamIdWithToken,
+  TeamToken,
+  teamTokenLength,
+} from './team-token';
 
 const validTokens: TeamToken[] = [
   {
-    token: 'abcd123',
+    token: generateTeamToken(),
     teamId: 1,
     createdAt: moment.utc(),
   },
   {
-    token: 'abcd124',
+    token: generateTeamToken(),
     teamId: 1,
     createdAt: moment.utc().subtract(5, 'days'),
   },
   {
-    token: 'abcd125',
+    token: generateTeamToken(),
     teamId: 2,
     createdAt: moment.utc(),
   },
   {
-    token: 'abcd126',
+    token: generateTeamToken(),
     teamId: 2,
     createdAt: moment.utc().subtract(5, 'days'),
   },
@@ -32,13 +39,17 @@ const validTokens: TeamToken[] = [
 
 export async function getDb() {
   const db = get<Knex>(charlesKnexInjectSymbol);
-  await db.migrate.latest({
-    directory: 'migrations/authentication',
+  await db.schema.dropTableIfExists('teamtoken');
+  await db.schema.createTable('teamtoken', (table) => {
+    table.increments('id').primary();
+    table.integer('teamId').index();
+    table.string('token').index();
+    table.bigInteger('createdAt').index();
   });
   return db;
 }
 
-describe('validateTeamToken', () => {
+describe('getTeamIdWithToken', () => {
 
   it('should return the latest token per team', async () => {
     const db = await getDb();
@@ -68,7 +79,7 @@ describe('validateTeamToken', () => {
     }
     expect(exceptions.length).to.eq(2);
     try {
-      await getTeamIdWithToken(validTokens[0].token.replace('1', '8'), db);
+      await getTeamIdWithToken(generateTeamToken(), db);
     } catch (err) {
       exceptions.push(err);
     }
@@ -77,12 +88,13 @@ describe('validateTeamToken', () => {
 });
 
 describe('generateTeamToken', () => {
-
   it('should return a token of specified length', async () => {
-    const db = await getDb();
-    const token = await generateTeamToken(342, db);
-    expect(token.token.length).to.eq(teamTokenLength);
+    const token = generateTeamToken();
+    expect(token.length).to.eq(teamTokenLength);
   });
+});
+
+describe('generateAndSaveTeamToken', () => {
 
   it('should invalidate the previous token for the same team', async () => {
     // Arrange
@@ -91,9 +103,9 @@ describe('generateTeamToken', () => {
     const teamId2 = teamId1 + 1;
 
     // Act
-    const token1 = await generateTeamToken(teamId1, db);
+    const token1 = await generateAndSaveTeamToken(teamId1, db);
     const check1 = await getTeamIdWithToken(token1.token, db);
-    const token2 = await generateTeamToken(teamId1, db);
+    const token2 = await generateAndSaveTeamToken(teamId1, db);
     const check2 = await getTeamIdWithToken(token2.token, db);
 
     let check3 = true;
@@ -103,7 +115,7 @@ describe('generateTeamToken', () => {
       check3 = false;
     }
 
-    const token3 = await generateTeamToken(teamId2, db);
+    const token3 = await generateAndSaveTeamToken(teamId2, db);
     const check4 = await getTeamIdWithToken(token3.token, db);
     const check5 = await getTeamIdWithToken(token2.token, db);
 

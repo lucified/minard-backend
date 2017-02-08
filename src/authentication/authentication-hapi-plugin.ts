@@ -268,9 +268,7 @@ export async function getAuth0UserInfo(auth0Domain: string, accessToken: string,
       'content-type': 'application/json',
     },
   };
-  const response = await fetch(`${baseUrl}/userinfo`, options);
-  const responseBody = await response.json();
-  return responseBody;
+  return (await fetch(`${baseUrl}/userinfo`, options)).json();
 }
 
 export function generatePassword(length = 16) {

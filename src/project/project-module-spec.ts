@@ -959,7 +959,7 @@ describe('project-module', () => {
       };
 
       // Act
-      let error: Boom.BoomError | undefined = undefined;
+      let error: Boom.BoomError | undefined;
       await projectModule.doCreateProjectFromTemplate(
         templateProjectId, teamId, projectName, description)
         .catch((err) => error = err as Boom.BoomError);
@@ -984,7 +984,7 @@ describe('project-module', () => {
       };
 
       // Act
-      let error: Boom.BoomError | undefined = undefined;
+      let error: Boom.BoomError | undefined;
       await projectModule.doCreateProjectFromTemplate(
         templateProjectId, teamId, projectName, description)
         .catch((err) => error = err as Boom.BoomError);

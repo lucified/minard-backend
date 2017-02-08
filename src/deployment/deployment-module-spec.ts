@@ -594,9 +594,9 @@ describe('deployment-module', () => {
       resolveOrReject: (resolve: (arg: any) => void, reject: (arg: any) => void) => void) {
 
       const deploymentModule = getDeploymentModule({} as any, '');
-      let resolve1: ((arg: any) => void) | undefined = undefined;
-      let reject1: ((arg: any) => void) | undefined = undefined;
-      let resolve2: ((arg: any) => void) | undefined = undefined;
+      let resolve1: ((arg: any) => void) | undefined;
+      let reject1: ((arg: any) => void) | undefined;
+      let resolve2: ((arg: any) => void) | undefined;
       const promise1 = new Promise((resolve, reject) => {
         resolve1 = resolve;
         reject1 = reject;

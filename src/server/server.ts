@@ -111,7 +111,7 @@ export default class MinardServer {
         options: this.goodOptions,
       },
     ];
-    let ravenRegister: any = undefined;
+    let ravenRegister: any;
     if (this.sentryDsn) {
       ravenRegister = await this.getRaven(this.sentryDsn);
 

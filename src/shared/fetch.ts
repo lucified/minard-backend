@@ -109,7 +109,7 @@ export interface FetchMock {
   called: (name?: string) => boolean;
 }
 
-let _fetchMock: any = undefined;
+let _fetchMock: any;
 try {
   _fetchMock = require('fetch-mock');
 } catch (err) {

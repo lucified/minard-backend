@@ -432,7 +432,7 @@ export default class DeploymentModule {
         effective: applyDefaults({}),
       };
     }
-    let parsed: MinardJson | undefined = undefined;
+    let parsed: MinardJson | undefined;
     let errors: string[];
     try {
       parsed = JSON.parse(content);
@@ -504,7 +504,7 @@ export default class DeploymentModule {
   }
 
   public async updateDeploymentStatus(deploymentId: number, updates: DeploymentStatusUpdate) {
-    let newStatus: MinardDeploymentStatus | undefined = undefined;
+    let newStatus: MinardDeploymentStatus | undefined;
     if (updates.screenshotStatus === 'success' || updates.screenshotStatus === 'failed') {
       newStatus = 'success'; // SIC
     } else if (values(updates).indexOf('failed') !== -1 || values(updates).indexOf('canceled') !== -1) {

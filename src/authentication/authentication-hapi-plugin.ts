@@ -171,10 +171,8 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       const credentials = payload;
       email = credentials[subEmailClaimKey];
       // If the email wasn't included in the accessToken, try to fetch it from Auth0
-      // We assume that if the issuer is defined, it's the Auth0 baseUrl
-      if (!validateEmail(email) && this.hapiOptions.verifyOptions && this.hapiOptions.verifyOptions.issuer) {
-        const userInfo = await getAuth0UserInfo(this.hapiOptions.verifyOptions.issuer, request.auth.token, this.fetch);
-        email = userInfo.email || userInfo.name;
+      if (!validateEmail(email)) {
+        email = await this.tryGetEmailFromAuth0(request.auth.token);
       }
       if (validateEmail(email)) {
         valid = true;
@@ -199,10 +197,8 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       const credentials = payload;
       email = credentials[subEmailClaimKey];
       // If the email wasn't included in the accessToken, try to fetch it from Auth0
-      // We assume that if the issuer is defined, it's the Auth0 baseUrl
-      if (!validateEmail(email) && this.hapiOptions.verifyOptions && this.hapiOptions.verifyOptions.issuer) {
-        const userInfo = await getAuth0UserInfo(this.hapiOptions.verifyOptions.issuer, request.auth.token, this.fetch);
-        email = userInfo.email || userInfo.name;
+      if (!validateEmail(email)) {
+        email = await this.tryGetEmailFromAuth0(request.auth.token);
       }
       if (validateEmail(email)) {
         validEmail = true;
@@ -216,6 +212,15 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       this.logger.error(`Can't fetch user or team`, error);
     }
     callback(undefined, validEmail && validTeam, {...payload, [subEmailClaimKey]: email});
+  }
+
+  private async tryGetEmailFromAuth0(accessToken: string) {
+    // We assume that if the issuer is defined, it's the Auth0 baseUrl
+    if (this.hapiOptions.verifyOptions && this.hapiOptions.verifyOptions.issuer) {
+      const userInfo = await getAuth0UserInfo(this.hapiOptions.verifyOptions.issuer, accessToken, this.fetch);
+      return userInfo.email || userInfo.name;
+    }
+    return undefined;
   }
 
   public async registerAuth(server: Hapi.Server) {

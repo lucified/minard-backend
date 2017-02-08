@@ -172,7 +172,9 @@ export class GitlabClient {
     }
     if (users.length > 1) {
       // This shoud never happen
-      throw Boom.badRequest(`Found multiple users with email '${email}'`);
+      const message = `Found multiple users with email '${email}'`;
+      this.logger.warning(message);
+      throw Boom.badRequest(message);
     }
     return users[0];
   }

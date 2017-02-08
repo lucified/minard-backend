@@ -1,29 +1,89 @@
 import { expect } from 'chai';
+import * as auth from 'hapi-auth-jwt2';
+import { sign } from 'jsonwebtoken';
+import * as moment from 'moment';
 import 'reflect-metadata';
 
-import { get } from '../config';
+import { get, kernel } from '../config';
 import { getTestServer } from '../server/hapi';
 import { fetchMock } from '../shared/fetch';
 import { adminTeamNameInjectSymbol } from '../shared/types';
-import { default as AuthenticationHapiPlugin, generatePassword } from './authentication-hapi-plugin';
-import { generateAndSaveTeamToken, teamTokenLength } from './team-token';
-import { getDb } from './team-token-spec';
+import {
+  default as AuthenticationHapiPlugin,
+  generatePassword,
+  subEmailClaimKey,
+  teamTokenClaimKey,
+} from './authentication-hapi-plugin';
+import { generateAndSaveTeamToken, TeamToken, teamTokenLength } from './team-token';
+import { getDb, insertTeamToken } from './team-token-spec';
+import { AccessToken, jwtOptionsInjectSymbol } from './types';
 
-const validToken = `eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6Ik1URkNSVVEzT0VFd09FVXlPRVF3UTBJd05USTJSVGhGTlRCR1JUWkNRa0kwUXpVM1JUaEdOQSJ9.eyJpc3MiOiJodHRwczovL2x1Y2lmeS1kZXYuZXUuYXV0aDAuY29tLyIsInN1YiI6ImF1dGgwfDU4OTg5ZmU2YjBlOGMwMGY3NGIzYTI3ZCIsImF1ZCI6WyJodHRwczovL2NoYXJsZXMtc3RhZ2luZy5taW5hcmQuaW8iLCJodHRwczovL2x1Y2lmeS1kZXYuZXUuYXV0aDAuY29tL3VzZXJpbmZvIl0sImF6cCI6IlphZWlOeVY3UzdNcEk2OWNLTkhyOHdYZTVCZHI4dHZXIiwiZXhwIjoxNDg2NDkxMTM0LCJpYXQiOjE0ODY0MDQ3MzQsInNjb3BlIjoib3BlbmlkIHByb2ZpbGUifQ.t0202VbqxOAxpJjnUJxk8s6mJ4s7gZY3uYgO4fKEAxW7eHC4AXmG_H4zm4_DOSoPi1QyTO3tJ2eQetJBy8O8DKWxdcOVbIoIqf9N5ToCSE2luT31P_71Ip5a24_BryZHo8E453OnUkeXhlni8wILNgnS--NONz5ipAmQsaovNv8E7jSRsh5UcCP46RiuSwhqBdFrpCjmAxmd_P2uRpxil0CiarwaY232RWbecNw1a6CUCQSDnge-5Ipyw5nt_fzm8P7nsZcpYcHuhhVS8y2Sd-E_GzVYNfRUDG5eluwCAMf4cAlSbZIQ1zjCHDSsOIC9lx0mK2Uh-eLQ7bopj5H2zg`.replace(/\s|[^\x20-\x7E]/gmi, ''); // tslint:disable-line
+// Access token parameters
+const audience = 'https://api.foo.com';
+const issuer = 'https://issuer.foo.com';
+const secretKey = 'shhhhhhh';
+const algorithm = 'HS256';
+const defaultTeamTokenString = '1111222233334444';
+expect(defaultTeamTokenString.length).to.equal(teamTokenLength);
+const defaultEmail = 'foo@bar.com';
 
-const invalidToken = validToken.replace(/u/gim, 'i');
+function getAccessToken(
+  teamToken = defaultTeamTokenString,
+  email = defaultEmail,
+) {
+  let payload: Partial<AccessToken> = {
+    iss: issuer,
+    sub: 'auth0|12334345',
+    aud: [audience],
+    azp: 'azp',
+    scope: 'openid profile email',
+  };
+  if (teamToken) {
+    payload = { ...payload, [teamTokenClaimKey]: teamToken };
+  }
+  if (email) {
+    payload = { ...payload, [subEmailClaimKey]: email };
+  }
+  return sign(payload, secretKey);
+}
+
+const validAccessToken = getAccessToken();
+const invalidAccessToken = `${validAccessToken}a`;
+
+const validTeamToken: TeamToken = {
+  token: defaultTeamTokenString,
+  teamId: 1,
+  createdAt: moment.utc(),
+};
+
+function getJwtOptions(): auth.JWTStrategyOptions {
+  return {
+    // Get the complete decoded token, because we need info from the header (the kid)
+    complete: true,
+    key: secretKey,
+    // Validate the audience, issuer, algorithm and expiration.
+    verifyOptions: {
+      audience,
+      issuer,
+      algorithms: [algorithm],
+      ignoreExpiration: false,
+    },
+  };
+}
 
 async function getServer() {
+  kernel.unbind(jwtOptionsInjectSymbol);
+  kernel.bind(jwtOptionsInjectSymbol).toConstantValue(getJwtOptions());
   const plugin = get<AuthenticationHapiPlugin>(AuthenticationHapiPlugin.injectSymbol);
   const server = await getTestServer(plugin);
   return server;
 }
 
-describe('authentication-hapi-plugin', () => {
+describe.only('authentication-hapi-plugin', () => {
 
   describe('jwt verification', () => {
 
-    it('should return 401 for invalid token', async () => {
+    it('should return 401 for missing and invalid tokens', async () => {
       // Arrange
       const server = await getServer();
 
@@ -41,14 +101,56 @@ describe('authentication-hapi-plugin', () => {
         method: 'GET',
         url: 'http://foo.com/team',
         headers: {
-          'Authorization': `Bearer ${invalidToken}`,
+          'Authorization': `Bearer ${invalidAccessToken}`,
         },
       });
 
       // Assert
       expect(response.statusCode, response.payload).to.equal(401);
     });
+    it('should require a valid email in the token', async () => {
+      // Arrange
+      const server = await getServer();
+      const invalidEmail = 'foo@';
+      fetchMock.restore();
+      fetchMock.get('*', 404);
 
+      // Act
+      const response = await server.inject({
+        method: 'GET',
+        url: 'http://foo.com/team',
+        headers: {
+          'Authorization': `Bearer ${getAccessToken(defaultTeamTokenString, invalidEmail)}`,
+        },
+      });
+
+      // Assert
+      expect(response.statusCode, response.payload).to.equal(401);
+    });
+    it('should fall back to trying to retrieve the email from Auth0', async () => {
+      // Arrange
+      const server = await getServer();
+      const invalidEmail = 'foo@';
+      const userInfoEndpoint = `${issuer}/userinfo`;
+      fetchMock.restore();
+      fetchMock.get(userInfoEndpoint, {
+        email: invalidEmail,
+      });
+
+      // Act
+      const response = await server.inject({
+        method: 'GET',
+        url: 'http://foo.com/team',
+        headers: {
+          'Authorization': `Bearer ${getAccessToken(defaultTeamTokenString, invalidEmail)}`,
+        },
+      });
+
+      // Assert
+      expect(fetchMock.called(userInfoEndpoint)).to.be.true;
+      expect(response.statusCode, response.payload).to.equal(401);
+
+    });
     it('should return 200 for valid token', async () => {
       // Arrange
       const server = await getServer();
@@ -60,15 +162,13 @@ describe('authentication-hapi-plugin', () => {
         id: 1,
         name: 'fooGroup',
       }]);
-      fetchMock.mock(/\/userinfo$/, {
-        email: 'foo@bar.com',
-      });
+
       // Act
       const response = await server.inject({
         method: 'GET',
         url: 'http://foo.com/team',
         headers: {
-          'Authorization': `Bearer ${validToken}`,
+          'Authorization': `Bearer ${validAccessToken}`,
         },
       });
 
@@ -101,7 +201,7 @@ describe('authentication-hapi-plugin', () => {
         method: 'GET',
         url: `http://foo.com/team-token/${teamId}`,
         headers: {
-          'Authorization': `Bearer ${validToken}`,
+          'Authorization': `Bearer ${validAccessToken}`,
         },
       });
 
@@ -132,7 +232,7 @@ describe('authentication-hapi-plugin', () => {
         method: 'GET',
         url: `http://foo.com/team-token/${teamId}`,
         headers: {
-          'Authorization': `Bearer ${validToken}`,
+          'Authorization': `Bearer ${validAccessToken}`,
         },
       });
 
@@ -165,7 +265,7 @@ describe('authentication-hapi-plugin', () => {
         method: 'GET',
         url: `http://foo.com/team-token/${teamId}`,
         headers: {
-          'Authorization': `Bearer ${validToken}`,
+          'Authorization': `Bearer ${validAccessToken}`,
         },
       });
 
@@ -195,7 +295,7 @@ describe('authentication-hapi-plugin', () => {
         method: 'POST',
         url: `http://foo.com/team-token/${teamId}`,
         headers: {
-          'Authorization': `Bearer ${validToken}`,
+          'Authorization': `Bearer ${validAccessToken}`,
         },
       });
 
@@ -218,16 +318,12 @@ describe('authentication-hapi-plugin', () => {
         id: 1,
         name: 'fooGroup',
       }]);
-      fetchMock.mock(/\/userinfo$/, {
-        email: 'foo@bar.com',
-      });
-
       // Act
       const response = await server.inject({
         method: 'GET',
         url: 'http://foo.com/team',
         headers: {
-          'Authorization': `Bearer ${validToken}`,
+          'Authorization': `Bearer ${validAccessToken}`,
         },
       });
 
@@ -237,6 +333,66 @@ describe('authentication-hapi-plugin', () => {
       expect(result.name).to.equal('fooGroup');
     });
   });
+
+  describe('signup endpoint', () => {
+    it('should report the email on error', async () => {
+      // Arrange
+      const server = await getServer();
+      fetchMock.restore();
+      fetchMock.mock(/\/users/, [{
+        id: 1,
+      }]);
+      fetchMock.mock(/\/groups/, [{
+        id: validTeamToken.teamId + 1,
+        name: 'fooGroup',
+      }]);
+
+      // Act
+      const response = await server.inject({
+        method: 'GET',
+        url: 'http://foo.com/signup',
+        headers: {
+          'Authorization': `Bearer ${validAccessToken}`,
+        },
+      });
+
+      // Assert
+      expect(response.statusCode, response.rawPayload.toString()).to.equal(400);
+      const result = JSON.parse(response.payload);
+      expect((result.message as string).indexOf(defaultEmail)).to.not.eq(-1);
+    });
+    it('should create a gitlab user and add it to the specified group', async () => {
+      // Arrange
+      const db = await getDb();
+      await insertTeamToken(db, validTeamToken);
+
+      const server = await getServer();
+      fetchMock.restore();
+      fetchMock.mock(/\/users/, [{
+        id: 1,
+      }]);
+      fetchMock.mock(/\/groups/, [{
+        id: validTeamToken.teamId,
+        name: 'fooGroup',
+      }]);
+
+      // Act
+      const response = await server.inject({
+        method: 'GET',
+        url: 'http://foo.com/signup',
+        headers: {
+          'Authorization': `Bearer ${validAccessToken}`,
+        },
+      });
+
+      // Assert
+      expect(response.statusCode, response.rawPayload.toString()).to.equal(201);
+      const result = JSON.parse(response.payload);
+      expect(result.team.id).to.equal(1);
+      expect(result.password).to.exist;
+    });
+  });
+
   describe('generatePassword', () => {
     it('should return a string of 16 chars by default', () => {
       const password = generatePassword();

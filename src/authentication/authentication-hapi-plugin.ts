@@ -7,7 +7,6 @@ import * as Knex from 'knex';
 import * as Hapi from '../server/hapi';
 import { HapiPlugin } from '../server/hapi-register';
 import { IFetch } from '../shared/fetch';
-import { Group } from '../shared/gitlab';
 import { GitlabClient, validateEmail } from '../shared/gitlab-client';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
 import { adminTeamNameInjectSymbol, charlesKnexInjectSymbol, fetchInjectSymbol } from '../shared/types';
@@ -99,8 +98,9 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   public async getTeamHandler(request: Hapi.Request, reply: Hapi.IReply) {
     try {
       const credentials = request.auth.credentials as AccessToken;
-      const user = await this.gitlab.getUserByEmail(credentials[subEmailClaimKey]);
-      const teams = await this.gitlab.getUserTeams(user.id);
+      // The email has been validated in validateUser at this point
+      const user = await this.gitlab.getUserByEmail(credentials[subEmailClaimKey]!);
+      const teams = await this.gitlab.getUserGroups(user.id);
       return reply(teams[0]); // NOTE: we only support a single team for now
     } catch (error) {
       this.logger.error(`Can't fetch user or team`, error);
@@ -132,12 +132,15 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   }
 
   public async signupHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    let email: string | undefined;
+    let credentials: AccessToken | undefined;
     try {
-      const credentials = request.auth.credentials as AccessToken;
+      credentials = request.auth.credentials as AccessToken;
+      // The email has been validated in validateUser at this point
+      email = credentials[subEmailClaimKey]!;
       const teamToken = credentials[teamTokenClaimKey]!;
       const teamId = await getTeamIdWithToken(teamToken, this.db);
-      const team = await this.gitlab.fetchJson<Group>(`groups/${teamId}`);
-      const email = credentials[subEmailClaimKey];
+      const team = await this.gitlab.getGroup(teamId);
       const password = generatePassword();
       const {id, idp} = parseSub(credentials.sub);
       const user = await this.gitlab.createUser(
@@ -152,10 +155,14 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       return reply({
         team,
         password,
-      });
+      }).code(201); // created
     } catch (error) {
-      this.logger.error(`Problems on signup`, error);
-      return reply(Boom.wrap(error, 401));
+      const message = `Problems on signup for user ${email}`;
+      this.logger.error(message, {
+        error,
+        credentials,
+      });
+      return reply(Boom.badRequest(message));
     }
   }
 
@@ -203,7 +210,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       if (validateEmail(email)) {
         validEmail = true;
         const user = await this.gitlab.getUserByEmail(email || '');
-        const teams = await this.gitlab.getUserTeams(user.id);
+        const teams = await this.gitlab.getUserGroups(user.id);
         validTeam = teams.reduce((previous, current) =>
           current.name.toLowerCase() === this.adminTeamName ? true : previous, false,
         );
@@ -267,5 +274,5 @@ export async function getAuth0UserInfo(auth0Domain: string, accessToken: string,
 }
 
 export function generatePassword(length = 16) {
-  return randomstring.generate({length, charset: 'alphanumeric', readable: true});
+  return randomstring.generate({length, charset: 'alphanumeric', readable: true}) as string;
 }

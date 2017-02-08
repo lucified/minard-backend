@@ -49,12 +49,16 @@ export async function getDb() {
   return db;
 }
 
+export async function insertTeamToken(db: Knex, token: TeamToken) {
+  const toDb = (t: TeamToken) => ({ ...t, createdAt: t.createdAt.valueOf() });
+  return db('teamtoken').insert(toDb(token));
+}
+
 describe('getTeamIdWithToken', () => {
 
   it('should return the latest token per team', async () => {
     const db = await getDb();
-    const toDb = (token: TeamToken) => ({ ...token, createdAt: token.createdAt.valueOf() });
-    await Promise.all(validTokens.map(item => db('teamtoken').insert(toDb(item))));
+    await Promise.all(validTokens.map(insertTeamToken.bind(undefined, db)));
     let teamId = await getTeamIdWithToken(validTokens[0].token, db);
     expect(teamId).to.eq(validTokens[0].teamId);
     teamId = await getTeamIdWithToken(validTokens[2].token, db);
@@ -62,8 +66,7 @@ describe('getTeamIdWithToken', () => {
   });
   it('should not accept nonexistent or invalidated tokens', async () => {
     const db = await getDb();
-    const toDb = (token: TeamToken) => ({ ...token, createdAt: token.createdAt.valueOf() });
-    await Promise.all(validTokens.map(item => db('teamtoken').insert(toDb(item))));
+    await Promise.all(validTokens.map(insertTeamToken.bind(undefined, db)));
 
     const exceptions: Error[] = [];
     try {

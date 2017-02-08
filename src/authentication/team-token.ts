@@ -29,13 +29,13 @@ export function teamTokenQuery(db: Knex, token?: string, teamId?: number) {
     );
   if (token) {
     if (token.length !== teamTokenLength || !token.match(/^\w+$/)) {
-      throw new Error('Invalid team token');
+      throw new Error(`Invalid team token ${token}`);
     }
     query.where('teamtoken.token', token);
   }
   if (teamId) {
     if (!teamId.toString().match(/^\d+$/)) {
-      throw new Error('Invalid teamId');
+      throw new Error(`Invalid teamId ${teamId}`);
     }
     if (token) {
       query.andWhere('teamtoken.teamId', teamId);
@@ -47,9 +47,15 @@ export function teamTokenQuery(db: Knex, token?: string, teamId?: number) {
 }
 
 export async function getTeamIdWithToken(token: string, db: Knex) {
+  if (typeof token !== 'string') {
+    throw new Error(`Token is not a string`);
+  }
   const teamTokens: TeamToken[] = await teamTokenQuery(db, token);
-  if (!teamTokens || teamTokens.length !== 1) {
-    throw new Error('Invalid team token');
+  if (!teamTokens || teamTokens.length === 0) {
+    throw new Error(`Unable to find teamId for the token ${token}`);
+  }
+  if (teamTokens && teamTokens.length > 1) {
+    throw new Error(`Multiple teamIds found for the token ${token}`);
   }
   return teamTokens[0].teamId;
 }

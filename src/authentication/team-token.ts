@@ -12,7 +12,7 @@ export interface TeamToken {
 }
 
 /**
- * Creates an sql query for fetching team tokens.
+ * Creates an sql query for fetching valid, i.e. latest, team tokens.
  * The results can be filtered by specifying a token,
  * a teamId or both.
  */

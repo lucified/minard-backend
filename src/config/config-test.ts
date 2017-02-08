@@ -23,16 +23,6 @@ const getClient = () => {
   return new GitlabClient('gitlab', fetchMock.fetchMock, new MockAuthModule() as AuthenticationModule, logger, false);
 };
 
-function ignoreExpiration(production: auth.JWTStrategyOptions) {
-  return {
-    ...production,
-    verifyOptions: {
-      ...production.verifyOptions,
-      ignoreExpiration: true,
-    },
-  };
-}
-
 const charlesKnex = Knex({
   client: 'sqlite3',
   connection: { filename: ':memory:' },
@@ -41,17 +31,9 @@ const charlesKnex = Knex({
 
 export default (kernel: Container) => {
   developmentConfig(kernel);
-  kernel.unbind(fetchInjectSymbol);
-  kernel.bind(fetchInjectSymbol).toConstantValue(fetchMock.fetchMock);
-  kernel.unbind(goodOptionsInjectSymbol);
-  kernel.bind(goodOptionsInjectSymbol).toConstantValue({});
-  kernel.unbind(GitlabClient.injectSymbol);
-  kernel.bind(GitlabClient.injectSymbol).toConstantValue(getClient());
-  const jwtTestOptions = ignoreExpiration(kernel.get(jwtOptionsInjectSymbol));
-  kernel.unbind(jwtOptionsInjectSymbol);
-  kernel.bind(jwtOptionsInjectSymbol).toConstantValue(jwtTestOptions);
-  kernel.unbind(charlesKnexInjectSymbol);
-  kernel.bind(charlesKnexInjectSymbol).toConstantValue(charlesKnex);
-  kernel.unbind(loggerInjectSymbol);
-  kernel.bind(loggerInjectSymbol).toConstantValue(logger);
+  kernel.rebind(fetchInjectSymbol).toConstantValue(fetchMock.fetchMock);
+  kernel.rebind(goodOptionsInjectSymbol).toConstantValue({});
+  kernel.rebind(GitlabClient.injectSymbol).toConstantValue(getClient());
+  kernel.rebind(charlesKnexInjectSymbol).toConstantValue(charlesKnex);
+  kernel.rebind(loggerInjectSymbol).toConstantValue(logger);
 };

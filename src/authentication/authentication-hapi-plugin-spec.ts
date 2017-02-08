@@ -72,8 +72,7 @@ function getJwtOptions(): auth.JWTStrategyOptions {
 }
 
 async function getServer() {
-  kernel.unbind(jwtOptionsInjectSymbol);
-  kernel.bind(jwtOptionsInjectSymbol).toConstantValue(getJwtOptions());
+  kernel.rebind(jwtOptionsInjectSymbol).toConstantValue(getJwtOptions());
   const plugin = get<AuthenticationHapiPlugin>(AuthenticationHapiPlugin.injectSymbol);
   const server = await getTestServer(plugin);
   return server;

@@ -91,7 +91,7 @@ import {
 import { SystemHookModule } from '../system-hook';
 import { UserModule } from '../user';
 
-export default new ContainerModule(bind => {
+export default new ContainerModule((bind, _unbind, _isBound, _rebind) => {
 
   // Bindings for modules
   bind(ActivityModule.injectSymbol).to(ActivityModule).inSingletonScope();

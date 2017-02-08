@@ -39,6 +39,5 @@ const goodOptions = {
 
 export default (kernel: Container) => {
   productionConfig(kernel);
-  kernel.unbind(goodOptionsInjectSymbol);
-  kernel.bind(goodOptionsInjectSymbol).toConstantValue(goodOptions);
+  kernel.rebind(goodOptionsInjectSymbol).toConstantValue(goodOptions);
 };

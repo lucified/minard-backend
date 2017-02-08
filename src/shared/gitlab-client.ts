@@ -218,7 +218,18 @@ export class GitlabClient {
     }, true);
   }
 
-  public async getUserTeams(userId: number) {
+  public async getGroup(groupId: number) {
+    const groups = await this.fetchJson<Group[]>(`groups/${groupId}`, true);
+    if (!groups.length) {
+      throw Boom.notFound(`No groups found with id '${groupId}'`);
+    }
+    if (groups.length > 1) {
+      throw Boom.badImplementation(`Multiple groups found with id '${groupId}'`);
+    }
+    return groups[0];
+  }
+
+  public async getUserGroups(userId: number) {
     const sudo = {
       sudo: userId,
     };

@@ -152,7 +152,7 @@ describe('gitlab-client', () => {
       }]);
 
       // Act
-      const response = await gitlab.getUserTeams(1);
+      const response = await gitlab.getUserGroups(1);
 
       // Assert
       expect(response.length).to.equal(1);

@@ -70,7 +70,6 @@ async function fetch(url: string, options?: RequestInit): Promise<Response> {
   return await originalFetch(url, _options);
 }
 
-
 async function runCommand(command: string, ...args: string[]): Promise<boolean> {
   const stdio: any = 'inherit';
   return await new Promise<boolean>((resolve, reject) => {

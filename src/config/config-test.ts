@@ -1,8 +1,6 @@
-import * as auth from 'hapi-auth-jwt2';
 import { Container } from 'inversify';
 import * as Knex from 'knex';
 
-import { jwtOptionsInjectSymbol } from '../authentication';
 import AuthenticationModule from '../authentication/authentication-module';
 import { goodOptionsInjectSymbol } from '../server';
 import { fetchMock } from '../shared/fetch';

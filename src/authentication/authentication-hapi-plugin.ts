@@ -11,12 +11,9 @@ import { GitlabClient, validateEmail } from '../shared/gitlab-client';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
 import { adminTeamNameInjectSymbol, charlesKnexInjectSymbol, fetchInjectSymbol } from '../shared/types';
 import { generateAndSaveTeamToken, getTeamIdWithToken, TeamToken, teamTokenQuery } from './team-token';
-import { AccessToken, jwtOptionsInjectSymbol } from './types';
+import { AccessToken, jwtOptionsInjectSymbol, subEmailClaimKey, teamTokenClaimKey } from './types';
 
 const randomstring = require('randomstring');
-
-export const subEmailClaimKey: 'https://sub_email' = 'https://sub_email';
-export const teamTokenClaimKey: 'https://team_token' = 'https://team_token';
 
 @injectable()
 class AuthenticationHapiPlugin extends HapiPlugin {

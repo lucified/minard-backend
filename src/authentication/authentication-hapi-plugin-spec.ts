@@ -1,53 +1,21 @@
 import { expect } from 'chai';
-import * as auth from 'hapi-auth-jwt2';
-import { sign } from 'jsonwebtoken';
 import * as moment from 'moment';
 import 'reflect-metadata';
 
-import { get, kernel } from '../config';
+import { get } from '../config';
+import { getAccessToken, issuer } from '../config/config-development';
 import { getTestServer } from '../server/hapi';
 import { fetchMock } from '../shared/fetch';
 import { adminTeamNameInjectSymbol } from '../shared/types';
-import {
-  default as AuthenticationHapiPlugin,
-  generatePassword,
-  subEmailClaimKey,
-  teamTokenClaimKey,
-} from './authentication-hapi-plugin';
+import AuthenticationHapiPlugin, { generatePassword } from './authentication-hapi-plugin';
 import { generateAndSaveTeamToken, TeamToken, teamTokenLength } from './team-token';
 import { getDb, insertTeamToken } from './team-token-spec';
-import { AccessToken, jwtOptionsInjectSymbol } from './types';
 
-// Access token parameters
-const audience = 'https://api.foo.com';
-const issuer = 'https://issuer.foo.com';
-const secretKey = 'shhhhhhh';
-const algorithm = 'HS256';
 const defaultTeamTokenString = '1111222233334444';
 expect(defaultTeamTokenString.length).to.equal(teamTokenLength);
 const defaultEmail = 'foo@bar.com';
 
-function getAccessToken(
-  teamToken = defaultTeamTokenString,
-  email = defaultEmail,
-) {
-  let payload: Partial<AccessToken> = {
-    iss: issuer,
-    sub: 'auth0|12334345',
-    aud: [audience],
-    azp: 'azp',
-    scope: 'openid profile email',
-  };
-  if (teamToken) {
-    payload = { ...payload, [teamTokenClaimKey]: teamToken };
-  }
-  if (email) {
-    payload = { ...payload, [subEmailClaimKey]: email };
-  }
-  return sign(payload, secretKey);
-}
-
-const validAccessToken = getAccessToken();
+const validAccessToken = getAccessToken(defaultTeamTokenString, defaultEmail);
 const invalidAccessToken = `${validAccessToken}a`;
 
 const validTeamToken: TeamToken = {
@@ -56,23 +24,7 @@ const validTeamToken: TeamToken = {
   createdAt: moment.utc(),
 };
 
-function getJwtOptions(): auth.JWTStrategyOptions {
-  return {
-    // Get the complete decoded token, because we need info from the header (the kid)
-    complete: true,
-    key: secretKey,
-    // Validate the audience, issuer, algorithm and expiration.
-    verifyOptions: {
-      audience,
-      issuer,
-      algorithms: [algorithm],
-      ignoreExpiration: false,
-    },
-  };
-}
-
 async function getServer() {
-  kernel.rebind(jwtOptionsInjectSymbol).toConstantValue(getJwtOptions());
   const plugin = get<AuthenticationHapiPlugin>(AuthenticationHapiPlugin.injectSymbol);
   const server = await getTestServer(plugin);
   return server;

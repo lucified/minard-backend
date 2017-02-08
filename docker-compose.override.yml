@@ -39,6 +39,8 @@ services:
       - SCREENSHOT_FOLDER=/screenshots/
 
   screenshotter:
+    depends_on:
+      - bind
     volumes:
       - ./gitlab-data/charles/screenshots:/screenshots
     environment:

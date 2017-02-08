@@ -9,9 +9,11 @@ import { Observable } from '@reactivex/rxjs';
 import { expect } from 'chai';
 import { spawn } from 'child_process';
 import { keys } from 'lodash';
+import 'reflect-metadata';
 
+import { getAccessToken } from '../config/config-development';
 import { JsonApiEntity, JsonApiResponse } from '../json-api';
-import { fetch, Response } from '../shared/fetch';
+import { fetch as originalFetch, RequestInit, Response } from '../shared/fetch';
 
 import * as chalk from 'chalk';
 
@@ -42,7 +44,7 @@ function sleep(ms = 0) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function fetchWithRetry(url: string, options?: any, retryCount = 5): Promise<Response> {
+async function fetchWithRetry(url: string, options?: RequestInit, retryCount = 5): Promise<Response> {
   for (let i = 0; i < retryCount; i++) {
     try {
       return await fetch(url, options);
@@ -53,6 +55,21 @@ async function fetchWithRetry(url: string, options?: any, retryCount = 5): Promi
   }
   throw Error(`Fetch failed ${retryCount} times for url ${url}`);
 }
+
+const accessToken = getAccessToken('1111222233334444', 'foo@bar.com');
+
+async function fetch(url: string, options?: RequestInit): Promise<Response> {
+  let _options: RequestInit = {
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+    },
+  };
+  if (options) {
+    _options = {..._options, ...options};
+  }
+  return await originalFetch(url, _options);
+}
+
 
 async function runCommand(command: string, ...args: string[]): Promise<boolean> {
   const stdio: any = 'inherit';
@@ -506,7 +523,7 @@ describe('system-integration', () => {
       body: JSON.stringify(editProjectPayload),
     });
 
-    const eventSource = new EventSource(`${charles}/events/${teamId}`);
+    const eventSource = new EventSource(`${charles}/events/${teamId}?token=${accessToken}`);
     const eventType = 'PROJECT_EDITED';
     const eventPromise = Observable.fromEventPattern(
       (h: any) => eventSource.addEventListener(eventType, h),
@@ -531,7 +548,7 @@ describe('system-integration', () => {
 
   async function testSSEPersistence(lastEventId: string, currentEventId: string, eventType: string) {
     const eventSourceInitDict = {headers: {'Last-Event-ID': lastEventId}};
-    const eventSource = new EventSource(`${charles}/events/${teamId}`, eventSourceInitDict);
+    const eventSource = new EventSource(`${charles}/events/${teamId}?token=${accessToken}`, eventSourceInitDict);
     const sseResponse = await Observable.fromEventPattern(
       (h: any) => eventSource.addEventListener(eventType, h),
       (h: any) => eventSource.removeListener(eventType, h),

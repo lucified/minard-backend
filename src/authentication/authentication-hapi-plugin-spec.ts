@@ -79,7 +79,7 @@ async function getServer() {
   return server;
 }
 
-describe.only('authentication-hapi-plugin', () => {
+describe('authentication-hapi-plugin', () => {
 
   describe('jwt verification', () => {
 

@@ -206,11 +206,9 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       }
       if (validateEmail(email)) {
         validEmail = true;
-        const user = await this.gitlab.getUserByEmail(email || '');
+        const user = await this.gitlab.getUserByEmail(email);
         const teams = await this.gitlab.getUserGroups(user.id);
-        validTeam = teams.reduce((previous, current) =>
-          current.name.toLowerCase() === this.adminTeamName ? true : previous, false,
-        );
+        validTeam = teams.find(team => team.name.toLowerCase() === this.adminTeamName) !== undefined;
       }
     } catch (error) {
       this.logger.error(`Can't fetch user or team`, error);
@@ -220,11 +218,16 @@ class AuthenticationHapiPlugin extends HapiPlugin {
 
   private async tryGetEmailFromAuth0(accessToken: string) {
     // We assume that if the issuer is defined, it's the Auth0 baseUrl
+    let email: string | undefined;
     if (this.hapiOptions.verifyOptions && this.hapiOptions.verifyOptions.issuer) {
       const userInfo = await getAuth0UserInfo(this.hapiOptions.verifyOptions.issuer, accessToken, this.fetch);
-      return userInfo.email || userInfo.name;
+      if (validateEmail(userInfo.email)) {
+        email = userInfo.email;
+      } else if (validateEmail(userInfo.name)) { // it seems that the email can actually be in the name field as well
+        email = userInfo.name;
+      }
     }
-    return undefined;
+    return email;
   }
 
   public async registerAuth(server: Hapi.Server) {

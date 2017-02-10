@@ -206,6 +206,11 @@ export class GitlabClient {
     }, true);
   }
 
+  /**
+   * Adds a user to a project or group.
+   * The access_level defaults to 'developer'.
+   * The levels are documented here: https://docs.gitlab.com/ce/api/members.html.
+   */
   public addUserToGroup(userId: number, teamId: number, accessLevel = 30) {
     return this.fetchJson(`groups/${teamId}/members`, {
       method: 'POST',
@@ -240,7 +245,7 @@ export class GitlabClient {
 
 }
 
-export function validateEmail(email: any) {
+export function validateEmail(email: any): email is string {
   if (typeof email !== 'string') {
     return false;
   }

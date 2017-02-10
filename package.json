@@ -97,8 +97,7 @@
     "watch": "tsc -w",
     "lint": "tslint --format=verbose 'src/**/*.ts'",
     "deploy": "lucify-notifier ecs-updater",
-    "deploy-chatops": "[ \"$AWS_TEMPORARY\" ] && npm run deploy || echo 'Skipping deployment'",
-    "team-token": "ts-node -F scripts/team-token.ts"
+    "deploy-chatops": "[ \"$AWS_TEMPORARY\" ] && npm run deploy || echo 'Skipping deployment'"
   },
   "contributors": [
     {

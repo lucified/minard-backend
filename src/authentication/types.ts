@@ -2,8 +2,7 @@ export const authServerBaseUrlInjectSymbol = Symbol('auth-server-base-url');
 export const gitlabRootPasswordInjectSymbol = Symbol('gitlab-root-password');
 export const jwtOptionsInjectSymbol = Symbol('token-verify-options');
 
-export const subEmailClaimKey: 'https://sub_email' = 'https://sub_email';
-export const teamTokenClaimKey: 'https://team_token' = 'https://team_token';
+export const teamTokenClaimKey: 'https://minard.io/team_token' = 'https://minard.io/team_token';
 
 export interface AccessToken {
   iss: string;
@@ -13,6 +12,6 @@ export interface AccessToken {
   exp: number;
   iat: number;
   scope: string;
-  'https://sub_email'?: string;
-  'https://team_token'?: string;
+  email: string;
+  'https://minard.io/team_token'?: string;
 }

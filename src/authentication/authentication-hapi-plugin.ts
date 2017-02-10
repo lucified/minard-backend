@@ -11,7 +11,7 @@ import { GitlabClient, validateEmail } from '../shared/gitlab-client';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
 import { adminTeamNameInjectSymbol, charlesKnexInjectSymbol, fetchInjectSymbol } from '../shared/types';
 import { generateAndSaveTeamToken, getTeamIdWithToken, TeamToken, teamTokenQuery } from './team-token';
-import { AccessToken, jwtOptionsInjectSymbol, subEmailClaimKey, teamTokenClaimKey } from './types';
+import { AccessToken, jwtOptionsInjectSymbol, teamTokenClaimKey } from './types';
 
 const randomstring = require('randomstring');
 
@@ -96,7 +96,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     try {
       const credentials = request.auth.credentials as AccessToken;
       // The email has been validated in validateUser at this point
-      const user = await this.gitlab.getUserByEmail(credentials[subEmailClaimKey]!);
+      const user = await this.gitlab.getUserByEmail(credentials.email!);
       const teams = await this.gitlab.getUserGroups(user.id);
       return reply(teams[0]); // NOTE: we only support a single team for now
     } catch (error) {
@@ -134,7 +134,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     try {
       credentials = request.auth.credentials as AccessToken;
       // The email has been validated in validateUser at this point
-      email = credentials[subEmailClaimKey]!;
+      email = credentials.email!;
       const teamToken = credentials[teamTokenClaimKey]!;
       const teamId = await getTeamIdWithToken(teamToken, this.db);
       const team = await this.gitlab.getGroup(teamId);
@@ -173,7 +173,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     let email: string | undefined;
     try {
       const credentials = payload;
-      email = credentials[subEmailClaimKey];
+      email = credentials.email;
       // If the email wasn't included in the accessToken, try to fetch it from Auth0
       if (!validateEmail(email)) {
         email = await this.tryGetEmailFromAuth0(request.auth.token);
@@ -186,7 +186,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     }
 
     // NOTE: we have just a single team at this point so no further checks are necessary
-    callback(undefined, valid, {...payload, [subEmailClaimKey]: email});
+    callback(undefined, valid, {...payload, email});
   }
 
   public async validateAdmin(
@@ -199,7 +199,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     let email: string | undefined;
     try {
       const credentials = payload;
-      email = credentials[subEmailClaimKey];
+      email = credentials.email;
       // If the email wasn't included in the accessToken, try to fetch it from Auth0
       if (!validateEmail(email)) {
         email = await this.tryGetEmailFromAuth0(request.auth.token);
@@ -215,7 +215,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     } catch (error) {
       this.logger.error(`Can't fetch user or team`, error);
     }
-    callback(undefined, validEmail && validTeam, {...payload, [subEmailClaimKey]: email});
+    callback(undefined, validEmail && validTeam, {...payload, email});
   }
 
   private async tryGetEmailFromAuth0(accessToken: string) {

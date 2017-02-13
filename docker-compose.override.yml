@@ -22,7 +22,6 @@ services:
 
   charles:
     build: .
-    image: charles_development
     command: ["npm", "run", "dev"]
     ports:
       - "5858:5858"
@@ -40,6 +39,8 @@ services:
       - SCREENSHOT_FOLDER=/screenshots/
 
   screenshotter:
+    depends_on:
+      - bind
     volumes:
       - ./gitlab-data/charles/screenshots:/screenshots
     environment:

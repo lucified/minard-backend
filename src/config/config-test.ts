@@ -1,13 +1,12 @@
-import * as auth from 'hapi-auth-jwt2';
 import { Container } from 'inversify';
+import * as Knex from 'knex';
 
-import { jwtOptionsInjectSymbol } from '../authentication';
 import AuthenticationModule from '../authentication/authentication-module';
 import { goodOptionsInjectSymbol } from '../server';
 import { fetchMock } from '../shared/fetch';
 import { GitlabClient } from '../shared/gitlab-client';
-import Logger from '../shared/logger';
-import { fetchInjectSymbol } from '../shared/types';
+import Logger, { loggerInjectSymbol } from '../shared/logger';
+import { charlesKnexInjectSymbol, fetchInjectSymbol } from '../shared/types';
 
 import developmentConfig from './config-development';
 
@@ -22,25 +21,17 @@ const getClient = () => {
   return new GitlabClient('gitlab', fetchMock.fetchMock, new MockAuthModule() as AuthenticationModule, logger, false);
 };
 
-function ignoreExpiration(production: auth.JWTStrategyOptions) {
-  return {
-    ...production,
-    verifyOptions: {
-      ...production.verifyOptions,
-      ignoreExpiration: true,
-    },
-  };
-}
+const charlesKnex = Knex({
+  client: 'sqlite3',
+  connection: { filename: ':memory:' },
+  useNullAsDefault: true,
+});
 
 export default (kernel: Container) => {
   developmentConfig(kernel);
-  kernel.unbind(fetchInjectSymbol);
-  kernel.bind(fetchInjectSymbol).toConstantValue(fetchMock.fetchMock);
-  kernel.unbind(goodOptionsInjectSymbol);
-  kernel.bind(goodOptionsInjectSymbol).toConstantValue({});
-  kernel.unbind(GitlabClient.injectSymbol);
-  kernel.bind(GitlabClient.injectSymbol).toConstantValue(getClient());
-  const jwtTestOptions = ignoreExpiration(kernel.get(jwtOptionsInjectSymbol));
-  kernel.unbind(jwtOptionsInjectSymbol);
-  kernel.bind(jwtOptionsInjectSymbol).toConstantValue(jwtTestOptions);
+  kernel.rebind(fetchInjectSymbol).toConstantValue(fetchMock.fetchMock);
+  kernel.rebind(goodOptionsInjectSymbol).toConstantValue({});
+  kernel.rebind(GitlabClient.injectSymbol).toConstantValue(getClient());
+  kernel.rebind(charlesKnexInjectSymbol).toConstantValue(charlesKnex);
+  kernel.rebind(loggerInjectSymbol).toConstantValue(logger);
 };

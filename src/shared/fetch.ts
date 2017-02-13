@@ -105,7 +105,10 @@ export interface IFetch {
 export interface FetchMock {
   fetchMock: IFetch;
   restore: () => this;
+  reset: () => this;
   mock: (matcher: any, response: any, options?: any) => this;
+  get: (matcher: any, response: any, options?: any) => this;
+  post: (matcher: any, response: any, options?: any) => this;
   called: (name?: string) => boolean;
 }
 

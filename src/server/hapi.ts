@@ -32,7 +32,12 @@ export function getServer(options?: IServerOptions) {
 }
 
 export async function getTestServer(...plugins: PluginConfig[]) {
-    const server = getServer(this.options);
+    const server = getServer({
+      debug: {
+        log: false,
+        request: false,
+      } as any,
+    });
     // A connection needs to be defined at least for authentication
     server.connection({
       port: 65551,

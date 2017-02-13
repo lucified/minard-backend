@@ -83,6 +83,7 @@ class DeploymentHapiPlugin {
         },
       },
       config: {
+        auth: false,
         pre: [
           { method: this.parseHost.bind(this), assign: 'key' },
           { method: this.preCheck.bind(this) },
@@ -125,6 +126,7 @@ class DeploymentHapiPlugin {
       },
       config: {
         bind: this,
+        auth: false,
         validate: {
           params: {
             projectId: Joi.number().required(),
@@ -143,6 +145,7 @@ class DeploymentHapiPlugin {
       },
       config: {
         bind: this,
+        auth: false,
         validate: {
           params: {
             projectId: Joi.number().required(),

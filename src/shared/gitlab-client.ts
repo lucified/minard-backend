@@ -1,11 +1,13 @@
 
 import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
+import * as qs from 'querystring';
 
 import AuthenticationModule from '../authentication/authentication-module';
-import { IFetch, RequestInit, Response } from '../shared/fetch';
-import { Logger, loggerInjectSymbol } from '../shared/logger';
-import { fetchInjectSymbol } from '../shared/types';
+import { IFetch, RequestInit, Response } from './fetch';
+import { Group, User } from './gitlab';
+import { Logger, loggerInjectSymbol } from './logger';
+import { fetchInjectSymbol } from './types';
 
 const perfy = require('perfy');
 const randomstring = require('randomstring');
@@ -56,17 +58,21 @@ export class GitlabClient {
     }
   }
 
+  public getToken() {
+    return this._authentication.getRootAuthenticationToken();
+  }
+
   public async authenticate(options?: RequestInit) {
     // Is set already, no modifications
     const key = this.authenticationHeader;
     if (options && typeof options.headers === 'object') {
       const headers = options.headers as any;
-      if ((headers.get && headers.get(key)) || headers[key] ) {
+      if ((headers.get && headers.get(key)) || headers[key]) {
         return options;
       }
     }
 
-    const token = await this._authentication.getRootAuthenticationToken();
+    const token = await this.getToken();
     // Make a shallow copy
     const _options = Object.assign({}, options || {});
 
@@ -77,7 +83,7 @@ export class GitlabClient {
       return _options;
     }
 
-    _options.headers = Object.assign({[key]: token}, _options.headers || {});
+    _options.headers = Object.assign({ [key]: token }, _options.headers || {});
     return _options;
   }
 
@@ -88,7 +94,7 @@ export class GitlabClient {
     return this._fetch(url, _options);
   }
 
-  public async fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
+  public async fetchJson<T>(path: string, options?: RequestInit, includeErrorPayload = false): Promise<T> {
     const timerId = this._logging ? randomstring.generate() : null;
     if (this._logging) {
       perfy.start(timerId);
@@ -98,7 +104,11 @@ export class GitlabClient {
     this.log(`GitlabClient: sending request to ${url}`);
     const response = await this._fetch(url, _options);
     if (response.status !== 200 && response.status !== 201) {
-      throw Boom.create(response.status);
+      if (!includeErrorPayload) {
+        throw Boom.create(response.status);
+      }
+      const json = await response.json<any>();
+      throw Boom.create(response.status, undefined, json);
     }
     if (this._logging) {
       const timerResult = perfy.end(timerId);
@@ -115,7 +125,7 @@ export class GitlabClient {
     path: string,
     options?: RequestInit,
     logErrors: boolean = true,
-    ): Promise<{status: number, json: T | undefined}> {
+  ): Promise<{ status: number, json: T | undefined }> {
     const timerId = this._logging ? randomstring.generate() : null;
     if (this._logging) {
       perfy.start(timerId);
@@ -149,4 +159,92 @@ export class GitlabClient {
     };
   }
 
+  public async getUserByEmailOrUsername(emailOrUsername: string) {
+    const search = {
+      search: emailOrUsername,
+    };
+    const users = await this.fetchJson<User[]>(`users?${qs.stringify(search)}`, true);
+    if (!users || !users.length) {
+      throw Boom.badRequest(`Can\'t find user '${emailOrUsername}'`);
+    }
+    if (users.length > 1) {
+      // This shoud never happen
+      const message = `Found multiple users with email or username '${emailOrUsername}'`;
+      this.logger.warning(message);
+      throw Boom.badRequest(message);
+    }
+    return users[0];
+  }
+
+  public createUser(
+    email: string,
+    password: string,
+    username: string,
+    name: string,
+    externUid?: string,
+    provider?: string,
+    confirm = false,
+  ) {
+    const newUser = {
+      email,
+      password,
+      username,
+      name,
+      extern_uid: externUid,
+      provider,
+      confirm,
+    };
+    return this.fetchJson<User>(`users`, {
+      method: 'POST',
+      body: JSON.stringify(newUser),
+      headers: {
+        'content-type': 'application/json',
+      },
+    }, true);
+  }
+
+  /**
+   * Adds a user to a project or group.
+   * The access_level defaults to 'developer'.
+   * The levels are documented here: https://docs.gitlab.com/ce/api/members.html.
+   */
+  public addUserToGroup(userId: number, teamId: number, accessLevel = 30) {
+    return this.fetchJson(`groups/${teamId}/members`, {
+      method: 'POST',
+      body: JSON.stringify({
+        id: teamId,
+        user_id: userId,
+        access_level: accessLevel,
+      }),
+      headers: {
+        'content-type': 'application/json',
+      },
+    }, true);
+  }
+
+  public async getGroup(groupId: number) {
+    const groups = await this.fetchJson<Group[]>(`groups/${groupId}`, true);
+    if (!groups.length) {
+      throw Boom.notFound(`No groups found with id '${groupId}'`);
+    }
+    if (groups.length > 1) {
+      throw Boom.badImplementation(`Multiple groups found with id '${groupId}'`);
+    }
+    return groups[0];
+  }
+
+  public async getUserGroups(userId: number) {
+    const sudo = {
+      sudo: userId,
+    };
+    return this.fetchJson<Group[]>(`groups?${qs.stringify(sudo)}`, true);
+  }
+
+}
+
+export function validateEmail(email: any): email is string {
+  if (typeof email !== 'string') {
+    return false;
+  }
+  return /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,4})+$/.test(email);
 }

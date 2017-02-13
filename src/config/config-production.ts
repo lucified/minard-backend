@@ -43,6 +43,14 @@ import {
 } from '../shared/cache';
 
 import {
+  adminTeamNameInjectSymbol,
+  charlesDbNameInjectSymbol,
+  charlesKnexInjectSymbol,
+  gitlabKnexInjectSymbol,
+  postgresKnexInjectSymbol,
+} from '../shared/types';
+
+import {
   authServerBaseUrlInjectSymbol,
   gitlabRootPasswordInjectSymbol,
   jwtOptionsInjectSymbol,
@@ -277,6 +285,11 @@ const SENTRY_DSN = env.SENTRY_DSN || undefined;
 
 const EXIT_DELAY = env.EXIT_DELAY ? parseInt(env.EXIT_DELAY, 10) : 15000;
 
+// Admin team name
+// --------------
+
+const ADMIN_TEAM_NAME = env.ADMIN_TEAM_NAME || 'lucify';
+
 // Inversify kernel bindings
 // -------------------------
 
@@ -289,10 +302,10 @@ export default (kernel: Container) => {
   kernel.bind(gitlabHostInjectSymbol).toConstantValue(`http://${GITLAB_HOST}:${GITLAB_PORT}`);
   kernel.bind(systemHookBaseUrlSymbol).toConstantValue(SYSTEMHOOK_BASEURL);
   kernel.bind(deploymentFolderInjectSymbol).toConstantValue(DEPLOYMENT_FOLDER);
-  kernel.bind('gitlab-knex').toConstantValue(gitlabKnex);
-  kernel.bind('charles-knex').toConstantValue(charlesKnex);
-  kernel.bind('charles-db-name').toConstantValue(CHARLES_DB_NAME);
-  kernel.bind('postgres-knex').toConstantValue(postgresKnex);
+  kernel.bind(gitlabKnexInjectSymbol).toConstantValue(gitlabKnex);
+  kernel.bind(charlesKnexInjectSymbol).toConstantValue(charlesKnex);
+  kernel.bind(charlesDbNameInjectSymbol).toConstantValue(CHARLES_DB_NAME);
+  kernel.bind(postgresKnexInjectSymbol).toConstantValue(postgresKnex);
   kernel.bind(screenshotFolderInjectSymbol).toConstantValue(SCREENSHOT_FOLDER);
   kernel.bind(screenshotterBaseurlInjectSymbol).toConstantValue(SCREENSHOTTER_BASEURL);
   kernel.bind(externalBaseUrlInjectSymbol).toConstantValue(EXTERNAL_BASEURL);
@@ -307,4 +320,5 @@ export default (kernel: Container) => {
   kernel.bind(tokenSecretInjectSymbol).toConstantValue(TOKEN_SECRET);
   kernel.bind(authServerBaseUrlInjectSymbol).toConstantValue(AUTH_SERVER_BASE_URL);
   kernel.bind(jwtOptionsInjectSymbol).toConstantValue(jwtOptions);
+  kernel.bind(adminTeamNameInjectSymbol).toConstantValue(ADMIN_TEAM_NAME);
 };

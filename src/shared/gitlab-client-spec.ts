@@ -2,27 +2,13 @@
 import { expect } from 'chai';
 import 'reflect-metadata';
 
-import Authentication from '../authentication/authentication-module';
+import { get } from '../config';
 import { fetchMock } from '../shared/fetch';
 import { GitlabClient } from './gitlab-client';
 
 const host = 'gitlab';
-const token = 'the-sercret';
 
-const getClient = () => {
-
-  class MockAuthModule {
-    public async getRootAuthenticationToken() {
-      return token;
-    }
-  }
-
-  return new GitlabClient(host,
-    fetchMock.fetchMock,
-    new MockAuthModule() as Authentication,
-    {} as any,
-    false);
-};
+const getClient = () => get<GitlabClient>(GitlabClient.injectSymbol);
 
 describe('gitlab-client', () => {
 
@@ -30,6 +16,7 @@ describe('gitlab-client', () => {
     it('sets authentication if nothing provided', async () => {
       // Arrange
       const gitlabClient = getClient();
+      const token = await gitlabClient.getToken();
 
       // Act
       const h = (await gitlabClient.authenticate()).headers as any;
@@ -42,9 +29,10 @@ describe('gitlab-client', () => {
     it('sets authentication if some headers provided', async () => {
       // Arrange
       const gitlabClient = getClient();
+      const token = await gitlabClient.getToken();
 
       // Act
-      const h = (await gitlabClient.authenticate({headers: {a: 'b'}})).headers as any;
+      const h = (await gitlabClient.authenticate({ headers: { a: 'b' } })).headers as any;
 
       // Assert
       expect(h[gitlabClient.authenticationHeader]).to.equal(token);
@@ -55,7 +43,7 @@ describe('gitlab-client', () => {
     it('won\'t override authentication', async () => {
       // Arrange
       const gitlabClient = getClient();
-      const opt = {headers: {[gitlabClient.authenticationHeader]: 'b'}};
+      const opt = { headers: { [gitlabClient.authenticationHeader]: 'b' } };
       // Act
       const h = (await gitlabClient.authenticate(opt)).headers as any;
 
@@ -111,6 +99,94 @@ describe('gitlab-client', () => {
       const gitlabClient = getClient();
       fetchMock.mock(`^${host}${gitlabClient.apiPrefix}/`, 200);
 
+    });
+  });
+
+  describe('getUserByEmail', () => {
+    it('returns a single user', async () => {
+      // Arrange
+      const gitlab = getClient();
+      fetchMock.restore();
+      const email = 'foo@bar.com';
+      fetchMock.mock(/\/users/, [{
+        id: 1,
+        email,
+      }]);
+
+      // Act
+      const response = await gitlab.getUserByEmailOrUsername(email);
+
+      // Assert
+      expect(response.id).to.equal(1);
+
+    });
+    it('throws when not found', async () => {
+      // Arrange
+      const gitlab = getClient();
+      fetchMock.restore();
+      const email = 'foo@bar.com';
+      fetchMock.mock(/\/users/, []);
+
+      // Act
+      try {
+        await gitlab.getUserByEmailOrUsername(email);
+      } catch (err) {
+        // Assert
+        expect(err).to.exist;
+        return;
+      }
+      expect.fail('Didn\'t throw');
+
+    });
+  });
+
+  describe('getUserTeams', () => {
+    it('returns an array of teams', async () => {
+      // Arrange
+      const gitlab = getClient();
+      fetchMock.restore();
+      const email = 'foo@bar.com';
+      fetchMock.mock(/\/groups/, [{
+        id: 1,
+        email,
+      }]);
+
+      // Act
+      const response = await gitlab.getUserGroups(1);
+
+      // Assert
+      expect(response.length).to.equal(1);
+      expect(response[0].id).to.equal(1);
+
+    });
+    it('returns an empty array when user is not on any team', async () => {
+      // Arrange
+      const gitlab = getClient();
+      fetchMock.restore();
+      fetchMock.mock(/\/groups/, []);
+
+      // Act
+      const response = await gitlab.getUserGroups(1);
+
+      // Assert
+      expect(response.length).to.equal(0);
+
+    });
+    it('throws when the user\'s not found', async () => {
+      // Arrange
+      const gitlab = getClient();
+      fetchMock.restore();
+      fetchMock.mock(/\/groups/, 404);
+
+      // Act
+      try {
+        await gitlab.getUserGroups(1);
+      } catch (err) {
+        // Assert
+        expect(err).to.exist;
+        return;
+      }
+      expect.fail('Didn\'t throw');
     });
   });
 

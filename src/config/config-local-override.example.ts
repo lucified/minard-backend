@@ -56,8 +56,6 @@ const winstonOptions = {
 };
 
 export default (kernel: Container, _env: ENV) => {
-  kernel.unbind(goodOptionsInjectSymbol);
-  kernel.bind(goodOptionsInjectSymbol).toConstantValue(goodOptions);
-  kernel.unbind(loggerInjectSymbol);
-  kernel.bind(loggerInjectSymbol).toConstantValue(Logger(winstonOptions));
+  kernel.rebind(goodOptionsInjectSymbol).toConstantValue(goodOptions);
+  kernel.rebind(loggerInjectSymbol).toConstantValue(Logger(winstonOptions));
 };

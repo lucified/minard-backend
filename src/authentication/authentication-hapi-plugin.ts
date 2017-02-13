@@ -95,8 +95,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   public async getTeamHandler(request: Hapi.Request, reply: Hapi.IReply) {
     try {
       const credentials = request.auth.credentials as AccessToken;
-      // The email has been validated in validateUser at this point
-      const user = await this.gitlab.getUserByEmailOrUsername(credentials.email!);
+      const user = await this.gitlab.getUserByEmailOrUsername(credentials.sub);
       const teams = await this.gitlab.getUserGroups(user.id);
       return reply(teams[0]); // NOTE: we only support a single team for now
     } catch (error) {
@@ -174,14 +173,8 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     _request: any,
     callback: (err: any, valid: boolean, credentials?: any) => void,
   ) {
-
-    let valid = false;
-    if (validateSub(payload.sub)) {
-      valid = true;
-    }
-
     // NOTE: we have just a single team at this point so no further checks are necessary
-    callback(undefined, valid);
+    callback(undefined, validateSub(payload.sub));
   }
 
   public async validateAdmin(

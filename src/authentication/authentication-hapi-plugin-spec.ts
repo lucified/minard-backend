@@ -14,8 +14,9 @@ import { getDb, insertTeamToken } from './team-token-spec';
 const defaultTeamTokenString = '1111222233334444';
 expect(defaultTeamTokenString.length).to.equal(teamTokenLength);
 const defaultEmail = 'foo@bar.com';
+const defaultSub = 'idp|12345678';
 
-const validAccessToken = getAccessToken(defaultTeamTokenString, defaultEmail);
+const validAccessToken = getAccessToken(defaultSub, defaultTeamTokenString, defaultEmail);
 const invalidAccessToken = `${validAccessToken}a`;
 
 const validTeamToken: TeamToken = {
@@ -59,48 +60,21 @@ describe('authentication-hapi-plugin', () => {
       // Assert
       expect(response.statusCode, response.payload).to.equal(401);
     });
-    it('should require a valid email in the token', async () => {
+    it('should require a valid sub in the token', async () => {
       // Arrange
       const server = await getServer();
-      const invalidEmail = 'foo@';
-      fetchMock.restore();
-      fetchMock.get('*', 404);
 
       // Act
       const response = await server.inject({
         method: 'GET',
         url: 'http://foo.com/team',
         headers: {
-          'Authorization': `Bearer ${getAccessToken(defaultTeamTokenString, invalidEmail)}`,
+          'Authorization': `Bearer ${getAccessToken('abc')}`,
         },
       });
 
       // Assert
       expect(response.statusCode, response.payload).to.equal(401);
-    });
-    it('should fall back to trying to retrieve the email from Auth0', async () => {
-      // Arrange
-      const server = await getServer();
-      const invalidEmail = 'foo@';
-      const userInfoEndpoint = `${issuer}/userinfo`;
-      fetchMock.restore();
-      fetchMock.get(userInfoEndpoint, {
-        email: invalidEmail,
-      });
-
-      // Act
-      const response = await server.inject({
-        method: 'GET',
-        url: 'http://foo.com/team',
-        headers: {
-          'Authorization': `Bearer ${getAccessToken(defaultTeamTokenString, invalidEmail)}`,
-        },
-      });
-
-      // Assert
-      expect(fetchMock.called(userInfoEndpoint)).to.be.true;
-      expect(response.statusCode, response.payload).to.equal(401);
-
     });
     it('should return 200 for valid token', async () => {
       // Arrange
@@ -286,32 +260,6 @@ describe('authentication-hapi-plugin', () => {
   });
 
   describe('signup endpoint', () => {
-    it('should report the email on error', async () => {
-      // Arrange
-      const server = await getServer();
-      fetchMock.restore();
-      fetchMock.mock(/\/users/, [{
-        id: 1,
-      }]);
-      fetchMock.mock(/\/groups/, [{
-        id: validTeamToken.teamId + 1,
-        name: 'fooGroup',
-      }]);
-
-      // Act
-      const response = await server.inject({
-        method: 'GET',
-        url: 'http://foo.com/signup',
-        headers: {
-          'Authorization': `Bearer ${validAccessToken}`,
-        },
-      });
-
-      // Assert
-      expect(response.statusCode, response.rawPayload.toString()).to.equal(400);
-      const result = JSON.parse(response.payload);
-      expect((result.message as string).indexOf(defaultEmail)).to.not.eq(-1);
-    });
     it('should create a gitlab user and add it to the specified group', async () => {
       // Arrange
       const db = await getDb();
@@ -341,6 +289,69 @@ describe('authentication-hapi-plugin', () => {
       const result = JSON.parse(response.payload);
       expect(result.team.id).to.equal(1);
       expect(result.password).to.exist;
+    });
+    it('should report the email on error', async () => {
+
+      // Arrange
+      // clear the db
+      await getDb();
+
+      const server = await getServer();
+      fetchMock.restore();
+      fetchMock.mock(/\/users/, [{
+        id: 1,
+      }]);
+      fetchMock.mock(/\/groups/, [{
+        id: validTeamToken.teamId + 1,
+        name: 'fooGroup',
+      }]);
+
+      // Act
+      const response = await server.inject({
+        method: 'GET',
+        url: 'http://foo.com/signup',
+        headers: {
+          'Authorization': `Bearer ${validAccessToken}`,
+        },
+      });
+
+      // Assert
+      expect(response.statusCode, response.rawPayload.toString()).to.equal(400);
+      const result = JSON.parse(response.payload);
+      expect((result.message as string).indexOf(defaultEmail)).to.not.eq(-1);
+    });
+    it('should fall back to trying to retrieve the email from Auth0', async () => {
+      // Arrange
+      const db = await getDb();
+      await insertTeamToken(db, validTeamToken);
+
+      const server = await getServer();
+      const invalidEmail = 'foo@';
+      const userInfoEndpoint = `${issuer}/userinfo`;
+      fetchMock.restore();
+      fetchMock.get(userInfoEndpoint, {
+        email: defaultEmail,
+      });
+      fetchMock.mock(/\/users/, [{
+        id: 1,
+      }]);
+      fetchMock.mock(/\/groups/, [{
+        id: validTeamToken.teamId,
+        name: 'fooGroup',
+      }]);
+
+      // Act
+      const response = await server.inject({
+        method: 'GET',
+        url: 'http://foo.com/signup',
+        headers: {
+          'Authorization': `Bearer ${getAccessToken(defaultSub, defaultTeamTokenString, invalidEmail)}`,
+        },
+      });
+
+      // Assert
+      expect(fetchMock.called(userInfoEndpoint), response.rawPayload.toString()).to.be.true;
+      expect(response.statusCode, response.payload).to.equal(201);
     });
   });
 

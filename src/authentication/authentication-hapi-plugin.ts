@@ -96,7 +96,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     try {
       const credentials = request.auth.credentials as AccessToken;
       // The email has been validated in validateUser at this point
-      const user = await this.gitlab.getUserByEmail(credentials.email!);
+      const user = await this.gitlab.getUserByEmailOrUsername(credentials.email!);
       const teams = await this.gitlab.getUserGroups(user.id);
       return reply(teams[0]); // NOTE: we only support a single team for now
     } catch (error) {
@@ -133,8 +133,14 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     let credentials: AccessToken | undefined;
     try {
       credentials = request.auth.credentials as AccessToken;
-      // The email has been validated in validateUser at this point
-      email = credentials.email!;
+      email = credentials.email;
+      if (!validateEmail(email)) {
+        // Fall back to fetching the email from Auth0
+        email = await this.tryGetEmailFromAuth0((request.auth as any).token);
+      }
+      if (!validateEmail(email)) {
+        throw new Error(`Invalid email ${email}`);
+      }
       const teamToken = credentials[teamTokenClaimKey]!;
       const teamId = await getTeamIdWithToken(teamToken, this.db);
       const team = await this.gitlab.getGroup(teamId);
@@ -143,7 +149,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       const user = await this.gitlab.createUser(
         email,
         password,
-        email.replace('@', '-'),
+        credentials.sub,
         email,
         id,
         idp,
@@ -165,55 +171,35 @@ class AuthenticationHapiPlugin extends HapiPlugin {
 
   public async validateUser(
     payload: AccessToken,
-    request: any,
+    _request: any,
     callback: (err: any, valid: boolean, credentials?: any) => void,
   ) {
 
     let valid = false;
-    let email: string | undefined;
-    try {
-      const credentials = payload;
-      email = credentials.email;
-      // If the email wasn't included in the accessToken, try to fetch it from Auth0
-      if (!validateEmail(email)) {
-        email = await this.tryGetEmailFromAuth0(request.auth.token);
-      }
-      if (validateEmail(email)) {
-        valid = true;
-      }
-    } catch (error) {
-      this.logger.error(`Unable to fetch auth0 userinfo`, error);
+    if (validateSub(payload.sub)) {
+      valid = true;
     }
 
     // NOTE: we have just a single team at this point so no further checks are necessary
-    callback(undefined, valid, {...payload, email});
+    callback(undefined, valid);
   }
 
   public async validateAdmin(
     payload: AccessToken,
-    request: any,
+    _request: any,
     callback: (err: any, valid: boolean, credentials?: any) => void,
   ) {
-    let validEmail = false;
     let validTeam = false;
-    let email: string | undefined;
     try {
-      const credentials = payload;
-      email = credentials.email;
-      // If the email wasn't included in the accessToken, try to fetch it from Auth0
-      if (!validateEmail(email)) {
-        email = await this.tryGetEmailFromAuth0(request.auth.token);
-      }
-      if (validateEmail(email)) {
-        validEmail = true;
-        const user = await this.gitlab.getUserByEmail(email);
+      if (validateSub(payload.sub)) {
+        const user = await this.gitlab.getUserByEmailOrUsername(payload.sub);
         const teams = await this.gitlab.getUserGroups(user.id);
         validTeam = teams.find(team => team.name.toLowerCase() === this.adminTeamName) !== undefined;
       }
     } catch (error) {
       this.logger.error(`Can't fetch user or team`, error);
     }
-    callback(undefined, validEmail && validTeam, {...payload, email});
+    callback(undefined, validTeam, payload);
   }
 
   private async tryGetEmailFromAuth0(accessToken: string) {
@@ -223,7 +209,8 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       const userInfo = await getAuth0UserInfo(this.hapiOptions.verifyOptions.issuer, accessToken, this.fetch);
       if (validateEmail(userInfo.email)) {
         email = userInfo.email;
-      } else if (validateEmail(userInfo.name)) { // it seems that the email can actually be in the name field as well
+      // the email can actually be in the name field depending on the identity provider
+      } else if (validateEmail(userInfo.name)) {
         email = userInfo.name;
       }
     }
@@ -246,17 +233,25 @@ class AuthenticationHapiPlugin extends HapiPlugin {
 export default AuthenticationHapiPlugin;
 
 export function parseSub(sub: string) {
-  if (typeof sub !== 'string') {
+  if (!validateSub(sub)) {
     throw new Error('Invalid \'sub\' claim.');
   }
   const parts = sub.split('|');
-  if (parts.length !== 2) {
-    throw new Error('Invalid \'sub\' claim.');
-  }
   return {
     id: parts[1],
     idp: parts[0],
   };
+}
+
+export function validateSub(sub: string) {
+  if (typeof sub !== 'string') {
+    return false;
+  }
+  const parts = sub.split('|');
+  if (parts.length !== 2) {
+    return false;
+  }
+  return true;
 }
 
 export async function getAuth0UserInfo(auth0Domain: string, accessToken: string, fetch: IFetch) {
@@ -268,9 +263,10 @@ export async function getAuth0UserInfo(auth0Domain: string, accessToken: string,
       'content-type': 'application/json',
     },
   };
-  return (await fetch(`${baseUrl}/userinfo`, options)).json();
+  const response = await fetch(`${baseUrl}/userinfo`, options);
+  return await response.json();
 }
 
 export function generatePassword(length = 16) {
-  return randomstring.generate({length, charset: 'alphanumeric', readable: true}) as string;
+  return randomstring.generate({ length, charset: 'alphanumeric', readable: true }) as string;
 }

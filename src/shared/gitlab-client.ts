@@ -159,20 +159,17 @@ export class GitlabClient {
     };
   }
 
-  public async getUserByEmail(email: string) {
-    if (!validateEmail(email)) {
-      throw Boom.badRequest(`Invalid email '${email}'`);
-    }
+  public async getUserByEmailOrUsername(emailOrUsername: string) {
     const search = {
-      search: email,
+      search: emailOrUsername,
     };
     const users = await this.fetchJson<User[]>(`users?${qs.stringify(search)}`, true);
     if (!users || !users.length) {
-      throw Boom.badRequest(`Can\'t find user '${email}'`);
+      throw Boom.badRequest(`Can\'t find user '${emailOrUsername}'`);
     }
     if (users.length > 1) {
       // This shoud never happen
-      const message = `Found multiple users with email '${email}'`;
+      const message = `Found multiple users with email or username '${emailOrUsername}'`;
       this.logger.warning(message);
       throw Boom.badRequest(message);
     }

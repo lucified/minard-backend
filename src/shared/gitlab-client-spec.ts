@@ -114,7 +114,7 @@ describe('gitlab-client', () => {
       }]);
 
       // Act
-      const response = await gitlab.getUserByEmail(email);
+      const response = await gitlab.getUserByEmailOrUsername(email);
 
       // Assert
       expect(response.id).to.equal(1);
@@ -129,13 +129,13 @@ describe('gitlab-client', () => {
 
       // Act
       try {
-        await gitlab.getUserByEmail(email);
+        await gitlab.getUserByEmailOrUsername(email);
       } catch (err) {
         // Assert
         expect(err).to.exist;
         return;
       }
-      expect(false, 'Shouldn\'t get here').to.be.true;
+      expect.fail('Didn\'t throw');
 
     });
   });
@@ -158,6 +158,35 @@ describe('gitlab-client', () => {
       expect(response.length).to.equal(1);
       expect(response[0].id).to.equal(1);
 
+    });
+    it('returns an empty array when user is not on any team', async () => {
+      // Arrange
+      const gitlab = getClient();
+      fetchMock.restore();
+      fetchMock.mock(/\/groups/, []);
+
+      // Act
+      const response = await gitlab.getUserGroups(1);
+
+      // Assert
+      expect(response.length).to.equal(0);
+
+    });
+    it('throws when the user\'s not found', async () => {
+      // Arrange
+      const gitlab = getClient();
+      fetchMock.restore();
+      fetchMock.mock(/\/groups/, 404);
+
+      // Act
+      try {
+        await gitlab.getUserGroups(1);
+      } catch (err) {
+        // Assert
+        expect(err).to.exist;
+        return;
+      }
+      expect.fail('Didn\'t throw');
     });
   });
 

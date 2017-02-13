@@ -2,7 +2,7 @@ import * as auth from 'hapi-auth-jwt2';
 import { Container } from 'inversify';
 import { sign } from 'jsonwebtoken';
 
-import { AccessToken, jwtOptionsInjectSymbol, subEmailClaimKey, teamTokenClaimKey } from '../authentication';
+import { AccessToken, jwtOptionsInjectSymbol, teamTokenClaimKey } from '../authentication';
 import { goodOptionsInjectSymbol } from '../server';
 import productionConfig from './config-production';
 import { FilterStream } from './utils';
@@ -59,10 +59,10 @@ function getJwtOptions(): auth.JWTStrategyOptions {
   };
 }
 
-export function getAccessToken(teamToken?: string, email?: string) {
+export function getAccessToken(sub: string, teamToken?: string, email?: string) {
   let payload: Partial<AccessToken> = {
     iss: issuer,
-    sub: 'auth0|12334345',
+    sub,
     aud: [audience],
     azp: 'azp',
     scope: 'openid profile email',
@@ -71,7 +71,7 @@ export function getAccessToken(teamToken?: string, email?: string) {
     payload = { ...payload, [teamTokenClaimKey]: teamToken };
   }
   if (email) {
-    payload = { ...payload, [subEmailClaimKey]: email };
+    payload = { ...payload, email };
   }
   return sign(payload, secretKey);
 }

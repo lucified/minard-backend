@@ -56,7 +56,7 @@ async function fetchWithRetry(url: string, options?: RequestInit, retryCount = 5
   throw Error(`Fetch failed ${retryCount} times for url ${url}`);
 }
 
-const accessToken = getAccessToken('1111222233334444', 'foo@bar.com');
+const accessToken = getAccessToken('idp|232342', '1111222233334444', 'foo@bar.com');
 
 async function fetch(url: string, options?: RequestInit): Promise<Response> {
   let _options: RequestInit = {

@@ -11,6 +11,7 @@ interface JWTStrategyValidate {
 export interface JWTStrategyOptions {
   key?: string | string[] | JWTStrategyKeyLookup;
   validateFunc?: JWTStrategyValidate;
+  verifyFunc?: JWTStrategyValidate;
   verifyOptions?: {
     ignoreExpiration?: boolean,
     audience?: string,

@@ -30,7 +30,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   ) {
     super({
       name: 'authentication-plugin',
-      version: '1.0.0',
+      version: '1.0.1',
     });
   }
 
@@ -95,7 +95,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   public async getTeamHandler(request: Hapi.Request, reply: Hapi.IReply) {
     try {
       const credentials = request.auth.credentials as AccessToken;
-      const user = await this.gitlab.getUserByEmailOrUsername(credentials.sub);
+      const user = await this.gitlab.getUserByEmailOrUsername(sanitizeUsername(credentials.sub));
       const teams = await this.gitlab.getUserGroups(user.id);
       return reply(teams[0]); // NOTE: we only support a single team for now
     } catch (error) {
@@ -148,7 +148,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       const user = await this.gitlab.createUser(
         email,
         password,
-        credentials.sub,
+        sanitizeUsername(credentials.sub),
         email,
         id,
         idp,
@@ -185,7 +185,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     let validTeam = false;
     try {
       if (validateSub(payload.sub)) {
-        const user = await this.gitlab.getUserByEmailOrUsername(payload.sub);
+        const user = await this.gitlab.getUserByEmailOrUsername(sanitizeUsername(payload.sub));
         const teams = await this.gitlab.getUserGroups(user.id);
         validTeam = teams.find(team => team.name.toLowerCase() === this.adminTeamName) !== undefined;
       }
@@ -262,4 +262,8 @@ export async function getAuth0UserInfo(auth0Domain: string, accessToken: string,
 
 export function generatePassword(length = 16) {
   return randomstring.generate({ length, charset: 'alphanumeric', readable: true }) as string;
+}
+
+export function sanitizeUsername(username: string) {
+  return username.replace('|', '-');
 }

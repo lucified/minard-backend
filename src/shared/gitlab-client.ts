@@ -222,6 +222,14 @@ export class GitlabClient {
     }, true);
   }
 
+  public async searchGroups(search: string) {
+    const groups = await this.fetchJson<Group[]>(`groups?${qs.stringify({ search })}`, true);
+    if (!groups.length) {
+      throw Boom.notFound(`No groups found matching '${search}'`);
+    }
+    return groups;
+  }
+
   public async getGroup(groupId: number) {
     const groups = await this.fetchJson<Group[]>(`groups/${groupId}`, true);
     if (!groups.length) {
@@ -233,9 +241,9 @@ export class GitlabClient {
     return groups[0];
   }
 
-  public async getUserGroups(userId: number) {
+  public async getUserGroups(userIdOrName: number | string) {
     const sudo = {
-      sudo: userId,
+      sudo: userIdOrName,
     };
     return this.fetchJson<Group[]>(`groups?${qs.stringify(sudo)}`, true);
   }

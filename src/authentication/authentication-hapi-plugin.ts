@@ -1,16 +1,16 @@
 import * as Boom from 'boom';
 import * as auth from 'hapi-auth-jwt2';
 import { inject, injectable } from 'inversify';
-import * as Joi from 'joi';
 import * as Knex from 'knex';
 
 import * as Hapi from '../server/hapi';
 import { HapiPlugin } from '../server/hapi-register';
 import { IFetch } from '../shared/fetch';
+import { Group } from '../shared/gitlab';
 import { GitlabClient, validateEmail } from '../shared/gitlab-client';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
 import { adminTeamNameInjectSymbol, charlesKnexInjectSymbol, fetchInjectSymbol } from '../shared/types';
-import { generateAndSaveTeamToken, getTeamIdWithToken, TeamToken, teamTokenQuery } from './team-token';
+import { generateAndSaveTeamToken, getTeamIdWithToken, teamTokenQuery } from './team-token';
 import { AccessToken, jwtOptionsInjectSymbol, teamTokenClaimKey } from './types';
 
 const randomstring = require('randomstring');
@@ -30,7 +30,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   ) {
     super({
       name: 'authentication-plugin',
-      version: '1.0.1',
+      version: '1.0.0',
     });
   }
 
@@ -59,34 +59,23 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     }]);
     server.route({
       method: 'GET',
-      path: '/team-token/{teamId}',
+      path: '/team-token/{teamIdOrName?}',
       handler: {
         async: this.getTeamTokenHandler,
       },
       config: {
         bind: this,
-        auth: 'admin',
-        validate: {
-          params: {
-            teamId: Joi.number().required(),
-          },
-        },
       },
     });
     server.route({
       method: 'POST',
-      path: '/team-token/{teamId}',
+      path: '/team-token/{teamIdOrName}',
       handler: {
         async: this.createTeamTokenHandler,
       },
       config: {
         bind: this,
         auth: 'admin',
-        validate: {
-          params: {
-            teamId: Joi.number().required(),
-          },
-        },
       },
     });
     next();
@@ -95,8 +84,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   public async getTeamHandler(request: Hapi.Request, reply: Hapi.IReply) {
     try {
       const credentials = request.auth.credentials as AccessToken;
-      const user = await this.gitlab.getUserByEmailOrUsername(sanitizeUsername(credentials.sub));
-      const teams = await this.gitlab.getUserGroups(user.id);
+      const teams = await this.gitlab.getUserGroups(sanitizeUsername(credentials.sub));
       return reply(teams[0]); // NOTE: we only support a single team for now
     } catch (error) {
       this.logger.error(`Can't fetch user or team`, error);
@@ -106,9 +94,37 @@ class AuthenticationHapiPlugin extends HapiPlugin {
 
   public async getTeamTokenHandler(request: Hapi.Request, reply: Hapi.IReply) {
     try {
-      const teamId = parseInt(request.paramsArray[0], 10);
-      const teamToken: TeamToken[] = await teamTokenQuery(this.db, undefined, teamId);
-      if (!teamToken.length) {
+      const credentials = request.auth.credentials as AccessToken;
+      const userName = sanitizeUsername(credentials.sub);
+      const isAdmin = await this.isAdmin(userName);
+      const userTeams = await this.gitlab.getUserGroups(userName);
+      const parameterKey = 'teamIdOrName';
+      const teamIdOrName = request.params[parameterKey];
+      let ownTeam: Group | undefined;
+      if (userTeams && teamIdOrName) {
+        ownTeam = userTeams.find(assertTeam.bind(undefined, teamIdOrName));
+      }
+
+      let teamId: number | undefined;
+
+      if (ownTeam) { // token for a team that the user belongs to
+        teamId = ownTeam.id;
+      } else if (isAdmin && teamIdOrName) { // An admin can get any team's token
+        teamId = await this.teamIdOrNameToTeamId(teamIdOrName);
+      } else if (!teamIdOrName) {
+        if (!userTeams.length) {
+          throw Error(`User ${userName} is not in any team`);
+        }
+        if (userTeams.length > 1) {
+          throw Error(`User ${userName} is in multiple teams`);
+        }
+        // NOTE: we only support a single team for now
+        teamId = userTeams[0].id;
+      } else {
+        return reply(Boom.create(401, `Insufficient privileges`));
+      }
+      const teamToken = await teamTokenQuery(this.db, undefined, teamId);
+      if (!teamToken || !teamToken.length) {
         throw new Error(`No token found for team ${teamId}`);
       }
       return reply(teamToken[0]);
@@ -119,7 +135,9 @@ class AuthenticationHapiPlugin extends HapiPlugin {
 
   public async createTeamTokenHandler(request: Hapi.Request, reply: Hapi.IReply) {
     try {
-      const teamId = parseInt(request.paramsArray[0], 10);
+      const parameterKey = 'teamIdOrName';
+      const teamIdOrName = request.params[parameterKey];
+      const teamId = await this.teamIdOrNameToTeamId(teamIdOrName);
       const teamToken = await generateAndSaveTeamToken(teamId, this.db);
       return reply(teamToken).code(201);
     } catch (error) {
@@ -182,17 +200,20 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     _request: any,
     callback: (err: any, valid: boolean, credentials?: any) => void,
   ) {
-    let validTeam = false;
+    let isAdmin = false;
     try {
       if (validateSub(payload.sub)) {
-        const user = await this.gitlab.getUserByEmailOrUsername(sanitizeUsername(payload.sub));
-        const teams = await this.gitlab.getUserGroups(user.id);
-        validTeam = teams.find(team => team.name.toLowerCase() === this.adminTeamName) !== undefined;
+        isAdmin = await this.isAdmin(sanitizeUsername(payload.sub));
       }
     } catch (error) {
       this.logger.error(`Can't fetch user or team`, error);
     }
-    callback(undefined, validTeam, payload);
+    callback(undefined, isAdmin, payload);
+  }
+
+  public async isAdmin(userIdOrName: number |  string) {
+    const teams = await this.gitlab.getUserGroups(userIdOrName);
+    return teams.find(assertTeam.bind(undefined, this.adminTeamName)) !== undefined;
   }
 
   private async tryGetEmailFromAuth0(accessToken: string) {
@@ -202,12 +223,27 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       const userInfo = await getAuth0UserInfo(this.hapiOptions.verifyOptions.issuer, accessToken, this.fetch);
       if (validateEmail(userInfo.email)) {
         email = userInfo.email;
-      // the email can actually be in the name field depending on the identity provider
+        // the email can actually be in the name field depending on the identity provider
       } else if (validateEmail(userInfo.name)) {
         email = userInfo.name;
       }
     }
     return email;
+  }
+
+  private async teamIdOrNameToTeamId(teamIdOrName: string) {
+    let teamId = parseInt(String(teamIdOrName), 10);
+    if (isNaN(teamId)) {
+      const teams = await this.gitlab.searchGroups(teamIdOrName);
+      if (!teams.length) {
+        throw Error(`No teams found matching ${teamIdOrName}`);
+      }
+      if (teams.length > 1) {
+        throw Error(`Found multiple teams matching ${teamIdOrName}`);
+      }
+      teamId = teams[0].id;
+    }
+    return teamId;
   }
 
   public async registerAuth(server: Hapi.Server) {
@@ -266,4 +302,10 @@ export function generatePassword(length = 16) {
 
 export function sanitizeUsername(username: string) {
   return username.replace('|', '-');
+}
+
+export function assertTeam(teamNameOrId: string |  number, team: Group) {
+  return team.name.toLowerCase() === teamNameOrId.toString()
+    || team.path === teamNameOrId.toString()
+    || team.id === parseInt(teamNameOrId.toString(), 10);
 }

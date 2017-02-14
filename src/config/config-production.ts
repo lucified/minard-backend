@@ -246,7 +246,7 @@ const cache = cacheManager.caching({
 
 const GITLAB_ROOT_PASSWORD = env.GITLAB_ROOT_PASSWORD || '12345678';
 const AUTH_SERVER_BASE_URL = env.AUTH_SERVER_BASE_URL || 'https://lucify-dev.eu.auth0.com';
-const AUTH_AUDIENCE = env.AUTH_AUDIENCE || 'https://charles-staging.minard.io';
+const AUTH_AUDIENCE = env.AUTH_AUDIENCE || EXTERNAL_BASEURL;
 
 const jwtOptions: auth.JWTStrategyOptions = {
   // Get the complete decoded token, because we need info from the header (the kid)

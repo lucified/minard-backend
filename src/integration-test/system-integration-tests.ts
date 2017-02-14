@@ -11,7 +11,7 @@ import { spawn } from 'child_process';
 import { keys } from 'lodash';
 import 'reflect-metadata';
 
-import { getAccessToken } from '../config/config-development';
+import { getAccessToken } from '../config/config-test';
 import { JsonApiEntity, JsonApiResponse } from '../json-api';
 import { fetch as originalFetch, RequestInit, Response } from '../shared/fetch';
 

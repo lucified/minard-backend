@@ -3,7 +3,7 @@ import * as moment from 'moment';
 import 'reflect-metadata';
 
 import { get } from '../config';
-import { getAccessToken, issuer } from '../config/config-development';
+import { getAccessToken, issuer } from '../config/config-test';
 import { getTestServer } from '../server/hapi';
 import { fetchMock } from '../shared/fetch';
 import { adminTeamNameInjectSymbol } from '../shared/types';

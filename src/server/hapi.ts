@@ -11,6 +11,9 @@ declare module 'hapi' {
   interface IRouteHandlerConfig {
     async?: AsyncHandler;
   }
+  interface ICookieSettings {
+    isSameSite: false | 'Strict' | 'Lax';
+  }
 }
 
 type AsyncHandler = (request: Request, reply: IReply ) => Promise<any>;

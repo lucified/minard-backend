@@ -45,7 +45,9 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       },
       config: {
         bind: this,
-        cors: true,
+        cors: {
+          credentials: true,
+        },
       },
     }]);
     server.route([{
@@ -87,6 +89,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     try {
       const credentials = request.auth.credentials as AccessToken;
       const teams = await this.gitlab.getUserGroups(sanitizeUsername(credentials.sub));
+      this.setAuthCookie(request, reply);
       return reply(teams[0]); // NOTE: we only support a single team for now
     } catch (error) {
       this.logger.error(`Can't fetch user or team`, error);
@@ -252,6 +255,14 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     return teamId;
   }
 
+  public setAuthCookie(request: Hapi.Request, reply: Hapi.IReply) {
+    const headerToken: string | undefined = (request.auth as any).token;
+    const cookieToken: string | undefined = request.state && request.state.token;
+    if (headerToken && request.auth.credentials && cookieToken !== headerToken) {
+      reply.state('token', headerToken);
+    }
+  }
+
   public async registerAuth(server: Hapi.Server) {
     await server.register(auth);
     server.auth.strategy('jwt', 'jwt', true, {
@@ -262,6 +273,13 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       ...this.hapiOptions,
       validateFunc: this.validateAdmin.bind(this),
     });
+    try {
+      const externalBaseUrl = this.hapiOptions!.verifyOptions!.audience!;
+      const ttl = 365 * 24 * 3600 * 1000;
+      server.state('token', accessTokenCookieSettings(externalBaseUrl, ttl));
+    } catch (error) {
+      // hapiOptions wasn't set
+    }
   }
 }
 
@@ -315,4 +333,26 @@ export function findTeamByIdOrName(teamNameOrId: string | number) {
   return (team: Group) => team.name === _teamNameOrId
     || team.path === _teamNameOrId
     || team.id === parseInt(_teamNameOrId, 10);
+}
+
+export function accessTokenCookieSettings(
+  externalBaseUrl: string,
+  ttl?: number,
+  path = '/',
+): Hapi.ICookieSettings {
+  const isSecure = externalBaseUrl.match(/^https/) !== null;
+  const domain = externalBaseUrl.replace(/^https?:\/\/([^/:]+).+$/, '.$1');
+  if (domain === externalBaseUrl) {
+    throw new Error(`Invalid externalBaseUrl`);
+  }
+  return {
+    ttl,
+    isSecure,
+    domain,
+    path,
+    isHttpOnly: true,
+    isSameSite: false,
+    encoding: 'none',
+    strictHeader: true,
+  };
 }

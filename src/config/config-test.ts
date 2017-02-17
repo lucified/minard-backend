@@ -23,12 +23,6 @@ const getClient = () => {
   return new GitlabClient('gitlab', fetchMock.fetchMock, new MockAuthModule() as AuthenticationModule, logger, false);
 };
 
-const charlesKnex = Knex({
-  client: 'sqlite3',
-  connection: { filename: ':memory:' },
-  useNullAsDefault: true,
-});
-
 // Access token parameters
 const env = process.env;
 const PORT = env.PORT ? parseInt(env.PORT, 10) : 8000;
@@ -54,7 +48,7 @@ export function getJwtOptions() {
     verifyOptions,
     // Validate the audience, issuer, algorithm and expiration.
     errorFunc: (context: any) => {
-      console.dir({...verifyOptions, secretKey}, {colors: true});
+      console.dir({ ...verifyOptions, secretKey }, { colors: true });
       return context;
     },
   };
@@ -82,6 +76,11 @@ export default (kernel: Container) => {
   kernel.rebind(fetchInjectSymbol).toConstantValue(fetchMock.fetchMock);
   kernel.rebind(goodOptionsInjectSymbol).toConstantValue({});
   kernel.rebind(GitlabClient.injectSymbol).toConstantValue(getClient());
+  const charlesKnex = Knex({
+    client: 'sqlite3',
+    connection: { filename: ':memory:' },
+    useNullAsDefault: true,
+  });
   kernel.rebind(charlesKnexInjectSymbol).toConstantValue(charlesKnex);
   kernel.rebind(loggerInjectSymbol).toConstantValue(logger);
   kernel.rebind(jwtOptionsInjectSymbol).toConstantValue(getJwtOptions());

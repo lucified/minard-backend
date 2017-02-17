@@ -5,7 +5,7 @@ import * as Knex from 'knex';
 
 import { AccessToken, jwtOptionsInjectSymbol, teamTokenClaimKey } from '../authentication';
 import AuthenticationModule from '../authentication/authentication-module';
-import { goodOptionsInjectSymbol } from '../server';
+import { externalBaseUrlInjectSymbol, goodOptionsInjectSymbol } from '../server';
 import { fetchMock } from '../shared/fetch';
 import { GitlabClient } from '../shared/gitlab-client';
 import Logger, { loggerInjectSymbol } from '../shared/logger';
@@ -31,7 +31,10 @@ const charlesKnex = Knex({
 });
 
 // Access token parameters
-export const audience = 'https://api.foo.com';
+let audience: string | undefined;
+export function getAudience() {
+  return audience;
+}
 export const issuer = 'https://issuer.foo.com';
 export const secretKey = 'shhhhhhh';
 export const algorithm = 'HS256';
@@ -43,7 +46,7 @@ function getJwtOptions(): auth.JWTStrategyOptions {
     key: secretKey,
     // Validate the audience, issuer, algorithm and expiration.
     verifyOptions: {
-      audience,
+      audience: getAudience(),
       issuer,
       algorithms: [algorithm],
       ignoreExpiration: false,
@@ -55,7 +58,7 @@ export function getAccessToken(sub: string, teamToken?: string, email?: string) 
   let payload: Partial<AccessToken> = {
     iss: issuer,
     sub,
-    aud: [audience],
+    aud: [audience!],
     azp: 'azp',
     scope: 'openid profile email',
   };
@@ -75,5 +78,6 @@ export default (kernel: Container) => {
   kernel.rebind(GitlabClient.injectSymbol).toConstantValue(getClient());
   kernel.rebind(charlesKnexInjectSymbol).toConstantValue(charlesKnex);
   kernel.rebind(loggerInjectSymbol).toConstantValue(logger);
+  audience = kernel.get<string>(externalBaseUrlInjectSymbol);
   kernel.rebind(jwtOptionsInjectSymbol).toConstantValue(getJwtOptions());
 };

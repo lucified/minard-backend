@@ -122,7 +122,7 @@ const env = process.env;
 
 // Host and port in which we are listening locally
 const HOST = env.HOST || '0.0.0.0';
-const PORT = env.PORT ? parseInt(env.PORT, 10) : 8080;
+const PORT = env.PORT ? parseInt(env.PORT, 10) : 8000;
 
 // Host and port from which charles can reach GitLab
 const GITLAB_HOST = env.GITLAB_HOST || 'localhost';

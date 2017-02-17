@@ -1,11 +1,11 @@
-import * as auth from 'hapi-auth-jwt2';
+// import * as auth from 'hapi-auth-jwt2';
 import { Container } from 'inversify';
 import { sign } from 'jsonwebtoken';
 import * as Knex from 'knex';
 
 import { AccessToken, jwtOptionsInjectSymbol, teamTokenClaimKey } from '../authentication';
 import AuthenticationModule from '../authentication/authentication-module';
-import { externalBaseUrlInjectSymbol, goodOptionsInjectSymbol } from '../server';
+import { goodOptionsInjectSymbol } from '../server';
 import { fetchMock } from '../shared/fetch';
 import { GitlabClient } from '../shared/gitlab-client';
 import Logger, { loggerInjectSymbol } from '../shared/logger';
@@ -31,25 +31,32 @@ const charlesKnex = Knex({
 });
 
 // Access token parameters
-let audience: string | undefined;
-export function getAudience() {
-  return audience;
-}
+const env = process.env;
+const PORT = env.PORT ? parseInt(env.PORT, 10) : 8000;
+const EXTERNAL_BASEURL = env.EXTERNAL_BASEURL || `http://localhost:${PORT}`;
+const AUTH_AUDIENCE = env.AUTH_AUDIENCE || EXTERNAL_BASEURL;
+
 export const issuer = 'https://issuer.foo.com';
 export const secretKey = 'shhhhhhh';
 export const algorithm = 'HS256';
 
-function getJwtOptions(): auth.JWTStrategyOptions {
+export function getJwtOptions() {
+  const verifyOptions = {
+    audience: AUTH_AUDIENCE,
+    issuer,
+    algorithms: [algorithm],
+    ignoreExpiration: false,
+  };
+
   return {
     // Get the complete decoded token, because we need info from the header (the kid)
     complete: true,
     key: secretKey,
+    verifyOptions,
     // Validate the audience, issuer, algorithm and expiration.
-    verifyOptions: {
-      audience: getAudience(),
-      issuer,
-      algorithms: [algorithm],
-      ignoreExpiration: false,
+    errorFunc: (context: any) => {
+      console.dir({...verifyOptions, secretKey}, {colors: true});
+      return context;
     },
   };
 }
@@ -58,7 +65,7 @@ export function getAccessToken(sub: string, teamToken?: string, email?: string) 
   let payload: Partial<AccessToken> = {
     iss: issuer,
     sub,
-    aud: [audience!],
+    aud: [AUTH_AUDIENCE],
     azp: 'azp',
     scope: 'openid profile email',
   };
@@ -68,6 +75,7 @@ export function getAccessToken(sub: string, teamToken?: string, email?: string) 
   if (email) {
     payload = { ...payload, email };
   }
+  console.log(payload);
   return sign(payload, secretKey);
 }
 
@@ -78,6 +86,5 @@ export default (kernel: Container) => {
   kernel.rebind(GitlabClient.injectSymbol).toConstantValue(getClient());
   kernel.rebind(charlesKnexInjectSymbol).toConstantValue(charlesKnex);
   kernel.rebind(loggerInjectSymbol).toConstantValue(logger);
-  audience = kernel.get<string>(externalBaseUrlInjectSymbol);
   kernel.rebind(jwtOptionsInjectSymbol).toConstantValue(getJwtOptions());
 };

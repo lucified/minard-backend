@@ -55,6 +55,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       },
       config: {
         bind: this,
+        cors: true,
       },
     }]);
     server.route({
@@ -92,26 +93,31 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     }
   }
 
+  /**
+   * Allows fetching a team-token for a team that:
+   *  1. An authenticated user belongs to
+   *  2. An admin user has specified in the request by a team's id or name
+   */
   public async getTeamTokenHandler(request: Hapi.Request, reply: Hapi.IReply) {
     try {
       const credentials = request.auth.credentials as AccessToken;
       const userName = sanitizeUsername(credentials.sub);
       const isAdmin = await this.isAdmin(userName);
       const userTeams = await this.gitlab.getUserGroups(userName);
-      const parameterKey = 'teamIdOrName';
-      const teamIdOrName = request.params[parameterKey];
-      let ownTeam: Group | undefined;
+      const teamIdOrName = request.paramsArray.length ? request.paramsArray[0] : undefined;
+
+      let requestedOwnTeam: Group | undefined;
       if (userTeams && teamIdOrName) {
-        ownTeam = userTeams.find(assertTeam.bind(undefined, teamIdOrName));
+        requestedOwnTeam = userTeams.find(findTeamByIdOrName(teamIdOrName));
       }
 
       let teamId: number | undefined;
 
-      if (ownTeam) { // token for a team that the user belongs to
-        teamId = ownTeam.id;
+      if (requestedOwnTeam) { // a request for a team that the user belongs to
+        teamId = requestedOwnTeam.id;
       } else if (isAdmin && teamIdOrName) { // An admin can get any team's token
         teamId = await this.teamIdOrNameToTeamId(teamIdOrName);
-      } else if (!teamIdOrName) {
+      } else if (!teamIdOrName) { // no specific team requested, try to return one anyway
         if (!userTeams.length) {
           throw Error(`User ${userName} is not in any team`);
         }
@@ -211,9 +217,9 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     callback(undefined, isAdmin, payload);
   }
 
-  public async isAdmin(userIdOrName: number |  string) {
+  public async isAdmin(userIdOrName: number | string) {
     const teams = await this.gitlab.getUserGroups(userIdOrName);
-    return teams.find(assertTeam.bind(undefined, this.adminTeamName)) !== undefined;
+    return teams.find(findTeamByIdOrName(this.adminTeamName)) !== undefined;
   }
 
   private async tryGetEmailFromAuth0(accessToken: string) {
@@ -231,10 +237,10 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     return email;
   }
 
-  private async teamIdOrNameToTeamId(teamIdOrName: string) {
+  private async teamIdOrNameToTeamId(teamIdOrName: string | number) {
     let teamId = parseInt(String(teamIdOrName), 10);
     if (isNaN(teamId)) {
-      const teams = await this.gitlab.searchGroups(teamIdOrName);
+      const teams = await this.gitlab.searchGroups(teamIdOrName as string);
       if (!teams.length) {
         throw Error(`No teams found matching ${teamIdOrName}`);
       }
@@ -304,8 +310,9 @@ export function sanitizeUsername(username: string) {
   return username.replace('|', '-');
 }
 
-export function assertTeam(teamNameOrId: string |  number, team: Group) {
-  return team.name.toLowerCase() === teamNameOrId.toString()
-    || team.path === teamNameOrId.toString()
-    || team.id === parseInt(teamNameOrId.toString(), 10);
+export function findTeamByIdOrName(teamNameOrId: string | number) {
+  const _teamNameOrId = String(teamNameOrId);
+  return (team: Group) => team.name === _teamNameOrId
+    || team.path === _teamNameOrId
+    || team.id === parseInt(_teamNameOrId, 10);
 }

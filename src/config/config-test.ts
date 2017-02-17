@@ -1,4 +1,3 @@
-// import * as auth from 'hapi-auth-jwt2';
 import { Container } from 'inversify';
 import { sign } from 'jsonwebtoken';
 import * as Knex from 'knex';
@@ -75,7 +74,6 @@ export function getAccessToken(sub: string, teamToken?: string, email?: string) 
   if (email) {
     payload = { ...payload, email };
   }
-  console.log(payload);
   return sign(payload, secretKey);
 }
 

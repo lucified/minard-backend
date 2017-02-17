@@ -83,7 +83,6 @@ class DeploymentHapiPlugin {
         },
       },
       config: {
-        auth: false,
         pre: [
           { method: this.parseHost.bind(this), assign: 'key' },
           { method: this.preCheck.bind(this) },

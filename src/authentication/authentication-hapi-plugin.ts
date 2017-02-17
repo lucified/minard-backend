@@ -14,6 +14,7 @@ import { generateAndSaveTeamToken, getTeamIdWithToken, teamTokenQuery } from './
 import { AccessToken, jwtOptionsInjectSymbol, teamTokenClaimKey } from './types';
 
 const randomstring = require('randomstring');
+const teamIdOrNameKey = 'teamIdOrName';
 
 @injectable()
 class AuthenticationHapiPlugin extends HapiPlugin {
@@ -104,7 +105,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       const userName = sanitizeUsername(credentials.sub);
       const isAdmin = await this.isAdmin(userName);
       const userTeams = await this.gitlab.getUserGroups(userName);
-      const teamIdOrName = request.paramsArray.length ? request.paramsArray[0] : undefined;
+      const teamIdOrName = request.params[teamIdOrNameKey];
 
       let requestedOwnTeam: Group | undefined;
       if (userTeams && teamIdOrName) {
@@ -141,8 +142,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
 
   public async createTeamTokenHandler(request: Hapi.Request, reply: Hapi.IReply) {
     try {
-      const parameterKey = 'teamIdOrName';
-      const teamIdOrName = request.params[parameterKey];
+      const teamIdOrName = request.params[teamIdOrNameKey];
       const teamId = await this.teamIdOrNameToTeamId(teamIdOrName);
       const teamToken = await generateAndSaveTeamToken(teamId, this.db);
       return reply(teamToken).code(201);

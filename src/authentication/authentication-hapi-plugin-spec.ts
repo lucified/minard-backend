@@ -8,10 +8,10 @@ import { getTestServer } from '../server/hapi';
 import { fetchMock } from '../shared/fetch';
 import { adminTeamNameInjectSymbol } from '../shared/types';
 import AuthenticationHapiPlugin, { generatePassword } from './authentication-hapi-plugin';
-import { generateAndSaveTeamToken, TeamToken, teamTokenLength } from './team-token';
+import { generateAndSaveTeamToken, generateTeamToken, TeamToken, teamTokenLength } from './team-token';
 import { getDb, insertTeamToken } from './team-token-spec';
 
-const defaultTeamTokenString = '1111222233334444';
+const defaultTeamTokenString = generateTeamToken();
 expect(defaultTeamTokenString.length).to.equal(teamTokenLength);
 const defaultEmail = 'foo@bar.com';
 const defaultSub = 'idp|12345678';

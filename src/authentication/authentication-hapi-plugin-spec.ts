@@ -83,7 +83,7 @@ describe('authentication-hapi-plugin', () => {
       fetchMock.mock(/\/users/, [{
         id: 1,
       }]);
-      fetchMock.mock(/\/groups/, [{
+      fetchMock.mock(/\/groups\?/, [{
         id: 1,
         name: 'fooGroup',
       }]);
@@ -110,7 +110,7 @@ describe('authentication-hapi-plugin', () => {
       const adminTeamName = get<string>(adminTeamNameInjectSymbol);
 
       fetchMock.restore();
-      fetchMock.mock(/\/groups/, [{
+      fetchMock.mock(/\/groups\?/, [{
         id: 1,
         name: adminTeamName + '1',
       }]);
@@ -135,7 +135,7 @@ describe('authentication-hapi-plugin', () => {
       const db = await getDb();
       const token = await generateAndSaveTeamToken(teamId, db);
       fetchMock.restore();
-      fetchMock.mock(/\/groups/, [{
+      fetchMock.mock(/\/groups\?/, [{
         id: 1,
         name: adminTeamName,
       }]);
@@ -163,7 +163,7 @@ describe('authentication-hapi-plugin', () => {
       const db = await getDb();
       const token = await generateAndSaveTeamToken(teamId, db);
       fetchMock.restore();
-      fetchMock.mock(/\/groups/, [{
+      fetchMock.mock(/\/groups\?/, [{
         id:  teamId,
         name: teamName,
       }]);
@@ -191,7 +191,7 @@ describe('authentication-hapi-plugin', () => {
       const adminTeamName = get<string>(adminTeamNameInjectSymbol);
 
       fetchMock.restore();
-      fetchMock.mock(/\/groups/, [{
+      fetchMock.mock(/\/groups\?/, [{
         id: 1,
         name: adminTeamName,
       }]);
@@ -220,7 +220,7 @@ describe('authentication-hapi-plugin', () => {
       const adminTeamName = get<string>(adminTeamNameInjectSymbol);
 
       fetchMock.restore();
-      fetchMock.mock(/\/groups/, [{
+      fetchMock.mock(/\/groups\?/, [{
         id: 1,
         name: adminTeamName,
       }]);
@@ -249,7 +249,7 @@ describe('authentication-hapi-plugin', () => {
       fetchMock.mock(/\/users/, [{
         id: 1,
       }]);
-      fetchMock.mock(/\/groups/, [{
+      fetchMock.mock(/\/groups\?/, [{
         id: 1,
         name: 'fooGroup',
       }]);
@@ -315,10 +315,10 @@ describe('authentication-hapi-plugin', () => {
       fetchMock.mock(/\/users/, [{
         id: 1,
       }]);
-      fetchMock.mock(/\/groups/, [{
+      fetchMock.mock(/\/groups\/1/, {
         id: validTeamToken.teamId + 1,
         name: 'fooGroup',
-      }]);
+      });
 
       // Act
       const response = await server.inject({
@@ -349,10 +349,10 @@ describe('authentication-hapi-plugin', () => {
       fetchMock.mock(/\/users/, [{
         id: 1,
       }]);
-      fetchMock.mock(/\/groups/, [{
+      fetchMock.mock(/\/groups\/1/, {
         id: validTeamToken.teamId,
         name: 'fooGroup',
-      }]);
+      });
 
       // Act
       const response = await server.inject({
@@ -383,7 +383,7 @@ describe('authentication-hapi-plugin', () => {
       fetchMock.mock(/\/users/, [{
         id: 1,
       }]);
-      fetchMock.mock(/\/groups/, [{
+      fetchMock.mock(/\/groups\?/, [{
         id: 1,
         name: 'fooGroup',
       }]);

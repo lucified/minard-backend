@@ -190,7 +190,8 @@ class AuthenticationHapiPlugin extends HapiPlugin {
         password,
       }).code(201); // created
     } catch (error) {
-      const message = `Problems on signup for user ${email}`;
+      // TODO: Remove boom message from error message?
+      const message = `Unable to sign up user ${email}: ${error.isBoom && error.output.payload.message}`;
       this.logger.error(message, {
         error,
         credentials,

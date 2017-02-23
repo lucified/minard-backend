@@ -108,7 +108,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       const teamIdOrName = request.params[teamIdOrNameKey];
 
       let requestedOwnTeam: Group | undefined;
-      if (userTeams && teamIdOrName) {
+      if (userTeams.length && teamIdOrName) {
         requestedOwnTeam = userTeams.find(findTeamByIdOrName(teamIdOrName));
       }
 

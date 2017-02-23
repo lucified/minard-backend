@@ -3,7 +3,7 @@ import * as moment from 'moment';
 
 const randomstring = require('randomstring');
 
-export const teamTokenLength = 16;
+export const teamTokenLength = 64;
 
 export interface TeamToken {
   teamId: number;

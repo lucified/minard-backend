@@ -8,10 +8,10 @@ import { getTestServer } from '../server/hapi';
 import { fetchMock } from '../shared/fetch';
 import { adminTeamNameInjectSymbol } from '../shared/types';
 import AuthenticationHapiPlugin, { generatePassword } from './authentication-hapi-plugin';
-import { generateAndSaveTeamToken, TeamToken, teamTokenLength } from './team-token';
+import { generateAndSaveTeamToken, generateTeamToken, TeamToken, teamTokenLength } from './team-token';
 import { getDb, insertTeamToken } from './team-token-spec';
 
-const defaultTeamTokenString = '1111222233334444';
+const defaultTeamTokenString = generateTeamToken();
 expect(defaultTeamTokenString.length).to.equal(teamTokenLength);
 const defaultEmail = 'foo@bar.com';
 const defaultSub = 'idp|12345678';
@@ -103,7 +103,7 @@ describe('authentication-hapi-plugin', () => {
   });
 
   describe('team token endpoint', () => {
-    it('should require admin team membership', async () => {
+    it('should require admin team membership to get other teams\' tokens', async () => {
       // Arrange
       const server = await getServer();
       const teamId = 2;
@@ -114,12 +114,6 @@ describe('authentication-hapi-plugin', () => {
         id: 1,
         name: adminTeamName + '1',
       }]);
-      fetchMock.mock(/\/users/, [{
-        id: 1,
-      }]);
-      fetchMock.mock(/\/userinfo$/, {
-        email: 'foo@bar.com',
-      });
 
       // Act
       const response = await server.inject({
@@ -133,7 +127,7 @@ describe('authentication-hapi-plugin', () => {
       // Assert
       expect(response.statusCode, response.payload).to.equal(401);
     });
-    it('should return the team token with GET', async () => {
+    it('should return the team token with GET and a teamId', async () => {
       // Arrange
       const server = await getServer();
       const teamId = 2;
@@ -145,12 +139,6 @@ describe('authentication-hapi-plugin', () => {
         id: 1,
         name: adminTeamName,
       }]);
-      fetchMock.mock(/\/users/, [{
-        id: 1,
-      }]);
-      fetchMock.mock(/\/userinfo$/, {
-        email: 'foo@bar.com',
-      });
 
       // Act
       const response = await server.inject({
@@ -167,6 +155,35 @@ describe('authentication-hapi-plugin', () => {
       expect(result.token).to.equal(token.token);
 
     });
+    it('should allow fetching own team\'s token even if not admin', async () => {
+      // Arrange
+      const server = await getServer();
+      const teamId = 2;
+      const teamName = 'foofoo';
+      const db = await getDb();
+      const token = await generateAndSaveTeamToken(teamId, db);
+      fetchMock.restore();
+      fetchMock.mock(/\/groups/, [{
+        id:  teamId,
+        name: teamName,
+      }]);
+
+      // Act
+      const response = await server.inject({
+        method: 'GET',
+        url: `http://foo.com/team-token`,
+        headers: {
+          'Authorization': `Bearer ${validAccessToken}`,
+        },
+      });
+
+      // Assert
+      expect(response.statusCode, response.payload).to.equal(200);
+      const result = JSON.parse(response.payload);
+      expect(result.token).to.equal(token.token);
+
+    });
+
     it('should return 404 if no token found', async () => {
       // Arrange
       const server = await getServer();
@@ -200,7 +217,6 @@ describe('authentication-hapi-plugin', () => {
     it('should return a new token with POST', async () => {
       // Arrange
       const server = await getServer();
-      const teamId = 24;
       const adminTeamName = get<string>(adminTeamNameInjectSymbol);
 
       fetchMock.restore();
@@ -208,24 +224,18 @@ describe('authentication-hapi-plugin', () => {
         id: 1,
         name: adminTeamName,
       }]);
-      fetchMock.mock(/\/users/, [{
-        id: 1,
-      }]);
-      fetchMock.mock(/\/userinfo$/, {
-        email: 'foo@bar.com',
-      });
 
       // Act
       const response = await server.inject({
         method: 'POST',
-        url: `http://foo.com/team-token/${teamId}`,
+        url: `http://foo.com/team-token/${adminTeamName}`,
         headers: {
           'Authorization': `Bearer ${validAccessToken}`,
         },
       });
 
       // Assert
-      expect(response.statusCode).to.equal(201);
+      expect(response.statusCode, response.payload).to.equal(201);
       const result = JSON.parse(response.payload);
       expect(result.token.length).to.equal(teamTokenLength);
     });

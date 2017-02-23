@@ -284,10 +284,10 @@ describe('authentication-hapi-plugin', () => {
       fetchMock.mock(/\/users/, [{
         id: 1,
       }]);
-      fetchMock.mock(/\/groups/, [{
+      fetchMock.mock(/\/groups\/1/, {
         id: validTeamToken.teamId,
         name: 'fooGroup',
-      }]);
+      });
 
       // Act
       const response = await server.inject({

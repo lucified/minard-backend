@@ -168,6 +168,9 @@ class AuthenticationHapiPlugin extends HapiPlugin {
         throw new Error(`Invalid email ${email}`);
       }
       const teamToken = credentials[teamTokenClaimKey]!;
+      if (!teamToken) {
+        throw new Error('Missing team token');
+      }
       const teamId = await getTeamIdWithToken(teamToken, this.db);
       const team = await this.gitlab.getGroup(teamId);
       const password = generatePassword();

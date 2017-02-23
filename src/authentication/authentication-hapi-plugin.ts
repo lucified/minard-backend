@@ -181,6 +181,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
         idp,
       );
       await this.gitlab.addUserToGroup(user.id, teamId);
+      this.setAuthCookie(request, reply);
       return reply({
         team,
         password,

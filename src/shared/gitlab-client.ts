@@ -232,7 +232,7 @@ export class GitlabClient {
 
   public async getGroup(groupId: number) {
     const group = await this.fetchJson<Group>(`groups/${groupId}`, true);
-    if (!group) {
+    if (!group || !group.id) {
       throw Boom.notFound(`No group found with id '${groupId}'`);
     }
     return group;

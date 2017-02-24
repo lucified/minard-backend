@@ -351,7 +351,7 @@ export function accessTokenCookieSettings(
     throw new Error(`Invalid externalBaseUrl`);
   }
   // TODO: make this an environment variable (or something)
-  const domain = parsedDomain.indexOf('localhost') !== -1 ? '.minard.io' : parsedDomain;
+  const domain = parsedDomain.indexOf('localhost') !== -1 ? parsedDomain : '.minard.io';
   return {
     ttl,
     isSecure,

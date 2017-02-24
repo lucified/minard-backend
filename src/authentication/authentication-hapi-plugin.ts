@@ -346,10 +346,12 @@ export function accessTokenCookieSettings(
   path = '/',
 ): Hapi.ICookieSettings {
   const isSecure = externalBaseUrl.match(/^https/) !== null;
-  const domain = externalBaseUrl.replace(/^https?:\/\/([^/:]+).+$/, '.$1');
-  if (domain === externalBaseUrl) {
+  const parsedDomain = externalBaseUrl.replace(/^https?:\/\/([^/:]+).+$/, '.$1');
+  if (parsedDomain === externalBaseUrl) {
     throw new Error(`Invalid externalBaseUrl`);
   }
+  // TODO: make this an environment variable (or something)
+  const domain = parsedDomain.indexOf('localhost') !== -1 ? '.minard.io' : parsedDomain;
   return {
     ttl,
     isSecure,

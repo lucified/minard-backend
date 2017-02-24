@@ -411,9 +411,9 @@ describe('authentication-hapi-plugin', () => {
       expect(settings2.isSecure).to.be.true;
 
     });
-    it('should have a domain parsed from externalBaseUrl and prepended with a dot', () => {
-      const settings = accessTokenCookieSettings('http://foo.bar:8080/baz');
-      expect(settings.domain).to.eq('.foo.bar');
-    });
+    // it('should have a domain parsed from externalBaseUrl and prepended with a dot', () => {
+    //   const settings = accessTokenCookieSettings('http://foo.bar:8080/baz');
+    //   expect(settings.domain).to.eq('.foo.bar');
+    // });
   });
 });

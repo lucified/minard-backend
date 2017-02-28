@@ -20,7 +20,6 @@
     "pretty": true,
     "noImplicitReturns": true,
     "noEmitOnError": false, // still transpiles with type errors
-    "baseUrl": "./typings",
-    "skipLibCheck": true // TODO: remove once https://github.com/DefinitelyTyped/DefinitelyTyped/issues/14324 resolved
+    "baseUrl": "./typings"
   }
 }

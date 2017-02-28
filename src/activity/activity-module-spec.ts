@@ -500,7 +500,7 @@ describe('activity-module', () => {
       // Assert
       expect(event.payload.id).to.exist;
       expect(typeof event.payload.id).equals('number');
-      expect(event.payload.id > 0 ).is.true;
+      expect(event.payload.id! > 0 ).is.true;
     });
   });
 

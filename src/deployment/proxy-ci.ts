@@ -59,6 +59,7 @@ export class CIProxy {
   private _register(server: Hapi.Server, _options: Hapi.IServerOptions, next: () => void) {
     const config = {
       bind: this,
+      auth: false,
       payload: {
         output: 'stream',
         parse: false,

@@ -106,6 +106,7 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
+        cors: true,
         validate: {
           params: {
             projectId: Joi.number().required(),
@@ -123,6 +124,7 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
+        cors: true,
         validate: {
           params: {
             projectId: Joi.number().required(),
@@ -143,6 +145,7 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
+        cors: true,
         validate: {
           params: {
             projectId: Joi.number().required(),
@@ -207,8 +210,8 @@ export class JsonApiHapiPlugin {
         async: this.patchProjectHandler,
       },
       config: {
-        cors: true,
         bind: this,
+        cors: true,
         validate: {
           params: {
             projectId: Joi.number().required(),
@@ -235,6 +238,7 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
+        cors: true,
         validate: {
           params: {
             projectId: Joi.number().required(),
@@ -251,6 +255,7 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
+        cors: true,
         validate: {
           params: {
             teamId: Joi.number().required(),
@@ -267,6 +272,7 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
+        cors: true,
         validate: {
           params: {
             branchId: Joi.string().required(),
@@ -283,6 +289,7 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
+        cors: true,
         validate: {
           params: {
             branchId: Joi.string().required(),
@@ -303,6 +310,7 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
+        cors: true,
         validate: {
           params: {
             projectId: Joi.number().required(),
@@ -320,6 +328,7 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
+        cors: true,
         validate: {
           query: {
             until: Joi.date(),
@@ -338,6 +347,7 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
+        cors: true,
         validate: {
           params: {
             projectId: Joi.number().required(),
@@ -445,6 +455,7 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
+        cors: true,
         validate: {
           params: {
             projectId: Joi.number().required(),
@@ -592,8 +603,10 @@ export class JsonApiHapiPlugin {
     }
 
     const id = await this.jsonApi.createNotificationConfiguration(config);
-    return reply(this.getEntity('notification',
-      api => api.getNotificationConfiguration(id))).created('');
+    return reply(this.getEntity('notification', async (api) => {
+      const configuration = await api.getNotificationConfiguration(id);
+      return configuration!;
+    })).created('');
   }
 
   public async deleteNotificationConfigurationHandler(request: Hapi.Request, reply: Hapi.IReply) {

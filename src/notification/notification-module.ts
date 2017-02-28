@@ -6,6 +6,7 @@ import {
   Logger,
   loggerInjectSymbol,
 } from '../shared/logger';
+import { charlesKnexInjectSymbol } from '../shared/types';
 
 import {
   Event,
@@ -86,7 +87,7 @@ export class NotificationModule {
   constructor(
     @inject(eventBusInjectSymbol) bus: EventBus,
     @inject(loggerInjectSymbol) logger: Logger,
-    @inject('charles-knex') knex: Knex,
+    @inject(charlesKnexInjectSymbol) knex: Knex,
     @inject(minardUiBaseUrlInjectSymbol) uiBaseUrl: string,
     @inject(FlowdockNotify.injectSymbol) flowdockNotify: FlowdockNotify,
     @inject(ScreenshotModule.injectSymbol) screenshotModule: ScreenshotModule,

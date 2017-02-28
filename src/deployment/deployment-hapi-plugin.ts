@@ -10,8 +10,7 @@ import { HapiRegister } from '../server/hapi-register';
 import DeploymentModule, {
   getDeploymentKeyFromHost,
   isRawDeploymentHostname,
-}
-from './deployment-module';
+} from './deployment-module';
 
 import { gitlabHostInjectSymbol } from '../shared/gitlab-client';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
@@ -84,6 +83,7 @@ class DeploymentHapiPlugin {
         },
       },
       config: {
+        auth: false,
         pre: [
           { method: this.parseHost.bind(this), assign: 'key' },
           { method: this.preCheck.bind(this) },
@@ -105,6 +105,7 @@ class DeploymentHapiPlugin {
         },
       },
       config: {
+        cors: true,
         validate: {
           params: {
             projectId: Joi.number().required(),
@@ -125,6 +126,7 @@ class DeploymentHapiPlugin {
       },
       config: {
         bind: this,
+        auth: false,
         validate: {
           params: {
             projectId: Joi.number().required(),
@@ -143,6 +145,7 @@ class DeploymentHapiPlugin {
       },
       config: {
         bind: this,
+        auth: false,
         validate: {
           params: {
             projectId: Joi.number().required(),

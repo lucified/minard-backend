@@ -71,7 +71,7 @@ export default class OperationsModule {
     }));
 
     // using for loops to allow for awaiting
-    for (let item of pending) {
+    for (const item of pending) {
       let deployments: MinardDeployment[] | null = null;
       try {
         deployments = await item.deploymentsPromise;

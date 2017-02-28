@@ -101,7 +101,7 @@ describe('json-api-module', () => {
       deploymentModule.getCommitDeployments = async (_projectId: number, sha: string) => {
         expect(projectId).to.equal(projectId);
         expect(sha).to.equal(minardCommit.id);
-        return deployments;
+        return deployments as {} as MinardDeployment[];
       };
       const jsonApiModule = new JsonApiModule(
         deploymentModule,
@@ -278,7 +278,7 @@ describe('json-api-module', () => {
       {
         id: 'bar-commit',
       },
-    ];
+    ] as MinardCommit[];
 
     it('should return commits correctly with two branches having three deployments', async () => {
       // Arrange
@@ -300,7 +300,7 @@ describe('json-api-module', () => {
               id: 'foo-two-deployment',
               commitHash: minardCommits[0].id,
             },
-          ];
+          ] as {} as MinardDeployment[];
         }
         if (_sha === minardCommits[1].id) {
           return [
@@ -310,7 +310,7 @@ describe('json-api-module', () => {
            },
           ];
         }
-        throw 'invalid hash';
+        throw new Error('invalid hash');
       };
       const jsonApiModule = new JsonApiModule(
         deploymentModule,
@@ -368,10 +368,10 @@ describe('json-api-module', () => {
       // Arrange
       const deploymentModule = {} as DeploymentModule;
       deploymentModule.getMinardJsonInfo = async (_projectId: number, _branchName: string) => {
-        return minardJsonInfo;
+        return minardJsonInfo as any;
       };
       deploymentModule.getLatestSuccessfulBranchDeployment = async (_projectId: number) => {
-        return minardDeployment;
+        return minardDeployment as any;
       };
       const projectModule = {} as ProjectModule;
       const screenshotModule = {} as ScreenshotModule;
@@ -426,7 +426,7 @@ describe('json-api-module', () => {
         commit: {
           id: 'foo-commit-id',
         },
-      };
+      } as MinardDeployment;
 
       const deploymentModule = {} as DeploymentModule;
       deploymentModule.getLatestSuccessfulProjectDeployment = async (_projectId: number) => {

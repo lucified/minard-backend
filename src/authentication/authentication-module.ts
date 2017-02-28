@@ -1,7 +1,7 @@
-
 import { inject, injectable } from 'inversify';
 import * as Knex from 'knex';
 
+import { gitlabKnexInjectSymbol } from '../shared/types';
 import { gitlabRootPasswordInjectSymbol } from './types';
 
 @injectable()
@@ -14,7 +14,7 @@ export default class AuthenticationModule {
   private gitlabKnex: Knex;
 
   constructor(
-    @inject('gitlab-knex') gitlabKnex: Knex,
+    @inject(gitlabKnexInjectSymbol) gitlabKnex: Knex,
     @inject(gitlabRootPasswordInjectSymbol) rootPassword: string) {
     this.gitlabKnex = gitlabKnex;
     this.rootPassword = rootPassword;

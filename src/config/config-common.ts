@@ -1,10 +1,13 @@
-import { KernelModule } from 'inversify';
+import { ContainerModule } from 'inversify';
 
 // Imports below should be in alphabetical order, based
 // on the last part of the import path.
 
 import { ActivityModule } from '../activity';
-import { AuthenticationModule } from '../authentication';
+import {
+  AuthenticationHapiPlugin,
+  AuthenticationModule,
+} from '../authentication';
 
 import {
   CommentModule,
@@ -88,7 +91,7 @@ import {
 import { SystemHookModule } from '../system-hook';
 import { UserModule } from '../user';
 
-export default new KernelModule(bind => {
+export default new ContainerModule((bind, _unbind, _isBound, _rebind) => {
 
   // Bindings for modules
   bind(ActivityModule.injectSymbol).to(ActivityModule).inSingletonScope();
@@ -113,6 +116,7 @@ export default new KernelModule(bind => {
   bind(ScreenshotHapiPlugin.injectSymbol).to(ScreenshotHapiPlugin);
   bind(StatusHapiPlugin.injectSymbol).to(StatusHapiPlugin);
   bind(RealtimeHapiPlugin.injectSymbol).to(RealtimeHapiPlugin);
+  bind(AuthenticationHapiPlugin.injectSymbol).to(AuthenticationHapiPlugin);
 
   // Other bindings
   bind(eventBusInjectSymbol).to(PersistentEventBus).inSingletonScope();

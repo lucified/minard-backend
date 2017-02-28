@@ -1,6 +1,4 @@
-
-import { interfaces } from 'inversify';
-
+import { Container } from 'inversify';
 import { goodOptionsInjectSymbol } from '../server';
 import productionConfig from './config-production';
 import { FilterStream } from './utils';
@@ -37,8 +35,7 @@ const goodOptions = {
   },
 };
 
-export default (kernel: interfaces.Kernel) => {
+export default (kernel: Container) => {
   productionConfig(kernel);
-  kernel.unbind(goodOptionsInjectSymbol);
-  kernel.bind(goodOptionsInjectSymbol).toConstantValue(goodOptions);
+  kernel.rebind(goodOptionsInjectSymbol).toConstantValue(goodOptions);
 };

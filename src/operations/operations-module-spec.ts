@@ -191,7 +191,7 @@ describe('operations-module', () => {
             extractionStatus: 'success',
             screenshotStatus: 'running',
           },
-        ];
+        ] as any;
       };
 
       // Arrange

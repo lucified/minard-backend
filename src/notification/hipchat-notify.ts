@@ -153,7 +153,7 @@ export class HipchatNotify {
       body: JSON.stringify(body),
     };
 
-    let ret = await this.fetch(url, options);
+    const ret = await this.fetch(url, options);
     if (ret.status === 202 || ret.status === 200 || ret.status === 201 || ret.status === 204) {
       return;
     }

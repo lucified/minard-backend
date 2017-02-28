@@ -1,5 +1,6 @@
-import { inject, injectable } from 'inversify';
+import { inject, injectable, optional } from 'inversify';
 
+import { AuthenticationHapiPlugin } from '../authentication';
 import { CIProxy } from '../deployment';
 import { DeploymentHapiPlugin } from '../deployment';
 import { JsonApiHapiPlugin } from '../json-api';
@@ -26,60 +27,35 @@ import {
   portInjectSymbol,
 } from './types';
 
+export const hapiOptionsInjectSymbol = Symbol('hapi-options');
+
 @injectable()
 export default class MinardServer {
-  public static injectSymbol = Symbol('minard-server');
 
-  private statusPlugin: StatusHapiPlugin;
-  private projectPlugin: ProjectHapiPlugin;
-  private deploymentPlugin: DeploymentHapiPlugin;
-  private jsonApiPlugin: JsonApiHapiPlugin;
-  private screenshotPlugin: ScreenshotHapiPlugin;
-  private operationsPlugin: OperationsHapiPlugin;
-  private realtimePlugin: RealtimeHapiPlugin;
-  private ciProxy: CIProxy;
-  private port: number;
-  private host: string;
-  private hapiServer: Hapi.Server;
-  private goodOptions: any;
-  private readonly sentryDsn: string;
-  private readonly exitDelay: number;
-  public readonly logger: Logger;
+  public static injectSymbol = Symbol('minard-server');
+  private readonly hapiServer: Hapi.Server;
+  private isInitialized = false;
 
   constructor(
-    @inject(DeploymentHapiPlugin.injectSymbol) deploymentPlugin: DeploymentHapiPlugin,
-    @inject(ProjectHapiPlugin.injectSymbol) projectPlugin: ProjectHapiPlugin,
-    @inject(JsonApiHapiPlugin.injectSymbol) jsonApiPlugin: JsonApiHapiPlugin,
-    @inject(CIProxy.injectSymbol) ciProxy: CIProxy,
-    @inject(hostInjectSymbol) host: string,
-    @inject(portInjectSymbol) port: number,
-    @inject(StatusHapiPlugin.injectSymbol) statusPlugin: StatusHapiPlugin,
-    @inject(goodOptionsInjectSymbol) goodOptions: any,
-    @inject(loggerInjectSymbol) logger: Logger,
-    @inject(ScreenshotHapiPlugin.injectSymbol) screenshotPlugin: ScreenshotHapiPlugin,
-    @inject(OperationsHapiPlugin.injectSymbol) operationsPlugin: OperationsHapiPlugin,
-    @inject(RealtimeHapiPlugin.injectSymbol) realtimePlugin: RealtimeHapiPlugin,
-    @inject(sentryDsnInjectSymbol) sentryDsn: string,
-    @inject(exitDelayInjectSymbol) exitDelay: number) {
-    this.deploymentPlugin = deploymentPlugin;
-    this.projectPlugin = projectPlugin;
-    this.jsonApiPlugin = jsonApiPlugin;
-    this.ciProxy = ciProxy;
-    this.statusPlugin = statusPlugin;
-    this.screenshotPlugin = screenshotPlugin;
-    this.operationsPlugin = operationsPlugin;
-    this.realtimePlugin = realtimePlugin;
-    this.host = host;
-    this.port = port;
-    this.goodOptions = goodOptions;
-    this.logger = logger;
-    this.sentryDsn = sentryDsn;
-    this.exitDelay = exitDelay;
-  }
+    @inject(AuthenticationHapiPlugin.injectSymbol) private readonly authenticationPlugin: AuthenticationHapiPlugin,
+    @inject(DeploymentHapiPlugin.injectSymbol) private readonly deploymentPlugin: DeploymentHapiPlugin,
+    @inject(ProjectHapiPlugin.injectSymbol) private readonly projectPlugin: ProjectHapiPlugin,
+    @inject(JsonApiHapiPlugin.injectSymbol) private readonly jsonApiPlugin: JsonApiHapiPlugin,
+    @inject(CIProxy.injectSymbol) private readonly ciProxy: CIProxy,
+    @inject(hostInjectSymbol) private readonly host: string,
+    @inject(portInjectSymbol) private readonly port: number,
+    @inject(StatusHapiPlugin.injectSymbol) private readonly statusPlugin: StatusHapiPlugin,
+    @inject(goodOptionsInjectSymbol) private readonly goodOptions: any,
+    @inject(loggerInjectSymbol) public readonly logger: Logger,
+    @inject(ScreenshotHapiPlugin.injectSymbol) private readonly screenshotPlugin: ScreenshotHapiPlugin,
+    @inject(OperationsHapiPlugin.injectSymbol) private readonly operationsPlugin: OperationsHapiPlugin,
+    @inject(RealtimeHapiPlugin.injectSymbol) private readonly realtimePlugin: RealtimeHapiPlugin,
+    @inject(sentryDsnInjectSymbol) private readonly sentryDsn: string,
+    @inject(exitDelayInjectSymbol) private readonly exitDelay: number,
+    @inject(hapiOptionsInjectSymbol) @optional() hapiOptions?: Hapi.IServerOptions,
+  ) {
 
-  public async start(): Promise<Hapi.Server> {
-    const options = {};
-    const server = this.hapiServer = Hapi.getServer(options);
+    const server = Hapi.getServer(hapiOptions);
     server.connection({
       host: this.host,
       port: this.port,
@@ -89,6 +65,21 @@ export default class MinardServer {
         },
       },
     });
+    this.hapiServer = server;
+
+  }
+
+  public async initialize(): Promise<Hapi.Server> {
+    if (!this.isInitialized) {
+      await this.loadBasePlugins(this.hapiServer);
+      await this.loadAppPlugins(this.hapiServer);
+      this.isInitialized = true;
+    }
+    return this.hapiServer;
+  }
+
+  public async start(): Promise<Hapi.Server> {
+    const server = this.hapiServer;
 
     server.ext('onPreStop', async (_server, next) => {
       this.logger.debug('Starting exit delay');
@@ -97,11 +88,11 @@ export default class MinardServer {
       return next();
     });
 
-    await this.loadBasePlugins(server);
-    await this.loadAppPlugins(server);
-    await this.operationsPlugin.operationsModule.cleanupRunningDeployments();
-
+    await this.initialize();
     await server.start();
+
+    await this.operationsPlugin.operationsModule.cleanupRunningDeployments();
+    await this.projectPlugin.registerHooks();
     this.logger.info('Charles is up and listening on %s', server.info.uri);
     return server;
   }
@@ -120,7 +111,7 @@ export default class MinardServer {
         options: this.goodOptions,
       },
     ];
-    let ravenRegister: any = undefined;
+    let ravenRegister: any;
     if (this.sentryDsn) {
       ravenRegister = await this.getRaven(this.sentryDsn);
 
@@ -177,6 +168,7 @@ export default class MinardServer {
 
   private async loadAppPlugins(server: Hapi.Server) {
     await server.register([
+      this.authenticationPlugin.register,
       this.deploymentPlugin.register,
       this.projectPlugin.register,
       this.ciProxy.register,

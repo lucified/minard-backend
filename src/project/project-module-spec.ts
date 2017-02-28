@@ -6,6 +6,7 @@ import 'reflect-metadata';
 
 import AuthenticationModule from '../authentication/authentication-module';
 import { EventBus, LocalEventBus } from '../event-bus';
+import { Commit } from '../shared/gitlab';
 import { GitlabClient } from '../shared/gitlab-client';
 import Logger from '../shared/logger';
 import { MINARD_ERROR_CODE } from '../shared/minard-error';
@@ -618,7 +619,7 @@ describe('project-module', () => {
     });
 
     it('should work when first fetch has three commit with timestamp matching until and one extra', async () => {
-      const fetchResult1 = [
+      const fetchResult1 = ([
           {
             created_at: until,
           },
@@ -631,8 +632,8 @@ describe('project-module', () => {
           {
             created_at: moment().add(1, 'days'),
           },
-        ];
-      const fetchResult2 = [
+        ] as any ) as Commit[];
+      const fetchResult2 = ([
           {
             created_at: until,
           },
@@ -654,7 +655,7 @@ describe('project-module', () => {
           {
             created_at: moment().add(4, 'days'),
           },
-        ];
+        ] as any) as Commit[];
       const projectModule = new ProjectModule(
         {} as any,
         {} as any,
@@ -901,13 +902,13 @@ describe('project-module', () => {
             namespacePath,
             path: templateProjectPath,
             defaultBranch: 'master',
-          };
+          } as MinardProject;
         }
         if (callCount === 2) {
           expect(_projectId).to.equal(projectId);
           return {
             defaultBranch: null,
-          };
+          } as any;
         }
         if (callCount === 3) {
           expect(_projectId).to.equal(projectId);
@@ -949,16 +950,16 @@ describe('project-module', () => {
             namespacePath,
             path: templateProjectPath,
             defaultBranch: 'master',
-          };
+          } as MinardProject;
         }
         expect(_projectId).to.equal(projectId);
         return {
           defaultBranch: null,
-        };
+        } as any;
       };
 
       // Act
-      let error: Boom.BoomError | undefined = undefined;
+      let error: Boom.BoomError | undefined;
       await projectModule.doCreateProjectFromTemplate(
         templateProjectId, teamId, projectName, description)
         .catch((err) => error = err as Boom.BoomError);
@@ -979,11 +980,11 @@ describe('project-module', () => {
           namespacePath,
           path: templateProjectPath,
           defaultBranch: null,
-        };
+        } as any;
       };
 
       // Act
-      let error: Boom.BoomError | undefined = undefined;
+      let error: Boom.BoomError | undefined;
       await projectModule.doCreateProjectFromTemplate(
         templateProjectId, teamId, projectName, description)
         .catch((err) => error = err as Boom.BoomError);
@@ -1111,7 +1112,7 @@ describe('project-module', () => {
         expect(_projectId).to.equal(projectId);
         return {
           teamId,
-        };
+        } as MinardProject;
       };
       const mockUrl = `${host}${client.apiPrefix}/projects/${projectId}`;
       fetchMock.restore().mock(
@@ -1653,7 +1654,7 @@ describe('project-module', () => {
         expect(_projectId).to.equal(gitlabPayload.project_id);
         return {
           teamId,
-        };
+        } as MinardProject;
       };
 
       const promise = bus.filterEvents<CodePushedEvent>(CODE_PUSHED_EVENT_TYPE)

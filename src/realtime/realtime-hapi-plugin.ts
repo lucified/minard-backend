@@ -128,7 +128,7 @@ export class RealtimeHapiPlugin {
       },
     });
 
-    // Used for testing, should be removed in production
+    // TODO: Used for testing, should be removed in production
     server.route({
       method: 'POST',
       path: '/events/{teamId}',

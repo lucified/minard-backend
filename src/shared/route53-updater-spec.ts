@@ -3,18 +3,21 @@ import 'reflect-metadata';
 
 import { fetchMock } from './fetch';
 import { default as loggerConstructor } from './logger';
-import { Route53Updater, Route53UpdaterFunction } from './route53-updater';
+import { ChangeInfo, Route53Updater, Route53UpdaterFunction } from './route53-updater';
 
 const retryDelay = 1;
 const maxRetries = 5;
 const logger = loggerConstructor(undefined, true);
 
-function getRoute53UpdaterFunction(callback: () => void): Route53UpdaterFunction {
+interface UpdaterResult {
+  ChangeInfo: ChangeInfo;
+};
+function getRoute53UpdaterFunction(callback: () => UpdaterResult): Route53UpdaterFunction {
   return async (_values: {Value: string}[], _hostedZoneId: string, _name: string, _type: string, _ttl: number) => {
     return callback();
   };
 }
-function getRegistrator(callback: () => void) {
+function getRegistrator(callback: () => UpdaterResult) {
   const func = getRoute53UpdaterFunction(callback);
   return new Route53Updater(fetchMock.fetchMock, logger, retryDelay, retryDelay, maxRetries, func);
 };
@@ -23,8 +26,8 @@ describe('Route53Updater', () => {
 
   it('should not try to update if baseUrl is empty', async () => {
     let called = 0;
-    fetchMock.restore().mock('*', (_url: any, _options: any) => { return '1.2.3.4'; }, {method: 'GET'});
-    const result = await getRegistrator(() => called++)
+    fetchMock.restore().mock('*', (_url: any, _options: any) => '1.2.3.4', {method: 'GET'});
+    const result = await getRegistrator(() => { called++; return {ChangeInfo: {Status: 'PENDING', Id: 'dsdfsdf'}}; })
       .update('', 'bar');
     expect(called).to.eq(0);
     expect(result).to.be.false;
@@ -32,7 +35,7 @@ describe('Route53Updater', () => {
 
   it('should retry if unable to connect', async () => {
     let called = 0;
-    fetchMock.restore().mock('*', (_url: any, _options: any) => { return '1.2.3.4'; }, {method: 'GET'});
+    fetchMock.restore().mock('*', (_url: any, _options: any) => '1.2.3.4', {method: 'GET'});
     const result = await getRegistrator(() => {
       called++;
       throw new Error('Unable to connect');
@@ -43,10 +46,10 @@ describe('Route53Updater', () => {
 
   it('should return true on success', async () => {
     let called = 0;
-    fetchMock.restore().mock('*', (_url: any, _options: any) => { return '1.2.3.4'; }, {method: 'GET'});
+    fetchMock.restore().mock('*', (_url: any, _options: any) => '1.2.3.4', {method: 'GET'});
     const result = await getRegistrator(() => {
       called++;
-      return {ChangeInfo: {Status: 'PENDING'}};
+      return {ChangeInfo: {Status: 'INSYNC', Id: 'dsdfsdf'}};
     }).update('foo', 'bar');
     expect(called).to.eq(1);
     expect(result).to.be.true;

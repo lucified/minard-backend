@@ -7,6 +7,7 @@ import {
   EventBus,
   eventBusInjectSymbol,
 } from '../event-bus';
+import { charlesKnexInjectSymbol } from '../shared/types';
 
 import {
   createCommentAddedEvent,
@@ -38,7 +39,7 @@ export class CommentModule {
   private eventBus: EventBus;
 
   public constructor(
-    @inject('charles-knex') knex: Knex,
+    @inject(charlesKnexInjectSymbol) knex: Knex,
     @inject(eventBusInjectSymbol) eventBus: EventBus) {
     this.knex = knex;
     this.eventBus = eventBus;

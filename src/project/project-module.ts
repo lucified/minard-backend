@@ -495,7 +495,7 @@ export default class ProjectModule {
     // the port as another environment variable
     const importUrl = `http://root:${this.authenticationModule.getRootPassword()}@` +
       `localhost/${templateProject.namespacePath}/${templateProject.path}.git`;
-    let gitlabProject = await this.createGitlabProject(teamId, name, description, importUrl);
+    const gitlabProject = await this.createGitlabProject(teamId, name, description, importUrl);
 
     // wait for project to get a default branch
     let project: MinardProject | null;

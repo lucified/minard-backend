@@ -19,6 +19,7 @@ import { GitlabClient } from '../shared/gitlab-client';
 import * as logger from '../shared/logger';
 
 import { toGitlabTimestamp } from '../shared/time-conversion';
+import { charlesKnexInjectSymbol } from '../shared/types';
 
 import {
   ScreenshotModule,
@@ -110,7 +111,7 @@ export default class DeploymentModule {
     @inject(deploymentUrlPatternInjectSymbol) urlPattern: string,
     @inject(ScreenshotModule.injectSymbol) screenshotModule: ScreenshotModule,
     @inject(ProjectModule.injectSymbol) projectModule: ProjectModule,
-    @inject('charles-knex') knex: Knex) {
+    @inject(charlesKnexInjectSymbol) knex: Knex) {
     this.gitlab = gitlab;
     this.deploymentFolder = deploymentFolder;
     this.logger = logger;
@@ -432,7 +433,7 @@ export default class DeploymentModule {
         effective: applyDefaults({}),
       };
     }
-    let parsed: MinardJson | undefined = undefined;
+    let parsed: MinardJson | undefined;
     let errors: string[];
     try {
       parsed = JSON.parse(content);
@@ -504,7 +505,7 @@ export default class DeploymentModule {
   }
 
   public async updateDeploymentStatus(deploymentId: number, updates: DeploymentStatusUpdate) {
-    let newStatus: MinardDeploymentStatus | undefined = undefined;
+    let newStatus: MinardDeploymentStatus | undefined;
     if (updates.screenshotStatus === 'success' || updates.screenshotStatus === 'failed') {
       newStatus = 'success'; // SIC
     } else if (values(updates).indexOf('failed') !== -1 || values(updates).indexOf('canceled') !== -1) {
@@ -561,7 +562,7 @@ export default class DeploymentModule {
     const response = await this.gitlab.fetch(url);
     const tempDir = path.join(os.tmpdir(), 'minard');
     await mkpath(tempDir);
-    let readableStream = (<any> response).body;
+    const readableStream = (<any> response).body;
     const tempFileName = path.join(tempDir, `minard-${projectId}-${deploymentId}.zip`);
     const writeStream = fs.createWriteStream(tempFileName);
 
@@ -602,8 +603,9 @@ export default class DeploymentModule {
     // move to final directory
     const extractedTempPath = this.getTempArtifactsPath(projectId, deploymentId);
     const finalPath = this.getDeploymentPath(projectId, deploymentId);
-    const sourcePath = minardJson.effective.publicRoot === '.' ? extractedTempPath :
-      path.join(extractedTempPath, minardJson.effective.publicRoot);
+    const publicRoot = minardJson.effective.publicRoot;
+    const sourcePath =  !publicRoot || publicRoot === '.' ? extractedTempPath :
+      path.join(extractedTempPath, publicRoot);
     const exists = fs.existsSync(sourcePath);
     if (!exists) {
       const msg = `Deployment "${projectId}_${deploymentId}" did not have directory at repo path ` +

@@ -6,8 +6,7 @@ interface CachingConfig {
 }
 
 export interface Cache {
-  set<T>(key: string, value: T, options: CachingConfig, callback?: (error: any) => void): void;
-  set<T>(key: string, value: T, ttl: number, callback?: (error: any) => void): void;
+  set<T>(key: string, value: T, options: CachingConfig | number, callback?: (error: any) => void): void;
 
   wrap<T>(key: string, wrapper: () => Promise<T>): Promise<T>;
 

@@ -279,7 +279,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       ...this.hapiOptions,
       validateFunc: this.validateAdmin.bind(this),
     });
-    const ttl = 365 * 24 * 3600 * 1000;
+    const ttl = 365 * 24 * 3600 * 1000; // ~year in ms
     server.state('token', accessTokenCookieSettings(this.authCookieDomain, ttl));
   }
 }

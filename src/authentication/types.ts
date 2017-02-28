@@ -1,6 +1,7 @@
 export const authServerBaseUrlInjectSymbol = Symbol('auth-server-base-url');
 export const gitlabRootPasswordInjectSymbol = Symbol('gitlab-root-password');
 export const jwtOptionsInjectSymbol = Symbol('token-verify-options');
+export const authCookieDomainInjectSymbol = Symbol('auth-cookie-domain');
 
 export const teamTokenClaimKey = 'https://minard.io/team_token';
 

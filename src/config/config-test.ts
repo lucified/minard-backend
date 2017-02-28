@@ -2,7 +2,12 @@ import { Container } from 'inversify';
 import { sign } from 'jsonwebtoken';
 import * as Knex from 'knex';
 
-import { AccessToken, jwtOptionsInjectSymbol, teamTokenClaimKey } from '../authentication';
+import {
+  AccessToken,
+  authCookieDomainInjectSymbol,
+  jwtOptionsInjectSymbol,
+  teamTokenClaimKey,
+} from '../authentication';
 import AuthenticationModule from '../authentication/authentication-module';
 import { goodOptionsInjectSymbol } from '../server';
 import { fetchMock } from '../shared/fetch';
@@ -28,6 +33,7 @@ const env = process.env;
 const PORT = env.PORT ? parseInt(env.PORT, 10) : 8000;
 const EXTERNAL_BASEURL = env.EXTERNAL_BASEURL || `http://localhost:${PORT}`;
 const AUTH_AUDIENCE = env.AUTH_AUDIENCE || EXTERNAL_BASEURL;
+const AUTH_COOKIE_DOMAIN = env.AUTH_COOKIE_DOMAIN || AUTH_AUDIENCE;
 
 export const issuer = 'https://issuer.foo.com';
 export const secretKey = 'shhhhhhh';
@@ -84,4 +90,5 @@ export default (kernel: Container) => {
   kernel.rebind(charlesKnexInjectSymbol).toConstantValue(charlesKnex);
   kernel.rebind(loggerInjectSymbol).toConstantValue(logger);
   kernel.rebind(jwtOptionsInjectSymbol).toConstantValue(getJwtOptions());
+  kernel.rebind(authCookieDomainInjectSymbol).toConstantValue(AUTH_COOKIE_DOMAIN);
 };

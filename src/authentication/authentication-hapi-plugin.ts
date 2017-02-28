@@ -11,7 +11,7 @@ import { GitlabClient, validateEmail } from '../shared/gitlab-client';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
 import { adminTeamNameInjectSymbol, charlesKnexInjectSymbol, fetchInjectSymbol } from '../shared/types';
 import { generateAndSaveTeamToken, getTeamIdWithToken, teamTokenQuery } from './team-token';
-import { AccessToken, jwtOptionsInjectSymbol, teamTokenClaimKey } from './types';
+import { AccessToken, authCookieDomainInjectSymbol, jwtOptionsInjectSymbol, teamTokenClaimKey } from './types';
 
 const randomstring = require('randomstring');
 const teamIdOrNameKey = 'teamIdOrName';
@@ -24,6 +24,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   constructor(
     @inject(GitlabClient.injectSymbol) private readonly gitlab: GitlabClient,
     @inject(jwtOptionsInjectSymbol) private readonly hapiOptions: auth.JWTStrategyOptions,
+    @inject(authCookieDomainInjectSymbol) private readonly authCookieDomain: string,
     @inject(charlesKnexInjectSymbol) private readonly db: Knex,
     @inject(loggerInjectSymbol) private readonly logger: Logger,
     @inject(adminTeamNameInjectSymbol) private readonly adminTeamName: string,
@@ -278,13 +279,8 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       ...this.hapiOptions,
       validateFunc: this.validateAdmin.bind(this),
     });
-    try {
-      const externalBaseUrl = this.hapiOptions!.verifyOptions!.audience!;
-      const ttl = 365 * 24 * 3600 * 1000;
-      server.state('token', accessTokenCookieSettings(externalBaseUrl, ttl));
-    } catch (error) {
-      // hapiOptions wasn't set
-    }
+    const ttl = 365 * 24 * 3600 * 1000;
+    server.state('token', accessTokenCookieSettings(this.authCookieDomain, ttl));
   }
 }
 
@@ -341,17 +337,18 @@ export function findTeamByIdOrName(teamNameOrId: string | number) {
 }
 
 export function accessTokenCookieSettings(
-  externalBaseUrl: string,
+  domainOrBaseUrl: string,
   ttl?: number,
-  path = '/',
+  defaultPath = '/',
 ): Hapi.ICookieSettings {
-  const isSecure = externalBaseUrl.match(/^https/) !== null;
-  const parsedDomain = externalBaseUrl.replace(/^https?:\/\/([^/:]+).+$/, '.$1');
-  if (parsedDomain === externalBaseUrl) {
-    throw new Error(`Invalid externalBaseUrl`);
+  const regex = /^(https?:\/\/)?\.?([^\/:]+)(:\d+)?(\/.+)?$/;
+  const urlParts = regex.exec(domainOrBaseUrl);
+  if (urlParts === null) {
+    throw new Error(`Invalid domain: ${domainOrBaseUrl}`);
   }
-  // TODO: make this an environment variable (or something)
-  const domain = parsedDomain.indexOf('localhost') !== -1 ? parsedDomain : '.minard.io';
+  const isSecure = !urlParts[1] || urlParts[1] === 'https://';
+  const domain = `.${urlParts[2]}`;
+  const path = urlParts[4] || defaultPath;
   return {
     ttl,
     isSecure,

@@ -399,11 +399,11 @@ describe('authentication-hapi-plugin', () => {
       const token = cookie.replace(/^token=([^;]+).*$/, '$1');
       expect(token).to.eq(validAccessToken);
     });
-    it('should not accept an invalid externalBaseUrl', () => {
+    it('should not accept an invalid url', () => {
       const settings = () => accessTokenCookieSettings('htttp://foo.bar');
       expect(settings).to.throw();
     });
-    it('should have isSecure flag set depending on externalBaseUrl', () => {
+    it('should have isSecure flag set depending on url', () => {
       const settings1 = accessTokenCookieSettings('http://foo.bar');
       const settings2 = accessTokenCookieSettings('https://foo.bar');
 
@@ -411,9 +411,19 @@ describe('authentication-hapi-plugin', () => {
       expect(settings2.isSecure).to.be.true;
 
     });
-    // it('should have a domain parsed from externalBaseUrl and prepended with a dot', () => {
-    //   const settings = accessTokenCookieSettings('http://foo.bar:8080/baz');
-    //   expect(settings.domain).to.eq('.foo.bar');
-    // });
+    it('should have the domain parsed from url and prepended with a dot', () => {
+      const settings = accessTokenCookieSettings('http://foo.bar:8080');
+      expect(settings.domain).to.eq('.foo.bar');
+      expect(settings.path).to.eq('/');
+    });
+    it('should have the path parsed from url', () => {
+      const settings = accessTokenCookieSettings('http://foo.bar:8080/baz');
+      expect(settings.path).to.eq('/baz');
+    });
+    it('should accept a non-url domain', () => {
+      const settings = accessTokenCookieSettings('.foo.bar');
+      expect(settings.domain).to.eq('.foo.bar');
+      expect(settings.path).to.eq('/');
+    });
   });
 });

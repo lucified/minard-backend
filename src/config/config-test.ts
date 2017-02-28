@@ -1,9 +1,13 @@
-import * as auth from 'hapi-auth-jwt2';
 import { Container } from 'inversify';
 import { sign } from 'jsonwebtoken';
 import * as Knex from 'knex';
 
-import { AccessToken, jwtOptionsInjectSymbol, teamTokenClaimKey } from '../authentication';
+import {
+  AccessToken,
+  authCookieDomainInjectSymbol,
+  jwtOptionsInjectSymbol,
+  teamTokenClaimKey,
+} from '../authentication';
 import AuthenticationModule from '../authentication/authentication-module';
 import { goodOptionsInjectSymbol } from '../server';
 import { fetchMock } from '../shared/fetch';
@@ -24,29 +28,34 @@ const getClient = () => {
   return new GitlabClient('gitlab', fetchMock.fetchMock, new MockAuthModule() as AuthenticationModule, logger, false);
 };
 
-const charlesKnex = Knex({
-  client: 'sqlite3',
-  connection: { filename: ':memory:' },
-  useNullAsDefault: true,
-});
-
 // Access token parameters
-export const audience = 'https://api.foo.com';
+const env = process.env;
+const PORT = env.PORT ? parseInt(env.PORT, 10) : 8000;
+const EXTERNAL_BASEURL = env.EXTERNAL_BASEURL || `http://localhost:${PORT}`;
+const AUTH_AUDIENCE = env.AUTH_AUDIENCE || EXTERNAL_BASEURL;
+const AUTH_COOKIE_DOMAIN = env.AUTH_COOKIE_DOMAIN || AUTH_AUDIENCE;
+
 export const issuer = 'https://issuer.foo.com';
 export const secretKey = 'shhhhhhh';
 export const algorithm = 'HS256';
 
-function getJwtOptions(): auth.JWTStrategyOptions {
+export function getJwtOptions() {
+  const verifyOptions = {
+    audience: AUTH_AUDIENCE,
+    issuer,
+    algorithms: [algorithm],
+    ignoreExpiration: false,
+  };
+
   return {
     // Get the complete decoded token, because we need info from the header (the kid)
     complete: true,
     key: secretKey,
+    verifyOptions,
     // Validate the audience, issuer, algorithm and expiration.
-    verifyOptions: {
-      audience,
-      issuer,
-      algorithms: [algorithm],
-      ignoreExpiration: false,
+    errorFunc: (context: any) => {
+      console.dir({ ...verifyOptions, secretKey }, { colors: true });
+      return context;
     },
   };
 }
@@ -55,7 +64,7 @@ export function getAccessToken(sub: string, teamToken?: string, email?: string) 
   let payload: Partial<AccessToken> = {
     iss: issuer,
     sub,
-    aud: [audience],
+    aud: [AUTH_AUDIENCE],
     azp: 'azp',
     scope: 'openid profile email',
   };
@@ -73,7 +82,13 @@ export default (kernel: Container) => {
   kernel.rebind(fetchInjectSymbol).toConstantValue(fetchMock.fetchMock);
   kernel.rebind(goodOptionsInjectSymbol).toConstantValue({});
   kernel.rebind(GitlabClient.injectSymbol).toConstantValue(getClient());
+  const charlesKnex = Knex({
+    client: 'sqlite3',
+    connection: { filename: ':memory:' },
+    useNullAsDefault: true,
+  });
   kernel.rebind(charlesKnexInjectSymbol).toConstantValue(charlesKnex);
   kernel.rebind(loggerInjectSymbol).toConstantValue(logger);
   kernel.rebind(jwtOptionsInjectSymbol).toConstantValue(getJwtOptions());
+  kernel.rebind(authCookieDomainInjectSymbol).toConstantValue(AUTH_COOKIE_DOMAIN);
 };

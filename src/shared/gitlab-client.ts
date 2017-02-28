@@ -231,14 +231,11 @@ export class GitlabClient {
   }
 
   public async getGroup(groupId: number) {
-    const groups = await this.fetchJson<Group[]>(`groups/${groupId}`, true);
-    if (!groups.length) {
-      throw Boom.notFound(`No groups found with id '${groupId}'`);
+    const group = await this.fetchJson<Group>(`groups/${groupId}`, true);
+    if (!group || !group.id) {
+      throw Boom.notFound(`No group found with id '${groupId}'`);
     }
-    if (groups.length > 1) {
-      throw Boom.badImplementation(`Multiple groups found with id '${groupId}'`);
-    }
-    return groups[0];
+    return group;
   }
 
   public async getUserGroups(userIdOrName: number | string) {

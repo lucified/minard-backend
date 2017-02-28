@@ -7,7 +7,7 @@ import { getAccessToken, issuer } from '../config/config-test';
 import { getTestServer } from '../server/hapi';
 import { fetchMock } from '../shared/fetch';
 import { adminTeamNameInjectSymbol } from '../shared/types';
-import AuthenticationHapiPlugin, { generatePassword } from './authentication-hapi-plugin';
+import AuthenticationHapiPlugin, { accessTokenCookieSettings, generatePassword } from './authentication-hapi-plugin';
 import { generateAndSaveTeamToken, generateTeamToken, TeamToken, teamTokenLength } from './team-token';
 import { getDb, insertTeamToken } from './team-token-spec';
 
@@ -83,7 +83,7 @@ describe('authentication-hapi-plugin', () => {
       fetchMock.mock(/\/users/, [{
         id: 1,
       }]);
-      fetchMock.mock(/\/groups/, [{
+      fetchMock.mock(/\/groups\?/, [{
         id: 1,
         name: 'fooGroup',
       }]);
@@ -110,7 +110,7 @@ describe('authentication-hapi-plugin', () => {
       const adminTeamName = get<string>(adminTeamNameInjectSymbol);
 
       fetchMock.restore();
-      fetchMock.mock(/\/groups/, [{
+      fetchMock.mock(/\/groups\?/, [{
         id: 1,
         name: adminTeamName + '1',
       }]);
@@ -135,7 +135,7 @@ describe('authentication-hapi-plugin', () => {
       const db = await getDb();
       const token = await generateAndSaveTeamToken(teamId, db);
       fetchMock.restore();
-      fetchMock.mock(/\/groups/, [{
+      fetchMock.mock(/\/groups\?/, [{
         id: 1,
         name: adminTeamName,
       }]);
@@ -163,7 +163,7 @@ describe('authentication-hapi-plugin', () => {
       const db = await getDb();
       const token = await generateAndSaveTeamToken(teamId, db);
       fetchMock.restore();
-      fetchMock.mock(/\/groups/, [{
+      fetchMock.mock(/\/groups\?/, [{
         id:  teamId,
         name: teamName,
       }]);
@@ -191,7 +191,7 @@ describe('authentication-hapi-plugin', () => {
       const adminTeamName = get<string>(adminTeamNameInjectSymbol);
 
       fetchMock.restore();
-      fetchMock.mock(/\/groups/, [{
+      fetchMock.mock(/\/groups\?/, [{
         id: 1,
         name: adminTeamName,
       }]);
@@ -220,7 +220,7 @@ describe('authentication-hapi-plugin', () => {
       const adminTeamName = get<string>(adminTeamNameInjectSymbol);
 
       fetchMock.restore();
-      fetchMock.mock(/\/groups/, [{
+      fetchMock.mock(/\/groups\?/, [{
         id: 1,
         name: adminTeamName,
       }]);
@@ -249,7 +249,7 @@ describe('authentication-hapi-plugin', () => {
       fetchMock.mock(/\/users/, [{
         id: 1,
       }]);
-      fetchMock.mock(/\/groups/, [{
+      fetchMock.mock(/\/groups\?/, [{
         id: 1,
         name: 'fooGroup',
       }]);
@@ -262,10 +262,14 @@ describe('authentication-hapi-plugin', () => {
         },
       });
 
-      const result = JSON.parse(response.payload);
-      // Assert
-      expect(result.id).to.equal(1);
-      expect(result.name).to.equal('fooGroup');
+      try {
+        const result = JSON.parse(response.payload);
+        // Assert
+        expect(result.id).to.equal(1);
+        expect(result.name).to.equal('fooGroup');
+      } catch (error) {
+        expect.fail(response.payload);
+      }
     });
   });
 
@@ -280,10 +284,10 @@ describe('authentication-hapi-plugin', () => {
       fetchMock.mock(/\/users/, [{
         id: 1,
       }]);
-      fetchMock.mock(/\/groups/, [{
+      fetchMock.mock(/\/groups\/1/, {
         id: validTeamToken.teamId,
         name: 'fooGroup',
-      }]);
+      });
 
       // Act
       const response = await server.inject({
@@ -311,10 +315,10 @@ describe('authentication-hapi-plugin', () => {
       fetchMock.mock(/\/users/, [{
         id: 1,
       }]);
-      fetchMock.mock(/\/groups/, [{
+      fetchMock.mock(/\/groups\/1/, {
         id: validTeamToken.teamId + 1,
         name: 'fooGroup',
-      }]);
+      });
 
       // Act
       const response = await server.inject({
@@ -345,10 +349,10 @@ describe('authentication-hapi-plugin', () => {
       fetchMock.mock(/\/users/, [{
         id: 1,
       }]);
-      fetchMock.mock(/\/groups/, [{
+      fetchMock.mock(/\/groups\/1/, {
         id: validTeamToken.teamId,
         name: 'fooGroup',
-      }]);
+      });
 
       // Act
       const response = await server.inject({
@@ -370,6 +374,56 @@ describe('authentication-hapi-plugin', () => {
       const password = generatePassword();
       expect(typeof password, password).to.equal('string');
       expect(password.length, password).to.equal(16);
+    });
+  });
+  describe('cookie', () => {
+    it('should be set with the access token as the value when accessing the team endpoint', async () => {
+      const server = await getServer();
+      fetchMock.restore();
+      fetchMock.mock(/\/users/, [{
+        id: 1,
+      }]);
+      fetchMock.mock(/\/groups\?/, [{
+        id: 1,
+        name: 'fooGroup',
+      }]);
+      // Act
+      const response = await server.inject({
+        method: 'GET',
+        url: 'http://foo.com/team',
+        headers: {
+          'Authorization': `Bearer ${validAccessToken}`,
+        },
+      });
+      const cookie = response.headers['set-cookie'][0];
+      const token = cookie.replace(/^token=([^;]+).*$/, '$1');
+      expect(token).to.eq(validAccessToken);
+    });
+    it('should not accept an invalid url', () => {
+      const settings = () => accessTokenCookieSettings('htttp://foo.bar');
+      expect(settings).to.throw();
+    });
+    it('should have isSecure flag set depending on url', () => {
+      const settings1 = accessTokenCookieSettings('http://foo.bar');
+      const settings2 = accessTokenCookieSettings('https://foo.bar');
+
+      expect(settings1.isSecure).to.be.false;
+      expect(settings2.isSecure).to.be.true;
+
+    });
+    it('should have the domain parsed from url and prepended with a dot', () => {
+      const settings = accessTokenCookieSettings('http://foo.bar:8080');
+      expect(settings.domain).to.eq('.foo.bar');
+      expect(settings.path).to.eq('/');
+    });
+    it('should have the path parsed from url', () => {
+      const settings = accessTokenCookieSettings('http://foo.bar:8080/baz');
+      expect(settings.path).to.eq('/baz');
+    });
+    it('should accept a non-url domain', () => {
+      const settings = accessTokenCookieSettings('.foo.bar');
+      expect(settings.domain).to.eq('.foo.bar');
+      expect(settings.path).to.eq('/');
     });
   });
 });

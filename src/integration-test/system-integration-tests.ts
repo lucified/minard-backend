@@ -11,6 +11,7 @@ import { spawn } from 'child_process';
 import { keys } from 'lodash';
 import 'reflect-metadata';
 
+import { generateTeamToken } from '../authentication/team-token';
 import { getAccessToken } from '../config/config-test';
 import { JsonApiEntity, JsonApiResponse } from '../json-api';
 import { fetch as originalFetch, RequestInit, Response } from '../shared/fetch';
@@ -56,7 +57,7 @@ async function fetchWithRetry(url: string, options?: RequestInit, retryCount = 5
   throw Error(`Fetch failed ${retryCount} times for url ${url}`);
 }
 
-const accessToken = getAccessToken('idp|232342', '1111222233334444', 'foo@bar.com');
+const accessToken = getAccessToken('idp|232342', generateTeamToken(), 'foo@bar.com');
 
 async function fetch(url: string, options?: RequestInit): Promise<Response> {
   let _options: RequestInit = {

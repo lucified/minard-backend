@@ -11,7 +11,7 @@ import { GitlabClient, validateEmail } from '../shared/gitlab-client';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
 import { adminTeamNameInjectSymbol, charlesKnexInjectSymbol, fetchInjectSymbol } from '../shared/types';
 import { generateAndSaveTeamToken, getTeamIdWithToken, teamTokenQuery } from './team-token';
-import { AccessToken, jwtOptionsInjectSymbol, teamTokenClaimKey } from './types';
+import { AccessToken, authCookieDomainInjectSymbol, jwtOptionsInjectSymbol, teamTokenClaimKey } from './types';
 
 const randomstring = require('randomstring');
 const teamIdOrNameKey = 'teamIdOrName';
@@ -24,6 +24,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   constructor(
     @inject(GitlabClient.injectSymbol) private readonly gitlab: GitlabClient,
     @inject(jwtOptionsInjectSymbol) private readonly hapiOptions: auth.JWTStrategyOptions,
+    @inject(authCookieDomainInjectSymbol) private readonly authCookieDomain: string,
     @inject(charlesKnexInjectSymbol) private readonly db: Knex,
     @inject(loggerInjectSymbol) private readonly logger: Logger,
     @inject(adminTeamNameInjectSymbol) private readonly adminTeamName: string,
@@ -45,7 +46,9 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       },
       config: {
         bind: this,
-        cors: true,
+        cors: {
+          credentials: true,
+        },
       },
     }]);
     server.route([{
@@ -87,6 +90,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     try {
       const credentials = request.auth.credentials as AccessToken;
       const teams = await this.gitlab.getUserGroups(sanitizeUsername(credentials.sub));
+      this.setAuthCookie(request, reply);
       return reply(teams[0]); // NOTE: we only support a single team for now
     } catch (error) {
       this.logger.error(`Can't fetch user or team`, error);
@@ -165,6 +169,9 @@ class AuthenticationHapiPlugin extends HapiPlugin {
         throw new Error(`Invalid email ${email}`);
       }
       const teamToken = credentials[teamTokenClaimKey]!;
+      if (!teamToken) {
+        throw new Error('Missing team token');
+      }
       const teamId = await getTeamIdWithToken(teamToken, this.db);
       const team = await this.gitlab.getGroup(teamId);
       const password = generatePassword();
@@ -178,12 +185,14 @@ class AuthenticationHapiPlugin extends HapiPlugin {
         idp,
       );
       await this.gitlab.addUserToGroup(user.id, teamId);
+      this.setAuthCookie(request, reply);
       return reply({
         team,
         password,
       }).code(201); // created
     } catch (error) {
-      const message = `Problems on signup for user ${email}`;
+      // TODO: Remove boom message from error message?
+      const message = `Unable to sign up user ${email}: ${error.isBoom && error.output.payload.message || ''}`;
       this.logger.error(message, {
         error,
         credentials,
@@ -252,6 +261,14 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     return teamId;
   }
 
+  public setAuthCookie(request: Hapi.Request, reply: Hapi.IReply) {
+    const headerToken: string | undefined = (request.auth as any).token;
+    const cookieToken: string | undefined = request.state && request.state.token;
+    if (headerToken && request.auth.credentials && cookieToken !== headerToken) {
+      reply.state('token', headerToken);
+    }
+  }
+
   public async registerAuth(server: Hapi.Server) {
     await server.register(auth);
     server.auth.strategy('jwt', 'jwt', true, {
@@ -262,6 +279,8 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       ...this.hapiOptions,
       validateFunc: this.validateAdmin.bind(this),
     });
+    const ttl = 365 * 24 * 3600 * 1000; // ~year in ms
+    server.state('token', accessTokenCookieSettings(this.authCookieDomain, ttl));
   }
 }
 
@@ -315,4 +334,29 @@ export function findTeamByIdOrName(teamNameOrId: string | number) {
   return (team: Group) => team.name === _teamNameOrId
     || team.path === _teamNameOrId
     || team.id === parseInt(_teamNameOrId, 10);
+}
+
+export function accessTokenCookieSettings(
+  domainOrBaseUrl: string,
+  ttl?: number,
+  defaultPath = '/',
+): Hapi.ICookieSettings {
+  const regex = /^(https?:\/\/)?\.?([^\/:]+)(:\d+)?(\/.+)?$/;
+  const urlParts = regex.exec(domainOrBaseUrl);
+  if (urlParts === null) {
+    throw new Error(`Invalid domain: ${domainOrBaseUrl}`);
+  }
+  const isSecure = !urlParts[1] || urlParts[1] === 'https://';
+  const domain = `.${urlParts[2]}`;
+  const path = urlParts[4] || defaultPath;
+  return {
+    ttl,
+    isSecure,
+    domain,
+    path,
+    isHttpOnly: true,
+    isSameSite: false,
+    encoding: 'none',
+    strictHeader: true,
+  };
 }

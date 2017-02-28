@@ -51,6 +51,7 @@ import {
 } from '../shared/types';
 
 import {
+  authCookieDomainInjectSymbol,
   authServerBaseUrlInjectSymbol,
   gitlabRootPasswordInjectSymbol,
   jwtOptionsInjectSymbol,
@@ -122,7 +123,7 @@ const env = process.env;
 
 // Host and port in which we are listening locally
 const HOST = env.HOST || '0.0.0.0';
-const PORT = env.PORT ? parseInt(env.PORT, 10) : 8080;
+const PORT = env.PORT ? parseInt(env.PORT, 10) : 8000;
 
 // Host and port from which charles can reach GitLab
 const GITLAB_HOST = env.GITLAB_HOST || 'localhost';
@@ -247,6 +248,7 @@ const cache = cacheManager.caching({
 const GITLAB_ROOT_PASSWORD = env.GITLAB_ROOT_PASSWORD || '12345678';
 const AUTH_SERVER_BASE_URL = env.AUTH_SERVER_BASE_URL || 'https://lucify-dev.eu.auth0.com';
 const AUTH_AUDIENCE = env.AUTH_AUDIENCE || EXTERNAL_BASEURL;
+const AUTH_COOKIE_DOMAIN = env.AUTH_COOKIE_DOMAIN || AUTH_AUDIENCE;
 
 const jwtOptions: auth.JWTStrategyOptions = {
   // Get the complete decoded token, because we need info from the header (the kid)
@@ -319,6 +321,7 @@ export default (kernel: Container) => {
   kernel.bind(exitDelayInjectSymbol).toConstantValue(EXIT_DELAY);
   kernel.bind(tokenSecretInjectSymbol).toConstantValue(TOKEN_SECRET);
   kernel.bind(authServerBaseUrlInjectSymbol).toConstantValue(AUTH_SERVER_BASE_URL);
+  kernel.bind(authCookieDomainInjectSymbol).toConstantValue(AUTH_COOKIE_DOMAIN);
   kernel.bind(jwtOptionsInjectSymbol).toConstantValue(jwtOptions);
   kernel.bind(adminTeamNameInjectSymbol).toConstantValue(ADMIN_TEAM_NAME);
 };

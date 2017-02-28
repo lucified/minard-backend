@@ -38,7 +38,10 @@ class DeploymentHapiPlugin {
       name: 'deployment-plugin',
       version: '1.0.0',
     };
-
+    this.registerPrivate.attributes = {
+      name: 'deployment-plugin',
+      version: '1.0.0',
+    };
     this.checkHash = memoize(this.checkHash, {
       promise: true,
       normalizer: (args: any) => `${args[0]}-${args[1]}`,
@@ -47,78 +50,10 @@ class DeploymentHapiPlugin {
 
   public register: HapiRegister = (server, _options, next) => {
 
-    server.ext('onRequest', (request, reply) => {
-      if (isRawDeploymentHostname(request.info.hostname)) {
-        // prefix the url with /raw-deployment-handler
-        // (or /deployment-favicon) to allow hapi to
-        // internally route the request to the correct handler
-        if (request.url.href === '/favicon.ico') {
-          request.setUrl('/deployment-favicon');
-        } else {
-          request.setUrl('/raw-deployment-handler' + request.url.href);
-        }
-      }
-      return reply.continue();
-    });
+    server.ext('onRequest', this.onRequest.bind(this));
+    server.route(this.deploymentRoutes());
 
-    server.route({
-      method: 'GET',
-      path: '/deployment-favicon',
-      handler: (_request: Hapi.Request, reply: Hapi.IReply) => {
-        reply.file('favicon.ico');
-      },
-    });
-
-    server.route({
-      method: 'GET',
-      path: '/raw-deployment-handler/{param*}',
-      handler: {
-        directory: {
-          path: this.serveDirectory.bind(this),
-          index: true,
-          listing: true,
-          showHidden: false,
-          redirectToSlash: false,
-          lookupCompressed: false,
-        },
-      },
-      config: {
-        auth: false,
-        pre: [
-          { method: this.parseHost.bind(this), assign: 'key' },
-          { method: this.preCheck.bind(this) },
-        ],
-      },
-    });
-
-    server.route({
-      method: 'GET',
-      path: '/deployments/{shortId}-{projectId}-{deploymentId}/{path*}',
-      handler: {
-        directory: {
-          path: this.serveDirectory.bind(this),
-          index: true,
-          listing: true,
-          showHidden: false,
-          redirectToSlash: false,
-          lookupCompressed: false,
-        },
-      },
-      config: {
-        cors: true,
-        validate: {
-          params: {
-            projectId: Joi.number().required(),
-            deploymentId: Joi.number().required(),
-          },
-        },
-        pre: [
-          { method: this.preCheck.bind(this) },
-        ],
-      },
-    });
-
-    server.route({
+    server.route([{
       method: 'GET',
       path: '/ci/projects/{projectId}/{ref}/{sha}/yml',
       handler: {
@@ -135,9 +70,7 @@ class DeploymentHapiPlugin {
           },
         },
       },
-    });
-
-    server.route({
+    }, {
       method: 'GET',
       path: '/ci/deployments/{projectId}-{deploymentId}/trace',
       handler: {
@@ -153,12 +86,86 @@ class DeploymentHapiPlugin {
           },
         },
       },
+    }]);
+    next();
+  }
+
+  private onRequest(request: Hapi.Request, reply: Hapi.IReply) {
+    if (isRawDeploymentHostname(request.info.hostname)) {
+      // prefix the url with /raw-deployment-handler
+      // (or /deployment-favicon) to allow hapi to
+      // internally route the request to the correct handler
+      if (request.url.href === '/favicon.ico') {
+        request.setUrl('/deployment-favicon');
+      } else {
+        request.setUrl('/raw-deployment-handler' + request.url.href);
+      }
+    }
+    return reply.continue();
+  }
+
+  private deploymentRoutes(auth = true) {
+    const directoryHandler = {
+      directory: {
+        path: this.serveDirectory.bind(this),
+        index: true,
+        listing: true,
+        showHidden: false,
+        redirectToSlash: false,
+        lookupCompressed: false,
+      },
+    };
+    return [{
+      method: 'GET',
+      path: '/deployment-favicon',
+      handler: (_request: Hapi.Request, reply: Hapi.IReply) => {
+        reply.file('favicon.ico');
+      },
+    }, {
+      method: 'GET',
+      path: '/raw-deployment-handler/{param*}',
+      handler: directoryHandler,
+      config: {
+        pre: [
+          { method: this.parseHost.bind(this), assign: 'key' },
+          { method: this.preCheck.bind(this) },
+        ],
+      },
+    },
+    {
+      method: 'GET',
+      path: '/deployments/{shortId}-{projectId}-{deploymentId}/{path*}',
+      handler: directoryHandler,
+      config: {
+        cors: true,
+        validate: {
+          params: {
+            projectId: Joi.number().required(),
+            deploymentId: Joi.number().required(),
+          },
+        },
+        pre: [
+          { method: this.preCheck.bind(this) },
+        ],
+      },
+    }].map((route: any) => {
+      if (!auth) {
+        route.config = { ...(route.config || {}), auth: false };
+      }
+      return route;
     });
+  }
+
+  public registerPrivate: HapiRegister = (server, _options, next) => {
+
+    server.ext('onRequest', this.onRequest.bind(this));
+    server.route(this.deploymentRoutes(false));
+
     next();
   }
 
   private async getGitlabYmlRequestHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const { projectId, ref, sha } = (<any> request.params);
+    const { projectId, ref, sha } = request.params as any;
     return reply(this.deploymentModule.getGitlabYml(projectId, ref, sha))
       .header('content-type', 'text/plain');
   }
@@ -172,7 +179,7 @@ class DeploymentHapiPlugin {
   }
 
   private serveDirectory(request: Hapi.Request) {
-    const pre = <any> request.pre;
+    const pre = request.pre as any;
     const projectId = pre.key.projectId;
     const deploymentId = pre.key.deploymentId;
     return this.distPath(projectId, deploymentId);
@@ -204,7 +211,7 @@ class DeploymentHapiPlugin {
   }
 
   private async preCheck(request: Hapi.Request, reply: Hapi.IReply) {
-    const pre = <any> request.pre;
+    const pre = request.pre as any;
     const shortId = pre ? pre.key.shortId : request.paramsArray[0];
     const projectId = pre ? pre.key.projectId : parseInt(request.paramsArray[1], 10);
     const deploymentId = pre ? pre.key.deploymentId : parseInt(request.paramsArray[2], 10);

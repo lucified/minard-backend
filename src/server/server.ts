@@ -34,6 +34,8 @@ export default class MinardServer {
 
   public static injectSymbol = Symbol('minard-server');
   private readonly hapiServer: Hapi.Server;
+  private readonly privateServer: Hapi.Server;
+  private readonly publicServer: Hapi.Server;
   private isInitialized = false;
 
   constructor(
@@ -55,27 +57,27 @@ export default class MinardServer {
     @inject(hapiOptionsInjectSymbol) @optional() hapiOptions?: Hapi.IServerOptions,
   ) {
 
-    const server = Hapi.getServer(hapiOptions);
-    server.connection({
+    this.hapiServer = Hapi.getServer(hapiOptions);
+    this.publicServer = this.hapiServer.connection({
       host: this.host,
       port: this.port,
+      labels: ['public'],
       routes: {
         json: {
           space: 4,
         },
       },
     });
-    this.hapiServer = server;
-
-  }
-
-  public async initialize(): Promise<Hapi.Server> {
-    if (!this.isInitialized) {
-      await this.loadBasePlugins(this.hapiServer);
-      await this.loadAppPlugins(this.hapiServer);
-      this.isInitialized = true;
-    }
-    return this.hapiServer;
+    this.privateServer = this.hapiServer.connection({
+      host: this.host,
+      port: this.port + 1,
+      labels: ['private'],
+      routes: {
+        json: {
+          space: 4,
+        },
+      },
+    });
   }
 
   public async start(): Promise<Hapi.Server> {
@@ -90,11 +92,21 @@ export default class MinardServer {
 
     await this.initialize();
     await server.start();
-
+    this.logger.info('Charles public is up and listening on %s', this.publicServer.info.uri);
+    this.logger.info('Charles private is up and listening on %s', this.privateServer.info.uri);
     await this.operationsPlugin.operationsModule.cleanupRunningDeployments();
     await this.projectPlugin.registerHooks();
-    this.logger.info('Charles is up and listening on %s', server.info.uri);
     return server;
+  }
+
+  public async initialize(): Promise<Hapi.Server> {
+    if (!this.isInitialized) {
+      await this.loadBasePlugins(this.hapiServer);
+      await this.loadAppPlugins(this.publicServer);
+      await this.loadPrivatePlugins(this.privateServer);
+      this.isInitialized = true;
+    }
+    return this.hapiServer;
   }
 
   public stop(): Hapi.IPromise<void> {
@@ -192,6 +204,12 @@ export default class MinardServer {
           prefix: '/operations',
         },
       },
+    ]);
+  }
+
+  private async loadPrivatePlugins(server: Hapi.Server) {
+    await server.register([
+      this.deploymentPlugin.registerPrivate,
     ]);
   }
 

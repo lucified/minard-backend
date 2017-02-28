@@ -1,6 +1,9 @@
 import { Container } from 'inversify';
+
+import { jwtOptionsInjectSymbol } from '../authentication';
 import { goodOptionsInjectSymbol } from '../server';
 import productionConfig from './config-production';
+import { getJwtOptions } from './config-test';
 import { FilterStream } from './utils';
 
 function requestFilter(data: any) {
@@ -38,4 +41,8 @@ const goodOptions = {
 export default (kernel: Container) => {
   productionConfig(kernel);
   kernel.rebind(goodOptionsInjectSymbol).toConstantValue(goodOptions);
+  if (process.env.INTEGRATION_TEST === '1') {
+    console.log('** INTEGRATION TEST MODE **');
+    kernel.rebind(jwtOptionsInjectSymbol).toConstantValue(getJwtOptions());
+  }
 };

@@ -106,15 +106,15 @@ class DeploymentHapiPlugin {
 
   private deploymentRoutes(auth = true) {
     const directoryHandler = {
-        directory: {
-          path: this.serveDirectory.bind(this),
-          index: true,
-          listing: true,
-          showHidden: false,
-          redirectToSlash: false,
-          lookupCompressed: false,
-        },
-      };
+      directory: {
+        path: this.serveDirectory.bind(this),
+        index: true,
+        listing: true,
+        showHidden: false,
+        redirectToSlash: false,
+        lookupCompressed: false,
+      },
+    };
     return [{
       method: 'GET',
       path: '/deployment-favicon',
@@ -150,7 +150,7 @@ class DeploymentHapiPlugin {
       },
     }].map((route: any) => {
       if (!auth) {
-        route.config = {...(route.config || {}), auth: false};
+        route.config = { ...(route.config || {}), auth: false };
       }
       return route;
     });
@@ -165,7 +165,7 @@ class DeploymentHapiPlugin {
   }
 
   private async getGitlabYmlRequestHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const { projectId, ref, sha } = (<any> request.params);
+    const { projectId, ref, sha } = request.params as any;
     return reply(this.deploymentModule.getGitlabYml(projectId, ref, sha))
       .header('content-type', 'text/plain');
   }
@@ -179,7 +179,7 @@ class DeploymentHapiPlugin {
   }
 
   private serveDirectory(request: Hapi.Request) {
-    const pre = <any> request.pre;
+    const pre = request.pre as any;
     const projectId = pre.key.projectId;
     const deploymentId = pre.key.deploymentId;
     return this.distPath(projectId, deploymentId);
@@ -211,7 +211,7 @@ class DeploymentHapiPlugin {
   }
 
   private async preCheck(request: Hapi.Request, reply: Hapi.IReply) {
-    const pre = <any> request.pre;
+    const pre = request.pre as any;
     const shortId = pre ? pre.key.shortId : request.paramsArray[0];
     const projectId = pre ? pre.key.projectId : parseInt(request.paramsArray[1], 10);
     const deploymentId = pre ? pre.key.deploymentId : parseInt(request.paramsArray[2], 10);

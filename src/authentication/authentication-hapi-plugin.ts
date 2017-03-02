@@ -168,7 +168,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       if (!validateEmail(email)) {
         throw new Error(`Invalid email ${email}`);
       }
-      const teamToken = credentials[teamTokenClaimKey]!;
+      const teamToken = credentials[teamTokenClaimKey];
       if (!teamToken) {
         throw new Error('Missing team token');
       }
@@ -191,12 +191,9 @@ class AuthenticationHapiPlugin extends HapiPlugin {
         password,
       }).code(201); // created
     } catch (error) {
-      // TODO: Remove boom message from error message?
-      const message = `Unable to sign up user ${email}: ${error.isBoom && error.output.payload.message || ''}`;
-      this.logger.error(message, {
-        error,
-        credentials,
-      });
+      const message = `Unable to sign up user ${email}: ${error.isBoom &&
+        (error.output.payload.message || error.data.message) || error.message}`;
+      this.logger.error(message, credentials);
       return reply(Boom.badRequest(message));
     }
   }

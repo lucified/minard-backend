@@ -84,6 +84,7 @@ export class Route53Updater {
     try {
       const response = await this.fetch(ec2IpUrl, { timeout: 500 });
       ip = await response.text();
+      console.log(`Local ip: ${ip}`);
     } catch (err) {
       this.logger.info('[route53Update] Not running on EC2, skipping update');
       return false;

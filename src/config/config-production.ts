@@ -79,6 +79,11 @@ function requestFilter(data: any) {
       && data.statusCode === 200) {
     return false;
   }
+  if (data.path
+      && data.path.indexOf('/health') === 0
+      && data.statusCode === 200) {
+    return false;
+  }
   return true;
 };
 

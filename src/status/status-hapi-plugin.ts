@@ -45,6 +45,7 @@ class StatusHapiPlugin {
       },
       config: {
         bind: this,
+        auth: false,
       },
     });
     server.route({
@@ -75,12 +76,8 @@ class StatusHapiPlugin {
 
   private async getHealthHandler(_request: Hapi.Request, reply: Hapi.IReply) {
     const state = await this.statusModule.getStatus(false);
-    const compacted = Object.keys(state).reduce((collected, key) => {
-      return Object.assign(collected, {[key]: state[key].active});
-    }, {});
     const systemStatus = Object.keys(state).map(key => state[key]).every(status => status.active);
-    return reply(compacted)
-      .code(systemStatus ? 200 : 503);
+    return reply(systemStatus ? 'OK' : 'SICK').code(systemStatus ? 200 : 503);
   }
 
   // This is intentionally async

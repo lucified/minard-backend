@@ -95,7 +95,7 @@ export default class MinardServer {
     this.logger.info('Charles public is up and listening on %s', this.publicServer.info.uri);
     this.logger.info('Charles private is up and listening on %s', this.privateServer.info.uri);
     await this.operationsPlugin.operationsModule.cleanupRunningDeployments();
-    await this.projectPlugin.registerHooks();
+    this.projectPlugin.registerHooks();
     return server;
   }
 

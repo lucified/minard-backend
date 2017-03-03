@@ -19,9 +19,7 @@ async function start() {
     await migrations.prepareDatabase();
     await minardServer.start();
     trapSignals(minardServer, minardServer.logger);
-    console.log('Attempting to register to Route53');
     await route53updater.update(localBaseUrl, route53Zone);
-    console.log('Possibly registered to Route53');
   } catch (err) {
     minardServer.logger.error('Error starting charles', err);
   }

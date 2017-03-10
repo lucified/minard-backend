@@ -182,7 +182,6 @@ export default class MinardServer {
     await server.register([
       this.authenticationPlugin.register,
       this.deploymentPlugin.register,
-      this.projectPlugin.register,
       this.ciProxy.register,
       this.statusPlugin.register,
       this.realtimePlugin.register,
@@ -211,6 +210,7 @@ export default class MinardServer {
     await server.register([
       this.deploymentPlugin.registerPrivate,
       this.statusPlugin.register,
+      this.projectPlugin.register,
     ]);
   }
 

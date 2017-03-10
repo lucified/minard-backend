@@ -193,7 +193,7 @@ services:
       - DB_NAME=gitlabhq_production
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - SYSTEMHOOK_BASEURL=http://charles:8000
+      - SYSTEMHOOK_BASEURL=http://charles:8001
       - EXTERNAL_BASEURL=http://localhost:8000
       - SCREENSHOT_URL_PATTERN=http://deploy-%s.charles.internal:8001
       - SCREENSHOTTER_BASEURL=http://screenshotter

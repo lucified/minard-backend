@@ -3,6 +3,7 @@ import * as auth from 'hapi-auth-jwt2';
 import { inject, injectable } from 'inversify';
 import * as Knex from 'knex';
 
+import { parseApiBranchId } from '../json-api';
 import * as Hapi from '../server/hapi';
 import { HapiPlugin } from '../server/hapi-register';
 import { IFetch } from '../shared/fetch';
@@ -202,11 +203,17 @@ class AuthenticationHapiPlugin extends HapiPlugin {
 
   public async validateUser(
     payload: AccessToken,
-    _request: any,
+    request: Hapi.Request,
     callback: (err: any, valid: boolean, credentials?: any) => void,
   ) {
-    // NOTE: we have just a single team at this point so no further checks are necessary
-    callback(undefined, validateSub(payload.sub));
+    if (!validateSub(payload.sub)) {
+      return callback(undefined, false);
+    }
+    const userName = sanitizeUsername(payload.sub);
+    const isAuthorized = await authorize(this.gitlab)(userName, request);
+
+
+    return callback(undefined, isAuthorized, payload);
   }
 
   public async validateAdmin(
@@ -334,6 +341,42 @@ export function findTeamByIdOrName(teamNameOrId: string | number) {
     || team.path === _teamNameOrId
     || team.id === parseInt(_teamNameOrId, 10);
 }
+
+export function authorize(gitlab: GitlabClient) {
+  return async (userName: string, request: Hapi.Request) => {
+    try {
+      // Check if we have a teamId passed in the request
+      const teamId = parseInt(request.params.teamId, 10);
+      if (!isNaN(teamId)) {
+        const team = await gitlab.getGroup(teamId, userName);    
+        return team.id === teamId;
+      }
+      
+      // Check if we can parse projectId from branchId
+      let projectId = NaN;
+      try {
+        const branchId = request.params.branchId;
+        projectId = parseApiBranchId(branchId)!.projectId;
+      } catch (error) {
+        // TODO: log error, or not
+      }
+      if (isNaN(projectId)) {
+        // Check if we have a projectId passed in the request
+        projectId = parseInt(request.params.projectId, 10);
+      }
+      if (!isNaN(projectId)) {
+        const project = await gitlab.getProject(projectId, userName);    
+        return project.id === projectId;
+      }    
+      return false;
+    } catch (error) {
+      // TODO: log error
+      return false;
+    }
+  }
+}
+
+
 
 export function accessTokenCookieSettings(
   domainOrBaseUrl: string,

@@ -5,7 +5,7 @@ import * as qs from 'querystring';
 
 import AuthenticationModule from '../authentication/authentication-module';
 import { IFetch, RequestInit, Response } from './fetch';
-import { Group, User } from './gitlab';
+import { Group, Project, User } from './gitlab';
 import { Logger, loggerInjectSymbol } from './logger';
 import { fetchInjectSymbol } from './types';
 
@@ -230,8 +230,16 @@ export class GitlabClient {
     return groups;
   }
 
-  public async getGroup(groupId: number) {
-    const group = await this.fetchJson<Group>(`groups/${groupId}`, true);
+  public async getGroup(groupId: number, userIdOrName?: number | string) {
+    let group: Group;
+    if (userIdOrName) {
+      const sudo = {
+        sudo: userIdOrName,
+      };
+      group = await this.fetchJson<Group>(`groups/${groupId}?${qs.stringify(sudo)}`, true);
+    } else {
+      group = await this.fetchJson<Group>(`groups/${groupId}`, true);
+    }
     if (!group || !group.id) {
       throw Boom.notFound(`No group found with id '${groupId}'`);
     }
@@ -244,6 +252,31 @@ export class GitlabClient {
     };
     return this.fetchJson<Group[]>(`groups?${qs.stringify(sudo)}`, true);
   }
+
+  public async getProject(projectId: number, userIdOrName?: number | string) {
+    let project: Project;
+    if (userIdOrName) {
+      const sudo = {
+        sudo: userIdOrName,
+      };
+      project = await this.fetchJson<Project>(`projects/${projectId}?${qs.stringify(sudo)}`, true);
+    } else {
+      project = await this.fetchJson<Project>(`projects/${projectId}`, true);
+    }
+    if (!project || !project.id) {
+      throw Boom.notFound(`No project found with id '${projectId}'`);
+    }
+    return project;
+  }
+
+  public async getUserProjects(userIdOrName: number | string) {
+    const sudo = {
+      sudo: userIdOrName,
+    };
+    return this.fetchJson<Project[]>(`projects?${qs.stringify(sudo)}`, true);
+  }
+
+
 
 }
 

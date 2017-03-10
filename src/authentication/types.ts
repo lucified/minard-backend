@@ -15,4 +15,6 @@ export interface AccessToken {
   scope: string;
   email: string;
   'https://minard.io/team_token'?: string;
+  username?: string;
+  teams?: number[];
 }

@@ -59,7 +59,9 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       },
       config: {
         bind: this,
-        cors: true,
+        cors: {
+          credentials: true,
+        },
       },
     }]);
     server.route({

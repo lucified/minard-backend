@@ -75,9 +75,7 @@ class StatusHapiPlugin {
   }
 
   private async getHealthHandler(_request: Hapi.Request, reply: Hapi.IReply) {
-    const state = await this.statusModule.getStatus(false);
-    const systemStatus = Object.keys(state).map(key => state[key]).every(status => status.active);
-    return reply(systemStatus ? 'OK' : 'SICK').code(systemStatus ? 200 : 503);
+    return reply('OK').code(200);
   }
 
   // This is intentionally async

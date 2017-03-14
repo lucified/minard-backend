@@ -7,11 +7,17 @@ import * as moment from 'moment';
 import * as Hapi from '../server/hapi';
 import { HapiRegister } from '../server/hapi-register';
 import { externalBaseUrlInjectSymbol } from '../server/types';
+import { GitlabClient } from '../shared/gitlab-client';
 import { parseApiBranchId, parseApiDeploymentId } from './conversions';
 import { JsonApiModule } from './json-api-module';
 import { serializeApiEntity } from './serialization';
 import { ApiEntities, ApiEntity } from './types';
 import { ViewEndpoints } from './view-endpoints';
+
+function applyHeaders(obj: any) {
+  obj.headers['content-type'] = 'application/vnd.api+json; charset=utf-8';
+  obj.headers['Access-Control-Allow-Origin'] = '*';
+}
 
 function onPreResponse(_server: Hapi.Server, request: Hapi.Request, reply: Hapi.IReply) {
   const response = request.response;
@@ -22,12 +28,6 @@ function onPreResponse(_server: Hapi.Server, request: Hapi.Request, reply: Hapi.
 
   if (request.method === 'options') {
     return reply.continue();
-  }
-
-  function applyHeaders(obj: any) {
-    const contentType = 'application/vnd.api+json; charset=utf-8';
-    obj.headers['content-type'] = contentType;
-    obj.headers['Access-Control-Allow-Origin'] = '*';
   }
 
   if (response.isBoom) {
@@ -77,21 +77,18 @@ export class JsonApiHapiPlugin {
   public static injectSymbol = Symbol('json-api-hapi-plugin');
 
   private baseUrl: string;
-  private jsonApi: JsonApiModule;
-  private viewEndpoints: ViewEndpoints;
 
   constructor(
-    @inject(JsonApiModule.injectSymbol) jsonApi: JsonApiModule,
+    @inject(JsonApiModule.injectSymbol) private readonly jsonApi: JsonApiModule,
     @inject(externalBaseUrlInjectSymbol) baseUrl: string,
-    @inject(ViewEndpoints.injectSymbol) viewEndpoints: ViewEndpoints,
+    @inject(ViewEndpoints.injectSymbol) private readonly viewEndpoints: ViewEndpoints,
+    @inject(GitlabClient.injectSymbol) private readonly gitlab: GitlabClient,
     ) {
-    this.jsonApi = jsonApi;
     this.register.attributes = {
       name: 'json-api-plugin',
       version: '1.0.0',
     };
     this.baseUrl = baseUrl + '/api';
-    this.viewEndpoints = viewEndpoints;
   }
 
   public register: HapiRegister = (server, _options, next) => {
@@ -163,6 +160,11 @@ export class JsonApiHapiPlugin {
       config: {
         bind: this,
         cors: true,
+        auth: 'customAuthorize',
+        pre: [{
+          method: this.authorizeProjectCreation,
+          assign: 'teamId',
+        }],
         validate: {
           payload: {
             data: Joi.object({
@@ -380,6 +382,11 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
+        auth: 'customAuthorize',
+        pre: [{
+          method: this.authorizeNotificationConfiguration,
+          assign: 'config',
+        }],
         validate: {
           payload: {
             data: Joi.object({
@@ -431,6 +438,11 @@ export class JsonApiHapiPlugin {
       config: {
         bind: this,
         cors: true,
+        auth: 'customAuthorize',
+        pre: [{
+          method: this.authorizeCommentCreation,
+          assign: 'deploymentId',
+        }],
         validate: {
           payload: {
             data: Joi.object({
@@ -495,9 +507,22 @@ export class JsonApiHapiPlugin {
     return reply(this.getEntity('project', api => api.getProjects(teamId)));
   }
 
+  private async authorizeProjectCreation(request: Hapi.Request, reply: Hapi.IReply) {
+    try {
+      const teamId = parseInt(request.payload.data.relationships.team.data.id, 10);
+      const team = await this.gitlab.getGroup(teamId, request.auth.credentials.username);
+      if (team.id === teamId) {
+        return reply(teamId);
+      }
+    } catch (exception) {
+      // TODO: log exception
+    }
+    return reply(Boom.unauthorized());
+  }
+
   private async postProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const { name, description, templateProjectId } = request.payload.data.attributes;
-    const teamId = request.payload.data.relationships.team.data.id;
+    const teamId = request.pre.teamId;
     const project = await this.jsonApi.createProject(teamId, name, description, templateProjectId);
     return reply(this.serializeApiEntity('project', project))
       .created(`/api/projects/${project.id}`);
@@ -589,20 +614,39 @@ export class JsonApiHapiPlugin {
     return reply(this.getEntity('notification', api => api.getProjectNotificationConfigurations(projectId)));
   }
 
+  private async authorizeNotificationConfiguration(request: Hapi.Request, reply: Hapi.IReply) {
+    try {
+      const config = request.payload.data.attributes;
+
+      config.teamId = config.teamId || null;
+      config.projectId = config.projectId || null;
+
+      if (!config.teamId && !config.projectId) {
+        return reply(Boom.badRequest('teamId or projectId should be defined'));
+      }
+      if (config.teamId && config.projectId) {
+        return reply(Boom.badRequest('teamId and projectId should not both be defined'));
+      }
+      if (config.projectId) {
+        const project = await this.gitlab.getProject(config.projectId, request.auth.credentials.username);
+        if (project.id === config.projectId) {
+          return reply(config);
+        }
+      }
+      if (config.teamId) {
+        const team = await this.gitlab.getGroup(config.teamId, request.auth.credentials.username);
+        if (team.id === config.teamId) {
+          return reply(config);
+        }
+      }
+    } catch (exception) {
+      // TODO: log exception
+    }
+    return reply(Boom.unauthorized());
+  }
+
   public async postNotificationConfigurationHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const config = request.payload.data.attributes;
-
-    config.teamId = config.teamId || null;
-    config.projectId = config.projectId || null;
-
-    if (!config.teamId && !config.projectId) {
-      throw Boom.badRequest('teamId or projectId should be defined');
-    }
-    if (config.teamId && config.projectId) {
-      throw Boom.badRequest('teamId and projectId should not both be defined');
-    }
-
-    const id = await this.jsonApi.createNotificationConfiguration(config);
+    const id = await this.jsonApi.createNotificationConfiguration(request.pre.config);
     return reply(this.getEntity('notification', async (api) => {
       const configuration = await api.getNotificationConfiguration(id);
       return configuration!;
@@ -615,15 +659,27 @@ export class JsonApiHapiPlugin {
     return reply({});
   }
 
+  private async authorizeCommentCreation(request: Hapi.Request, reply: Hapi.IReply) {
+    try {
+      const deploymentId = request.payload.data.attributes.deployment;
+      const parsed = parseApiDeploymentId(deploymentId);
+      if (!parsed) {
+        return reply(Boom.badRequest('Invalid deployment id'));
+      }
+      const project = await this.gitlab.getProject(parsed.projectId, request.auth.credentials.username);
+      if (project.id === parsed.projectId) {
+        return reply(parsed.deploymentId);
+      }
+    } catch (exception) {
+      // TODO: log exception
+    }
+    return reply(Boom.unauthorized());
+  }
+
   public async createCommentHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const { name, email, message } = request.payload.data.attributes;
-    const deploymentId = request.payload.data.attributes.deployment;
-    const parsed = parseApiDeploymentId(deploymentId);
-    if (!parsed) {
-      throw Boom.badRequest('Invalid deployment id');
-    }
     const comment = await this.jsonApi.addComment(
-        parsed.deploymentId, email, message, name || undefined);
+        request.pre.deploymentId, email, message, name || undefined);
     return reply(this.serializeApiEntity('comment', comment))
       .created(`/api/comments/${comment.id}`);
   }

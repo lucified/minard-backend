@@ -7,7 +7,6 @@ import * as moment from 'moment';
 import * as Hapi from '../server/hapi';
 import { HapiRegister } from '../server/hapi-register';
 import { externalBaseUrlInjectSymbol } from '../server/types';
-import { GitlabClient } from '../shared/gitlab-client';
 import { parseApiBranchId, parseApiDeploymentId } from './conversions';
 import { JsonApiModule } from './json-api-module';
 import { serializeApiEntity } from './serialization';
@@ -82,7 +81,6 @@ export class JsonApiHapiPlugin {
     @inject(JsonApiModule.injectSymbol) private readonly jsonApi: JsonApiModule,
     @inject(externalBaseUrlInjectSymbol) baseUrl: string,
     @inject(ViewEndpoints.injectSymbol) private readonly viewEndpoints: ViewEndpoints,
-    @inject(GitlabClient.injectSymbol) private readonly gitlab: GitlabClient,
     ) {
     this.register.attributes = {
       name: 'json-api-plugin',
@@ -331,6 +329,13 @@ export class JsonApiHapiPlugin {
       config: {
         bind: this,
         cors: true,
+        pre: [{
+          method: this.authorizeActivityListing,
+          assign: 'filter',
+        }, {
+          method: this.authorizeTeamOrProjectAccess,
+          assign: 'config',
+        }],
         validate: {
           query: {
             until: Joi.date(),
@@ -366,6 +371,11 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
+        auth: 'customAuthorize',
+        pre: [{
+          method: this.authorizeNotificationRemoval,
+          assign: 'notificationId',
+        }],
         validate: {
           params: {
             id: Joi.number().required(),
@@ -385,6 +395,9 @@ export class JsonApiHapiPlugin {
         auth: 'customAuthorize',
         pre: [{
           method: this.authorizeNotificationConfiguration,
+          assign: 'filter',
+        }, {
+          method: this.authorizeTeamOrProjectAccess,
           assign: 'config',
         }],
         validate: {
@@ -421,6 +434,11 @@ export class JsonApiHapiPlugin {
       config: {
         bind: this,
         cors: true,
+        auth: 'customAuthorize',
+        pre: [{
+          method: this.authorizeCommentRemoval,
+          assign: 'commentId',
+        }],
         validate: {
           params: {
             id: Joi.number().required(),
@@ -510,7 +528,7 @@ export class JsonApiHapiPlugin {
   private async authorizeProjectCreation(request: Hapi.Request, reply: Hapi.IReply) {
     try {
       const teamId = parseInt(request.payload.data.relationships.team.data.id, 10);
-      const team = await this.gitlab.getGroup(teamId, request.auth.credentials.username);
+      const team = await request.gitlab.getGroup(teamId, request.auth.credentials.username);
       if (team.id === teamId) {
         return reply(teamId);
       }
@@ -591,16 +609,24 @@ export class JsonApiHapiPlugin {
     return reply(this.getEntity('commit', api => api.getCommit(projectId, hash)));
   }
 
-  private async getActivityHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const filter = request.query.filter as string;
-    const filterOptions = parseActivityFilter(filter);
-    const { projectId, teamId } = filterOptions;
-    const { until, count } = request.query;
-    if (projectId !== null) {
-      return reply(this.getEntity('activity', api => api.getProjectActivity(projectId, until, count)));
+  private async authorizeActivityListing(request: Hapi.Request, reply: Hapi.IReply) {
+    try {
+      const filter = request.query.filter as string;
+      return reply(parseActivityFilter(filter));
+    } catch (exception) {
+      return reply(Boom.badRequest());
     }
-    if (teamId !== null) {
-      return reply(this.getEntity('activity', api => api.getTeamActivity(teamId, until, count)));
+  }
+
+
+  private async getActivityHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    const filter = request.pre.config;
+    const { until, count } = request.query;
+    if (filter.projectId !== null) {
+      return reply(this.getEntity('activity', api => api.getProjectActivity(filter.projectId, until, count)));
+    }
+    if (filter.teamId !== null) {
+      return reply(this.getEntity('activity', api => api.getTeamActivity(filter.teamId, until, count)));
     }
     throw Boom.badRequest('team or project filter must be specified');
   }
@@ -616,7 +642,15 @@ export class JsonApiHapiPlugin {
 
   private async authorizeNotificationConfiguration(request: Hapi.Request, reply: Hapi.IReply) {
     try {
-      const config = request.payload.data.attributes;
+      reply(request.payload.data.attributes);
+    } catch (error) {
+      reply(Boom.badRequest());
+    }
+  }
+
+  private async authorizeTeamOrProjectAccess(request: Hapi.Request, reply: Hapi.IReply) {
+    try {
+      const config = request.pre.filter;
 
       config.teamId = config.teamId || null;
       config.projectId = config.projectId || null;
@@ -628,15 +662,37 @@ export class JsonApiHapiPlugin {
         return reply(Boom.badRequest('teamId and projectId should not both be defined'));
       }
       if (config.projectId) {
-        const project = await this.gitlab.getProject(config.projectId, request.auth.credentials.username);
+        const project = await request.gitlab.getProject(config.projectId, request.auth.credentials.username);
         if (project.id === config.projectId) {
           return reply(config);
         }
       }
       if (config.teamId) {
-        const team = await this.gitlab.getGroup(config.teamId, request.auth.credentials.username);
+        const team = await request.gitlab.getGroup(config.teamId, request.auth.credentials.username);
         if (team.id === config.teamId) {
           return reply(config);
+        }
+      }
+    } catch (exception) {
+      // TODO: log exception
+    }
+    return reply(Boom.unauthorized());
+  }
+
+  private async authorizeNotificationRemoval(request: Hapi.Request, reply: Hapi.IReply) {
+    try {
+      const { id } = request.params;
+      const configuration =  await this.jsonApi.getNotificationConfiguration(Number(id));
+      if (configuration && configuration.projectId) {
+        const project = await request.gitlab.getProject(configuration.projectId, request.auth.credentials.username);
+        if (project.id === configuration.projectId) {
+          return reply(Number(id));
+        }
+      }
+      if (configuration && configuration.teamId) {
+        const team = await request.gitlab.getGroup(configuration.teamId, request.auth.credentials.username);
+        if (team.id === configuration.teamId) {
+          return reply(Number(id));
         }
       }
     } catch (exception) {
@@ -666,9 +722,23 @@ export class JsonApiHapiPlugin {
       if (!parsed) {
         return reply(Boom.badRequest('Invalid deployment id'));
       }
-      const project = await this.gitlab.getProject(parsed.projectId, request.auth.credentials.username);
+      const project = await request.gitlab.getProject(parsed.projectId, request.auth.credentials.username);
       if (project.id === parsed.projectId) {
         return reply(parsed.deploymentId);
+      }
+    } catch (exception) {
+      // TODO: log exception
+    }
+    return reply(Boom.unauthorized());
+  }
+
+  private async authorizeCommentRemoval(request: Hapi.Request, reply: Hapi.IReply) {
+    try {
+      const { id } = request.params;
+      const comment =  await this.jsonApi.getComment(Number(id));
+      const project = await request.gitlab.getProject(comment.project, request.auth.credentials.username);
+      if (project && project.id === comment.project) {
+        return reply(Number(id));
       }
     } catch (exception) {
       // TODO: log exception
@@ -685,8 +755,7 @@ export class JsonApiHapiPlugin {
   }
 
   public async deleteCommentHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const { id } = request.params;
-    await this.jsonApi.deleteComment(Number(id));
+    await this.jsonApi.deleteComment(request.pre.commentId);
     return reply({});
   }
 

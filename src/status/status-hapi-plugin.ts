@@ -39,7 +39,6 @@ class StatusHapiPlugin {
     next();
   }
 
-
   private getRoutes(auth = true) {
     return [{
       method: 'GET',

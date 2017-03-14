@@ -1,24 +1,27 @@
 
-import { expect } from 'chai';
+import { expect, use } from 'chai';
 import * as moment from 'moment';
 import * as queryString from 'querystring';
 import 'reflect-metadata';
+import * as sinon from 'sinon';
+import * as sinonChai from 'sinon-chai';
+use(sinonChai);
 
-import * as Hapi from '../server/hapi';
+import { skipAuth } from '../authentication/authentication-hapi-plugin';
+import { get, kernel } from '../config';
+import { getTestServer, IServerInjectOptions } from '../server/hapi';
+import { fetchMock } from '../shared/fetch';
 import { MINARD_ERROR_CODE } from '../shared/minard-error';
 import { JsonApiHapiPlugin, parseActivityFilter } from './json-api-hapi-plugin';
 import { JsonApiModule } from './json-api-module';
 
-const provisionServer = async (plugin: JsonApiHapiPlugin) => {
-  const server = Hapi.getServer();
-  server.connection({ port: 8080 });
-  const options = {
-    register: plugin.register,
+const provisionServer = async (plugin?: JsonApiHapiPlugin) => {
+  const server = await getTestServer({ register: skipAuth }, {
+    register: (plugin || get<JsonApiHapiPlugin>(JsonApiHapiPlugin.injectSymbol)).register,
     routes: {
-        prefix: '/api',
+      prefix: '/api',
     },
-  };
-  await server.register([options]);
+  });
   return server;
 };
 
@@ -26,8 +29,24 @@ const baseUrl = 'http://localhost:8000';
 
 describe('json-api-hapi-plugin', () => {
 
+  let stubs: sinon.SinonStub[];
+
+  const stubJsonApi = (stubber: (api: JsonApiModule) => sinon.SinonStub | sinon.SinonStub[]) => {
+    const jsonApiModule = get<JsonApiModule>(JsonApiModule.injectSymbol);
+    stubs = stubs.concat(stubber(jsonApiModule));
+    kernel.rebind(JsonApiModule.injectSymbol).toConstantValue(jsonApiModule);
+    return jsonApiModule;
+  };
+  beforeEach(async () => {
+    fetchMock.restore();
+    stubs = [];
+  });
+  afterEach(() => {
+    stubs.forEach(stub => stub.restore());
+  });
+
   describe('activity route', () => {
-    it('should correctly get project activity', async() => {
+    it('should correctly get project activity', async () => {
       // Arrange
       const jsonApiModule = {
         getProjectActivity: async (_projectId: number) => {
@@ -41,11 +60,11 @@ describe('json-api-hapi-plugin', () => {
           ];
         },
       } as JsonApiModule;
-      const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any);
+      const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any, {} as any);
       const server = await provisionServer(plugin);
 
       // Act
-      const options: Hapi.IServerInjectOptions = {
+      const options: IServerInjectOptions = {
         method: 'GET',
         url: 'http://foo.com/api/activity?filter=project[2]',
       };
@@ -59,7 +78,7 @@ describe('json-api-hapi-plugin', () => {
       expect(parsed.data[0].type).to.equal('activities');
     });
 
-    it('should correctly get team activity', async() => {
+    it('should correctly get team activity', async () => {
       // Arrange
       const teamId = 6;
       const jsonApiModule = {
@@ -75,11 +94,11 @@ describe('json-api-hapi-plugin', () => {
           ];
         },
       } as JsonApiModule;
-      const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any);
+      const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any, {} as any);
       const server = await provisionServer(plugin);
 
       // Act
-      const options: Hapi.IServerInjectOptions = {
+      const options: IServerInjectOptions = {
         method: 'GET',
         url: 'http://foo.com/api/activity?filter=team[6]',
       };
@@ -124,19 +143,19 @@ describe('json-api-hapi-plugin', () => {
   describe('POST "/projects"', () => {
     const projectId = 4;
     async function injectRequest(teamId: any, name: string, description: string | undefined) {
-      const jsonApiModule = {
-        createProject: async (_teamId: number, _name: string, _description: string) => {
-          return {
-            id: projectId,
-            teamId: _teamId,
-            name: _name,
-            description: _description,
-          } as any;
-        },
-      } as JsonApiModule;
-      const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any);
-      const server = await provisionServer(plugin);
-      const options: Hapi.IServerInjectOptions = {
+      stubJsonApi(api => sinon.stub(api, 'createProject')
+        .returns(Promise.resolve({
+          id: projectId,
+          teamId,
+          name,
+          description,
+        })));
+      const path = new RegExp(`/groups/${teamId}\\?sudo=`);
+      fetchMock.mock(path, {
+        id: teamId,
+      });
+      const server = await provisionServer();
+      const options: IServerInjectOptions = {
         method: 'POST',
         url: 'http://foo.com/api/projects',
         headers: {
@@ -161,7 +180,7 @@ describe('json-api-hapi-plugin', () => {
       return await server.inject(options);
     }
 
-    it('should create project with valid arguments', async() => {
+    it('should create project with valid arguments', async () => {
       // Arrange & Act
       const teamId = 5;
       const name = 'foo-bar';
@@ -170,7 +189,7 @@ describe('json-api-hapi-plugin', () => {
       // Assert
       expect(ret).to.exist;
       const parsed = JSON.parse(ret.payload);
-      expect(ret.statusCode).to.equal(201);
+      expect(ret.statusCode, ret.payload).to.equal(201);
       expect(parsed.data.type).to.equal('projects');
       expect(parsed.data.id).to.equal(String(projectId));
       expect(parsed.data.attributes.name).to.equal(name);
@@ -178,37 +197,37 @@ describe('json-api-hapi-plugin', () => {
       expect(ret.headers['access-control-allow-origin']).to.equal('foo.com');
     });
 
-    it('should create project when no description is provided', async() => {
+    it('should create project when no description is provided', async () => {
       const ret = await injectRequest(5, 'foo-bar', undefined);
       expect(ret).to.exist;
       expect(ret.statusCode).to.equal(201);
     });
 
-    it('should respond with BAD_REQUEST when project name has whitespace', async() => {
+    it('should respond with BAD_REQUEST when project name has whitespace', async () => {
       const ret = await injectRequest(5, 'foo bar', undefined);
       expect(ret).to.exist;
       expect(ret.statusCode).to.equal(MINARD_ERROR_CODE.BAD_REQUEST);
     });
 
-    it('should respond with BAD_REQUEST when project name has a special character', async() => {
+    it('should respond with BAD_REQUEST when project name has a special character', async () => {
       const ret = await injectRequest(5, 'foo%bar', undefined);
       expect(ret).to.exist;
       expect(ret.statusCode).to.equal(MINARD_ERROR_CODE.BAD_REQUEST);
     });
 
-    it('should respond with BAD_REQUEST when project name is undefined', async() => {
+    it('should respond with BAD_REQUEST when project name is undefined', async () => {
       const ret = await injectRequest(5, 'foo%bar', undefined);
       expect(ret).to.exist;
       expect(ret.statusCode).to.equal(MINARD_ERROR_CODE.BAD_REQUEST);
     });
 
-    it('should respond with BAD_REQUEST when team id is undefined', async() => {
+    it('should respond with BAD_REQUEST when team id is undefined', async () => {
       const ret = await injectRequest(undefined, 'foo%bar', undefined);
       expect(ret).to.exist;
       expect(ret.statusCode).to.equal(MINARD_ERROR_CODE.BAD_REQUEST);
     });
 
-    it('should respond with BAD_REQUEST when team id is not a number', async() => {
+    it('should respond with BAD_REQUEST when team id is not a number', async () => {
       const ret = await injectRequest('foo5', 'foo-bar', undefined);
       expect(ret).to.exist;
       expect(ret.statusCode).to.equal(MINARD_ERROR_CODE.BAD_REQUEST);
@@ -221,7 +240,7 @@ describe('json-api-hapi-plugin', () => {
       name: string | undefined,
       description: string | undefined) {
       const jsonApiModule = {
-        editProject: async (_projectId: number, attributes: { name: string, description: string}) => {
+        editProject: async (_projectId: number, attributes: { name: string, description: string }) => {
           return {
             id: _projectId,
             name: attributes.name,
@@ -229,9 +248,9 @@ describe('json-api-hapi-plugin', () => {
           };
         },
       } as JsonApiModule;
-      const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any);
+      const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any, {} as any);
       const server = await provisionServer(plugin);
-      const options: Hapi.IServerInjectOptions = {
+      const options: IServerInjectOptions = {
         method: 'PATCH',
         url: `http://foo.com/api/projects/${projectId}`,
         payload: {
@@ -262,7 +281,7 @@ describe('json-api-hapi-plugin', () => {
       return parsed;
     }
 
-    it('should edit project when both name and description provided', async() => {
+    it('should edit project when both name and description provided', async () => {
       const name = 'foo-bar';
       const description = 'foo description';
       const ret = await shouldSucceed(name, description);
@@ -270,27 +289,27 @@ describe('json-api-hapi-plugin', () => {
       expect(ret.data.attributes.description).to.equal(description);
     });
 
-    it('should edit project when only name provided', async() => {
+    it('should edit project when only name provided', async () => {
       await shouldSucceed('foo-bar', undefined);
     });
 
-    it('should edit project when only description provided', async() => {
+    it('should edit project when only description provided', async () => {
       await shouldSucceed(undefined, 'foo description');
     });
 
-    it('should respond with BAD_REQUEST when project name has whitespace', async() => {
+    it('should respond with BAD_REQUEST when project name has whitespace', async () => {
       const ret = await injectRequest(5, 'foo bar', undefined);
       expect(ret).to.exist;
       expect(ret.statusCode).to.equal(MINARD_ERROR_CODE.BAD_REQUEST);
     });
 
-    it('should respond with BAD_REQUEST when project name has a special character', async() => {
+    it('should respond with BAD_REQUEST when project name has a special character', async () => {
       const ret = await injectRequest(5, 'foo%bar', undefined);
       expect(ret).to.exist;
       expect(ret.statusCode).to.equal(MINARD_ERROR_CODE.BAD_REQUEST);
     });
 
-    it('should respond with BAD_REQUEST when neither project name or description is provided', async() => {
+    it('should respond with BAD_REQUEST when neither project name or description is provided', async () => {
       const ret = await injectRequest(5, undefined, undefined);
       expect(ret).to.exist;
       expect(ret.statusCode).to.equal(MINARD_ERROR_CODE.BAD_REQUEST);
@@ -322,12 +341,12 @@ describe('json-api-hapi-plugin', () => {
           return [{}, {}];
         },
       } as JsonApiModule;
-      const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any);
+      const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any, {} as any);
       const server = await provisionServer(plugin);
-      const options: Hapi.IServerInjectOptions = {
+      const options: IServerInjectOptions = {
         method: 'GET',
         url: `http://foo.com/api/branches/${projectId}-${branchName}/relationships/commits` +
-          `?${queryString.stringify(params)}`,
+        `?${queryString.stringify(params)}`,
       };
       return await server.inject(options);
     }

@@ -121,11 +121,15 @@ class DeploymentHapiPlugin {
       handler: (_request: Hapi.Request, reply: Hapi.IReply) => {
         reply.file('favicon.ico');
       },
+      config: {
+        auth: false,
+      },
     }, {
       method: 'GET',
       path: '/raw-deployment-handler/{param*}',
       handler: directoryHandler,
       config: {
+        auth: 'customAuthorize',
         pre: [
           { method: this.parseHost.bind(this), assign: 'key' },
           { method: this.preCheck.bind(this) },
@@ -138,6 +142,7 @@ class DeploymentHapiPlugin {
       handler: directoryHandler,
       config: {
         cors: true,
+        auth: 'customAuthorize',
         validate: {
           params: {
             projectId: Joi.number().required(),
@@ -189,7 +194,7 @@ class DeploymentHapiPlugin {
     return path.join(this.deploymentModule.getDeploymentPath(projectId, deploymentId));
   }
 
-  private parseHost(request: Hapi.Request, reply: Hapi.IReply) {
+  private async parseHost(request: Hapi.Request, reply: Hapi.IReply) {
     const key = getDeploymentKeyFromHost(request.info.hostname);
 
     if (!key) {
@@ -199,6 +204,7 @@ class DeploymentHapiPlugin {
       ));
     }
     return reply(key);
+
   }
 
   // internal method
@@ -219,6 +225,15 @@ class DeploymentHapiPlugin {
 
     if (!shortId) {
       return reply(Boom.badRequest('URL is missing commit hash'));
+    }
+
+    try {
+      const project = await request.gitlab.getProject(projectId, request.auth.credentials.username);
+      if (project.id !== projectId) {
+        throw new Error('Unauthorized');
+      }
+    } catch (exception) {
+      return reply(Boom.unauthorized());
     }
 
     try {

@@ -7,17 +7,28 @@
 
 import { Observable } from '@reactivex/rxjs';
 import { expect } from 'chai';
-import { spawn } from 'child_process';
+import * as Knex from 'knex';
 import { keys } from 'lodash';
 import 'reflect-metadata';
 
-import { generateTeamToken } from '../authentication/team-token';
+import { generateAndSaveTeamToken, TeamToken } from '../authentication/team-token';
+import { get } from '../config';
 import { getAccessToken } from '../config/config-test';
 import { JsonApiEntity, JsonApiResponse } from '../json-api';
-import { fetch as originalFetch, RequestInit, Response } from '../shared/fetch';
-
-import * as chalk from 'chalk';
-
+import { fetch as originalFetch } from '../shared/fetch';
+import { Group, User } from '../shared/gitlab';
+import { GitlabClient } from '../shared/gitlab-client';
+import { charlesKnexInjectSymbol } from '../shared/types';
+import {
+  Fetch,
+  fetchFactory,
+  log,
+  logTitle,
+  prettyUrl,
+  runCommand,
+  sleep,
+} from './utils';
+const randomstring = require('randomstring');
 const EventSource = require('eventsource');
 
 interface SSE {
@@ -26,86 +37,39 @@ interface SSE {
   data: any;
 }
 
-const teamId = process.env.TEAM_ID ? process.env.TEAM_ID : 2;
 const flowToken = process.env.FLOWDOCK_FLOW_TOKEN;
 const projectFolder = process.env.SYSTEM_TEST_PROJECT ? process.env.SYSTEM_TEST_PROJECT : 'blank';
-const charles_credentials = process.env.CHARLES_CREDENTIALS ? process.env.CHARLES_CREDENTIALS + '@' : '';
-let charles = process.env.CHARLES ? process.env.CHARLES : 'http://localhost:8000';
+const charles = process.env.CHARLES ? process.env.CHARLES : 'http://localhost:8000';
+const charlesPrivate = process.env.CHARLES_PRIVATE ? process.env.CHARLES_PRIVATE : 'http://localhost:8001';
 const git_password = process.env.GIT_PASSWORD ? process.env.GIT_PASSWORD : '12345678';
 const hipchatRoomId = process.env.HIPCHAT_ROOM_ID ? process.env.HIPCHAT_ROOM_ID : 3140019;
 const hipchatAuthToken = process.env.HIPCHAT_AUTH_TOKEN ? process.env.HIPCHAT_AUTH_TOKEN : undefined;
-
 const skipDeleteProject = process.env.SKIP_DELETE_PROJECT ? true : false;
 
-charles = charles.replace('//', `//${charles_credentials}`);
 console.log(`Project is ${projectFolder}`);
 console.log(`Charles is ${charles}`);
 
-function sleep(ms = 0) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-async function fetchWithRetry(url: string, options?: RequestInit, retryCount = 5): Promise<Response> {
-  for (let i = 0; i < retryCount; i++) {
-    try {
-      return await fetch(url, options);
-    } catch (err) {
-      log(`WARN: Fetch failed for url ${url}. Error message is '${err.message}'`);
-      await sleep(2000);
-    }
-  }
-  throw Error(`Fetch failed ${retryCount} times for url ${url}`);
-}
-
-const accessToken = getAccessToken('idp|232342', generateTeamToken(), 'foo@bar.com');
-
-async function fetch(url: string, options?: RequestInit): Promise<Response> {
-  let _options: RequestInit = {
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-    },
-  };
-  if (options) {
-    _options = {..._options, ...options};
-  }
-  return await originalFetch(url, _options);
-}
-
-async function runCommand(command: string, ...args: string[]): Promise<boolean> {
-  const stdio: any = 'inherit';
-  return await new Promise<boolean>((resolve, reject) => {
-    const child = spawn(command, args, { stdio });
-    child.on('close', (code: any) => {
-      if (code !== 0) {
-        console.log(`process exited with code ${code}`);
-        reject(code);
-        return;
-      }
-      resolve(true);
-    });
-    child.on('error', (err: any) => {
-      console.log(`process exited with code ${err}`);
-      reject(err);
-    });
-  });
-}
-
-function log(text: string) {
-  console.log(`    ${chalk.cyan(text)}`);
-}
-
-function logTitle(text: string) {
-  console.log(`   ${chalk.magenta(text)}`);
-}
-
-function prettyUrl(url: string) {
-  return chalk.blue.underline(url);
-}
+const gitlab = get<GitlabClient>(GitlabClient.injectSymbol);
+const charlesDb = get<Knex>(charlesKnexInjectSymbol);
 
 describe('system-integration', () => {
 
   const projectName = 'integration-test-project';
   const projectCopyName = 'integration-test-project-copy';
+  const adminTeamName = 'integrationTestAdminTeam';
+  const randomComponent = randomstring.generate({ length: 5, charset: 'alphanumeric', readable: true });
+  const teamName = 'integrationTestTeam' + randomComponent;
+  const teamPath = 'integration-test-team-' + randomComponent;
+
+  let adminTeam: Group;
+  let admin: User;
+  let adminFetch: Fetch;
+  let adminAccessToken: string;
+  let userTeam: Group;
+  let user: User;
+  let userFetch: Fetch;
+  let userFetchWithRetry: Fetch;
+  let userAccessToken: string;
   let projectId: number | undefined;
   let copyProjectId: number | undefined;
   let deploymentId: string | undefined;
@@ -115,16 +79,39 @@ describe('system-integration', () => {
   let oldCopyProjectId: number | undefined;
   let commentId: number | undefined;
 
+  before(async function () {
+    this.timeout(1000 * 10);
+    try {
+      adminTeam = await gitlab.createGroup(adminTeamName, adminTeamName.toLowerCase());
+    } catch (error) {
+      adminTeam = await gitlab.getGroup(adminTeamName.toLowerCase());
+    }
+    try {
+      userTeam = await gitlab.createGroup(teamName, teamPath);
+    } catch (error) {
+      userTeam = await gitlab.getGroup(teamPath);
+    }
+  });
+  after(async function () {
+    this.timeout(1000 * 10);
+    try {
+      await gitlab.deleteGroup(adminTeam.id);
+      await gitlab.deleteGroup(userTeam.id);
+    } catch (error) {
+      console.error(error);
+    }
+  });
+
   it('status should be ok', async function() {
     logTitle('Checking that status is ok');
     this.timeout(1000 * 60 * 15);
-    const url = `${charles}/status`;
+    const url = `${charlesPrivate}/status`;
     log(`Requesting status from ${prettyUrl(url)}`);
     let statusOk = false;
     while (!statusOk) {
       statusOk = true;
       try {
-        const ret = await fetch(url);
+        const ret = await originalFetch(url);
         expect(ret.status).to.equal(200);
         const statuses = await ret.json();
         expect(keys(statuses)).to.have.length(6);
@@ -147,14 +134,45 @@ describe('system-integration', () => {
     }
   });
 
+  it('should successfully sign up users with team-tokens', async function () {
+    this.timeout(1000 * 30);
+    logTitle(`Creating an admin user to the admin team ${adminTeam.name}`);
+    const adminTeamToken = await generateAndSaveTeamToken(adminTeam.id, charlesDb);
+    adminAccessToken = getAccessToken(
+      `integration|1${randomComponent}`,
+      adminTeamToken.token,
+      `admin${randomComponent}@integration.com`,
+    );
+    adminFetch = fetchFactory(adminAccessToken);
+    let response = await adminFetch(`${charles}/signup`);
+    expect(response.status).to.eq(201);
+    admin = await response.tryJson<User>();
+
+    logTitle(`Signing up a user to team ${userTeam.name}`);
+    const userTeamToken = await (await adminFetch(`${charles}/team-token/${userTeam.id}`, { method: 'POST' }))
+      .tryJson<TeamToken>();
+    userAccessToken = getAccessToken(
+      `integration|2${randomComponent}`,
+      userTeamToken.token,
+      `user${randomComponent}@integration.com`,
+    );
+    userFetch = fetchFactory(userAccessToken);
+    userFetchWithRetry = fetchFactory(userAccessToken, 5);
+
+    response = await userFetch(`${charles}/signup`);
+    expect(response.status).to.eq(201);
+    user = await response.tryJson<User>();
+
+  });
+
   it('should successfully respond to request for team projects', async function() {
     logTitle('Requesting team projects');
     this.timeout(1000 * 30);
-    const url = `${charles}/api/teams/${teamId}/relationships/projects`;
+    const url = `${charles}/api/teams/${userTeam.id}/relationships/projects`;
     log(`Using URL ${prettyUrl(url)}`);
-    const ret = await fetchWithRetry(url);
+    const ret = await userFetchWithRetry(url);
     if (ret.status === 404) {
-      expect.fail(`Received 404 when getting team projects. Make sure team with id ${teamId} exists`);
+      expect.fail(`Received 404 when getting team projects. Make sure team with id ${userTeam.id} exists`);
     }
     expect(ret.status).to.equal(200);
     const json = await ret.json();
@@ -178,7 +196,7 @@ describe('system-integration', () => {
   async function shouldAllowForDeletingProject(_oldProjectId?: number) {
     if (_oldProjectId) {
       logTitle(`Deleting old integration-test-project (${_oldProjectId})`);
-      const ret = await fetchWithRetry(`${charles}/api/projects/${_oldProjectId}`, {
+      const ret = await userFetchWithRetry(`${charles}/api/projects/${_oldProjectId}`, {
         method: 'DELETE',
       });
       expect(ret.status).to.equal(200);
@@ -207,7 +225,7 @@ describe('system-integration', () => {
           'team': {
             'data': {
               'type': 'teams',
-              'id': teamId,
+              'id': userTeam.id,
             },
           },
         },
@@ -215,7 +233,7 @@ describe('system-integration', () => {
     };
     let _projectId: number | undefined;
     while (!_projectId) {
-      const ret = await fetchWithRetry(`${charles}/api/projects`, {
+      const ret = await userFetchWithRetry(`${charles}/api/projects`, {
         method: 'POST',
         body: JSON.stringify(createProjectPayload),
       });
@@ -261,7 +279,7 @@ describe('system-integration', () => {
         },
       },
     };
-    const ret = await fetch(`${charles}/api/notifications`, {
+    const ret = await userFetch(`${charles}/api/notifications`, {
       method: 'POST',
       body: JSON.stringify(createNotificationPayload),
     });
@@ -283,13 +301,13 @@ describe('system-integration', () => {
         'type': 'notifications',
         'attributes': {
           type: 'hipchat',
-          teamId,
+          teamId: userTeam.id,
           hipchatAuthToken,
           hipchatRoomId,
         },
       },
     };
-    const ret = await fetch(`${charles}/api/notifications`, {
+    const ret = await userFetch(`${charles}/api/notifications`, {
       method: 'POST',
       body: JSON.stringify(createNotificationPayload),
     });
@@ -328,7 +346,7 @@ describe('system-integration', () => {
     const url = `${charles}/api/projects/${projectId}/relationships/branches`;
     log(`Using URL ${prettyUrl(url)}`);
     while (!deploymentId) {
-      const ret = await fetchWithRetry(url);
+      const ret = await userFetchWithRetry(url);
       expect(ret.status).to.equal(200);
       const json = await ret.json() as JsonApiResponse;
       const data = json.data as JsonApiEntity[];
@@ -353,9 +371,9 @@ describe('system-integration', () => {
     const url = `${charles}/api/deployments/${deploymentId}`;
     log(`Fetching information on deployment from ${prettyUrl(url)}`);
     while (!deployment || deployment.attributes.status !== 'success') {
-      const ret = await fetchWithRetry(url, undefined, 999);
+      const ret = await fetchFactory(userAccessToken, 999)(url);
       expect(ret.status).to.equal(200);
-      const json = await ret.json() as JsonApiResponse;
+      const json = await ret.tryJson<JsonApiResponse>();
       deployment = json.data as JsonApiEntity;
       expect(deployment.attributes.status).to.exist;
       if (['running', 'pending', 'success'].indexOf(deployment.attributes.status) === -1) {
@@ -376,7 +394,7 @@ describe('system-integration', () => {
     log(`Fetching deployment from ${prettyUrl(url)}`);
     let status = 0;
     while (status !== 200) {
-      const ret = await fetchWithRetry(url, 999);
+      const ret = await fetchFactory(userAccessToken, 999)(url);
       status = ret.status;
       if (status !== 200) {
         log(`Charles responded with ${status} for deployment request. Waiting for two seconds.`);
@@ -391,7 +409,7 @@ describe('system-integration', () => {
     let screenshot: string | undefined;
     while (!screenshot) {
       try {
-        const ret = await fetch(`${charles}/api/deployments/${deploymentId}`);
+        const ret = await userFetch(`${charles}/api/deployments/${deploymentId}`);
         expect(ret.status).to.equal(200);
         const json = await ret.json() as JsonApiResponse;
         deployment = json.data as JsonApiEntity;
@@ -406,8 +424,7 @@ describe('system-integration', () => {
       }
     }
     log(`Fetching screenshot from ${prettyUrl(screenshot)}`);
-    screenshot = screenshot.replace('//', `//${charles_credentials}`);
-    const ret = await fetchWithRetry(screenshot);
+    const ret = await userFetchWithRetry(screenshot);
     expect(ret.status).to.equal(200);
   });
 
@@ -417,7 +434,7 @@ describe('system-integration', () => {
     await sleep(500);
     const url = `${charles}/api/activity?filter=project[${projectId}]`;
     log(`Fetching activity from ${prettyUrl(url)}`);
-    const ret = await fetch(url);
+    const ret = await userFetch(url);
     expect(ret.status).to.equal(200);
     const json = await ret.json();
     expect(json.data).to.exist;
@@ -442,7 +459,7 @@ describe('system-integration', () => {
         },
       },
     };
-    const ret = await fetch(`${charles}/api/projects/${projectId}`, {
+    const ret = await userFetch(`${charles}/api/projects/${projectId}`, {
       method: 'PATCH',
       body: JSON.stringify(editProjectPayload),
     });
@@ -466,7 +483,7 @@ describe('system-integration', () => {
         },
       },
     };
-    const ret = await fetch(`${charles}/api/comments`, {
+    const ret = await userFetch(`${charles}/api/comments`, {
       method: 'POST',
       body: JSON.stringify(addCommentPayload),
     });
@@ -483,7 +500,7 @@ describe('system-integration', () => {
     const url = `${charles}/api/comments/deployment/${deploymentId}`;
     log(`Using URL ${prettyUrl(url)}`);
     this.timeout(1000 * 10);
-    const ret = await fetch(url);
+    const ret = await userFetch(url);
     expect(ret.status).to.equal(200);
     const json = await ret.json();
     expect(json.data.length).to.equal(1);
@@ -495,7 +512,7 @@ describe('system-integration', () => {
     this.timeout(1000 * 10);
     const url = `${charles}/api/comments/${commentId}`;
     log(`Using URL ${prettyUrl(url)} (with method DELETE)`);
-    const ret = await fetch(url, { method: 'DELETE' });
+    const ret = await userFetch(url, { method: 'DELETE' });
     expect(ret.status).to.equal(200);
   });
 
@@ -518,12 +535,12 @@ describe('system-integration', () => {
   });
 
   async function editProjectAndListenToEvent(editProjectPayload: any) {
-    const editRequest = fetch(`${charles}/api/projects/${projectId}`, {
+    const editRequest = userFetch(`${charles}/api/projects/${projectId}`, {
       method: 'PATCH',
       body: JSON.stringify(editProjectPayload),
     });
 
-    const eventSource = new EventSource(`${charles}/events/${teamId}?token=${accessToken}`);
+    const eventSource = new EventSource(`${charles}/events/${userTeam.id}?token=${userAccessToken}`);
     const eventType = 'PROJECT_EDITED';
     const eventPromise = Observable.fromEventPattern(
       (h: any) => eventSource.addEventListener(eventType, h),
@@ -548,7 +565,10 @@ describe('system-integration', () => {
 
   async function testSSEPersistence(lastEventId: string, currentEventId: string, eventType: string) {
     const eventSourceInitDict = {headers: {'Last-Event-ID': lastEventId}};
-    const eventSource = new EventSource(`${charles}/events/${teamId}?token=${accessToken}`, eventSourceInitDict);
+    const eventSource = new EventSource(
+      `${charles}/events/${userTeam.id}?token=${userAccessToken}`,
+      eventSourceInitDict,
+    );
     const sseResponse = await Observable.fromEventPattern(
       (h: any) => eventSource.addEventListener(eventType, h),
       (h: any) => eventSource.removeListener(eventType, h),
@@ -567,7 +587,7 @@ describe('system-integration', () => {
       log('No flowToken defined. Skipping deletion of notification configuration');
       return;
     }
-    const ret = await fetchWithRetry(`${charles}/api/notifications/${flowdockNotificationId}`, {
+    const ret = await userFetchWithRetry(`${charles}/api/notifications/${flowdockNotificationId}`, {
       method: 'DELETE',
     });
     expect(ret.status).to.equal(200);
@@ -580,7 +600,7 @@ describe('system-integration', () => {
       log('No hipchatAuthToken defined. Skipping deletion of notification configuration');
       return;
     }
-    const ret = await fetchWithRetry(`${charles}/api/notifications/${hipchatNotificationId}`, {
+    const ret = await userFetchWithRetry(`${charles}/api/notifications/${hipchatNotificationId}`, {
       method: 'DELETE',
     });
     expect(ret.status).to.equal(200);

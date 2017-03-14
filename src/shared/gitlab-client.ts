@@ -203,6 +203,39 @@ export class GitlabClient {
     }, true);
   }
 
+  public createGroup(
+    name: string,
+    path: string,
+    description?: string,
+    visibility: 'private' | 'internal' | 'public' = 'private',
+    lfsEnabled = false,
+    requestAccessEnabled = false,
+    parentId?: number,
+  ) {
+    const newGroup = {
+      name,
+      path,
+      description,
+      visibility,
+      lfs_enabled: lfsEnabled,
+      request_access_enabled: requestAccessEnabled,
+      parentId,
+    };
+    return this.fetchJson<Group>(`groups`, {
+      method: 'POST',
+      body: JSON.stringify(newGroup),
+      headers: {
+        'content-type': 'application/json',
+      },
+    }, true);
+  }
+
+  public deleteGroup(idOrPath: number | string) {
+    return this.fetchJson(`groups/${idOrPath}`, {
+      method: 'DELETE',
+    }, true);
+  }
+
   /**
    * Adds a user to a project or group.
    * The access_level defaults to 'developer'.
@@ -230,18 +263,18 @@ export class GitlabClient {
     return groups;
   }
 
-  public async getGroup(groupId: number, userIdOrName?: number | string) {
+  public async getGroup(groupIdOrPath: number | string, userIdOrName?: number | string) {
     let group: Group;
     if (userIdOrName) {
       const sudo = {
         sudo: userIdOrName,
       };
-      group = await this.fetchJson<Group>(`groups/${groupId}?${qs.stringify(sudo)}`, true);
+      group = await this.fetchJson<Group>(`groups/${groupIdOrPath}?${qs.stringify(sudo)}`, true);
     } else {
-      group = await this.fetchJson<Group>(`groups/${groupId}`, true);
+      group = await this.fetchJson<Group>(`groups/${groupIdOrPath}`, true);
     }
     if (!group || !group.id) {
-      throw Boom.notFound(`No group found with id '${groupId}'`);
+      throw Boom.notFound(`No group found with id '${groupIdOrPath}'`);
     }
     return group;
   }

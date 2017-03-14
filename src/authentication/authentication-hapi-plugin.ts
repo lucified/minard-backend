@@ -35,6 +35,12 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       name: 'authentication-plugin',
       version: '1.0.0',
     });
+    this.registerNoop = Object.assign(this.registerNoop.bind(this), {
+      attributes: {
+        name: 'authentication-plugin',
+        version: '1.0.0',
+      },
+    });
   }
 
   public async register(server: Hapi.Server, _options: Hapi.IServerOptions, next: () => void) {
@@ -89,6 +95,26 @@ class AuthenticationHapiPlugin extends HapiPlugin {
         auth: 'admin',
       },
     });
+
+    const decorate = server.decorate.bind(server);
+    decorate('request', 'gitlab', this.gitlab);
+    next();
+  }
+
+  // For use in unit tests
+  public async registerNoop(server: Hapi.Server, _opt: Hapi.IServerOptions, next: () => void) {
+    const testUsername = 'auth-123';
+    server.auth.scheme('noop', (_server: Hapi.Server, _options: any) => {
+      return {
+        authenticate: (_request: Hapi.Request, reply: Hapi.IReply) => {
+          return reply.continue({ credentials: { username: testUsername } });
+        },
+      };
+    });
+    server.auth.strategy('customAuthorize', 'noop', false);
+    server.auth.strategy('admin', 'noop', false);
+    const decorate = server.decorate.bind(server);
+    decorate('request', 'gitlab', this.gitlab);
     next();
   }
 
@@ -328,25 +354,6 @@ class AuthenticationHapiPlugin extends HapiPlugin {
 }
 
 export default AuthenticationHapiPlugin;
-
-// For use in unit tests
-export const testUsername = 'auth-123';
-export function skipAuth(server: Hapi.Server, _opt: Hapi.IServerOptions, next: () => void) {
-  server.auth.scheme('noop', (_server: Hapi.Server, _options: any) => {
-    return {
-      authenticate: (_request: Hapi.Request, reply: Hapi.IReply) => {
-        return reply.continue({ credentials: { username: testUsername }});
-      },
-    };
-  });
-  server.auth.strategy('customAuthorize', 'noop', false);
-  server.auth.strategy('admin', 'noop', false);
-  next();
-}
-(skipAuth as any).attributes = {
-  name: 'skip-authentication-plugin',
-  version: '1.0.0',
-};
 
 export function parseSub(sub: string) {
   if (!validateSub(sub)) {

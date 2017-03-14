@@ -7,7 +7,7 @@ import * as sinon from 'sinon';
 import * as sinonChai from 'sinon-chai';
 use(sinonChai);
 
-import { skipAuth } from '../authentication/authentication-hapi-plugin';
+import AuthenticationHapiPlugin from '../authentication/authentication-hapi-plugin';
 import { get, kernel } from '../config';
 import { getTestServer, IServerInjectOptions } from '../server/hapi';
 import { fetchMock } from '../shared/fetch';
@@ -16,12 +16,17 @@ import { JsonApiHapiPlugin, parseActivityFilter } from './json-api-hapi-plugin';
 import { JsonApiModule } from './json-api-module';
 
 const provisionServer = async (plugin?: JsonApiHapiPlugin) => {
-  const server = await getTestServer({ register: skipAuth }, {
-    register: (plugin || get<JsonApiHapiPlugin>(JsonApiHapiPlugin.injectSymbol)).register,
-    routes: {
-      prefix: '/api',
+  const server = await getTestServer(
+    {
+      register: get<AuthenticationHapiPlugin>(AuthenticationHapiPlugin.injectSymbol).registerNoop,
     },
-  });
+    {
+      register: (plugin || get<JsonApiHapiPlugin>(JsonApiHapiPlugin.injectSymbol)).register,
+      routes: {
+        prefix: '/api',
+      },
+    },
+  );
   return server;
 };
 
@@ -60,7 +65,7 @@ describe('json-api-hapi-plugin', () => {
           ];
         },
       } as JsonApiModule;
-      const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any, {} as any);
+      const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any);
       const server = await provisionServer(plugin);
 
       // Act
@@ -94,7 +99,7 @@ describe('json-api-hapi-plugin', () => {
           ];
         },
       } as JsonApiModule;
-      const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any, {} as any);
+      const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any);
       const server = await provisionServer(plugin);
 
       // Act
@@ -248,7 +253,7 @@ describe('json-api-hapi-plugin', () => {
           };
         },
       } as JsonApiModule;
-      const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any, {} as any);
+      const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any);
       const server = await provisionServer(plugin);
       const options: IServerInjectOptions = {
         method: 'PATCH',
@@ -341,7 +346,7 @@ describe('json-api-hapi-plugin', () => {
           return [{}, {}];
         },
       } as JsonApiModule;
-      const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any, {} as any);
+      const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any);
       const server = await provisionServer(plugin);
       const options: IServerInjectOptions = {
         method: 'GET',

@@ -1,5 +1,6 @@
 export * from 'hapi';
 import { IReply, IRoute, IServerOptions, Request, Server } from 'hapi';
+import { GitlabClient } from '../shared/gitlab-client';
 import { HapiRegister } from './hapi-register';
 
 interface PluginConfig {
@@ -16,6 +17,9 @@ declare module 'hapi' {
   }
   interface ICookieSettings {
     isSameSite: false | 'Strict' | 'Lax';
+  }
+  interface Request {
+    gitlab: GitlabClient;
   }
 }
 

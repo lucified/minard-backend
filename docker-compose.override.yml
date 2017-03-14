@@ -25,6 +25,7 @@ services:
     command: ["npm", "run", "dev"]
     ports:
       - "5858:5858"
+      - "9229:9229"
     volumes:
       - ./gitlab-data/charles/deployments:/deployments
       - ./gitlab-data/charles/screenshots:/screenshots

@@ -329,6 +329,7 @@ export class JsonApiHapiPlugin {
       config: {
         bind: this,
         cors: true,
+        auth: 'customAuthorize',
         pre: [{
           method: this.authorizeActivityListing,
           assign: 'filter',
@@ -617,7 +618,6 @@ export class JsonApiHapiPlugin {
       return reply(Boom.badRequest());
     }
   }
-
 
   private async getActivityHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const filter = request.pre.config;

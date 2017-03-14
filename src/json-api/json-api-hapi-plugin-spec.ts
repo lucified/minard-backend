@@ -53,25 +53,26 @@ describe('json-api-hapi-plugin', () => {
   describe('activity route', () => {
     it('should correctly get project activity', async () => {
       // Arrange
-      const jsonApiModule = {
-        getProjectActivity: async (_projectId: number) => {
-          return [
-            {
-              id: 'foo',
-            },
-            {
-              id: 'bar',
-            },
-          ];
-        },
-      } as JsonApiModule;
-      const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any);
-      const server = await provisionServer(plugin);
+      const projectId = 2;
+      const jsonApi = stubJsonApi(api => sinon.stub(api, 'getProjectActivity')
+        .returns(Promise.resolve([
+          {
+            id: 'foo',
+          },
+          {
+            id: 'bar',
+          },
+        ])));
+      fetchMock.mock(new RegExp(`/projects/${projectId}\\?sudo=`), {
+        id: projectId,
+      });
+
+      const server = await provisionServer();
 
       // Act
       const options: IServerInjectOptions = {
         method: 'GET',
-        url: 'http://foo.com/api/activity?filter=project[2]',
+        url: `http://foo.com/api/activity?filter=project[${projectId}]`,
       };
       const ret = await server.inject(options);
 
@@ -81,31 +82,31 @@ describe('json-api-hapi-plugin', () => {
       expect(ret.statusCode).to.equal(200);
       expect(parsed.data).to.have.length(2);
       expect(parsed.data[0].type).to.equal('activities');
+      expect(jsonApi.getProjectActivity).to.have.been.calledWith(projectId);
     });
 
     it('should correctly get team activity', async () => {
       // Arrange
       const teamId = 6;
-      const jsonApiModule = {
-        getTeamActivity: async (_teamId: number) => {
-          expect(_teamId).to.equal(teamId);
-          return [
-            {
-              id: 'foo',
-            },
-            {
-              id: 'bar',
-            },
-          ];
-        },
-      } as JsonApiModule;
-      const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any);
-      const server = await provisionServer(plugin);
+      const jsonApi = stubJsonApi(api => sinon.stub(api, 'getTeamActivity')
+        .returns(Promise.resolve([
+          {
+            id: 'foo',
+          },
+          {
+            id: 'bar',
+          },
+        ])));
+      fetchMock.mock(new RegExp(`/groups/${teamId}\\?sudo=`), {
+        id: teamId,
+      });
+
+      const server = await provisionServer();
 
       // Act
       const options: IServerInjectOptions = {
         method: 'GET',
-        url: 'http://foo.com/api/activity?filter=team[6]',
+        url: `http://foo.com/api/activity?filter=team[${teamId}]`,
       };
       const ret = await server.inject(options);
 
@@ -115,6 +116,7 @@ describe('json-api-hapi-plugin', () => {
       expect(ret.statusCode).to.equal(200);
       expect(parsed.data).to.have.length(2);
       expect(parsed.data[0].type).to.equal('activities');
+      expect(jsonApi.getTeamActivity).to.have.been.calledWith(teamId);
     });
   });
 

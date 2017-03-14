@@ -4,10 +4,14 @@ import 'reflect-metadata';
 
 import { get } from '../config';
 import { getAccessToken, issuer } from '../config/config-test';
-import { getTestServer } from '../server/hapi';
+import { getTestServer, Server } from '../server/hapi';
 import { fetchMock } from '../shared/fetch';
 import { adminTeamNameInjectSymbol } from '../shared/types';
-import AuthenticationHapiPlugin, { accessTokenCookieSettings, generatePassword } from './authentication-hapi-plugin';
+import {
+  accessTokenCookieSettings,
+  default as AuthenticationHapiPlugin,
+  generatePassword,
+} from './authentication-hapi-plugin';
 import { generateAndSaveTeamToken, generateTeamToken, TeamToken, teamTokenLength } from './team-token';
 import { getDb, insertTeamToken } from './team-token-spec';
 
@@ -33,11 +37,16 @@ async function getServer() {
 
 describe('authentication-hapi-plugin', () => {
 
+  let server: Server;
+  beforeEach(async () => {
+    server = await getServer();
+    fetchMock.restore();
+  });
+
   describe('jwt verification', () => {
 
     it('should return 401 for missing and invalid tokens', async () => {
       // Arrange
-      const server = await getServer();
 
       // Act
       let response = await server.inject({
@@ -62,7 +71,6 @@ describe('authentication-hapi-plugin', () => {
     });
     it('should require a valid sub in the token', async () => {
       // Arrange
-      const server = await getServer();
 
       // Act
       const response = await server.inject({
@@ -78,14 +86,11 @@ describe('authentication-hapi-plugin', () => {
     });
     it('should return 200 for valid token', async () => {
       // Arrange
-      const server = await getServer();
-      fetchMock.restore();
       fetchMock.mock(/\/users/, [{
         id: 1,
       }]);
       fetchMock.mock(/\/groups\?/, [{
         id: 1,
-        name: 'fooGroup',
       }]);
 
       // Act
@@ -105,11 +110,9 @@ describe('authentication-hapi-plugin', () => {
   describe('team token endpoint', () => {
     it('should require admin team membership to get other teams\' tokens', async () => {
       // Arrange
-      const server = await getServer();
       const teamId = 2;
       const adminTeamName = get<string>(adminTeamNameInjectSymbol);
 
-      fetchMock.restore();
       fetchMock.mock(/\/groups\?/, [{
         id: 1,
         name: adminTeamName + '1',
@@ -129,12 +132,10 @@ describe('authentication-hapi-plugin', () => {
     });
     it('should return the team token with GET and a teamId', async () => {
       // Arrange
-      const server = await getServer();
       const teamId = 2;
       const adminTeamName = get<string>(adminTeamNameInjectSymbol);
       const db = await getDb();
       const token = await generateAndSaveTeamToken(teamId, db);
-      fetchMock.restore();
       fetchMock.mock(/\/groups\?/, [{
         id: 1,
         name: adminTeamName,
@@ -157,12 +158,10 @@ describe('authentication-hapi-plugin', () => {
     });
     it('should allow fetching own team\'s token even if not admin', async () => {
       // Arrange
-      const server = await getServer();
       const teamId = 2;
       const teamName = 'foofoo';
       const db = await getDb();
       const token = await generateAndSaveTeamToken(teamId, db);
-      fetchMock.restore();
       fetchMock.mock(/\/groups\?/, [{
         id:  teamId,
         name: teamName,
@@ -186,11 +185,9 @@ describe('authentication-hapi-plugin', () => {
 
     it('should return 404 if no token found', async () => {
       // Arrange
-      const server = await getServer();
       const teamId = 23;
       const adminTeamName = get<string>(adminTeamNameInjectSymbol);
 
-      fetchMock.restore();
       fetchMock.mock(/\/groups\?/, [{
         id: 1,
         name: adminTeamName,
@@ -216,10 +213,8 @@ describe('authentication-hapi-plugin', () => {
     });
     it('should return a new token with POST', async () => {
       // Arrange
-      const server = await getServer();
       const adminTeamName = get<string>(adminTeamNameInjectSymbol);
 
-      fetchMock.restore();
       fetchMock.mock(/\/groups\?/, [{
         id: 1,
         name: adminTeamName,
@@ -244,8 +239,6 @@ describe('authentication-hapi-plugin', () => {
   describe('team endpoint', () => {
     it('should return team id and name', async () => {
       // Arrange
-      const server = await getServer();
-      fetchMock.restore();
       fetchMock.mock(/\/users/, [{
         id: 1,
       }]);
@@ -279,8 +272,6 @@ describe('authentication-hapi-plugin', () => {
       const db = await getDb();
       await insertTeamToken(db, validTeamToken);
 
-      const server = await getServer();
-      fetchMock.restore();
       fetchMock.mock(/\/users/, [{
         id: 1,
       }]);
@@ -310,8 +301,6 @@ describe('authentication-hapi-plugin', () => {
       // clear the db
       await getDb();
 
-      const server = await getServer();
-      fetchMock.restore();
       fetchMock.mock(/\/users/, [{
         id: 1,
       }]);
@@ -339,10 +328,8 @@ describe('authentication-hapi-plugin', () => {
       const db = await getDb();
       await insertTeamToken(db, validTeamToken);
 
-      const server = await getServer();
       const invalidEmail = 'foo@';
       const userInfoEndpoint = `${issuer}/userinfo`;
-      fetchMock.restore();
       fetchMock.get(userInfoEndpoint, {
         email: defaultEmail,
       });
@@ -378,8 +365,6 @@ describe('authentication-hapi-plugin', () => {
   });
   describe('cookie', () => {
     it('should be set with the access token as the value when accessing the team endpoint', async () => {
-      const server = await getServer();
-      fetchMock.restore();
       fetchMock.mock(/\/users/, [{
         id: 1,
       }]);

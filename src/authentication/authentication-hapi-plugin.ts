@@ -3,7 +3,7 @@ import * as auth from 'hapi-auth-jwt2';
 import { inject, injectable } from 'inversify';
 import * as Knex from 'knex';
 
-import { parseApiBranchId } from '../json-api';
+import { parseApiBranchId } from '../json-api/conversions';
 import * as Hapi from '../server/hapi';
 import { HapiPlugin } from '../server/hapi-register';
 import { IFetch } from '../shared/fetch';
@@ -47,6 +47,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       },
       config: {
         bind: this,
+        auth: 'customAuthorize',
         cors: {
           credentials: true,
         },
@@ -60,6 +61,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       },
       config: {
         bind: this,
+        auth: 'customAuthorize',
         cors: {
           credentials: true,
         },
@@ -73,6 +75,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       },
       config: {
         bind: this,
+        auth: 'customAuthorize',
       },
     });
     server.route({
@@ -178,7 +181,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       const teamId = await getTeamIdWithToken(teamToken, this.db);
       const team = await this.gitlab.getGroup(teamId);
       const password = generatePassword();
-      const {id, idp} = parseSub(credentials.sub);
+      const { id, idp } = parseSub(credentials.sub);
       const user = await this.gitlab.createUser(
         email,
         password,
@@ -201,40 +204,70 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     }
   }
 
-  public async validateUser(
+  public async authorizeUser(
     payload: AccessToken,
     request: Hapi.Request,
     callback: (err: any, valid: boolean, credentials?: any) => void,
   ) {
-    if (!validateSub(payload.sub)) {
-      return callback(undefined, false);
+    let isAdmin = false;
+    let isAuthorized = false;
+    try {
+      if (assertSub(payload.sub)) {
+        const userName = sanitizeUsername(payload.sub);
+        isAdmin = await this.isAdmin(userName);
+        if (!isAdmin) {
+          isAuthorized = await authorize(this.gitlab)(userName, request);
+        }
+      }
+    } catch (error) {
+      this.logger.error('Authorization error', error);
     }
-    const userName = sanitizeUsername(payload.sub);
-    const isAuthorized = await authorize(this.gitlab)(userName, request);
-
-
-    return callback(undefined, isAuthorized, payload);
+    return callback(undefined, isAdmin || isAuthorized, payload);
   }
 
-  public async validateAdmin(
+  public authorizeCustom(
+    payload: AccessToken,
+    _request: Hapi.Request,
+    callback: (err: any, valid: boolean, credentials?: any) => void,
+  ) {
+    let isValid = false;
+    try {
+      if (assertSub(payload.sub)) {
+        payload.username = sanitizeUsername(payload.sub);
+        isValid = true;
+      }
+    } catch (error) {
+      this.logger.error('Authorization error', error);
+    }
+    return callback(undefined, isValid, payload);
+  }
+
+  public async authorizeAdmin(
     payload: AccessToken,
     _request: any,
     callback: (err: any, valid: boolean, credentials?: any) => void,
   ) {
     let isAdmin = false;
     try {
-      if (validateSub(payload.sub)) {
-        isAdmin = await this.isAdmin(sanitizeUsername(payload.sub));
+      if (assertSub(payload.sub)) {
+        isAdmin = await this.isAdmin(sanitizeUsername(payload.sub), true);
       }
     } catch (error) {
-      this.logger.error(`Can't fetch user or team`, error);
+      this.logger.error('Authorization error', error);
     }
     callback(undefined, isAdmin, payload);
   }
 
-  public async isAdmin(userIdOrName: number | string) {
-    const teams = await this.gitlab.getUserGroups(userIdOrName);
-    return teams.find(findTeamByIdOrName(this.adminTeamName)) !== undefined;
+  private async isAdmin(userIdOrName: number | string, shouldThrow = false) {
+    try {
+      const teams = await this.gitlab.getUserGroups(userIdOrName);
+      return teams.find(findTeamByIdOrName(this.adminTeamName)) !== undefined;
+    } catch (error) {
+      if (shouldThrow) {
+        throw error;
+      }
+      return false;
+    }
   }
 
   private async tryGetEmailFromAuth0(accessToken: string) {
@@ -279,11 +312,15 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     await server.register(auth);
     server.auth.strategy('jwt', 'jwt', true, {
       ...this.hapiOptions,
-      validateFunc: this.validateUser.bind(this),
+      validateFunc: this.authorizeUser.bind(this),
+    });
+    server.auth.strategy('customAuthorize', 'jwt', false, {
+      ...this.hapiOptions,
+      validateFunc: this.authorizeCustom.bind(this),
     });
     server.auth.strategy('admin', 'jwt', false, {
       ...this.hapiOptions,
-      validateFunc: this.validateAdmin.bind(this),
+      validateFunc: this.authorizeAdmin.bind(this),
     });
     const ttl = 365 * 24 * 3600 * 1000; // ~year in ms
     server.state('token', accessTokenCookieSettings(this.authCookieDomain, ttl));
@@ -291,6 +328,25 @@ class AuthenticationHapiPlugin extends HapiPlugin {
 }
 
 export default AuthenticationHapiPlugin;
+
+// For use in unit tests
+export const testUsername = 'auth-123';
+export function skipAuth(server: Hapi.Server, _opt: Hapi.IServerOptions, next: () => void) {
+  server.auth.scheme('noop', (_server: Hapi.Server, _options: any) => {
+    return {
+      authenticate: (_request: Hapi.Request, reply: Hapi.IReply) => {
+        return reply.continue({ credentials: { username: testUsername }});
+      },
+    };
+  });
+  server.auth.strategy('customAuthorize', 'noop', false);
+  server.auth.strategy('admin', 'noop', false);
+  next();
+}
+(skipAuth as any).attributes = {
+  name: 'skip-authentication-plugin',
+  version: '1.0.0',
+};
 
 export function parseSub(sub: string) {
   if (!validateSub(sub)) {
@@ -310,6 +366,13 @@ export function validateSub(sub: string) {
   const parts = sub.split('|');
   if (parts.length !== 2) {
     return false;
+  }
+  return true;
+}
+
+export function assertSub(sub: string) {
+  if (!validateSub(sub)) {
+    throw new Error(`Invalid sub claim ${sub}`);
   }
   return true;
 }
@@ -345,38 +408,37 @@ export function findTeamByIdOrName(teamNameOrId: string | number) {
 export function authorize(gitlab: GitlabClient) {
   return async (userName: string, request: Hapi.Request) => {
     try {
-      // Check if we have a teamId passed in the request
-      const teamId = parseInt(request.params.teamId, 10);
+      let teamId = NaN;
+      // Check if we have a teamId passed in the path
+      teamId = parseInt(request.params.teamId, 10);
       if (!isNaN(teamId)) {
-        const team = await gitlab.getGroup(teamId, userName);    
+        const team = await gitlab.getGroup(teamId, userName);
         return team.id === teamId;
       }
-      
+
       // Check if we can parse projectId from branchId
       let projectId = NaN;
-      try {
-        const branchId = request.params.branchId;
-        projectId = parseApiBranchId(branchId)!.projectId;
-      } catch (error) {
-        // TODO: log error, or not
+      if (request.params.branchId) {
+        const parts = parseApiBranchId(request.params.branchId);
+        if (parts && parts.projectId) {
+          projectId = parts.projectId;
+        }
       }
       if (isNaN(projectId)) {
         // Check if we have a projectId passed in the request
         projectId = parseInt(request.params.projectId, 10);
       }
       if (!isNaN(projectId)) {
-        const project = await gitlab.getProject(projectId, userName);    
+        const project = await gitlab.getProject(projectId, userName);
         return project.id === projectId;
-      }    
+      }
       return false;
     } catch (error) {
       // TODO: log error
       return false;
     }
-  }
+  };
 }
-
-
 
 export function accessTokenCookieSettings(
   domainOrBaseUrl: string,

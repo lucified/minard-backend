@@ -132,7 +132,7 @@ class DeploymentHapiPlugin {
         auth: 'customAuthorize',
         pre: [
           { method: this.parseHost.bind(this), assign: 'key' },
-          { method: this.preCheck.bind(this) },
+          { method: this.preCheck.bind(this, auth) },
         ],
       },
     },
@@ -150,7 +150,7 @@ class DeploymentHapiPlugin {
           },
         },
         pre: [
-          { method: this.preCheck.bind(this) },
+          { method: this.preCheck.bind(this, auth) },
         ],
       },
     }].map((route: any) => {
@@ -216,7 +216,7 @@ class DeploymentHapiPlugin {
     return shortId === deployment.commit.shortId;
   }
 
-  private async preCheck(request: Hapi.Request, reply: Hapi.IReply) {
+  private async preCheck(checkAuthorization: boolean, request: Hapi.Request, reply: Hapi.IReply) {
     const pre = request.pre as any;
     const shortId = pre ? pre.key.shortId : request.paramsArray[0];
     const projectId = pre ? pre.key.projectId : parseInt(request.paramsArray[1], 10);
@@ -227,13 +227,18 @@ class DeploymentHapiPlugin {
       return reply(Boom.badRequest('URL is missing commit hash'));
     }
 
-    try {
-      const project = await request.gitlab.getProject(projectId, request.auth.credentials.username);
-      if (project.id !== projectId) {
-        throw new Error('Unauthorized');
+    if (checkAuthorization) {
+      try {
+        const project = await request.gitlab.getProject(projectId, request.auth.credentials.username);
+        if (project.id !== projectId) {
+          throw new Error('Unauthorized');
+        }
+      } catch (exception) {
+        this.logger.error(exception.message);
+        console.error(exception);
+        console.log(request.auth);
+        return reply(Boom.unauthorized());
       }
-    } catch (exception) {
-      return reply(Boom.unauthorized());
     }
 
     try {

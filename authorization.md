@@ -1,12 +1,10 @@
 # Authorization
 
-## JSON-API `/api`
+## Have project-id or team-id in the path
 
-### Accesses GitLab API
-Have either project-id or team-id in the request
+### JSON-API `/api`
 
 - `GET /projects/{projectId}`
-- `POST /projects`
 - `DELETE /projects/{projectId}`
 - `PATCH /projects/{projectId}`
 - `GET /projects/{projectId}/relationships/branches`
@@ -14,30 +12,28 @@ Have either project-id or team-id in the request
 - `GET /branches/{branchId}`
 - `GET /branches/{branchId}/relationships/commits`
 - `GET /commits/{projectId}-{hash}`
-
-### Accesses Postgres
-Have either project-id or team-id in the request
-
 - `GET /deployments/{projectId}-{deploymentId}`
 - `GET /preview/{projectId}-{deploymentId}`
-- `GET /activity`
 - `GET /projects/{projectId}/relationships/notification`
 - `GET /comments/deployment/{projectId}-{deploymentId}`
+
+### Screenshots `/screenshot/{projectId}/{deploymentId}`
+
+### Realtime `/events/{teamId}`
+
+## Needs custom authorization logic
+
+### JSON-API `/api`
+
 - `POST /comments`
 - `POST /notifications`
-
-Have either project-id or team-id in Postgres
+- `POST /projects`
+- `GET /activity`
 - `DELETE /notifications/{id}`
 - `DELETE /comments/{id}`
 
-## Deployments `deployment-{projectId}-{deploymentId}.minard.team` 
+### Deployments `deployment-{projectId}-{deploymentId}.minard.team` 
 Has project-id in the request
-
-## Screenshots `/screenshot/{projectId}/{deploymentId}`
-Has project-id in the request
-
-## Realtime `/events/{teamId}`
-Has team-id in the request
 
 ## Operations `/operations`
 Requires admin team membership

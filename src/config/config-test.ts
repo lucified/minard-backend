@@ -101,6 +101,4 @@ export default (kernel: Container) => {
   });
   kernel.rebind(cacheInjectSymbol).toConstantValue(cache);
   kernel.rebind(JsonApiHapiPlugin.injectSymbol).to(JsonApiHapiPlugin).inTransientScope();
-
-
 };

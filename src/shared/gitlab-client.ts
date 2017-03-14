@@ -276,8 +276,6 @@ export class GitlabClient {
     return this.fetchJson<Project[]>(`projects?${qs.stringify(sudo)}`, true);
   }
 
-
-
 }
 
 export function validateEmail(email: any): email is string {

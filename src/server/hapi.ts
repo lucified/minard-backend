@@ -5,6 +5,9 @@ import { HapiRegister } from './hapi-register';
 interface PluginConfig {
   register: HapiRegister;
   options?: any;
+  once?: any;
+  routes?: any;
+  select?: any;
 }
 
 declare module 'hapi' {

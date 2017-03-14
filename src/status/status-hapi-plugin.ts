@@ -35,6 +35,7 @@ class StatusHapiPlugin {
       },
       config: {
         bind: this,
+        auth: 'admin',
       },
     });
     server.route({
@@ -56,6 +57,7 @@ class StatusHapiPlugin {
       },
       config: {
         bind: this,
+        auth: 'admin',
       },
     });
     next();

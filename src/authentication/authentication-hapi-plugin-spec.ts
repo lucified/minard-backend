@@ -31,7 +31,7 @@ const validTeamToken: TeamToken = {
 
 async function getServer() {
   const plugin = get<AuthenticationHapiPlugin>(AuthenticationHapiPlugin.injectSymbol);
-  const server = await getTestServer(plugin);
+  const server = await getTestServer(true, plugin);
   return server;
 }
 

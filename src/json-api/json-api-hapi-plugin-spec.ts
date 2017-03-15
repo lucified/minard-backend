@@ -16,7 +16,7 @@ import { JsonApiHapiPlugin, parseActivityFilter } from './json-api-hapi-plugin';
 import { JsonApiModule } from './json-api-module';
 
 const provisionServer = async (plugin?: JsonApiHapiPlugin) => {
-  const server = await getTestServer(
+  const server = await getTestServer(true,
     {
       register: get<AuthenticationHapiPlugin>(AuthenticationHapiPlugin.injectSymbol).registerNoOp,
     },

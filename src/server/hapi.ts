@@ -17,9 +17,11 @@ declare module 'hapi' {
   interface ICookieSettings {
     isSameSite: false | 'Strict' | 'Lax';
   }
-  interface Request {
+  interface RequestDecorators {
     userHasAccessToProject: (projectId: number) => Promise<boolean>;
     userHasAccessToTeam: (teamId: number) => Promise<boolean>;
+  }
+  interface Request extends RequestDecorators {
   }
 }
 

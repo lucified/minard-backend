@@ -495,7 +495,7 @@ describe('authorization', () => {
         // Assert
         expect(response.statusCode).to.eq(201);
         expect(jsonApi.createNotificationConfiguration).to.have.been.calledOnce;
-        expect(jsonApi.createNotificationConfiguration).to.have.been.calledWith({ ...config, projectId: null });
+        expect(jsonApi.createNotificationConfiguration).to.have.been.calledWith(config);
       });
       it('should not allow setting foreign projects\'s notification configuration', async () => {
 
@@ -576,7 +576,7 @@ describe('authorization', () => {
         // Assert
         expect(response.statusCode).to.eq(201);
         expect(jsonApi.createNotificationConfiguration).to.have.been.calledOnce;
-        expect(jsonApi.createNotificationConfiguration).to.have.been.calledWith({ ...config, teamId: null });
+        expect(jsonApi.createNotificationConfiguration).to.have.been.calledWith(config);
       });
     });
   });

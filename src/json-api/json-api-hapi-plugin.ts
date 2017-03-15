@@ -70,6 +70,14 @@ type apiReturn = Promise<ApiEntity | ApiEntities | null>;
 
 const projectNameRegex = /^[\w|\-]+$/;
 
+// https://github.com/Microsoft/TypeScript/issues/5579
+const TEAM_OR_PROJECT_PRE_KEY = 'teamOrProject';
+interface TeamOrProject {
+  teamOrProject: {
+    teamId?: number;
+    projectId?: number;
+  };
+}
 @injectable()
 export class JsonApiHapiPlugin {
 
@@ -332,7 +340,7 @@ export class JsonApiHapiPlugin {
         auth: 'customAuthorize',
         pre: [{
           method: this.parseActivityFilter,
-          assign: 'filter',
+          assign: TEAM_OR_PROJECT_PRE_KEY,
         }, {
           method: this.authorizeTeamOrProjectAccess,
           assign: 'filter',
@@ -395,8 +403,8 @@ export class JsonApiHapiPlugin {
         bind: this,
         auth: 'customAuthorize',
         pre: [{
-          method: this.authorizeNotificationConfiguration,
-          assign: 'filter',
+          method: this.tryGetNotificationConfiguration,
+          assign: TEAM_OR_PROJECT_PRE_KEY,
         }, {
           method: this.authorizeTeamOrProjectAccess,
           assign: 'config',
@@ -621,10 +629,10 @@ export class JsonApiHapiPlugin {
   private async getActivityHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const filter = request.pre.filter;
     const { until, count } = request.query;
-    if (filter.projectId !== null) {
+    if (filter.projectId) {
       return reply(this.getEntity('activity', api => api.getProjectActivity(filter.projectId, until, count)));
     }
-    if (filter.teamId !== null) {
+    if (filter.teamId) {
       return reply(this.getEntity('activity', api => api.getTeamActivity(filter.teamId, until, count)));
     }
     throw Boom.badRequest('team or project filter must be specified');
@@ -639,7 +647,7 @@ export class JsonApiHapiPlugin {
     return reply(this.getEntity('notification', api => api.getProjectNotificationConfigurations(projectId)));
   }
 
-  private async authorizeNotificationConfiguration(request: Hapi.Request, reply: Hapi.IReply) {
+  private async tryGetNotificationConfiguration(request: Hapi.Request, reply: Hapi.IReply) {
     try {
       reply(request.payload.data.attributes);
     } catch (error) {
@@ -647,28 +655,24 @@ export class JsonApiHapiPlugin {
     }
   }
 
-  private async authorizeTeamOrProjectAccess(request: Hapi.Request, reply: Hapi.IReply) {
+  private async authorizeTeamOrProjectAccess(
+    request: Hapi.RequestDecorators & {pre: TeamOrProject},
+    reply: Hapi.IReply,
+  ) {
     try {
-      const config = request.pre.filter;
-
-      config.teamId = config.teamId || null;
-      config.projectId = config.projectId || null;
-
-      if (!config.teamId && !config.projectId) {
+      const pre = request.pre[TEAM_OR_PROJECT_PRE_KEY];
+      const {teamId, projectId} = pre;
+      if (!teamId && !projectId) {
         return reply(Boom.badRequest('teamId or projectId should be defined'));
       }
-      if (config.teamId && config.projectId) {
+      if (teamId && projectId) {
         return reply(Boom.badRequest('teamId and projectId should not both be defined'));
       }
-      if (config.projectId) {
-        if (await request.userHasAccessToProject(config.projectId)) {
-          return reply(config);
-        }
+      if (projectId && await request.userHasAccessToProject(projectId)) {
+        return reply(pre);
       }
-      if (config.teamId) {
-        if (await request.userHasAccessToTeam(config.teamId)) {
-          return reply(config);
-        }
+      if (teamId && await request.userHasAccessToTeam(teamId)) {
+        return reply(pre);
       }
     } catch (exception) {
       // TODO: log exception
@@ -678,17 +682,17 @@ export class JsonApiHapiPlugin {
 
   private async authorizeNotificationRemoval(request: Hapi.Request, reply: Hapi.IReply) {
     try {
-      const { id } = request.params;
-      const configuration =  await this.jsonApi.getNotificationConfiguration(Number(id));
-      if (configuration && configuration.projectId) {
-        if (await request.userHasAccessToProject(configuration.projectId)) {
-          return reply(Number(id));
-        }
+      const id = Number(request.params.id);
+      const configuration =  await this.jsonApi.getNotificationConfiguration(id);
+      if (!configuration) {
+        throw new Error(`Tried to remove a nonexistent notification configuration ${id}`);
       }
-      if (configuration && configuration.teamId) {
-        if (await request.userHasAccessToTeam(configuration.teamId)) {
-          return reply(Number(id));
-        }
+      const {projectId, teamId} = configuration;
+      if (projectId && await request.userHasAccessToProject(projectId)) {
+        return reply(id);
+      }
+      if (teamId && await request.userHasAccessToTeam(teamId)) {
+        return reply(id);
       }
     } catch (exception) {
       // TODO: log exception

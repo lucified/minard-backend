@@ -412,36 +412,66 @@ export function findTeamByIdOrName(teamNameOrId: string | number) {
     || team.id === parseInt(_teamNameOrId, 10);
 }
 
-export function authorize(gitlab: GitlabClient) {
-  return async (userName: string, request: Hapi.Request) => {
-    try {
-      let teamId = NaN;
-      // Check if we have a teamId passed in the path
-      teamId = parseInt(request.params.teamId, 10);
-      if (!isNaN(teamId)) {
-        const team = await gitlab.getGroup(teamId, userName);
-        return team.id === teamId;
-      }
+function authorize(gitlab: GitlabClient, userName: string, request: Hapi.Request) {
+  try {
+    let teamId = NaN;
+    // Check if we have a teamId passed in the path
+    teamId = parseInt(request.params.teamId, 10);
+    if (!isNaN(teamId)) {
+      return userHasAccessToTeam(gitlab, userName)(teamId);
+    }
 
-      // Check if we can parse projectId from branchId
-      let projectId = NaN;
-      if (request.params.branchId) {
-        const parts = parseApiBranchId(request.params.branchId);
-        if (parts && parts.projectId) {
-          projectId = parts.projectId;
-        }
+    // Check if we can parse projectId from branchId
+    let projectId = NaN;
+    if (request.params.branchId) {
+      const parts = parseApiBranchId(request.params.branchId);
+      if (parts && parts.projectId) {
+        projectId = parts.projectId;
       }
-      if (isNaN(projectId)) {
-        // Check if we have a projectId passed in the request
-        projectId = parseInt(request.params.projectId, 10);
-      }
-      if (!isNaN(projectId)) {
-        const project = await gitlab.getProject(projectId, userName);
-        return project.id === projectId;
+    }
+    if (isNaN(projectId)) {
+      // Check if we have a projectId passed in the request
+      projectId = parseInt(request.params.projectId, 10);
+    }
+    if (!isNaN(projectId)) {
+      return userHasAccessToProject(gitlab, userName)(projectId);
+    }
+    return false;
+  } catch (error) {
+    // TODO: log error
+    return false;
+  }
+}
+
+export function userHasAccessToTeam(gitlab: GitlabClient, userNameOrRequest: Hapi.Request | string) {
+  return async (teamId: number, shouldThrowOnFalse = false) => {
+    try {
+      // the username field is set by the 'validateFuncFactory'
+      const userName = typeof userNameOrRequest === 'string' ?
+        userNameOrRequest :
+        userNameOrRequest.auth.credentials.username;
+      return (await gitlab.getGroup(teamId, userName)).id === teamId;
+    } catch (error) {
+      if (shouldThrowOnFalse) {
+        throw error;
       }
       return false;
+    }
+  };
+}
+
+export function userHasAccessToProject(gitlab: GitlabClient, userNameOrRequest: Hapi.Request | string) {
+  return async (projectId: number, shouldThrowOnFalse = false) => {
+    try {
+      // the username field is set by the 'validateFuncFactory'
+      const userName = typeof userNameOrRequest === 'string' ?
+        userNameOrRequest :
+        userNameOrRequest.auth.credentials.username;
+      return (await gitlab.getProject(projectId, userName)).id === projectId;
     } catch (error) {
-      // TODO: log error
+      if (shouldThrowOnFalse) {
+        throw error;
+      }
       return false;
     }
   };

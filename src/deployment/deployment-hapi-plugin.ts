@@ -183,7 +183,7 @@ class DeploymentHapiPlugin {
       .header('content-type', 'text/plain');
   }
 
-  private serveDirectory(request: Hapi.Request) {
+  public serveDirectory(request: Hapi.Request) {
     const pre = request.pre as any;
     const projectId = pre.key.projectId;
     const deploymentId = pre.key.deploymentId;
@@ -227,7 +227,7 @@ class DeploymentHapiPlugin {
       return reply(Boom.badRequest('URL is missing commit hash'));
     }
 
-    if (checkAuthorization && (await request.userHasAccessToProject(projectId))) {
+    if (checkAuthorization && !(await request.userHasAccessToProject(projectId))) {
       return reply(Boom.unauthorized());
     }
 

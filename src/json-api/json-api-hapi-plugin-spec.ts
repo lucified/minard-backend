@@ -10,7 +10,6 @@ use(sinonChai);
 import AuthenticationHapiPlugin from '../authentication/authentication-hapi-plugin';
 import { get, kernel } from '../config';
 import { getTestServer, IServerInjectOptions } from '../server/hapi';
-import { fetchMock } from '../shared/fetch';
 import { MINARD_ERROR_CODE } from '../shared/minard-error';
 import { JsonApiHapiPlugin, parseActivityFilter } from './json-api-hapi-plugin';
 import { JsonApiModule } from './json-api-module';
@@ -43,7 +42,6 @@ describe('json-api-hapi-plugin', () => {
     return jsonApiModule;
   };
   beforeEach(async () => {
-    fetchMock.restore();
     stubs = [];
   });
   afterEach(() => {
@@ -63,9 +61,6 @@ describe('json-api-hapi-plugin', () => {
             id: 'bar',
           },
         ])));
-      fetchMock.mock(new RegExp(`/projects/${projectId}\\?sudo=`), {
-        id: projectId,
-      });
 
       const server = await provisionServer();
 
@@ -97,9 +92,6 @@ describe('json-api-hapi-plugin', () => {
             id: 'bar',
           },
         ])));
-      fetchMock.mock(new RegExp(`/groups/${teamId}\\?sudo=`), {
-        id: teamId,
-      });
 
       const server = await provisionServer();
 
@@ -157,10 +149,10 @@ describe('json-api-hapi-plugin', () => {
           name,
           description,
         })));
-      const path = new RegExp(`/groups/${teamId}\\?sudo=`);
-      fetchMock.mock(path, {
-        id: teamId,
-      });
+      // const path = new RegExp(`/groups/${teamId}\\?sudo=`);
+      // fetchMock.mock(path, {
+      //   id: teamId,
+      // });
       const server = await provisionServer();
       const options: IServerInjectOptions = {
         method: 'POST',

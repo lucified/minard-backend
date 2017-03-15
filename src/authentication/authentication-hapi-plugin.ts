@@ -112,7 +112,18 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     });
     server.auth.strategy('customAuthorize', 'noOp', false);
     server.auth.strategy('admin', 'noOp', false);
-    this.decorateRequest(server);
+    server.decorate(
+      'request',
+      'userHasAccessToProject',
+      (_: any) => (_projectId: number) => Promise.resolve(true),
+      { apply: true },
+    );
+    server.decorate(
+      'request',
+      'userHasAccessToTeam',
+      (_: any) => (_teamId: number) => Promise.resolve(true),
+      { apply: true },
+    );
     next();
   }
 

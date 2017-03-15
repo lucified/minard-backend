@@ -331,11 +331,11 @@ export class JsonApiHapiPlugin {
         cors: true,
         auth: 'customAuthorize',
         pre: [{
-          method: this.authorizeActivityListing,
+          method: this.parseActivityFilter,
           assign: 'filter',
         }, {
           method: this.authorizeTeamOrProjectAccess,
-          assign: 'config',
+          assign: 'filter',
         }],
         validate: {
           query: {
@@ -609,7 +609,7 @@ export class JsonApiHapiPlugin {
     return reply(this.getEntity('commit', api => api.getCommit(projectId, hash)));
   }
 
-  private async authorizeActivityListing(request: Hapi.Request, reply: Hapi.IReply) {
+  private parseActivityFilter(request: Hapi.Request, reply: Hapi.IReply) {
     try {
       const filter = request.query.filter as string;
       return reply(parseActivityFilter(filter));
@@ -619,7 +619,7 @@ export class JsonApiHapiPlugin {
   }
 
   private async getActivityHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const filter = request.pre.config;
+    const filter = request.pre.filter;
     const { until, count } = request.query;
     if (filter.projectId !== null) {
       return reply(this.getEntity('activity', api => api.getProjectActivity(filter.projectId, until, count)));

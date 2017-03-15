@@ -243,66 +243,44 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     }
   }
 
-  public async authorizeUser(
-    payload: AccessToken,
-    request: Hapi.Request,
-    callback: (err: any, valid: boolean, credentials?: any) => void,
-  ) {
-    let isAdmin = false;
-    let isAuthorized = false;
-    try {
-      if (assertSub(payload.sub)) {
-        const userName = sanitizeUsername(payload.sub);
-        isAdmin = await this.isAdmin(userName);
-        if (!isAdmin) {
-          isAuthorized = await authorize(this.gitlab)(userName, request);
+  private async authorizeUser(userName: string, request: Hapi.Request) {
+    return await this.isAdmin(userName) || await authorize(this.gitlab, userName, request);
+  }
+
+  private async authorizeAdmin(userName: string, _request: Hapi.Request) {
+    return this.isAdmin(userName);
+  }
+
+  public authorizeCustom(_userName: string, _request: Hapi.Request) {
+    return Promise.resolve(true);
+  }
+
+  private validateFuncFactory(authorizer: (userName: string, request: Hapi.Request) => Promise<boolean>) {
+    return async (
+      payload: AccessToken,
+      request: Hapi.Request,
+      callback: (err: any, valid: boolean, credentials?: any) => void,
+    ) => {
+      let isAuthorized = false;
+      try {
+        if (assertSub(payload.sub)) {
+          const userName = sanitizeUsername(payload.sub);
+          payload.username = userName;
+          isAuthorized = await authorizer(userName, request);
         }
+      } catch (error) {
+        this.logger.error('Authorization error', error);
       }
-    } catch (error) {
-      this.logger.error('Authorization error', error);
-    }
-    return callback(undefined, isAdmin || isAuthorized, payload);
+      return callback(undefined, isAuthorized, payload);
+    };
   }
 
-  public authorizeCustom(
-    payload: AccessToken,
-    _request: Hapi.Request,
-    callback: (err: any, valid: boolean, credentials?: any) => void,
-  ) {
-    let isValid = false;
-    try {
-      if (assertSub(payload.sub)) {
-        payload.username = sanitizeUsername(payload.sub);
-        isValid = true;
-      }
-    } catch (error) {
-      this.logger.error('Authorization error', error);
-    }
-    return callback(undefined, isValid, payload);
-  }
-
-  public async authorizeAdmin(
-    payload: AccessToken,
-    _request: any,
-    callback: (err: any, valid: boolean, credentials?: any) => void,
-  ) {
-    let isAdmin = false;
-    try {
-      if (assertSub(payload.sub)) {
-        isAdmin = await this.isAdmin(sanitizeUsername(payload.sub), true);
-      }
-    } catch (error) {
-      this.logger.error('Authorization error', error);
-    }
-    callback(undefined, isAdmin, payload);
-  }
-
-  private async isAdmin(userIdOrName: number | string, shouldThrow = false) {
+  private async isAdmin(userIdOrName: number | string, throwsOnFalse = false) {
     try {
       const teams = await this.gitlab.getUserGroups(userIdOrName);
       return teams.find(findTeamByIdOrName(this.adminTeamName)) !== undefined;
     } catch (error) {
-      if (shouldThrow) {
+      if (throwsOnFalse) {
         throw error;
       }
       return false;
@@ -351,15 +329,15 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     await server.register(auth);
     server.auth.strategy('jwt', 'jwt', true, {
       ...this.hapiOptions,
-      validateFunc: this.authorizeUser.bind(this),
-    });
-    server.auth.strategy('customAuthorize', 'jwt', false, {
-      ...this.hapiOptions,
-      validateFunc: this.authorizeCustom.bind(this),
+      validateFunc: this.validateFuncFactory(this.authorizeUser.bind(this)),
     });
     server.auth.strategy('admin', 'jwt', false, {
       ...this.hapiOptions,
-      validateFunc: this.authorizeAdmin.bind(this),
+      validateFunc: this.validateFuncFactory(this.authorizeAdmin.bind(this)),
+    });
+    server.auth.strategy('customAuthorize', 'jwt', false, {
+      ...this.hapiOptions,
+      validateFunc: this.validateFuncFactory(this.authorizeCustom.bind(this)),
     });
     const ttl = 365 * 24 * 3600 * 1000; // ~year in ms
     server.state('token', accessTokenCookieSettings(this.authCookieDomain, ttl));

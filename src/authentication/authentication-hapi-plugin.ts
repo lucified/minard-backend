@@ -35,7 +35,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       name: 'authentication-plugin',
       version: '1.0.0',
     });
-    this.registerNoop = Object.assign(this.registerNoop.bind(this), {
+    this.registerNoOp = Object.assign(this.registerNoOp.bind(this), {
       attributes: {
         name: 'authentication-plugin',
         version: '1.0.0',
@@ -96,26 +96,39 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       },
     });
 
-    const decorate = server.decorate.bind(server);
-    decorate('request', 'gitlab', this.gitlab);
+    this.decorateRequest(server);
     next();
   }
 
   // For use in unit tests
-  public async registerNoop(server: Hapi.Server, _opt: Hapi.IServerOptions, next: () => void) {
+  public async registerNoOp(server: Hapi.Server, _opt: Hapi.IServerOptions, next: () => void) {
     const testUsername = 'auth-123';
-    server.auth.scheme('noop', (_server: Hapi.Server, _options: any) => {
+    server.auth.scheme('noOp', (_server: Hapi.Server, _options: any) => {
       return {
         authenticate: (_request: Hapi.Request, reply: Hapi.IReply) => {
           return reply.continue({ credentials: { username: testUsername } });
         },
       };
     });
-    server.auth.strategy('customAuthorize', 'noop', false);
-    server.auth.strategy('admin', 'noop', false);
-    const decorate = server.decorate.bind(server);
-    decorate('request', 'gitlab', this.gitlab);
+    server.auth.strategy('customAuthorize', 'noOp', false);
+    server.auth.strategy('admin', 'noOp', false);
+    this.decorateRequest(server);
     next();
+  }
+
+  private decorateRequest(server: Hapi.Server) {
+    server.decorate(
+      'request',
+      'userHasAccessToProject',
+      userHasAccessToProject.bind(undefined, this.gitlab),
+      { apply: true },
+    );
+    server.decorate(
+      'request',
+      'userHasAccessToTeam',
+      userHasAccessToTeam.bind(undefined, this.gitlab),
+      { apply: true },
+    );
   }
 
   public async getTeamHandler(request: Hapi.Request, reply: Hapi.IReply) {

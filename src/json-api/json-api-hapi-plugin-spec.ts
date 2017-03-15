@@ -18,7 +18,7 @@ import { JsonApiModule } from './json-api-module';
 const provisionServer = async (plugin?: JsonApiHapiPlugin) => {
   const server = await getTestServer(
     {
-      register: get<AuthenticationHapiPlugin>(AuthenticationHapiPlugin.injectSymbol).registerNoop,
+      register: get<AuthenticationHapiPlugin>(AuthenticationHapiPlugin.injectSymbol).registerNoOp,
     },
     {
       register: (plugin || get<JsonApiHapiPlugin>(JsonApiHapiPlugin.injectSymbol)).register,

@@ -227,18 +227,8 @@ class DeploymentHapiPlugin {
       return reply(Boom.badRequest('URL is missing commit hash'));
     }
 
-    if (checkAuthorization) {
-      try {
-        const project = await request.gitlab.getProject(projectId, request.auth.credentials.username);
-        if (project.id !== projectId) {
-          throw new Error('Unauthorized');
-        }
-      } catch (exception) {
-        this.logger.error(exception.message);
-        console.error(exception);
-        console.log(request.auth);
-        return reply(Boom.unauthorized());
-      }
+    if (checkAuthorization && (await request.userHasAccessToProject(projectId))) {
+      return reply(Boom.unauthorized());
     }
 
     try {

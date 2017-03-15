@@ -529,8 +529,7 @@ export class JsonApiHapiPlugin {
   private async authorizeProjectCreation(request: Hapi.Request, reply: Hapi.IReply) {
     try {
       const teamId = parseInt(request.payload.data.relationships.team.data.id, 10);
-      const team = await request.gitlab.getGroup(teamId, request.auth.credentials.username);
-      if (team.id === teamId) {
+      if (await request.userHasAccessToTeam(teamId)) {
         return reply(teamId);
       }
     } catch (exception) {
@@ -662,14 +661,12 @@ export class JsonApiHapiPlugin {
         return reply(Boom.badRequest('teamId and projectId should not both be defined'));
       }
       if (config.projectId) {
-        const project = await request.gitlab.getProject(config.projectId, request.auth.credentials.username);
-        if (project.id === config.projectId) {
+        if (await request.userHasAccessToProject(config.projectId)) {
           return reply(config);
         }
       }
       if (config.teamId) {
-        const team = await request.gitlab.getGroup(config.teamId, request.auth.credentials.username);
-        if (team.id === config.teamId) {
+        if (await request.userHasAccessToTeam(config.teamId)) {
           return reply(config);
         }
       }
@@ -684,14 +681,12 @@ export class JsonApiHapiPlugin {
       const { id } = request.params;
       const configuration =  await this.jsonApi.getNotificationConfiguration(Number(id));
       if (configuration && configuration.projectId) {
-        const project = await request.gitlab.getProject(configuration.projectId, request.auth.credentials.username);
-        if (project.id === configuration.projectId) {
+        if (await request.userHasAccessToProject(configuration.projectId)) {
           return reply(Number(id));
         }
       }
       if (configuration && configuration.teamId) {
-        const team = await request.gitlab.getGroup(configuration.teamId, request.auth.credentials.username);
-        if (team.id === configuration.teamId) {
+        if (await request.userHasAccessToTeam(configuration.teamId)) {
           return reply(Number(id));
         }
       }
@@ -722,8 +717,7 @@ export class JsonApiHapiPlugin {
       if (!parsed) {
         return reply(Boom.badRequest('Invalid deployment id'));
       }
-      const project = await request.gitlab.getProject(parsed.projectId, request.auth.credentials.username);
-      if (project.id === parsed.projectId) {
+      if (await request.userHasAccessToProject(parsed.projectId)) {
         return reply(parsed.deploymentId);
       }
     } catch (exception) {
@@ -736,8 +730,7 @@ export class JsonApiHapiPlugin {
     try {
       const { id } = request.params;
       const comment =  await this.jsonApi.getComment(Number(id));
-      const project = await request.gitlab.getProject(comment.project, request.auth.credentials.username);
-      if (project && project.id === comment.project) {
+      if (await request.userHasAccessToProject(comment.project)) {
         return reply(Number(id));
       }
     } catch (exception) {

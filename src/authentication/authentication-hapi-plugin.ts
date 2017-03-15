@@ -263,7 +263,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     ) => {
       let isAuthorized = false;
       try {
-        if (assertSub(payload.sub)) {
+        if (assertValidSubClaim(payload.sub)) {
           const userName = sanitizeUsername(payload.sub);
           payload.username = userName;
           isAuthorized = await authorizer(userName, request);
@@ -347,7 +347,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
 export default AuthenticationHapiPlugin;
 
 export function parseSub(sub: string) {
-  if (!validateSub(sub)) {
+  if (!validateSubClaim(sub)) {
     throw new Error('Invalid \'sub\' claim.');
   }
   const parts = sub.split('|');
@@ -357,7 +357,7 @@ export function parseSub(sub: string) {
   };
 }
 
-export function validateSub(sub: string) {
+export function validateSubClaim(sub: string) {
   if (typeof sub !== 'string') {
     return false;
   }
@@ -368,8 +368,8 @@ export function validateSub(sub: string) {
   return true;
 }
 
-export function assertSub(sub: string) {
-  if (!validateSub(sub)) {
+export function assertValidSubClaim(sub: string) {
+  if (!validateSubClaim(sub)) {
     throw new Error(`Invalid sub claim ${sub}`);
   }
   return true;

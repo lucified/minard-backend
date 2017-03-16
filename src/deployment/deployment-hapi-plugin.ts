@@ -14,8 +14,7 @@ import DeploymentModule, {
 
 import { gitlabHostInjectSymbol } from '../shared/gitlab-client';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
-
-const memoize = require('memoizee');
+import memoizee = require('memoizee');
 
 @injectable()
 class DeploymentHapiPlugin {
@@ -42,7 +41,7 @@ class DeploymentHapiPlugin {
       name: 'deployment-plugin',
       version: '1.0.0',
     };
-    this.checkHash = memoize(this.checkHash, {
+    this.checkHash = memoizee(this.checkHash, {
       promise: true,
       normalizer: (args: any) => `${args[0]}-${args[1]}`,
     });

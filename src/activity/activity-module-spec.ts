@@ -430,6 +430,7 @@ describe('activity-module', () => {
       // Arrange
       const branch = 'foo-branch';
       const event = commentAdded;
+      const bus = getEventBus();
       const deploymentModule = {
         getDeployment: async (deploymentId: number) => {
           expect(deploymentId).to.equal(event.deploymentId);
@@ -443,7 +444,7 @@ describe('activity-module', () => {
       const activityModule = new ActivityModule(
         deploymentModule,
         logger,
-        {} as any,
+        bus,
         {} as any);
 
       // Act

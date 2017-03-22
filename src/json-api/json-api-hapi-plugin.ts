@@ -460,7 +460,7 @@ export class JsonApiHapiPlugin {
       method: 'POST',
       path: '/comments',
       handler: {
-        async: this.createCommentHandler,
+        async: this.postCommentHandler,
       },
       config: {
         bind: this,
@@ -519,22 +519,22 @@ export class JsonApiHapiPlugin {
     return this.serializeApiEntity(type, entity);
   }
 
-  private async getProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  public async getProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const projectId = (<any> request.params).projectId;
     return reply(this.getEntity('project', api => api.getProject(projectId)));
   }
 
-  private async getProjectBranchesHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  public async getProjectBranchesHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const projectId = (<any> request.params).projectId;
     return reply(this.getEntity('branch', api => api.getProjectBranches(projectId)));
   }
 
-  private async getProjectsHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  public async getProjectsHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const teamId = (<any> request.params).teamId;
     return reply(this.getEntity('project', api => api.getProjects(teamId)));
   }
 
-  private async authorizeProjectCreation(request: Hapi.Request, reply: Hapi.IReply) {
+  public async authorizeProjectCreation(request: Hapi.Request, reply: Hapi.IReply) {
     try {
       const teamId = parseInt(request.payload.data.relationships.team.data.id, 10);
       if (await request.userHasAccessToTeam(teamId)) {
@@ -546,7 +546,7 @@ export class JsonApiHapiPlugin {
     return reply(Boom.unauthorized());
   }
 
-  private async postProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  public async postProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const { name, description, templateProjectId } = request.payload.data.attributes;
     const teamId = request.pre.teamId;
     const project = await this.jsonApi.createProject(teamId, name, description, templateProjectId);
@@ -554,7 +554,7 @@ export class JsonApiHapiPlugin {
       .created(`/api/projects/${project.id}`);
   }
 
-  private async patchProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  public async patchProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const attributes = request.payload.data.attributes;
     const projectId = (<any> request.params).projectId;
     if (!attributes.name && !attributes.description) {
@@ -565,19 +565,19 @@ export class JsonApiHapiPlugin {
     return reply(this.serializeApiEntity('project', project));
   }
 
-  private async deleteProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  public async deleteProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const projectId = (<any> request.params).projectId;
     await this.jsonApi.deleteProject(projectId);
     return reply({});
   }
 
-  private async getDeploymentHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  public async getDeploymentHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const projectId = Number((<any> request.params).projectId);
     const deploymentId = Number((<any> request.params).deploymentId);
     return reply(this.getEntity('deployment', api => api.getDeployment(projectId, deploymentId)));
   }
 
-  private async getPreviewHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  public async getPreviewHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const projectId = Number((<any> request.params).projectId);
     const deploymentId = Number((<any> request.params).deploymentId);
     const sha = request.query.sha;
@@ -588,7 +588,7 @@ export class JsonApiHapiPlugin {
     return reply(preview);
   }
 
-  private async getBranchHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  public async getBranchHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const matches = parseApiBranchId((<any> request.params).branchId);
     if (!matches) {
       throw Boom.badRequest('Invalid branch id');
@@ -597,7 +597,7 @@ export class JsonApiHapiPlugin {
     return reply(this.getEntity('branch', api => api.getBranch(projectId, branchName)));
   }
 
-  private async getBranchCommitsHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  public async getBranchCommitsHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const matches = parseApiBranchId((<any> request.params).branchId);
     if (!matches) {
       throw Boom.badRequest('Invalid branch id');
@@ -611,13 +611,13 @@ export class JsonApiHapiPlugin {
     return reply(this.getEntity('commit', api => api.getBranchCommits(projectId, branchName, untilMoment, count)));
   }
 
-  private async getCommitHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  public async getCommitHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const projectId = Number((<any> request.params).projectId);
     const hash = (<any> request.params).hash as string;
     return reply(this.getEntity('commit', api => api.getCommit(projectId, hash)));
   }
 
-  private parseActivityFilter(request: Hapi.Request, reply: Hapi.IReply) {
+  public parseActivityFilter(request: Hapi.Request, reply: Hapi.IReply) {
     try {
       const filter = request.query.filter as string;
       return reply(parseActivityFilter(filter));
@@ -626,7 +626,7 @@ export class JsonApiHapiPlugin {
     }
   }
 
-  private async getActivityHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  public async getActivityHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const filter = request.pre.filter;
     const { until, count } = request.query;
     if (filter.projectId) {
@@ -647,7 +647,7 @@ export class JsonApiHapiPlugin {
     return reply(this.getEntity('notification', api => api.getProjectNotificationConfigurations(projectId)));
   }
 
-  private async tryGetNotificationConfiguration(request: Hapi.Request, reply: Hapi.IReply) {
+  public async tryGetNotificationConfiguration(request: Hapi.Request, reply: Hapi.IReply) {
     try {
       reply(request.payload.data.attributes);
     } catch (error) {
@@ -655,7 +655,7 @@ export class JsonApiHapiPlugin {
     }
   }
 
-  private async authorizeTeamOrProjectAccess(
+  public async authorizeTeamOrProjectAccess(
     request: Hapi.RequestDecorators & {pre: TeamOrProject},
     reply: Hapi.IReply,
   ) {
@@ -680,10 +680,14 @@ export class JsonApiHapiPlugin {
     return reply(Boom.unauthorized());
   }
 
-  private async authorizeNotificationRemoval(request: Hapi.Request, reply: Hapi.IReply) {
+  public async getNotificationConfiguration(notificationConfigurationId: number) {
+    return this.jsonApi.getNotificationConfiguration(notificationConfigurationId);
+  }
+
+  public async authorizeNotificationRemoval(request: Hapi.Request, reply: Hapi.IReply) {
     try {
       const id = Number(request.params.id);
-      const configuration =  await this.jsonApi.getNotificationConfiguration(id);
+      const configuration =  await this.getNotificationConfiguration(id);
       if (!configuration) {
         throw new Error(`Tried to remove a nonexistent notification configuration ${id}`);
       }
@@ -714,7 +718,7 @@ export class JsonApiHapiPlugin {
     return reply({});
   }
 
-  private async authorizeCommentCreation(request: Hapi.Request, reply: Hapi.IReply) {
+  public async authorizeCommentCreation(request: Hapi.Request, reply: Hapi.IReply) {
     try {
       const deploymentId = request.payload.data.attributes.deployment;
       const parsed = parseApiDeploymentId(deploymentId);
@@ -730,12 +734,16 @@ export class JsonApiHapiPlugin {
     return reply(Boom.unauthorized());
   }
 
-  private async authorizeCommentRemoval(request: Hapi.Request, reply: Hapi.IReply) {
+  public async getCommentProjectId(commentId: number) {
+    return (await this.jsonApi.getComment(commentId)).project;
+  }
+
+  public async authorizeCommentRemoval(request: Hapi.Request, reply: Hapi.IReply) {
     try {
-      const { id } = request.params;
-      const comment =  await this.jsonApi.getComment(Number(id));
-      if (await request.userHasAccessToProject(comment.project)) {
-        return reply(Number(id));
+      const commentId = Number(request.params.id);
+      const projectId =  await this.getCommentProjectId(commentId);
+      if (await request.userHasAccessToProject(projectId)) {
+        return reply(commentId);
       }
     } catch (exception) {
       // TODO: log exception
@@ -743,7 +751,7 @@ export class JsonApiHapiPlugin {
     return reply(Boom.unauthorized());
   }
 
-  public async createCommentHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  public async postCommentHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const { name, email, message } = request.payload.data.attributes;
     const comment = await this.jsonApi.addComment(
         request.pre.deploymentId, email, message, name || undefined);

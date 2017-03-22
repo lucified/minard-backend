@@ -103,10 +103,13 @@ class DeploymentHapiPlugin {
     return reply.continue();
   }
 
-  private deploymentRoutes(auth = true) {
-    const directoryHandler = {
+  private directoryHandler(preKey: string) {
+    return {
       directory: {
-        path: this.serveDirectory.bind(this),
+        path: (request: Hapi.Request) => {
+          const { projectId, deploymentId } = request.pre[preKey];
+          return this.distPath(projectId, deploymentId);
+        },
         index: true,
         listing: true,
         showHidden: false,
@@ -114,6 +117,23 @@ class DeploymentHapiPlugin {
         lookupCompressed: false,
       },
     };
+  }
+
+  private pre(auth: boolean, host: boolean, preKey: string) {
+    if (auth) {
+      return [
+        { method: host ? this.parseHost.bind(this) : this.parsePath.bind(this), assign: preKey },
+        { method: this.authorize.bind(this) },
+        { method: this.preCheck.bind(this) },
+      ];
+    }
+    return [
+      { method: host ? this.parseHost.bind(this) : this.parsePath.bind(this), assign: preKey },
+      { method: this.preCheck.bind(this) },
+    ];
+  }
+
+  private deploymentRoutes(auth = true) {
     return [{
       method: 'GET',
       path: '/deployment-favicon',
@@ -126,20 +146,18 @@ class DeploymentHapiPlugin {
     }, {
       method: 'GET',
       path: '/raw-deployment-handler/{param*}',
-      handler: directoryHandler,
+      handler: this.directoryHandler('key'),
       config: {
         auth: 'customAuthorize',
-        pre: [
-          { method: this.parseHost.bind(this), assign: 'key' },
-          { method: this.preCheck.bind(this, auth) },
-        ],
+        pre: this.pre(auth, true, 'key'),
       },
     },
     {
       method: 'GET',
       path: '/deployments/{shortId}-{projectId}-{deploymentId}/{path*}',
-      handler: directoryHandler,
+      handler: this.directoryHandler('key'),
       config: {
+        pre: this.pre(auth, false, 'key'),
         cors: true,
         auth: 'customAuthorize',
         validate: {
@@ -148,9 +166,6 @@ class DeploymentHapiPlugin {
             deploymentId: Joi.number().required(),
           },
         },
-        pre: [
-          { method: this.preCheck.bind(this, auth) },
-        ],
       },
     }].map((route: any) => {
       if (!auth) {
@@ -193,7 +208,7 @@ class DeploymentHapiPlugin {
     return path.join(this.deploymentModule.getDeploymentPath(projectId, deploymentId));
   }
 
-  private async parseHost(request: Hapi.Request, reply: Hapi.IReply) {
+  private parseHost(request: Hapi.Request, reply: Hapi.IReply) {
     const key = getDeploymentKeyFromHost(request.info.hostname);
 
     if (!key) {
@@ -206,6 +221,27 @@ class DeploymentHapiPlugin {
 
   }
 
+  private parsePath(request: Hapi.Request, reply: Hapi.IReply) {
+    const {shortId, projectId, deploymentId} = request.params;
+    return reply({
+      shortId,
+      projectId: Number(projectId),
+      deploymentId: Number(deploymentId),
+    });
+  }
+
+  private async authorize(request: Hapi.Request, reply: Hapi.IReply) {
+    try {
+      const { projectId } = request.pre.key;
+      if (await request.userHasAccessToProject(projectId)) {
+        return reply('ok');
+      }
+    } catch (exception) {
+      // Nothing to do here
+    }
+    return reply(Boom.unauthorized());
+  }
+
   // internal method
   public async checkHash(deploymentId: number, shortId: string): Promise<boolean> {
     const deployment = await this.deploymentModule.getDeployment(deploymentId);
@@ -215,21 +251,11 @@ class DeploymentHapiPlugin {
     return shortId === deployment.commit.shortId;
   }
 
-  private async preCheck(checkAuthorization: boolean, request: Hapi.Request, reply: Hapi.IReply) {
-    const pre = request.pre as any;
-    const shortId = pre ? pre.key.shortId : request.paramsArray[0];
-    const projectId = pre ? pre.key.projectId : parseInt(request.paramsArray[1], 10);
-    const deploymentId = pre ? pre.key.deploymentId : parseInt(request.paramsArray[2], 10);
-    const isReady = this.deploymentModule.isDeploymentReadyToServe(projectId, deploymentId);
-
+  public async preCheck(request: Hapi.Request, reply: Hapi.IReply) {
+    const { shortId, projectId, deploymentId } = request.pre.key;
     if (!shortId) {
       return reply(Boom.badRequest('URL is missing commit hash'));
     }
-
-    if (checkAuthorization && !(await request.userHasAccessToProject(projectId))) {
-      return reply(Boom.unauthorized());
-    }
-
     try {
       if (!(await this.checkHash(deploymentId, shortId))) {
         this.logger.info(`checkHash failed for deployment`, { deploymentId, projectId, shortId });
@@ -239,7 +265,7 @@ class DeploymentHapiPlugin {
       this.logger.error('Unexpected error in precheck', err);
       return reply(Boom.badImplementation());
     }
-
+    const isReady = this.deploymentModule.isDeploymentReadyToServe(projectId, deploymentId);
     if (!isReady) {
       try {
         await this.deploymentModule.prepareDeploymentForServing(projectId, deploymentId);

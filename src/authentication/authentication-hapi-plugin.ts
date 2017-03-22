@@ -142,10 +142,10 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     );
   }
 
-  protected async getTeamHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  public async getTeamHandler(request: Hapi.Request, reply: Hapi.IReply) {
     try {
       const credentials = request.auth.credentials as AccessToken;
-      const teams = await this.gitlab.getUserGroups(sanitizeUsername(credentials.sub));
+      const teams = await this._getUserGroups(sanitizeUsername(credentials.sub));
       this.setAuthCookie(request, reply);
       return reply(teams[0]); // NOTE: we only support a single team for now
     } catch (error) {
@@ -159,12 +159,12 @@ class AuthenticationHapiPlugin extends HapiPlugin {
    *  1. An authenticated user belongs to
    *  2. An admin user has specified in the request by a team's id or name
    */
-  protected async getTeamTokenHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  public async getTeamTokenHandler(request: Hapi.Request, reply: Hapi.IReply) {
     try {
       const credentials = request.auth.credentials as AccessToken;
       const userName = sanitizeUsername(credentials.sub);
       const isAdmin = await this.isAdmin(userName);
-      const userTeams = await this.gitlab.getUserGroups(userName);
+      const userTeams = await this._getUserGroups(userName);
       const teamIdOrName = request.params[teamIdOrNameKey];
 
       let requestedOwnTeam: Group | undefined;
@@ -200,18 +200,19 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     }
   }
 
-  protected async createTeamTokenHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  public async createTeamTokenHandler(request: Hapi.Request, reply: Hapi.IReply) {
     try {
       const teamIdOrName = request.params[teamIdOrNameKey];
       const teamId = await this.teamIdOrNameToTeamId(teamIdOrName);
       const teamToken = await generateAndSaveTeamToken(teamId, this.db);
+      this.logger.debug('Created a new team-token for team %s', teamIdOrName);
       return reply(teamToken).code(201);
     } catch (error) {
       return reply(Boom.badRequest(error.message));
     }
   }
 
-  protected async signupHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  public async signupHandler(request: Hapi.Request, reply: Hapi.IReply) {
     let email: string | undefined;
     let credentials: AccessToken | undefined;
     try {
@@ -229,10 +230,10 @@ class AuthenticationHapiPlugin extends HapiPlugin {
         throw new Error('Missing team token');
       }
       const teamId = await getTeamIdWithToken(teamToken, this.db);
-      const team = await this.gitlab.getGroup(teamId);
+      const team = await this._getGroup(teamId);
       const password = generatePassword();
       const { id, idp } = parseSub(credentials.sub);
-      const user = await this.gitlab.createUser(
+      const user = await this._createUser(
         email,
         password,
         sanitizeUsername(credentials.sub),
@@ -240,7 +241,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
         id,
         idp,
       );
-      await this.gitlab.addUserToGroup(user.id, teamId);
+      await this._addUserToGroup(user.id, teamId);
       this.setAuthCookie(request, reply);
       return reply({
         team,
@@ -280,7 +281,11 @@ class AuthenticationHapiPlugin extends HapiPlugin {
           isAuthorized = await authorizer(userName, request);
         }
       } catch (error) {
-        this.logger.error('Authorization error', error);
+        // TODO: logging, this can happen very often
+        this.logger.warn('Authorization exception: %s', error.message);
+      }
+      if (!isAuthorized) {
+        this.logger.debug('User %s not is not authorized', payload.username || payload.sub);
       }
       return callback(undefined, isAuthorized, payload);
     };
@@ -289,18 +294,6 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   private getUserName(request: Hapi.Request) {
     // the username field is set above by the 'validateFuncFactory'
     return request.auth.credentials.username as string;
-  }
-
-  private async isAdmin(userIdOrName: number | string, throwsOnFalse = false) {
-    try {
-      const teams = await this.gitlab.getUserGroups(userIdOrName);
-      return teams.find(findTeamByIdOrName(this.adminTeamName)) !== undefined;
-    } catch (error) {
-      if (throwsOnFalse) {
-        throw error;
-      }
-      return false;
-    }
   }
 
   private async tryGetEmailFromAuth0(accessToken: string) {
@@ -321,7 +314,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   private async teamIdOrNameToTeamId(teamIdOrName: string | number) {
     let teamId = parseInt(String(teamIdOrName), 10);
     if (isNaN(teamId)) {
-      const teams = await this.gitlab.searchGroups(teamIdOrName as string);
+      const teams = await this._searchGroups(teamIdOrName as string);
       if (!teams.length) {
         throw Error(`No teams found matching ${teamIdOrName}`);
       }
@@ -391,7 +384,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   }
 
   private userHasAccessToTeamDecorator(request: Hapi.Request) {
-    return async(teamId: number) => {
+    return async (teamId: number) => {
       try {
         return this.userHasAccessToTeam(this.getUserName(request), teamId);
       } catch (error) {
@@ -412,22 +405,109 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     };
   }
 
-  public async userHasAccessToTeam(userName: string, teamId: number) {
+  public async userHasAccessToProject(
+    userName: string,
+    projectId: number,
+  ) {
     try {
-      return (await this.gitlab.getGroup(teamId, userName)) !== undefined;
-    } catch (error) {
-      this.logger.warn(`User ${userName} is not authorized to access team ${teamId}`, error);
-      return false;
+      return await this._userHasAccessToProject(userName, projectId);
+    } catch (exception) {
+      // Nothing
     }
+    return false;
   }
 
-  public async userHasAccessToProject(userName: string, projectId: number) {
+  public async userHasAccessToTeam(
+    userName: string,
+    teamId: number,
+  ) {
     try {
-      return (await this.gitlab.getProject(projectId, userName)) !== undefined;
+      return await this._userHasAccessToTeam(userName, teamId);
     } catch (error) {
-      this.logger.warn(`User ${userName} is not authorized to access project ${projectId}`, error);
-      return false;
+      // Nothing
     }
+    return false;
+  }
+
+  public async isAdmin(userName: string) {
+    try {
+      return await this._isAdmin(userName);
+    } catch (error) {
+      // Nothing
+    }
+    return false;
+  }
+
+  // Public only for unit testing
+  public async _userHasAccessToProject(
+    userName: string,
+    projectId: number,
+  ) {
+    if (await this.isAdmin(userName)) {
+      return true;
+    }
+    await this._getProject(projectId, userName); // Throws if no access
+    return true;
+  }
+
+  // Public only for unit testing
+  public async _userHasAccessToTeam(
+    userName: string,
+    teamId: number,
+  ) {
+    if (await this.isAdmin(userName)) {
+      return true;
+    }
+    const teams = await this._getUserGroups(userName);
+    if (teams && teams.find(findTeamById(teamId)) !== undefined) {
+      return true;
+    }
+    return false;
+  }
+
+  // Public only for unit testing
+  public async _isAdmin(userName: string) {
+    const teams = await this._getUserGroups(userName);
+    if (teams && teams.find(findTeamByName(this.adminTeamName)) !== undefined) {
+      return true;
+    }
+    return false;
+  }
+
+  // Public only for unit testing
+  public _getUserGroups(userName: string) {
+    return this.gitlab.getUserGroups(userName);
+  }
+
+  // Public only for unit testing
+  public _getGroup(teamId: number) {
+    return this.gitlab.getGroup(teamId);
+  }
+
+  // Public only for unit testing
+  public async _searchGroups(search: string) {
+    return this.gitlab.searchGroups(search);
+  }
+  // Public only for unit testing
+  public _getProject(projectId: number, userName?: string) {
+    return this.gitlab.getProject(projectId, userName);
+  }
+  // Public only for unit testing
+  public _addUserToGroup(userId: number, teamId: number) {
+    return this.gitlab.addUserToGroup(userId, teamId);
+  }
+
+  // Public only for unit testing
+  public _createUser(
+    email: string,
+    password: string,
+    username: string,
+    name: string,
+    externUid?: string,
+    provider?: string,
+    confirm = false,
+  ) {
+    return this.gitlab.createUser(email, password, username, name, externUid, provider, confirm);
   }
 }
 
@@ -483,11 +563,24 @@ export function sanitizeUsername(username: string) {
   return username.replace('|', '-');
 }
 
-export function findTeamByIdOrName(teamNameOrId: string | number) {
-  const _teamNameOrId = String(teamNameOrId);
-  return (team: Group) => team.name === _teamNameOrId
-    || team.path === _teamNameOrId
-    || team.id === parseInt(_teamNameOrId, 10);
+function findTeamByName(teamName: string) {
+  return (team: Group) => team.name === teamName;
+}
+function findTeamById(teamId: number) {
+  return (team: Group) => team.id === teamId;
+}
+function findTeamByIdOrName(key: string | number) {
+  let asNumber: number | undefined;
+  if (typeof key === 'string') {
+    asNumber = parseInt(key, 10);
+  }
+  if (typeof key === 'number') {
+    asNumber = key;
+  }
+  if (asNumber && !isNaN(asNumber)) {
+    return findTeamById(asNumber);
+  }
+  return findTeamByName(String(key));
 }
 
 export function accessTokenCookieSettings(

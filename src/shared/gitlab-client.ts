@@ -53,7 +53,7 @@ export class GitlabClient {
   }
 
   private log(msg: string): void {
-    if (this._logging) {
+    if (this._logging && this.logger && this.logger.info) {
       this.logger.info(msg);
     }
   }
@@ -103,16 +103,16 @@ export class GitlabClient {
     const _options = await this.authenticate(options);
     this.log(`GitlabClient: sending request to ${url}`);
     const response = await this._fetch(url, _options);
+    if (this._logging) {
+      const timerResult = perfy.end(timerId);
+      this.log(`GitlabClient: received response ${response.status} from ${url} in ${timerResult.time} secs.`);
+    }
     if (response.status !== 200 && response.status !== 201) {
       if (!includeErrorPayload) {
         throw Boom.create(response.status);
       }
       const json = await response.json<any>();
       throw Boom.create(response.status, undefined, json);
-    }
-    if (this._logging) {
-      const timerResult = perfy.end(timerId);
-      this.log(`GitlabClient: received response ${response.status} from ${url} in ${timerResult.time} secs.`);
     }
     const json = await response.json<T>();
     return json;

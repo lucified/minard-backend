@@ -1,11 +1,9 @@
 import { expect, use } from 'chai';
-import * as chaiAsPromised from 'chai-as-promised';
 import { Server } from 'hapi';
 import 'reflect-metadata';
 import * as sinon from 'sinon';
 import * as sinonChai from 'sinon-chai';
 use(sinonChai);
-use(chaiAsPromised);
 
 import { bootstrap } from '../config';
 import { getAccessToken } from '../config/config-test';

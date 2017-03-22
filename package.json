@@ -54,7 +54,6 @@
     "@types/boom": "0.0.33",
     "@types/cache-manager": "^1.2.4",
     "@types/chai": "^3.4.34",
-    "@types/chai-as-promised": "0.0.30",
     "@types/chalk": "^0.4.31",
     "@types/form-data": "0.0.33",
     "@types/gravatar": "^1.4.28",

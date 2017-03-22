@@ -5,7 +5,7 @@ import * as qs from 'querystring';
 
 import AuthenticationModule from '../authentication/authentication-module';
 import { IFetch, RequestInit, Response } from './fetch';
-import { Group, Project, User } from './gitlab';
+import { Group, Project, User, UserGroupAccessLevel } from './gitlab';
 import { Logger, loggerInjectSymbol } from './logger';
 import { fetchInjectSymbol } from './types';
 
@@ -238,10 +238,9 @@ export class GitlabClient {
 
   /**
    * Adds a user to a project or group.
-   * The access_level defaults to 'developer'.
-   * The levels are documented here: https://docs.gitlab.com/ce/api/members.html.
+   * The access levels are documented here: https://docs.gitlab.com/ce/api/members.html.
    */
-  public addUserToGroup(userId: number, teamId: number, accessLevel = 30) {
+  public addUserToGroup(userId: number, teamId: number, accessLevel = UserGroupAccessLevel.MASTER) {
     return this.fetchJson(`groups/${teamId}/members`, {
       method: 'POST',
       body: JSON.stringify({

@@ -1,20 +1,24 @@
-import { expect } from 'chai';
+import * as Boom from 'boom';
+import { expect, use } from 'chai';
+import { Container } from 'inversify';
 import * as Knex from 'knex';
-import * as moment from 'moment';
 import 'reflect-metadata';
+import * as sinon from 'sinon';
+import * as sinonChai from 'sinon-chai';
+use(sinonChai);
 
 import { bootstrap } from '../config';
-import { getAccessToken, issuer } from '../config/config-test';
-import { getTestServer, Server } from '../server/hapi';
-import { fetchMock } from '../shared/fetch';
+import { getAccessToken } from '../config/config-test';
+import { getTestServer } from '../server/hapi';
+import { makeRequestWithAuthentication, MethodStubber, stubber } from '../shared/test';
 import { adminTeamNameInjectSymbol, charlesKnexInjectSymbol } from '../shared/types';
 import {
   accessTokenCookieSettings,
   default as AuthenticationHapiPlugin,
   generatePassword,
 } from './authentication-hapi-plugin';
-import { generateAndSaveTeamToken, generateTeamToken, TeamToken, teamTokenLength } from './team-token';
-import { initializeTeamTokenTable, insertTeamToken } from './team-token-spec';
+import { generateAndSaveTeamToken, generateTeamToken, teamTokenLength } from './team-token';
+import { initializeTeamTokenTable } from './team-token-spec';
 
 const defaultTeamTokenString = generateTeamToken();
 expect(defaultTeamTokenString.length).to.equal(teamTokenLength);
@@ -23,34 +27,38 @@ const defaultSub = 'idp|12345678';
 
 const validAccessToken = getAccessToken(defaultSub, defaultTeamTokenString, defaultEmail);
 const invalidAccessToken = `${validAccessToken}a`;
+const makeRequest = makeRequestWithAuthentication(validAccessToken);
 
-const validTeamToken: TeamToken = {
-  token: defaultTeamTokenString,
-  teamId: 1,
-  createdAt: moment.utc(),
-};
-
-const kernel = bootstrap('test');
-const knex = kernel.get<Knex>(charlesKnexInjectSymbol);
-
-async function getServer() {
+async function getPlugin(authenticationStubber?: MethodStubber<AuthenticationHapiPlugin>) {
+  const kernel = bootstrap('test');
+  kernel.rebind(AuthenticationHapiPlugin.injectSymbol).to(AuthenticationHapiPlugin);
+  const db = kernel.get<Knex>(charlesKnexInjectSymbol);
+  kernel.rebind(charlesKnexInjectSymbol).toConstantValue(db);
+  await initializeTeamTokenTable(db);
+  if (authenticationStubber) {
+    const { instance } = stubber(authenticationStubber, AuthenticationHapiPlugin.injectSymbol, kernel);
+    return { plugin: instance, db };
+  }
   const plugin = kernel.get<AuthenticationHapiPlugin>(AuthenticationHapiPlugin.injectSymbol);
-  const server = await getTestServer(true, plugin);
-  return server;
+  return { plugin, db, kernel };
+}
+
+async function getServer(authenticationStubber?: MethodStubber<AuthenticationHapiPlugin>) {
+  const { plugin, db } = await getPlugin(authenticationStubber);
+  return {
+    server: await getTestServer(true, plugin),
+    plugin,
+    db,
+  };
 }
 
 describe('authentication-hapi-plugin', () => {
-
-  let server: Server;
-  beforeEach(async () => {
-    server = await getServer();
-    fetchMock.restore();
-  });
 
   describe('jwt verification', () => {
 
     it('should return 401 for missing and invalid tokens', async () => {
       // Arrange
+      const { server } = await getServer();
 
       // Act
       let response = await server.inject({
@@ -75,6 +83,7 @@ describe('authentication-hapi-plugin', () => {
     });
     it('should require a valid sub in the token', async () => {
       // Arrange
+      const { server } = await getServer();
 
       // Act
       const response = await server.inject({
@@ -88,17 +97,16 @@ describe('authentication-hapi-plugin', () => {
       // Assert
       expect(response.statusCode, response.payload).to.equal(401);
     });
-    it('should return 200 for valid token', async () => {
+    it('should call the route handler when the token is valid', async () => {
       // Arrange
-      fetchMock.mock(/\/users/, [{
-        id: 1,
-      }]);
-      fetchMock.mock(/\/groups\?/, [{
-        id: 1,
-      }]);
+      const { server, plugin } = await getServer(
+        p => sinon.stub(p, 'getTeamHandler')
+          .yields(200)
+          .returns(Promise.resolve(true)),
+      );
 
       // Act
-      const response = await server.inject({
+      await server.inject({
         method: 'GET',
         url: 'http://foo.com/team',
         headers: {
@@ -107,257 +115,209 @@ describe('authentication-hapi-plugin', () => {
       });
 
       // Assert
-      expect(response.statusCode, response.payload).to.equal(200);
+      expect(plugin.getTeamHandler).to.have.been.calledOnce;
     });
+
   });
 
   describe('team token endpoint', () => {
-    it('should require admin team membership to get other teams\' tokens', async () => {
-      // Arrange
-      const teamId = 2;
-      const adminTeamName = kernel.get<string>(adminTeamNameInjectSymbol);
 
-      fetchMock.mock(/\/groups\?/, [{
-        id: 1,
-        name: adminTeamName + '1',
-      }]);
+    it('should be able to fetch caller\'s teams\' token', async () => {
+      // Arrange
+      const callerTeamId = 1;
+      const { server, plugin, db } = await getServer(
+        (p: AuthenticationHapiPlugin) => [
+          sinon.stub(p, 'isAdmin')
+            .returns(Promise.resolve(false)),
+          sinon.stub(p, '_getUserGroups')
+            .returns(Promise.resolve([{ id: callerTeamId, name: 'foo' }])),
+        ],
+      );
+      const token = await generateAndSaveTeamToken(callerTeamId, db);
 
       // Act
-      const response = await server.inject({
-        method: 'GET',
-        url: `http://foo.com/team-token/${teamId}`,
-        headers: {
-          'Authorization': `Bearer ${validAccessToken}`,
-        },
-      });
+      const response = await makeRequest(server, `/team-token/${callerTeamId}`);
 
       // Assert
-      expect(response.statusCode, response.payload).to.equal(401);
+      expect(response.statusCode).to.eq(200);
+      expect(plugin.isAdmin).to.have.been.calledOnce;
+      expect(plugin._getUserGroups).to.have.been.calledOnce;
+      const json = JSON.parse(response.payload);
+      expect(json.token).to.eq(token!.token);
+
     });
-    it('should return the team token with GET and a teamId', async () => {
+    it('should default to fetching caller\'s team\'s token', async () => {
       // Arrange
-      const teamId = 2;
-      const adminTeamName = kernel.get<string>(adminTeamNameInjectSymbol);
-      const db = await initializeTeamTokenTable(knex);
-      const token = await generateAndSaveTeamToken(teamId, db);
-      fetchMock.mock(/\/groups\?/, [{
-        id: 1,
-        name: adminTeamName,
-      }]);
+      const callerTeamId = 1;
+      const { server, plugin, db } = await getServer(
+        (p: AuthenticationHapiPlugin) => [
+          sinon.stub(p, 'isAdmin')
+            .returns(Promise.resolve(false)),
+          sinon.stub(p, '_getUserGroups')
+            .returns(Promise.resolve([{ id: callerTeamId, name: 'foo' }])),
+        ],
+      );
+      const token = await generateAndSaveTeamToken(callerTeamId, db);
 
       // Act
-      const response = await server.inject({
-        method: 'GET',
-        url: `http://foo.com/team-token/${teamId}`,
-        headers: {
-          'Authorization': `Bearer ${validAccessToken}`,
-        },
-      });
+      const response = await makeRequest(server, `/team-token`);
 
       // Assert
-      expect(response.statusCode, response.payload).to.equal(200);
-      const result = JSON.parse(response.payload);
-      expect(result.token).to.equal(token.token);
+      expect(response.statusCode).to.eq(200);
+      expect(plugin.isAdmin).to.have.been.calledOnce;
+      expect(plugin._getUserGroups).to.have.been.calledOnce;
+      const json = JSON.parse(response.payload);
+      expect(json.token).to.eq(token!.token);
 
     });
-    it('should allow fetching own team\'s token even if not admin', async () => {
+    it('should not allow fetcing other teams\' tokens if not admin', async () => {
       // Arrange
-      const teamId = 2;
-      const teamName = 'foofoo';
-      const db = await initializeTeamTokenTable(knex);
-      const token = await generateAndSaveTeamToken(teamId, db);
-      fetchMock.mock(/\/groups\?/, [{
-        id:  teamId,
-        name: teamName,
-      }]);
+      const callerTeamId = 1;
+      const otherTeamId = 2;
+      const { server, plugin, db } = await getServer(
+        p => [
+          sinon.stub(p, 'isAdmin')
+            .returns(Promise.resolve(false)),
+          sinon.stub(p, '_getUserGroups')
+            .returns(Promise.resolve([{ id: callerTeamId, name: 'foo' }])),
+        ],
+      );
+      await generateAndSaveTeamToken(callerTeamId, db);
 
       // Act
-      const response = await server.inject({
-        method: 'GET',
-        url: `http://foo.com/team-token`,
-        headers: {
-          'Authorization': `Bearer ${validAccessToken}`,
-        },
-      });
+      const response = await makeRequest(server, `/team-token/${otherTeamId}`);
 
       // Assert
-      expect(response.statusCode, response.payload).to.equal(200);
-      const result = JSON.parse(response.payload);
-      expect(result.token).to.equal(token.token);
+      expect(response.statusCode).to.eq(401);
+      expect(plugin.isAdmin).to.have.been.calledOnce;
+      expect(plugin._getUserGroups).to.have.been.calledOnce;
 
     });
+    it('should allow fetcing other teams\' tokens if admin', async () => {
+      // Arrange
+      const callerTeamId = 1;
+      const otherTeamId = 2;
+      const { server, plugin, db } = await getServer(
+        (p: AuthenticationHapiPlugin) => [
+          sinon.stub(p, 'isAdmin')
+            .returns(Promise.resolve(true)),
+          sinon.stub(p, '_getUserGroups')
+            .returns(Promise.resolve([{ id: callerTeamId, name: 'foo' }])),
+        ],
+      );
+      const token = await generateAndSaveTeamToken(otherTeamId, db);
 
+      // Act
+      const response = await makeRequest(server, `/team-token/${otherTeamId}`);
+
+      // Assert
+      expect(response.statusCode).to.eq(200);
+      expect(plugin.isAdmin).to.have.been.calledOnce;
+      expect(plugin._getUserGroups).to.have.been.calledOnce;
+      const json = JSON.parse(response.payload);
+      expect(json.token).to.eq(token!.token);
+
+    });
     it('should return 404 if no token found', async () => {
       // Arrange
-      const teamId = 23;
-      const adminTeamName = kernel.get<string>(adminTeamNameInjectSymbol);
-
-      fetchMock.mock(/\/groups\?/, [{
-        id: 1,
-        name: adminTeamName,
-      }]);
-      fetchMock.mock(/\/users/, [{
-        id: 1,
-      }]);
-      fetchMock.mock(/\/userinfo$/, {
-        email: 'foo@bar.com',
-      });
+      const callerTeamId = 1;
+      const { server, plugin } = await getServer(
+        (p: AuthenticationHapiPlugin) => [
+          sinon.stub(p, 'isAdmin')
+            .returns(Promise.resolve(false)),
+          sinon.stub(p, '_getUserGroups')
+            .returns(Promise.resolve([{ id: callerTeamId, name: 'foo' }])),
+        ],
+      );
 
       // Act
-      const response = await server.inject({
-        method: 'GET',
-        url: `http://foo.com/team-token/${teamId}`,
-        headers: {
-          'Authorization': `Bearer ${validAccessToken}`,
-        },
-      });
+      const response = await makeRequest(server, `/team-token`);
 
       // Assert
-      expect(response.statusCode, response.payload).to.equal(404);
-    });
-    it('should return a new token with POST', async () => {
-      // Arrange
-      const adminTeamName = kernel.get<string>(adminTeamNameInjectSymbol);
+      expect(response.statusCode).to.eq(404);
+      expect(plugin.isAdmin).to.have.been.calledOnce;
+      expect(plugin._getUserGroups).to.have.been.calledOnce;
 
-      fetchMock.mock(/\/groups\?/, [{
-        id: 1,
-        name: adminTeamName,
-      }]);
-
-      // Act
-      const response = await server.inject({
-        method: 'POST',
-        url: `http://foo.com/team-token/${adminTeamName}`,
-        headers: {
-          'Authorization': `Bearer ${validAccessToken}`,
-        },
-      });
-
-      // Assert
-      expect(response.statusCode, response.payload).to.equal(201);
-      const result = JSON.parse(response.payload);
-      expect(result.token.length).to.equal(teamTokenLength);
     });
   });
-
   describe('team endpoint', () => {
-    it('should return team id and name', async () => {
-      // Arrange
-      fetchMock.mock(/\/users/, [{
-        id: 1,
-      }]);
-      fetchMock.mock(/\/groups\?/, [{
-        id: 1,
-        name: 'fooGroup',
-      }]);
-      // Act
-      const response = await server.inject({
-        method: 'GET',
-        url: 'http://foo.com/team',
-        headers: {
-          'Authorization': `Bearer ${validAccessToken}`,
-        },
-      });
 
-      try {
-        const result = JSON.parse(response.payload);
-        // Assert
-        expect(result.id).to.equal(1);
-        expect(result.name).to.equal('fooGroup');
-      } catch (error) {
-        expect.fail(response.payload);
-      }
+    it('should be able to fetch caller\'s team', async () => {
+      // Arrange
+      const callerTeamId = 1;
+      const { server, plugin } = await getServer(
+        (p: AuthenticationHapiPlugin) => [
+          sinon.stub(p, '_getUserGroups')
+            .returns(Promise.resolve([{ id: callerTeamId, name: 'foo' }])),
+        ],
+      );
+
+      // Act
+      const response = await makeRequest(server, `/team`);
+
+      // Assert
+      expect(response.statusCode).to.eq(200);
+      expect(plugin._getUserGroups).to.have.been.calledOnce;
+      const team = JSON.parse(response.payload);
+      expect(team.id).to.eq(callerTeamId);
+
     });
   });
 
   describe('signup endpoint', () => {
-    it('should create a gitlab user and add it to the specified group', async () => {
+    it('should be able to create a gitlab user and add it to the group specified in the access token', async () => {
       // Arrange
-      const db = await initializeTeamTokenTable(knex);
-      await insertTeamToken(db, validTeamToken);
-
-      fetchMock.mock(/\/users/, [{
-        id: 1,
-      }]);
-      fetchMock.mock(/\/groups\/1/, {
-        id: validTeamToken.teamId,
-        name: 'fooGroup',
-      });
+      const callerTeamId = 12;
+      const { server, plugin, db } = await getServer(
+        (p: AuthenticationHapiPlugin) => [
+          sinon.stub(p, '_getGroup')
+            .returns(Promise.resolve({ id: callerTeamId, name: 'foo' })),
+          sinon.stub(p, '_createUser')
+            .returns(Promise.resolve({ id: 1, name: 'foo' })),
+          sinon.stub(p, '_addUserToGroup')
+            .returns(Promise.resolve(true)),
+        ],
+      );
+      const teamToken = await generateAndSaveTeamToken(callerTeamId, db);
+      const accessToken = getAccessToken(defaultSub, teamToken.token, defaultEmail);
 
       // Act
-      const response = await server.inject({
-        method: 'GET',
-        url: 'http://foo.com/signup',
-        headers: {
-          'Authorization': `Bearer ${validAccessToken}`,
-        },
-      });
+      const response = await makeRequestWithAuthentication(accessToken)(server, `/signup`);
 
       // Assert
-      expect(response.statusCode, response.rawPayload.toString()).to.equal(201);
-      const result = JSON.parse(response.payload);
-      expect(result.team.id).to.equal(1);
-      expect(result.password).to.exist;
+      expect(response.statusCode).to.eq(201);
+      expect(plugin._getGroup).to.have.been.calledOnce;
+      expect(plugin._createUser).to.have.been.calledOnce;
+      expect(plugin._addUserToGroup).to.have.been.calledOnce;
+      const json = JSON.parse(response.payload);
+      expect(json.team.id).to.eq(callerTeamId);
+      expect(json.password).to.exist;
+
     });
     it('should report the email on error', async () => {
-
       // Arrange
-      // clear the db
-      await initializeTeamTokenTable(knex);
-
-      fetchMock.mock(/\/users/, [{
-        id: 1,
-      }]);
-      fetchMock.mock(/\/groups\/1/, {
-        id: validTeamToken.teamId + 1,
-        name: 'fooGroup',
-      });
+      const callerTeamId = 12;
+      const { server } = await getServer(
+        (p: AuthenticationHapiPlugin) => [
+          sinon.stub(p, '_getGroup')
+            .returns(Promise.resolve({ id: callerTeamId, name: 'foo' })),
+          sinon.stub(p, '_createUser')
+            .returns(Promise.resolve({ id: 1, name: 'foo' })),
+          sinon.stub(p, '_addUserToGroup')
+            .returns(Promise.resolve(true)),
+        ],
+      );
 
       // Act
-      const response = await server.inject({
-        method: 'GET',
-        url: 'http://foo.com/signup',
-        headers: {
-          'Authorization': `Bearer ${validAccessToken}`,
-        },
-      });
+      const response = await makeRequest(server, `/signup`);
 
       // Assert
       expect(response.statusCode, response.rawPayload.toString()).to.equal(400);
       const result = JSON.parse(response.payload);
       expect((result.message as string).indexOf(defaultEmail)).to.not.eq(-1);
+
     });
-    it('should fall back to trying to retrieve the email from Auth0', async () => {
-      // Arrange
-      const db = await initializeTeamTokenTable(knex);
-      await insertTeamToken(db, validTeamToken);
 
-      const invalidEmail = 'foo@';
-      const userInfoEndpoint = `${issuer}/userinfo`;
-      fetchMock.get(userInfoEndpoint, {
-        email: defaultEmail,
-      });
-      fetchMock.mock(/\/users/, [{
-        id: 1,
-      }]);
-      fetchMock.mock(/\/groups\/1/, {
-        id: validTeamToken.teamId,
-        name: 'fooGroup',
-      });
-
-      // Act
-      const response = await server.inject({
-        method: 'GET',
-        url: 'http://foo.com/signup',
-        headers: {
-          'Authorization': `Bearer ${getAccessToken(defaultSub, defaultTeamTokenString, invalidEmail)}`,
-        },
-      });
-
-      // Assert
-      expect(fetchMock.called(userInfoEndpoint), response.rawPayload.toString()).to.be.true;
-      expect(response.statusCode, response.payload).to.equal(201);
-    });
   });
 
   describe('generatePassword', () => {
@@ -369,21 +329,19 @@ describe('authentication-hapi-plugin', () => {
   });
   describe('cookie', () => {
     it('should be set with the access token as the value when accessing the team endpoint', async () => {
-      fetchMock.mock(/\/users/, [{
-        id: 1,
-      }]);
-      fetchMock.mock(/\/groups\?/, [{
-        id: 1,
-        name: 'fooGroup',
-      }]);
+      // Arrange
+      const callerTeamId = 1;
+      const { server } = await getServer(
+        (p: AuthenticationHapiPlugin) => [
+          sinon.stub(p, '_getUserGroups')
+            .returns(Promise.resolve([{ id: callerTeamId, name: 'foo' }])),
+        ],
+      );
+
       // Act
-      const response = await server.inject({
-        method: 'GET',
-        url: 'http://foo.com/team',
-        headers: {
-          'Authorization': `Bearer ${validAccessToken}`,
-        },
-      });
+      const response = await makeRequest(server, `/team`);
+
+      // Assert
       const cookie = response.headers['set-cookie'][0];
       const token = cookie.replace(/^token=([^;]+).*$/, '$1');
       expect(token).to.eq(validAccessToken);
@@ -415,5 +373,191 @@ describe('authentication-hapi-plugin', () => {
       expect(settings.path).to.eq('/');
     });
   });
+  describe('_userHasAccessToTeam', () => {
+    it('returns true when matching team is found', async () => {
 
+      // Arrange
+      const callerTeamId = 1;
+      const { plugin } = await getPlugin(
+        (p: AuthenticationHapiPlugin) => [
+          sinon.stub(p, '_getUserGroups')
+            .returns(Promise.resolve([{ id: callerTeamId, name: 'foo' }])),
+          sinon.stub(p, 'isAdmin')
+            .returns(Promise.resolve(false)),
+        ],
+      );
+
+      // Act
+      const result = await plugin._userHasAccessToTeam('foo', callerTeamId);
+
+      // Assert
+      expect(result).to.be.true;
+    });
+    it('returns false when matching team is not found', async () => {
+
+      // Arrange
+      const callerTeamId = 1;
+      const { plugin } = await getPlugin(
+        (p: AuthenticationHapiPlugin) => [
+          sinon.stub(p, '_getUserGroups')
+            .returns(Promise.resolve([{ id: callerTeamId + 1, name: 'foo' }])),
+          sinon.stub(p, 'isAdmin')
+            .returns(Promise.resolve(false)),
+        ],
+      );
+
+      // Act
+      const result = await plugin._userHasAccessToTeam('foo', callerTeamId);
+
+      // Assert
+      expect(result).to.be.false;
+    });
+    it('returns true if caller is an admin', async () => {
+
+      // Arrange
+      const callerTeamId = 1;
+      const { plugin } = await getPlugin(
+        (p: AuthenticationHapiPlugin) => [
+          sinon.stub(p, 'isAdmin')
+            .returns(Promise.resolve(true)),
+        ],
+      );
+
+      // Act
+      const result = await plugin._userHasAccessToTeam('foo', callerTeamId);
+
+      // Assert
+      expect(result).to.be.true;
+    });
+    it('throws if something unexpected happens', async () => {
+
+      // Arrange
+      const callerTeamId = 1;
+      const { plugin } = await getPlugin(
+        (p: AuthenticationHapiPlugin) => [
+          sinon.stub(p, '_getUserGroups')
+            .returns(Promise.reject(Boom.badGateway())),
+          sinon.stub(p, 'isAdmin')
+            .returns(Promise.resolve(false)),
+        ],
+      );
+
+      // Act
+      const resultPromise = plugin._userHasAccessToTeam('foo', callerTeamId);
+
+      // Assert
+      return resultPromise
+        .then(_ => expect.fail(), error => expect(error.isBoom).to.be.true);
+    });
+  });
+  describe('_userHasAccessToProject', () => {
+    it('returns true if the Promise resolves', async () => {
+
+      // Arrange
+      const projectId = 1;
+      const { plugin } = await getPlugin(
+        (p: AuthenticationHapiPlugin) => [
+          sinon.stub(p, '_getProject')
+            .returns(Promise.resolve(1)),
+          sinon.stub(p, 'isAdmin')
+            .returns(Promise.resolve(false)),
+        ],
+      );
+
+      // Act
+      const result = await plugin._userHasAccessToProject('foo', projectId);
+
+      // Assert
+      expect(result).to.be.true;
+    });
+    it('throws if the Promise is rejected', async () => {
+
+      // Arrange
+      const projectId = 1;
+      const { plugin } = await getPlugin(
+        (p: AuthenticationHapiPlugin) => [
+          sinon.stub(p, '_getProject')
+            .returns(Promise.reject(Boom.notFound())),
+          sinon.stub(p, 'isAdmin')
+            .returns(Promise.resolve(false)),
+        ],
+      );
+
+      // Act
+      const resultPromise = plugin._userHasAccessToProject('foo', projectId);
+
+      // Assert
+      return resultPromise
+        .then(_ => expect.fail(), error => expect(error.isBoom).to.be.true);
+
+    });
+    it('returns true if caller is an admin', async () => {
+
+      // Arrange
+      const projectId = 1;
+      const { plugin } = await getPlugin(
+        (p: AuthenticationHapiPlugin) => [
+          sinon.stub(p, 'isAdmin')
+            .returns(Promise.resolve(true)),
+        ],
+      );
+
+      // Act
+      const result = await plugin._userHasAccessToProject('foo', projectId);
+
+      // Assert
+      expect(result).to.be.true;
+    });
+  });
+  describe('_isAdmin', () => {
+    it('returns true if the user belongs to a team with the correct name', async () => {
+
+      // Arrange
+      const { plugin } = await getPlugin(
+        (p: AuthenticationHapiPlugin, k: Container) => [
+          sinon.stub(p, '_getUserGroups')
+            .returns(Promise.resolve([{ id: 1, name: k.get<string>(adminTeamNameInjectSymbol) }])),
+        ],
+      );
+
+      // Act
+      const result = await plugin._isAdmin('foo');
+
+      // Assert
+      expect(result).to.be.true;
+    });
+    it('returns false if the user belongs to a team with an incorrect name', async () => {
+
+      // Arrange
+      const { plugin } = await getPlugin(
+        (p: AuthenticationHapiPlugin, k: Container) => [
+          sinon.stub(p, '_getUserGroups')
+            .returns(Promise.resolve([{ id: 1, name: k.get<string>(adminTeamNameInjectSymbol) + '1' }])),
+        ],
+      );
+
+      // Act
+      const result = await plugin._isAdmin('foo');
+
+      // Assert
+      expect(result).to.be.false;
+    });
+    it('throws if something unexpected happens', async () => {
+
+      // Arrange
+      const { plugin } = await getPlugin(
+        (p: AuthenticationHapiPlugin) => [
+          sinon.stub(p, '_getUserGroups')
+            .returns(Promise.reject(Boom.badGateway())),
+        ],
+      );
+
+      // Act
+      const resultPromise = plugin._isAdmin('foo');
+
+      // Assert
+      return resultPromise
+        .then(_ => expect.fail(), error => expect(error.isBoom).to.be.true);
+    });
+  });
 });

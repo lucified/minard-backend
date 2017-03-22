@@ -3,8 +3,7 @@ import * as Knex from 'knex';
 import * as moment from 'moment';
 import 'reflect-metadata';
 
-import { get } from '../config';
-// import { sleep } from '../shared/sleep';
+import { bootstrap } from '../config';
 import { charlesKnexInjectSymbol } from '../shared/types';
 import {
   generateAndSaveTeamToken,
@@ -13,6 +12,9 @@ import {
   TeamToken,
   teamTokenLength,
 } from './team-token';
+
+const kernel = bootstrap('test');
+const knex = kernel.get<Knex>(charlesKnexInjectSymbol);
 
 const validTokens: TeamToken[] = [
   {
@@ -37,8 +39,7 @@ const validTokens: TeamToken[] = [
   },
 ];
 
-export async function getDb() {
-  const db = get<Knex>(charlesKnexInjectSymbol);
+export async function initializeTeamTokenTable(db: Knex) {
   await db.schema.dropTableIfExists('teamtoken');
   await db.schema.createTable('teamtoken', (table) => {
     table.increments('id').primary();
@@ -57,7 +58,7 @@ export async function insertTeamToken(db: Knex, token: TeamToken) {
 describe('getTeamIdWithToken', () => {
 
   it('should return the latest token per team', async () => {
-    const db = await getDb();
+    const db = await initializeTeamTokenTable(knex);
     await Promise.all(validTokens.map(insertTeamToken.bind(undefined, db)));
     let teamId = await getTeamIdWithToken(validTokens[0].token, db);
     expect(teamId).to.eq(validTokens[0].teamId);
@@ -65,7 +66,7 @@ describe('getTeamIdWithToken', () => {
     expect(teamId).to.eq(validTokens[2].teamId);
   });
   it('should not accept nonexistent or invalidated tokens', async () => {
-    const db = await getDb();
+    const db = await initializeTeamTokenTable(knex);
     await Promise.all(validTokens.map(insertTeamToken.bind(undefined, db)));
 
     const exceptions: Error[] = [];
@@ -101,7 +102,7 @@ describe('generateAndSaveTeamToken', () => {
 
   it('should invalidate the previous token for the same team', async () => {
     // Arrange
-    const db = await getDb();
+    const db = await initializeTeamTokenTable(knex);
     const teamId1 = 395;
     const teamId2 = teamId1 + 1;
 

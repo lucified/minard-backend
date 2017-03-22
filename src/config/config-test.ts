@@ -10,6 +10,7 @@ import {
   teamTokenClaimKey,
 } from '../authentication';
 import AuthenticationModule from '../authentication/authentication-module';
+import { eventStoreConfigInjectSymbol } from '../event-bus';
 import { JsonApiHapiPlugin } from '../json-api';
 import { goodOptionsInjectSymbol } from '../server';
 import { cacheInjectSymbol } from '../shared/cache';
@@ -101,4 +102,5 @@ export default (kernel: Container) => {
   });
   kernel.rebind(cacheInjectSymbol).toConstantValue(cache);
   kernel.rebind(JsonApiHapiPlugin.injectSymbol).to(JsonApiHapiPlugin).inTransientScope();
+  kernel.rebind(eventStoreConfigInjectSymbol).toConstantValue({type: 'inmemory'});
 };

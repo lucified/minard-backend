@@ -207,19 +207,17 @@ export class GitlabClient {
     name: string,
     path: string,
     description?: string,
-    visibility: 'private' | 'internal' | 'public' = 'private',
+    visibilityLevel: 0 | 10 | 20 = 0,
     lfsEnabled = false,
     requestAccessEnabled = false,
-    parentId?: number,
   ) {
     const newGroup = {
       name,
       path,
       description,
-      visibility,
+      visibility_level: visibilityLevel,
       lfs_enabled: lfsEnabled,
       request_access_enabled: requestAccessEnabled,
-      parentId,
     };
     return this.fetchJson<Group>(`groups`, {
       method: 'POST',
@@ -283,6 +281,10 @@ export class GitlabClient {
       sudo: userIdOrName,
     };
     return this.fetchJson<Group[]>(`groups?${qs.stringify(sudo)}`, true);
+  }
+
+  public async getALLGroups() {
+    return this.fetchJson<Group[]>(`groups`, true);
   }
 
   public async getProject(projectId: number, userIdOrName?: number | string) {

@@ -1,3 +1,4 @@
+import * as cacheManager from 'cache-manager';
 import { Container } from 'inversify';
 import { sign } from 'jsonwebtoken';
 import * as Knex from 'knex';
@@ -9,12 +10,14 @@ import {
   teamTokenClaimKey,
 } from '../authentication';
 import AuthenticationModule from '../authentication/authentication-module';
+import { eventStoreConfigInjectSymbol } from '../event-bus';
+import { JsonApiHapiPlugin } from '../json-api';
 import { goodOptionsInjectSymbol } from '../server';
+import { cacheInjectSymbol } from '../shared/cache';
 import { fetchMock } from '../shared/fetch';
 import { GitlabClient } from '../shared/gitlab-client';
 import Logger, { loggerInjectSymbol } from '../shared/logger';
 import { charlesKnexInjectSymbol, fetchInjectSymbol } from '../shared/types';
-
 import developmentConfig from './config-development';
 
 const logger = Logger(undefined, true);
@@ -54,7 +57,7 @@ export function getJwtOptions() {
     verifyOptions,
     // Validate the audience, issuer, algorithm and expiration.
     errorFunc: (context: any) => {
-      console.dir({ ...verifyOptions, secretKey }, { colors: true });
+      // console.dir({ ...verifyOptions, secretKey }, { colors: true });
       return context;
     },
   };
@@ -91,4 +94,13 @@ export default (kernel: Container) => {
   kernel.rebind(loggerInjectSymbol).toConstantValue(logger);
   kernel.rebind(jwtOptionsInjectSymbol).toConstantValue(getJwtOptions());
   kernel.rebind(authCookieDomainInjectSymbol).toConstantValue(AUTH_COOKIE_DOMAIN);
+
+  const cache = cacheManager.caching({
+    store: 'memory',
+    max: 10,
+    ttl: 0,
+  });
+  kernel.rebind(cacheInjectSymbol).toConstantValue(cache);
+  kernel.rebind(JsonApiHapiPlugin.injectSymbol).to(JsonApiHapiPlugin).inTransientScope();
+  kernel.rebind(eventStoreConfigInjectSymbol).toConstantValue({type: 'inmemory'});
 };

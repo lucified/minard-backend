@@ -209,7 +209,7 @@ export default class MinardServer {
   private async loadPrivatePlugins(server: Hapi.Server) {
     await server.register([
       this.deploymentPlugin.registerPrivate,
-      this.statusPlugin.register,
+      this.statusPlugin.registerPrivate,
       this.projectPlugin.register,
     ]);
   }

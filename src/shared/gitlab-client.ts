@@ -5,7 +5,7 @@ import * as qs from 'querystring';
 
 import AuthenticationModule from '../authentication/authentication-module';
 import { IFetch, RequestInit, Response } from './fetch';
-import { Group, User } from './gitlab';
+import { Group, Project, User, UserGroupAccessLevel } from './gitlab';
 import { Logger, loggerInjectSymbol } from './logger';
 import { fetchInjectSymbol } from './types';
 
@@ -53,7 +53,7 @@ export class GitlabClient {
   }
 
   private log(msg: string): void {
-    if (this._logging) {
+    if (this._logging && this.logger && this.logger.info) {
       this.logger.info(msg);
     }
   }
@@ -103,16 +103,16 @@ export class GitlabClient {
     const _options = await this.authenticate(options);
     this.log(`GitlabClient: sending request to ${url}`);
     const response = await this._fetch(url, _options);
+    if (this._logging) {
+      const timerResult = perfy.end(timerId);
+      this.log(`GitlabClient: received response ${response.status} from ${url} in ${timerResult.time} secs.`);
+    }
     if (response.status !== 200 && response.status !== 201) {
       if (!includeErrorPayload) {
         throw Boom.create(response.status);
       }
       const json = await response.json<any>();
       throw Boom.create(response.status, undefined, json);
-    }
-    if (this._logging) {
-      const timerResult = perfy.end(timerId);
-      this.log(`GitlabClient: received response ${response.status} from ${url} in ${timerResult.time} secs.`);
     }
     const json = await response.json<T>();
     return json;
@@ -203,12 +203,42 @@ export class GitlabClient {
     }, true);
   }
 
+  public createGroup(
+    name: string,
+    path: string,
+    description?: string,
+    visibilityLevel: 0 | 10 | 20 = 0,
+    lfsEnabled = false,
+    requestAccessEnabled = false,
+  ) {
+    const newGroup = {
+      name,
+      path,
+      description,
+      visibility_level: visibilityLevel,
+      lfs_enabled: lfsEnabled,
+      request_access_enabled: requestAccessEnabled,
+    };
+    return this.fetchJson<Group>(`groups`, {
+      method: 'POST',
+      body: JSON.stringify(newGroup),
+      headers: {
+        'content-type': 'application/json',
+      },
+    }, true);
+  }
+
+  public deleteGroup(idOrPath: number | string) {
+    return this.fetchJson(`groups/${idOrPath}`, {
+      method: 'DELETE',
+    }, true);
+  }
+
   /**
    * Adds a user to a project or group.
-   * The access_level defaults to 'developer'.
-   * The levels are documented here: https://docs.gitlab.com/ce/api/members.html.
+   * The access levels are documented here: https://docs.gitlab.com/ce/api/members.html.
    */
-  public addUserToGroup(userId: number, teamId: number, accessLevel = 30) {
+  public addUserToGroup(userId: number, teamId: number, accessLevel = UserGroupAccessLevel.MASTER) {
     return this.fetchJson(`groups/${teamId}/members`, {
       method: 'POST',
       body: JSON.stringify({
@@ -230,10 +260,18 @@ export class GitlabClient {
     return groups;
   }
 
-  public async getGroup(groupId: number) {
-    const group = await this.fetchJson<Group>(`groups/${groupId}`, true);
+  public async getGroup(groupIdOrPath: number | string, userIdOrName?: number | string) {
+    let group: Group;
+    if (userIdOrName) {
+      const sudo = {
+        sudo: userIdOrName,
+      };
+      group = await this.fetchJson<Group>(`groups/${groupIdOrPath}?${qs.stringify(sudo)}`, true);
+    } else {
+      group = await this.fetchJson<Group>(`groups/${groupIdOrPath}`, true);
+    }
     if (!group || !group.id) {
-      throw Boom.notFound(`No group found with id '${groupId}'`);
+      throw Boom.notFound(`No group found with id '${groupIdOrPath}'`);
     }
     return group;
   }
@@ -243,6 +281,33 @@ export class GitlabClient {
       sudo: userIdOrName,
     };
     return this.fetchJson<Group[]>(`groups?${qs.stringify(sudo)}`, true);
+  }
+
+  public async getALLGroups() {
+    return this.fetchJson<Group[]>(`groups`, true);
+  }
+
+  public async getProject(projectId: number, userIdOrName?: number | string) {
+    let project: Project;
+    if (userIdOrName) {
+      const sudo = {
+        sudo: userIdOrName,
+      };
+      project = await this.fetchJson<Project>(`projects/${projectId}?${qs.stringify(sudo)}`, true);
+    } else {
+      project = await this.fetchJson<Project>(`projects/${projectId}`, true);
+    }
+    if (!project || !project.id) {
+      throw Boom.notFound(`No project found with id '${projectId}'`);
+    }
+    return project;
+  }
+
+  public async getUserProjects(userIdOrName: number | string) {
+    const sudo = {
+      sudo: userIdOrName,
+    };
+    return this.fetchJson<Project[]>(`projects?${qs.stringify(sudo)}`, true);
   }
 
 }

@@ -2,6 +2,13 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "type": "node",
+      "request": "attach",
+      "name": "Attach (Inspector Protocol)",
+      "port": 9229,
+      "protocol": "inspector"
+    },
+    {
       "name": "Launch",
       "type": "node",
       "request": "launch",
@@ -27,12 +34,12 @@
       "request": "launch",
       "program": "${workspaceRoot}/node_modules/mocha/bin/_mocha",
       "stopOnEntry": false,
-      "args": ["-t", "100000000", "dist/status/*-spec.js"],
+      "args": ["-t", "100000000", "dist/*/*-spec.js"],
       "cwd": "${workspaceRoot}",
       "runtimeExecutable": null,
-      "env": { "NODE_ENV": "testing", "TEST_USE_REDIS": "true", "TEST_ECS": "true"},
+      "env": { "NODE_ENV": "test", "TEST_USE_REDIS": "true", "TEST_ECS": "true"},
       "sourceMaps": true,
-      "outDir": "${workspaceRoot}/dist"
+      "outFiles": ["${workspaceRoot}/dist/**/*.js"]
     },
     {
       "name": "Attach",
@@ -42,7 +49,9 @@
       "address": "localhost",
       "restart": true,
       "sourceMaps": true,
-      "outDir": "${workspaceRoot}/dist",
+      "outFiles": [
+        "${workspaceRoot}/dist/**/*.js"
+      ],
       "localRoot": "${workspaceRoot}/dist",
       "remoteRoot": "/code/dist"
     },

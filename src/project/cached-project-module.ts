@@ -23,7 +23,6 @@ function getProjectContributorsCacheKey(projectId: number) {
 export default class CachedProjectModule extends ProjectModule {
 
   private readonly cache: Cache;
-  public readonly inner: ProjectModule;
 
   constructor(
     @inject(AuthenticationModule.injectSymbol) authenticationModule: AuthenticationModule,

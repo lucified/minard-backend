@@ -1,5 +1,5 @@
 
-import { Commit } from './gitlab.d';
+import { Commit } from './gitlab';
 
 export interface MinardCommitAuthor {
   name: string;

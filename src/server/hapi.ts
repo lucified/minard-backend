@@ -5,6 +5,9 @@ import { HapiRegister } from './hapi-register';
 interface PluginConfig {
   register: HapiRegister;
   options?: any;
+  once?: any;
+  routes?: any;
+  select?: any;
 }
 
 declare module 'hapi' {
@@ -13,6 +16,12 @@ declare module 'hapi' {
   }
   interface ICookieSettings {
     isSameSite: false | 'Strict' | 'Lax';
+  }
+  interface RequestDecorators {
+    userHasAccessToProject: (projectId: number) => Promise<boolean>;
+    userHasAccessToTeam: (teamId: number) => Promise<boolean>;
+  }
+  interface Request extends RequestDecorators {
   }
 }
 
@@ -34,7 +43,7 @@ export function getServer(options?: IServerOptions) {
   return server;
 }
 
-export async function getTestServer(...plugins: PluginConfig[]) {
+export async function getTestServer(initialize: boolean, ...plugins: PluginConfig[]) {
     const server = getServer({
       debug: {
         log: false,
@@ -46,6 +55,8 @@ export async function getTestServer(...plugins: PluginConfig[]) {
       port: 65551,
     });
     await server.register(plugins);
-    await server.initialize();
+    if (initialize) {
+      await server.initialize();
+    }
     return server;
 }

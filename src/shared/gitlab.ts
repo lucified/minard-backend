@@ -2,12 +2,12 @@
 // from the Gitlab sample responsens with alm
 // https://basarat.gitbooks.io/alm/content/features/json-to-dts.html
 
-interface ArtifactsFile {
+export interface ArtifactsFile {
   filename: string;
   size: number;
 }
 
-interface Commit {
+export interface Commit {
   author_email: string;
   author_name: string;
   created_at: string;
@@ -43,6 +43,14 @@ export interface Build {
   user: User;
 }
 
+export const enum UserGroupAccessLevel {
+  GUEST = 10, // => Guest access
+  REPORTER = 20, // => Reporter access
+  DEVELOPER = 30, // => Developer access
+  MASTER = 40, // => Master access
+  OWNER = 50, // => Owner access # Only valid for groups
+}
+
 export interface User {
   avatar_url: string;
   bio: string|null;
@@ -69,7 +77,7 @@ export interface Group {
   web_url: string;
 }
 
-interface SystemHook {
+export interface SystemHook {
   id: number;
   url: string;
   created_at: string;

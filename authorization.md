@@ -25,15 +25,33 @@
 
 ### JSON-API `/api`
 
-- `POST /comments`
-- `POST /notifications`
+#### Needs to check team authorization
+
 - `POST /projects`
-- `GET /activity`
-- `DELETE /notifications/{id}`
+  - `postProjectHandler`
+
+#### Needs to check project authorization
+
+- `POST /comments`
+  - `createCommentHandler`
 - `DELETE /comments/{id}`
+  - `deleteCommentHandler`
+
+#### Needs to check team or project authorization depending on request
+
+- `POST /notifications`
+  - `postNotificationConfigurationHandler`
+- `DELETE /notifications/{id}`
+  - `deleteNotificationConfigurationHandler`
+- `GET /activity`
+  - `getActivityHandler`
+
 
 ### Deployments `deployment-{projectId}-{deploymentId}.minard.team` 
-Has project-id in the request
+
+#### Needs to check project authorization
+- `GET /raw-deployment-handler/{param*}`
+  - directory handler by the `inert` plugin
 
 ## Operations `/operations`
 Requires admin team membership

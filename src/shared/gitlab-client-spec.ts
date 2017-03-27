@@ -2,13 +2,14 @@
 import { expect } from 'chai';
 import 'reflect-metadata';
 
-import { get } from '../config';
+import { bootstrap } from '../config';
 import { fetchMock } from '../shared/fetch';
 import { GitlabClient } from './gitlab-client';
 
 const host = 'gitlab';
+const kernel = bootstrap('test');
 
-const getClient = () => get<GitlabClient>(GitlabClient.injectSymbol);
+const getClient = () => kernel.get<GitlabClient>(GitlabClient.injectSymbol);
 
 describe('gitlab-client', () => {
 

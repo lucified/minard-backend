@@ -7,6 +7,7 @@ import { ActivityModule } from '../activity';
 import {
   AuthenticationHapiPlugin,
   AuthenticationModule,
+  CachedAuthenticationHapiPlugin,
 } from '../authentication';
 
 import {
@@ -116,7 +117,7 @@ export default new ContainerModule((bind, _unbind, _isBound, _rebind) => {
   bind(ScreenshotHapiPlugin.injectSymbol).to(ScreenshotHapiPlugin);
   bind(StatusHapiPlugin.injectSymbol).to(StatusHapiPlugin);
   bind(RealtimeHapiPlugin.injectSymbol).to(RealtimeHapiPlugin);
-  bind(AuthenticationHapiPlugin.injectSymbol).to(AuthenticationHapiPlugin);
+  bind(AuthenticationHapiPlugin.injectSymbol).to(CachedAuthenticationHapiPlugin);
 
   // Other bindings
   bind(eventBusInjectSymbol).to(PersistentEventBus).inSingletonScope();

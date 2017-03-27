@@ -8,7 +8,7 @@ import * as sinonChai from 'sinon-chai';
 use(sinonChai);
 
 import AuthenticationHapiPlugin from '../authentication/authentication-hapi-plugin';
-import { get, kernel } from '../config';
+import { bootstrap } from '../config';
 import { getTestServer, IServerInjectOptions } from '../server/hapi';
 import { MINARD_ERROR_CODE } from '../shared/minard-error';
 import { JsonApiHapiPlugin, parseActivityFilter } from './json-api-hapi-plugin';
@@ -17,10 +17,10 @@ import { JsonApiModule } from './json-api-module';
 const provisionServer = async (plugin?: JsonApiHapiPlugin) => {
   const server = await getTestServer(true,
     {
-      register: get<AuthenticationHapiPlugin>(AuthenticationHapiPlugin.injectSymbol).registerNoOp,
+      register: kernel.get<AuthenticationHapiPlugin>(AuthenticationHapiPlugin.injectSymbol).registerNoOp,
     },
     {
-      register: (plugin || get<JsonApiHapiPlugin>(JsonApiHapiPlugin.injectSymbol)).register,
+      register: (plugin || kernel.get<JsonApiHapiPlugin>(JsonApiHapiPlugin.injectSymbol)).register,
       routes: {
         prefix: '/api',
       },
@@ -30,13 +30,14 @@ const provisionServer = async (plugin?: JsonApiHapiPlugin) => {
 };
 
 const baseUrl = 'http://localhost:8000';
+const kernel = bootstrap('test');
 
 describe('json-api-hapi-plugin', () => {
 
   let stubs: sinon.SinonStub[];
 
   const stubJsonApi = (stubber: (api: JsonApiModule) => sinon.SinonStub | sinon.SinonStub[]) => {
-    const jsonApiModule = get<JsonApiModule>(JsonApiModule.injectSymbol);
+    const jsonApiModule = kernel.get<JsonApiModule>(JsonApiModule.injectSymbol);
     stubs = stubs.concat(stubber(jsonApiModule));
     kernel.rebind(JsonApiModule.injectSymbol).toConstantValue(jsonApiModule);
     return jsonApiModule;

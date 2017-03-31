@@ -45,7 +45,6 @@ class DeploymentHapiPlugin {
   public register: HapiRegister = (server, _options, next) => {
 
     server.ext('onRequest', this.onRequest.bind(this));
-    server.ext('onPostAuth', this.onPostAuth.bind(this));
     server.ext('onPreResponse', this.onPreResponse.bind(this));
     server.route(this.deploymentRoutes(true));
 
@@ -109,25 +108,6 @@ class DeploymentHapiPlugin {
     return reply.continue();
   }
 
-  private async onPostAuth(request: Hapi.Request, reply: Hapi.IReply) {
-    if (isRawDeploymentHostname(request.info.hostname)) {
-      // At this point the requester has been authenticated but not authorized
-      try {
-        const parts = getDeploymentKeyFromHost(request.info.hostname);
-        if (!parts) {
-          return reply(Boom.badRequest());
-        }
-        const { projectId } = parts;
-        if (!(await request.userHasAccessToProject(projectId))) {
-          return reply(Boom.unauthorized());
-        }
-      } catch (exception) {
-        return reply(Boom.badRequest());
-      }
-    }
-    return reply.continue();
-  }
-
   private onPreResponse(request: Hapi.Request, reply: Hapi.IReply) {
     if (isRawDeploymentHostname(request.info.hostname) && !request.auth.isAuthenticated) {
       return reply.redirect(`${this.uiBaseUrl}/login/${getEncodedUri(request)}`);
@@ -151,13 +131,6 @@ class DeploymentHapiPlugin {
     };
   }
 
-  private pre(host: boolean, preKey: string) {
-    return [
-      { method: host ? this.parseHost.bind(this) : this.parsePath.bind(this), assign: preKey },
-      { method: this.preCheck.bind(this) },
-    ];
-  }
-
   private deploymentRoutes(auth: boolean) {
     return [{
       method: 'GET',
@@ -174,7 +147,7 @@ class DeploymentHapiPlugin {
       handler: this.directoryHandler(PREKEY),
       config: {
         auth: 'customAuthorize',
-        pre: this.pre(true, PREKEY),
+        pre: this.pre(auth, true, PREKEY),
       },
     },
     {
@@ -182,7 +155,7 @@ class DeploymentHapiPlugin {
       path: '/deployments/{shortId}-{projectId}-{deploymentId}/{path*}',
       handler: this.directoryHandler(PREKEY),
       config: {
-        pre: this.pre(false, PREKEY),
+        pre: this.pre(auth, false, PREKEY),
         cors: true,
         auth: 'customAuthorize',
         validate: {
@@ -249,8 +222,34 @@ class DeploymentHapiPlugin {
     return shortId === deployment.commit.shortId;
   }
 
+  private async authorize(request: Hapi.Request, reply: Hapi.IReply) {
+    try {
+      const { projectId } = request.pre[PREKEY];
+      if (await request.userHasAccessToProject(projectId)) {
+        return reply('ok');
+      }
+    } catch (exception) {
+      // Nothing to do here
+    }
+    return reply(Boom.unauthorized());
+  }
+
+  private pre(auth: boolean, host: boolean, preKey: string) {
+    const preMethods: object[] = [
+      {
+        method: host ? this.parseHost.bind(this) : this.parsePath.bind(this),
+        assign: preKey,
+      },
+    ];
+    if (auth) {
+      preMethods.push({ method: this.authorize.bind(this) });
+    }
+    preMethods.push({ method: this.preCheck.bind(this) });
+    return preMethods;
+  }
+
   public async preCheck(request: Hapi.Request, reply: Hapi.IReply) {
-    const { shortId, projectId, deploymentId } = request.pre.key;
+    const { shortId, projectId, deploymentId } = request.pre[PREKEY];
     if (!shortId) {
       return reply(Boom.badRequest('URL is missing commit hash'));
     }

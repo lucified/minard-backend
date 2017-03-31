@@ -89,4 +89,17 @@ describe('authorization for raw deployments', () => {
     expect(handlerStub).to.not.have.been.called;
 
   });
+  it('should redirect to login screen for unauthenticated deployments', async () => {
+    // Arrange
+    const { server, authentication, handlerStub } = await arrange('userHasAccessToProject', true);
+    // Act
+    const response = await server.inject({
+      method: 'GET',
+      url: `http://deployment-abcdef-1-1.foo.com`,
+    });
+    // Assert
+    expect(response.statusCode).to.eq(302);
+    expect(authentication.userHasAccessToProject).to.not.have.been.called;
+    expect(handlerStub).to.not.have.been.called;
+  });
 });

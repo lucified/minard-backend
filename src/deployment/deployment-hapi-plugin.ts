@@ -12,26 +12,21 @@ import DeploymentModule, {
   isRawDeploymentHostname,
 } from './deployment-module';
 
-import { gitlabHostInjectSymbol } from '../shared/gitlab-client';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
 import memoizee = require('memoizee');
+import { minardUiBaseUrlInjectSymbol } from '../server/types';
+
+const PREKEY = 'key';
 
 @injectable()
 class DeploymentHapiPlugin {
 
   public static injectSymbol = Symbol('deployment-hapi-plugin');
 
-  private deploymentModule: DeploymentModule;
-  private gitlabHost: string;
-  private logger: Logger;
-
   constructor(
-    @inject(DeploymentModule.injectSymbol) deploymentModule: DeploymentModule,
-    @inject(gitlabHostInjectSymbol) gitlabHost: string,
-    @inject(loggerInjectSymbol) logger: Logger) {
-    this.deploymentModule = deploymentModule;
-    this.gitlabHost = gitlabHost;
-    this.logger = logger;
+    @inject(DeploymentModule.injectSymbol) private readonly deploymentModule: DeploymentModule,
+    @inject(minardUiBaseUrlInjectSymbol) private readonly uiBaseUrl: string,
+    @inject(loggerInjectSymbol) private readonly logger: Logger) {
 
     this.register.attributes = {
       name: 'deployment-plugin',
@@ -50,7 +45,9 @@ class DeploymentHapiPlugin {
   public register: HapiRegister = (server, _options, next) => {
 
     server.ext('onRequest', this.onRequest.bind(this));
-    server.route(this.deploymentRoutes());
+    server.ext('onPostAuth', this.onPostAuth.bind(this));
+    server.ext('onPreResponse', this.onPreResponse.bind(this));
+    server.route(this.deploymentRoutes(true));
 
     server.route([{
       method: 'GET',
@@ -89,16 +86,51 @@ class DeploymentHapiPlugin {
     next();
   }
 
+  public registerPrivate: HapiRegister = (server, _options, next) => {
+
+    server.ext('onRequest', this.onRequest.bind(this));
+    server.route(this.deploymentRoutes(false));
+
+    next();
+  }
+
   private onRequest(request: Hapi.Request, reply: Hapi.IReply) {
     if (isRawDeploymentHostname(request.info.hostname)) {
       // prefix the url with /raw-deployment-handler
       // (or /deployment-favicon) to allow hapi to
       // internally route the request to the correct handler
+
       if (request.url.href === '/favicon.ico') {
         request.setUrl('/deployment-favicon');
       } else {
         request.setUrl('/raw-deployment-handler' + request.url.href);
       }
+    }
+    return reply.continue();
+  }
+
+  private async onPostAuth(request: Hapi.Request, reply: Hapi.IReply) {
+    if (isRawDeploymentHostname(request.info.hostname)) {
+      // At this point the requester has been authenticated but not authorized
+      try {
+        const parts = getDeploymentKeyFromHost(request.info.hostname);
+        if (!parts) {
+          return reply(Boom.badRequest());
+        }
+        const { projectId } = parts;
+        if (!(await request.userHasAccessToProject(projectId))) {
+          return reply(Boom.unauthorized());
+        }
+      } catch (exception) {
+        return reply(Boom.badRequest());
+      }
+    }
+    return reply.continue();
+  }
+
+  private onPreResponse(request: Hapi.Request, reply: Hapi.IReply) {
+    if (isRawDeploymentHostname(request.info.hostname) && !request.auth.isAuthenticated) {
+      return reply.redirect(`${this.uiBaseUrl}/login/${getEncodedUri(request)}`);
     }
     return reply.continue();
   }
@@ -119,21 +151,14 @@ class DeploymentHapiPlugin {
     };
   }
 
-  private pre(auth: boolean, host: boolean, preKey: string) {
-    if (auth) {
-      return [
-        { method: host ? this.parseHost.bind(this) : this.parsePath.bind(this), assign: preKey },
-        { method: this.authorize.bind(this) },
-        { method: this.preCheck.bind(this) },
-      ];
-    }
+  private pre(host: boolean, preKey: string) {
     return [
       { method: host ? this.parseHost.bind(this) : this.parsePath.bind(this), assign: preKey },
       { method: this.preCheck.bind(this) },
     ];
   }
 
-  private deploymentRoutes(auth = true) {
+  private deploymentRoutes(auth: boolean) {
     return [{
       method: 'GET',
       path: '/deployment-favicon',
@@ -146,18 +171,18 @@ class DeploymentHapiPlugin {
     }, {
       method: 'GET',
       path: '/raw-deployment-handler/{param*}',
-      handler: this.directoryHandler('key'),
+      handler: this.directoryHandler(PREKEY),
       config: {
         auth: 'customAuthorize',
-        pre: this.pre(auth, true, 'key'),
+        pre: this.pre(true, PREKEY),
       },
     },
     {
       method: 'GET',
       path: '/deployments/{shortId}-{projectId}-{deploymentId}/{path*}',
-      handler: this.directoryHandler('key'),
+      handler: this.directoryHandler(PREKEY),
       config: {
-        pre: this.pre(auth, false, 'key'),
+        pre: this.pre(false, PREKEY),
         cors: true,
         auth: 'customAuthorize',
         validate: {
@@ -175,14 +200,6 @@ class DeploymentHapiPlugin {
     });
   }
 
-  public registerPrivate: HapiRegister = (server, _options, next) => {
-
-    server.ext('onRequest', this.onRequest.bind(this));
-    server.route(this.deploymentRoutes(false));
-
-    next();
-  }
-
   private async getGitlabYmlRequestHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const { projectId, ref, sha } = request.params as any;
     return reply(this.deploymentModule.getGitlabYml(projectId, ref, sha))
@@ -195,13 +212,6 @@ class DeploymentHapiPlugin {
     const text = await this.deploymentModule.getBuildTrace(projectId, deploymentId);
     return reply(text)
       .header('content-type', 'text/plain');
-  }
-
-  public serveDirectory(request: Hapi.Request) {
-    const pre = request.pre as any;
-    const projectId = pre.key.projectId;
-    const deploymentId = pre.key.deploymentId;
-    return this.distPath(projectId, deploymentId);
   }
 
   private distPath(projectId: number, deploymentId: number) {
@@ -222,24 +232,12 @@ class DeploymentHapiPlugin {
   }
 
   private parsePath(request: Hapi.Request, reply: Hapi.IReply) {
-    const {shortId, projectId, deploymentId} = request.params;
+    const { shortId, projectId, deploymentId } = request.params;
     return reply({
       shortId,
       projectId: Number(projectId),
       deploymentId: Number(deploymentId),
     });
-  }
-
-  private async authorize(request: Hapi.Request, reply: Hapi.IReply) {
-    try {
-      const { projectId } = request.pre.key;
-      if (await request.userHasAccessToProject(projectId)) {
-        return reply('ok');
-      }
-    } catch (exception) {
-      // Nothing to do here
-    }
-    return reply(Boom.unauthorized());
   }
 
   // internal method
@@ -279,3 +277,14 @@ class DeploymentHapiPlugin {
 }
 
 export default DeploymentHapiPlugin;
+
+// From http://stackoverflow.com/questions/31840286/how-to-get-the-full-url-for-a-request-in-hapi
+export function getEncodedUri(request: Hapi.Request) {
+  const protocol = request.headers['x-forwarded-proto'] || request.connection.info.protocol;
+  return fixedEncodeURIComponent(`${protocol}://${request.info.host}${request.url.path}`);
+}
+
+// From https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent
+export function fixedEncodeURIComponent(uri: string) {
+  return encodeURIComponent(uri).replace(/[!'()*.-]/g, c => '%' + c.charCodeAt(0).toString(16));
+}

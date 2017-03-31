@@ -155,9 +155,8 @@ class DeploymentHapiPlugin {
       path: '/deployments/{shortId}-{projectId}-{deploymentId}/{path*}',
       handler: this.directoryHandler(PREKEY),
       config: {
-        pre: this.pre(auth, false, PREKEY),
+        pre: this.pre(false, false, PREKEY), // Is authorized on a higher level
         cors: true,
-        auth: 'customAuthorize',
         validate: {
           params: {
             projectId: Joi.number().required(),

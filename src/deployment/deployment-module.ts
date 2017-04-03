@@ -69,7 +69,7 @@ export function isRawDeploymentHostname(hostname: string) {
 }
 
 export function getDeploymentKeyFromHost(hostname: string) {
-  const match = hostname.match(/\S+-(\w+)-(\d+)-(\d+)\.\S+$/);
+  const match = hostname.match(/([a-z0-9]+)-(\d+)-(\d+)\.deployment.\S+$/);
   if (!match) {
     return null;
   }
@@ -96,7 +96,6 @@ export default class DeploymentModule {
   private readonly gitlab: GitlabClient;
   private readonly deploymentFolder: string;
   private readonly logger: logger.Logger;
-  private readonly urlPattern: string;
   private readonly eventBus: EventBus;
   private readonly prepareQueue: any;
   private readonly screenshotModule: ScreenshotModule;
@@ -108,7 +107,7 @@ export default class DeploymentModule {
     @inject(deploymentFolderInjectSymbol) deploymentFolder: string,
     @inject(eventBusInjectSymbol) eventBus: EventBus,
     @inject(logger.loggerInjectSymbol) logger: logger.Logger,
-    @inject(deploymentUrlPatternInjectSymbol) urlPattern: string,
+    @inject(deploymentUrlPatternInjectSymbol) private readonly urlPattern: string,
     @inject(ScreenshotModule.injectSymbol) screenshotModule: ScreenshotModule,
     @inject(ProjectModule.injectSymbol) projectModule: ProjectModule,
     @inject(charlesKnexInjectSymbol) knex: Knex) {
@@ -116,7 +115,6 @@ export default class DeploymentModule {
     this.deploymentFolder = deploymentFolder;
     this.logger = logger;
     this.eventBus = eventBus;
-    this.urlPattern = urlPattern;
     this.screenshotModule = screenshotModule;
     this.projectModule = projectModule;
     this.knex = knex;

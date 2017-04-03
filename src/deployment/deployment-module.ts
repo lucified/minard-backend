@@ -63,13 +63,18 @@ const Queue = require('promise-queue'); // tslint:disable-line
 const extract = promisify(require('extract-zip'));
 
 export const deploymentFolderInjectSymbol = Symbol('deployment-folder');
+const _keyRegExp = '\\S+-([a-z0-9]+)-(\\d+)-(\\d+)';
+const _domainRegExp = '[\\w-]+\\.[\\w-]+\\.\\S+';
+export const domainRegExp = new RegExp(`^\\S+\\.(${_domainRegExp})$`);
+export const hostnameRegExp = new RegExp(`^${_keyRegExp}\\.${_domainRegExp}$`);
+export const deploymentVhost = 'deployment.vhost';
 
 export function isRawDeploymentHostname(hostname: string) {
   return getDeploymentKeyFromHost(hostname) !== null;
 }
 
 export function getDeploymentKeyFromHost(hostname: string) {
-  const match = hostname.match(/([a-z0-9]+)-(\d+)-(\d+)\.deployment.\S+$/);
+  const match = hostname.match(hostnameRegExp);
   if (!match) {
     return null;
   }
@@ -92,32 +97,17 @@ export function toDbDeployment(deployment: MinardDeployment) {
 export default class DeploymentModule {
 
   public static injectSymbol = Symbol('deployment-module');
-
-  private readonly gitlab: GitlabClient;
-  private readonly deploymentFolder: string;
-  private readonly logger: logger.Logger;
-  private readonly eventBus: EventBus;
   private readonly prepareQueue: any;
-  private readonly screenshotModule: ScreenshotModule;
-  private readonly knex: Knex;
-  private readonly projectModule: ProjectModule;
 
   public constructor(
-    @inject(GitlabClient.injectSymbol) gitlab: GitlabClient,
-    @inject(deploymentFolderInjectSymbol) deploymentFolder: string,
-    @inject(eventBusInjectSymbol) eventBus: EventBus,
-    @inject(logger.loggerInjectSymbol) logger: logger.Logger,
+    @inject(GitlabClient.injectSymbol) private readonly gitlab: GitlabClient,
+    @inject(deploymentFolderInjectSymbol) private readonly deploymentFolder: string,
+    @inject(eventBusInjectSymbol) private readonly eventBus: EventBus,
+    @inject(logger.loggerInjectSymbol) private readonly logger: logger.Logger,
     @inject(deploymentUrlPatternInjectSymbol) private readonly urlPattern: string,
-    @inject(ScreenshotModule.injectSymbol) screenshotModule: ScreenshotModule,
-    @inject(ProjectModule.injectSymbol) projectModule: ProjectModule,
-    @inject(charlesKnexInjectSymbol) knex: Knex) {
-    this.gitlab = gitlab;
-    this.deploymentFolder = deploymentFolder;
-    this.logger = logger;
-    this.eventBus = eventBus;
-    this.screenshotModule = screenshotModule;
-    this.projectModule = projectModule;
-    this.knex = knex;
+    @inject(ScreenshotModule.injectSymbol) private readonly screenshotModule: ScreenshotModule,
+    @inject(ProjectModule.injectSymbol) private readonly projectModule: ProjectModule,
+    @inject(charlesKnexInjectSymbol) private readonly knex: Knex) {
     this.prepareQueue = new Queue(1, Infinity);
     this.subscribeToEvents();
   }
@@ -309,7 +299,8 @@ export default class DeploymentModule {
     const toMoment = (val: any) => isNaN(val) ? moment(val) : moment(Number(val));
     const commit = deployment.commit instanceof Object ? deployment.commit : JSON.parse(deployment.commit);
     const createdAt = toMoment(deployment.createdAt);
-    const ret = Object.assign({}, deployment, {
+    const ret = {
+      ...deployment,
       commit,
       finishedAt: deployment.finishedAt ? toMoment(deployment.finishedAt) : undefined,
       createdAt,
@@ -318,7 +309,7 @@ export default class DeploymentModule {
         name: commit.committer.name,
         timestamp: toGitlabTimestamp(createdAt),
       },
-    }) as MinardDeployment;
+    } as MinardDeployment;
 
     if (ret.extractionStatus === 'success') {
       ret.url = sprintf(

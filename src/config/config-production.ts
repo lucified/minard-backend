@@ -150,12 +150,16 @@ const EXTERNAL_BASEURL = env.EXTERNAL_BASEURL || `http://localhost:${PORT}`;
 // External baseUrl for git clone urls
 const EXTERNAL_GIT_BASEURL = env.EXTERNAL_GIT_BASEURL || `http://localhost:${GITLAB_PORT}`;
 
-// URL pattern used for composing external deployment URLs
-// Users access deployments via urls matching this pattern
-const DEPLOYMENT_URL_PATTERN = env.DEPLOYMENT_URL_PATTERN || `http://deploy-%s.${HOST_LOOPBACK_IP}.xip.io:${PORT}`;
+const deploymentDomain = `deployment.localtest.me`;
 
-// URL pattern used for composing deployment URLs for screenshots
-const SCREENSHOT_URL_PATTERN = env.SCREENSHOT_URL_PATTERN || `http://deploy-%s.${HOST_LOOPBACK_IP}.xip.io:${PORT}`;
+// URL pattern used for composing EXTERNAL deployment URLs
+// Users access deployments via urls matching this pattern
+const DEPLOYMENT_URL_PATTERN = env.DEPLOYMENT_URL_PATTERN ||
+  `http://%s.${deploymentDomain}:${PORT}`;
+
+// URL pattern used for composing EXTERNAL URLs for screenshots
+const SCREENSHOT_URL_PATTERN = env.SCREENSHOT_URL_PATTERN ||
+  `http://%s.${deploymentDomain}:${PORT}`;
 
 // Base URL for minard-ui
 const MINARD_UI_BASEURL = env.MINARD_UI_BASEURL || `http://localhost:3000`;

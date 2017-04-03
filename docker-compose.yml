@@ -35,7 +35,7 @@ services:
     - "10022:22"
     environment:
     - DEBUG=false
-    - MINARD_CI_YML_URL=http://charles:8000/ci/projects/%d/%s/%s/yml
+    - MINARD_CI_YML_URL=http://charles:8001/ci/projects/%d/%s/%s/yml
     - DB_ADAPTER=postgresql
     - DB_HOST=postgresql
     - DB_PORT=5432
@@ -157,7 +157,7 @@ services:
     volumes:
         - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      - CI_SERVER_URL=http://charles:8000/ci/
+      - CI_SERVER_URL=http://charles:8001/ci/
       - RUNNER_EXECUTOR=docker
       - DOCKER_TLS_VERIFY=false
       - DOCKER_PRIVILEGED=false
@@ -195,9 +195,10 @@ services:
       - REDIS_PORT=6379
       - SYSTEMHOOK_BASEURL=http://charles:8001
       - EXTERNAL_BASEURL=http://localtest.me:8000
-      - SCREENSHOT_URL_PATTERN=http://deploy-%s.charles.internal:8001
+      - AUTH_COOKIE_DOMAIN=http://localtest.me
+      - SCREENSHOT_URL_PATTERN=http://%s.deployment.charles.internal:8001
       - SCREENSHOTTER_BASEURL=http://screenshotter
-      - DEPLOYMENT_URL_PATTERN=http://deploy-%s.localtest.me:8000
+      - DEPLOYMENT_URL_PATTERN=http://%s.deployment.localtest.me:8000
       - EXTERNAL_GIT_BASEURL=http://localhost:10080
       - GITLAB_ROOT_PASSWORD=12345678
       - SENTRY_DSN=$SENTRY_DSN

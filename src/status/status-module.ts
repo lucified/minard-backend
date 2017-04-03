@@ -280,7 +280,7 @@ export default class StatusModule {
     return response as SystemStatus;
   }
 
-};
+}
 
 export async function getEcsStatus(_env?: string) {
 

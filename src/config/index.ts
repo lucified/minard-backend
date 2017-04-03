@@ -33,4 +33,4 @@ export function bootstrap(env?: ENV, silent = true) {
     console.log(`Loaded configuration for environment '${_env}'`);
   }
   return kernel;
-};
+}

@@ -27,4 +27,4 @@ export function promisify<T>(original: any, settings?: any) {
 
     });
   };
-};
+}

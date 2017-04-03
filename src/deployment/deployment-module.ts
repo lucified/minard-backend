@@ -628,4 +628,4 @@ export default class DeploymentModule {
     return finalPath;
   }
 
-};
+}

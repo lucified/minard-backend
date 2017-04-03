@@ -2,7 +2,10 @@ import { inject, injectable, optional } from 'inversify';
 
 import { AuthenticationHapiPlugin } from '../authentication';
 import { CIProxy } from '../deployment';
-import { DeploymentHapiPlugin } from '../deployment';
+import {
+  DeploymentHapiPlugin,
+  PrivateDeploymentHapiPlugin ,
+} from '../deployment';
 import { JsonApiHapiPlugin } from '../json-api';
 import { OperationsHapiPlugin } from '../operations';
 import { ProjectHapiPlugin } from '../project';
@@ -41,6 +44,8 @@ export default class MinardServer {
   constructor(
     @inject(AuthenticationHapiPlugin.injectSymbol) private readonly authenticationPlugin: AuthenticationHapiPlugin,
     @inject(DeploymentHapiPlugin.injectSymbol) private readonly deploymentPlugin: DeploymentHapiPlugin,
+    // tslint:disable-next-line:max-line-length
+    @inject(PrivateDeploymentHapiPlugin.injectSymbol) private readonly privateDeploymentPlugin: PrivateDeploymentHapiPlugin,
     @inject(ProjectHapiPlugin.injectSymbol) private readonly projectPlugin: ProjectHapiPlugin,
     @inject(JsonApiHapiPlugin.injectSymbol) private readonly jsonApiPlugin: JsonApiHapiPlugin,
     @inject(CIProxy.injectSymbol) private readonly ciProxy: CIProxy,
@@ -102,7 +107,7 @@ export default class MinardServer {
   public async initialize(): Promise<Hapi.Server> {
     if (!this.isInitialized) {
       await this.loadBasePlugins(this.hapiServer);
-      await this.loadAppPlugins(this.publicServer);
+      await this.loadPublicPlugins(this.publicServer);
       await this.loadPrivatePlugins(this.privateServer);
       this.isInitialized = true;
     }
@@ -178,13 +183,12 @@ export default class MinardServer {
     return undefined;
   }
 
-  private async loadAppPlugins(server: Hapi.Server) {
+  private async loadPublicPlugins(server: Hapi.Server) {
     await server.register([
       this.authenticationPlugin.register,
-      this.deploymentPlugin.register,
-      this.ciProxy.register,
       this.statusPlugin.register,
       this.realtimePlugin.register,
+      this.deploymentPlugin.register,
       {
         register: this.jsonApiPlugin.register,
         routes: {
@@ -208,9 +212,10 @@ export default class MinardServer {
 
   private async loadPrivatePlugins(server: Hapi.Server) {
     await server.register([
-      this.deploymentPlugin.registerPrivate,
+      this.ciProxy.register,
       this.statusPlugin.registerPrivate,
       this.projectPlugin.register,
+      this.privateDeploymentPlugin.register,
     ]);
   }
 

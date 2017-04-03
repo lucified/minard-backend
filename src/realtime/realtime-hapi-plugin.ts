@@ -119,24 +119,8 @@ export class RealtimeHapiPlugin {
       },
       config: {
         bind: this,
+        auth: 'jwt-url',
         cors: true,
-        validate: {
-          params: {
-            teamId: Joi.number().required(),
-          },
-        },
-      },
-    });
-
-    // TODO: Used for testing, should be removed in production
-    server.route({
-      method: 'POST',
-      path: '/events/{teamId}',
-      handler: {
-        async: this.postHandler,
-      },
-      config: {
-        bind: this,
         validate: {
           params: {
             teamId: Joi.number().required(),
@@ -150,18 +134,6 @@ export class RealtimeHapiPlugin {
   }
 
   public readonly register: HapiRegister;
-
-  private async postHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    try {
-      const isPersisted = await this.eventBus.post(request.payload);
-      reply(JSON.stringify(request.payload, null, 2))
-        .code(isPersisted ? 500 : 200);
-
-    } catch (err) {
-      this.logger.error('Error:', err);
-      reply(err);
-    }
-  }
 
   private pingEvent() {
     return {

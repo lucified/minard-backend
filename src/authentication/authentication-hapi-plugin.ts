@@ -338,14 +338,37 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     await server.register(auth);
     server.auth.strategy('jwt', 'jwt', true, {
       ...this.hapiOptions,
+      headerKey: 'authorization',
+      cookieKey: false,
+      urlKey: false,
+      validateFunc: this.validateFuncFactory(this.authorizeUser.bind(this)),
+    });
+    server.auth.strategy('jwt-url', 'jwt', false, {
+      ...this.hapiOptions,
+      headerKey: false,
+      cookieKey: false,
+      urlKey: 'token',
       validateFunc: this.validateFuncFactory(this.authorizeUser.bind(this)),
     });
     server.auth.strategy('admin', 'jwt', false, {
       ...this.hapiOptions,
+      headerKey: 'authorization',
+      cookieKey: false,
+      urlKey: false,
       validateFunc: this.validateFuncFactory(this.authorizeAdmin.bind(this)),
     });
     server.auth.strategy('customAuthorize', 'jwt', false, {
       ...this.hapiOptions,
+      headerKey: 'authorization',
+      cookieKey: false,
+      urlKey: false,
+      validateFunc: this.validateFuncFactory(this.authorizeCustom.bind(this)),
+    });
+    server.auth.strategy('customAuthorize-cookie', 'jwt', false, {
+      ...this.hapiOptions,
+      headerKey: false,
+      cookieKey: 'token',
+      urlKey: false,
       validateFunc: this.validateFuncFactory(this.authorizeCustom.bind(this)),
     });
     const ttl = 365 * 24 * 3600 * 1000; // ~year in ms

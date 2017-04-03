@@ -64,7 +64,7 @@ function makeRequest(server: Server) {
     method: 'GET',
     url: validDeploymentUrl,
     headers: {
-      'Authorization': `Bearer ${validAccessToken}`,
+      'Cookie': `token=${validAccessToken}`,
     },
   });
 }

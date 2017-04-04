@@ -120,7 +120,7 @@ export class RealtimeHapiPlugin extends HapiPlugin {
       },
       config: {
         bind: this,
-        auth: false, // Needs to be open for unauthenticated deployment viewers
+        auth: 'jwt-url',
         cors: true,
         validate: {
           params: {

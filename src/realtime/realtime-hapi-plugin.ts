@@ -146,22 +146,24 @@ export class RealtimeHapiPlugin extends HapiPlugin {
       const _deploymentId = parseInt(deploymentId, 10);
       predicate = deploymentEventFilter(_teamId, _projectId, _deploymentId);
     }
-    let observable = Observable.concat(
+
+    let stream = Observable.concat(
       Observable.of(pingEventCreator()),
-      this.persistedEvents.filter(predicate),
+      this.persistedEvents,
     );
+
     if (since && !isNaN(since)) {
       const existing = await this.eventBus.getEvents(_teamId, since);
       if (existing.length > 0) {
         existing.shift(); // getEvents is '>= since', but here we want '> since'
       }
-      observable = Observable.concat(Observable.from(existing), observable);
+      stream = Observable.concat(Observable.from(existing), stream);
     }
-    observable = Observable.merge(
+
+    return Observable.merge(
       Observable.interval(PING_INTERVAL).map(_ => pingEventCreator()),
-      observable,
+      stream.filter(predicate),
     );
-    return observable;
   }
 
   private requestHandlerFactory(streamFactory: StreamFactory) {

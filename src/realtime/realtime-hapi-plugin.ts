@@ -84,6 +84,8 @@ export class RealtimeHapiPlugin extends HapiPlugin {
     // creates SSEEvents and posts them
     this.eventBusSubscription = this.getEnrichedStream()
       .subscribe(this.eventBus.post.bind(this.eventBus));
+
+    this.getStream = this.getStream.bind(this);
   }
 
   private getEnrichedStream(): Observable<StreamingEvent<any>> {

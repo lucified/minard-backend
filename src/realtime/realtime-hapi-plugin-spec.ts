@@ -95,7 +95,7 @@ async function clearDb() {
 
 const baseUrl = 'http://localhost:8000';
 
-describe.only('realtime-hapi-plugin', () => {
+describe('realtime-hapi-plugin', () => {
 
   describe('project events', () => {
     beforeEach(clearDb);

@@ -1,29 +1,31 @@
-
 import { Observable, Subscription } from '@reactivex/rxjs';
 import { inject, injectable } from 'inversify';
+import * as Joi from 'joi';
 import { isNil, omitBy } from 'lodash';
 import * as moment from 'moment';
 
-import * as Joi from 'joi';
-
+import {
+  createActivityEvent,
+  MinardActivity,
+} from '../activity';
+import {
+  CommentAddedEvent,
+  CommentDeletedEvent,
+  createCommentAddedEvent,
+  createCommentDeletedEvent,
+} from '../comment';
+import {
+  createDeploymentEvent,
+  DeploymentEvent,
+} from '../deployment';
+import { eventBusInjectSymbol, PersistentEventBus } from '../event-bus/';
 import { ApiProject, JsonApiHapiPlugin } from '../json-api';
-import * as Hapi from '../server/hapi';
-import { HapiRegister } from '../server/hapi-register';
-import * as logger from '../shared/logger';
-import { ObservableWrapper } from './observable-wrapper';
-
 import {
   ApiEntity,
   toApiBranchId,
   toApiCommitId,
   toApiDeploymentId,
 } from '../json-api';
-
-import {
-  createDeploymentEvent,
-  DeploymentEvent,
-} from '../deployment';
-
 import {
   codePushed,
   CodePushedEvent,
@@ -34,27 +36,8 @@ import {
   projectEdited,
   ProjectEditedEvent,
 } from '../project';
-
-import {
-  createActivityEvent,
-  MinardActivity,
-} from '../activity';
-
-import {
-  StreamingCodePushedEvent,
-  StreamingCommentDeletedEvent,
-  StreamingDeploymentEvent,
-} from './types';
-
-import {
-  CommentAddedEvent,
-  CommentDeletedEvent,
-  createCommentAddedEvent,
-  createCommentDeletedEvent,
-} from '../comment';
-
-import { eventBusInjectSymbol, PersistentEventBus } from '../event-bus/';
-
+import * as Hapi from '../server/hapi';
+import { HapiRegister } from '../server/hapi-register';
 import {
   Event,
   eventCreator,
@@ -63,6 +46,13 @@ import {
   PersistedEvent,
   StreamingEvent,
 } from '../shared/events';
+import * as logger from '../shared/logger';
+import { ObservableWrapper } from './observable-wrapper';
+import {
+  StreamingCodePushedEvent,
+  StreamingCommentDeletedEvent,
+  StreamingDeploymentEvent,
+} from './types';
 
 export const PING_INTERVAL = 20000;
 
@@ -70,23 +60,18 @@ export const PING_INTERVAL = 20000;
 export class RealtimeHapiPlugin {
 
   public static injectSymbol = Symbol('realtime-plugin');
-  private jsonApiPlugin: JsonApiHapiPlugin;
-  private eventBus: PersistentEventBus;
   private eventBusSubscription: Subscription;
   public readonly persistedEvents: Observable<PersistedEvent<any>>;
-  private readonly logger: logger.Logger;
 
   constructor(
-    @inject(JsonApiHapiPlugin.injectSymbol) jsonApiPlugin: JsonApiHapiPlugin,
-    @inject(eventBusInjectSymbol) eventBus: PersistentEventBus,
-    @inject(logger.loggerInjectSymbol) logger: logger.Logger) {
+    @inject(JsonApiHapiPlugin.injectSymbol) private readonly jsonApiPlugin: JsonApiHapiPlugin,
+    @inject(eventBusInjectSymbol) private readonly eventBus: PersistentEventBus,
+    @inject(logger.loggerInjectSymbol) private readonly logger: logger.Logger,
+  ) {
 
-    this.eventBus = eventBus;
-    this.logger = logger;
-    this.jsonApiPlugin = jsonApiPlugin;
     this.persistedEvents = this.eventBus.getStream()
       .filter(isPersistedEvent)
-      .map(event => <PersistedEvent<any>> event)
+      .map(event => event as PersistedEvent<any>)
       .share();
 
     this.register = Object.assign(this._register.bind(this), {
@@ -135,34 +120,23 @@ export class RealtimeHapiPlugin {
 
   public readonly register: HapiRegister;
 
-  private pingEvent() {
-    return {
-      type: 'CONTROL_PING',
-      id: '0',
-      streamRevision: 0,
-      teamId: 0,
-      created: moment(),
-      payload: 0,
-    } as PersistedEvent<any>;
-  }
-
   private async onRequest(teamId: number, since?: number) {
-      let observable = Observable.concat(
-        Observable.of(this.pingEvent()),
-        this.persistedEvents.filter(event => event.teamId === teamId),
-      );
-      if (since) {
-        const existing = await this.eventBus.getEvents(teamId, since);
-        if (existing.length > 0) {
-          existing.shift(); // getEvents is '>= since', but here we want '> since'
-        }
-        observable = Observable.concat(Observable.from(existing), observable);
+    let observable = Observable.concat(
+      Observable.of(pingEventCreator()),
+      this.persistedEvents.filter(event => event.teamId === teamId),
+    );
+    if (since) {
+      const existing = await this.eventBus.getEvents(teamId, since);
+      if (existing.length > 0) {
+        existing.shift(); // getEvents is '>= since', but here we want '> since'
       }
-      observable = Observable.merge(
-        Observable.interval(PING_INTERVAL).map(_ => this.pingEvent()),
-        observable,
-      );
-      return observable;
+      observable = Observable.concat(Observable.from(existing), observable);
+    }
+    observable = Observable.merge(
+      Observable.interval(PING_INTERVAL).map(_ => pingEventCreator()),
+      observable,
+    );
+    return observable;
 
   }
 
@@ -171,7 +145,7 @@ export class RealtimeHapiPlugin {
       const teamId = parseInt(request.paramsArray[0], 10);
       const sinceKey = 'last-event-id';
       const since = request.headers[sinceKey];
-      const observable = await this.onRequest(teamId, since ? parseInt(since, 10) : undefined );
+      const observable = await this.onRequest(teamId, since ? parseInt(since, 10) : undefined);
       const nodeStream = new ObservableWrapper(observable);
       reply(nodeStream)
         .header('content-type', 'text/event-stream')
@@ -304,7 +278,7 @@ export class RealtimeHapiPlugin {
     try {
       const deployment = event.payload.deployment;
       const apiResponse = await this.jsonApiPlugin.getEntity(
-          'deployment', api => api.toApiDeployment(deployment.projectId, deployment));
+        'deployment', api => api.toApiDeployment(deployment.projectId, deployment));
 
       const ssePayload: StreamingDeploymentEvent = {
         teamId: event.payload.teamId,
@@ -322,7 +296,7 @@ export class RealtimeHapiPlugin {
   }
 
   private toSSE<T>(event: Event<any>, payload: T): StreamingEvent<T> {
-    if (typeof event.teamId !== 'number' && typeof (<any> payload).teamId !== 'number') {
+    if (typeof event.teamId !== 'number' && typeof (payload as any).teamId !== 'number') {
       throw Error('Tried to convert an incompatible event to an SSEEvent');
     }
 
@@ -334,4 +308,15 @@ export class RealtimeHapiPlugin {
       return true;
     })(payload) as StreamingEvent<T>;
   }
+}
+
+export function pingEventCreator(): PersistedEvent<any> {
+  return {
+    type: 'CONTROL_PING',
+    id: '0',
+    streamRevision: 0,
+    teamId: 0,
+    created: moment(),
+    payload: 0,
+  };
 }

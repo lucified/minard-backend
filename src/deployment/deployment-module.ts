@@ -292,35 +292,35 @@ export default class DeploymentModule {
   /*
    * Convert deployment stored in DB to MinardDeployment
    */
-  public toMinardDeployment(deployment: any): MinardDeployment {
+  public toMinardDeployment(dbDeployment: any): MinardDeployment {
     // We need to support timestamps represented also as a string
     // because in deployments stored within activity the timestamps are
     // represented as strings (at least for now)
     const toMoment = (val: any) => isNaN(val) ? moment(val) : moment(Number(val));
-    const commit = deployment.commit instanceof Object ? deployment.commit : JSON.parse(deployment.commit);
-    const createdAt = toMoment(deployment.createdAt);
-    const ret = {
-      ...deployment,
+    const commit = dbDeployment.commit instanceof Object ? dbDeployment.commit : JSON.parse(dbDeployment.commit);
+    const createdAt = toMoment(dbDeployment.createdAt);
+    const deployment: MinardDeployment = {
+      ...dbDeployment,
       commit,
-      finishedAt: deployment.finishedAt ? toMoment(deployment.finishedAt) : undefined,
+      finishedAt: dbDeployment.finishedAt ? toMoment(dbDeployment.finishedAt) : undefined,
       createdAt,
       creator: {
         email: commit.committer.email,
         name: commit.committer.name,
         timestamp: toGitlabTimestamp(createdAt),
       },
-    } as MinardDeployment;
+    };
 
-    if (ret.extractionStatus === 'success') {
-      ret.url = sprintf(
+    if (deployment.extractionStatus === 'success') {
+      deployment.url = sprintf(
         this.urlPattern,
-        `${ret.ref}-${ret.commit.shortId}-${ret.projectId}-${ret.id}`,
+        `${deployment.ref}-${deployment.commit.shortId}-${deployment.projectId}-${deployment.id}`,
       );
     }
-    if (ret.screenshotStatus === 'success') {
-      ret.screenshot = this.screenshotModule.getPublicUrl(ret.projectId, ret.id);
+    if (deployment.screenshotStatus === 'success') {
+      deployment.screenshot = this.screenshotModule.getPublicUrl(deployment.projectId, deployment.id);
     }
-    return ret;
+    return deployment;
   }
 
   public getDeploymentPath(projectId: number, deploymentId: number) {

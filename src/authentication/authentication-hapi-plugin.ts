@@ -10,7 +10,12 @@ import { IFetch } from '../shared/fetch';
 import { Group } from '../shared/gitlab';
 import { GitlabClient, validateEmail } from '../shared/gitlab-client';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
-import { adminTeamNameInjectSymbol, charlesKnexInjectSymbol, fetchInjectSymbol } from '../shared/types';
+import {
+  adminTeamNameInjectSymbol,
+  charlesKnexInjectSymbol,
+  fetchInjectSymbol,
+  openTeamNameInjectSymbol,
+} from '../shared/types';
 import { generateAndSaveTeamToken, getTeamIdWithToken, teamTokenQuery } from './team-token';
 import { AccessToken, authCookieDomainInjectSymbol, jwtOptionsInjectSymbol, teamTokenClaimKey } from './types';
 
@@ -29,6 +34,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     @inject(charlesKnexInjectSymbol) private readonly db: Knex,
     @inject(loggerInjectSymbol) private readonly logger: Logger,
     @inject(adminTeamNameInjectSymbol) private readonly adminTeamName: string,
+    @inject(openTeamNameInjectSymbol) private readonly openTeamName: string,
     @inject(fetchInjectSymbol) private readonly fetch: IFetch,
   ) {
     super({
@@ -124,6 +130,12 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       (_: any) => (_teamId: number) => Promise.resolve(true),
       { apply: true },
     );
+    server.decorate(
+      'request',
+      'isOpenDeployment',
+      this.isOpenDeployment.bind(this),
+      { apply: false },
+    );
     next();
   }
 
@@ -139,6 +151,12 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       'userHasAccessToTeam',
       this.userHasAccessToTeamDecorator.bind(this),
       { apply: true },
+    );
+    server.decorate(
+      'request',
+      'isOpenDeployment',
+      this.isOpenDeployment.bind(this),
+      { apply: false },
     );
   }
 
@@ -457,6 +475,24 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       return await this._isAdmin(userName);
     } catch (error) {
       // Nothing
+    }
+    return false;
+  }
+
+  public async isOpenDeployment(projectId: number, deploymentId: number) {
+    try {
+      return await this._isOpenDeployment(projectId, deploymentId);
+    } catch (exception) {
+      // Nothing
+    }
+    return false;
+  }
+
+  // Public only for unit testing
+  public async _isOpenDeployment(projectId: number, _deploymentId: number) {
+    const project = await this._getProject(projectId);
+    if (this.openTeamName && project.namespace.name === this.openTeamName) {
+      return true;
     }
     return false;
   }

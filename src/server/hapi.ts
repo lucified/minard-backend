@@ -20,6 +20,7 @@ declare module 'hapi' {
   interface RequestDecorators {
     userHasAccessToProject: (projectId: number) => Promise<boolean>;
     userHasAccessToTeam: (teamId: number) => Promise<boolean>;
+    isOpenDeployment: (projectId: number, deploymentId: number) => Promise<boolean>;
   }
   interface Request extends RequestDecorators {
   }

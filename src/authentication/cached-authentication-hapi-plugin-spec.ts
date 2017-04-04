@@ -210,4 +210,77 @@ describe('CachedAuthenticationHapiPlugin', () => {
 
     });
   });
+  describe('isOpenDeployment', () => {
+    it('should memoize trues', async () => {
+      // Arrange
+      const { instance, stubs } = getPlugin(p => sinon.stub(p, '_isOpenDeployment')
+        .returns(Promise.resolve(true)));
+
+      // Act
+      const res1 = await instance.isOpenDeployment(1, 1);
+      const res2 = await instance.isOpenDeployment(1, 1);
+
+      // Assert
+      expect(res1).to.eq(res2).to.be.true;
+      expect(instance._isOpenDeployment).to.have.been.calledOnce;
+      stubs.forEach(stub => stub.restore());
+    });
+    it('should memoize falses', async () => {
+      // Arrange
+      const { instance, stubs } = getPlugin(p => sinon.stub(p, '_isOpenDeployment')
+        .returns(Promise.resolve(false)));
+
+      // Act
+      const res1 = await instance.isOpenDeployment(1, 1);
+      const res2 = await instance.isOpenDeployment(1, 1);
+
+      // Assert
+      expect(res1).to.eq(res2).to.be.false;
+      expect(instance._isOpenDeployment).to.have.been.calledOnce;
+      stubs.forEach(stub => stub.restore());
+    });
+    it('should not memoize different calls', async () => {
+      // Arrange
+      const { instance, stubs } = getPlugin(p => sinon.stub(p, '_isOpenDeployment')
+        .returns(Promise.resolve(false)));
+
+      // Act
+      const res1 = await instance.isOpenDeployment(1, 1);
+      const res2 = await instance.isOpenDeployment(2, 1);
+
+      // Assert
+      expect(res1).to.eq(res2).to.be.false;
+      expect(instance._isOpenDeployment).to.have.been.calledTwice;
+      stubs.forEach(stub => stub.restore());
+    });
+    it('should not care about the deployment id', async () => {
+      // Arrange
+      const { instance, stubs } = getPlugin(p => sinon.stub(p, '_isOpenDeployment')
+        .returns(Promise.resolve(false)));
+
+      // Act
+      const res1 = await instance.isOpenDeployment(1, 1);
+      const res2 = await instance.isOpenDeployment(1, 2);
+
+      // Assert
+      expect(res1).to.eq(res2).to.be.false;
+      expect(instance._isOpenDeployment).to.have.been.calledOnce;
+      stubs.forEach(stub => stub.restore());
+    });
+    it('should not memoize exceptions', async () => {
+      // Arrange
+      const { instance, stubs } = getPlugin(p => sinon.stub(p, '_isOpenDeployment')
+        .returns(Promise.reject(Boom.badGateway())));
+
+      // Act
+      const res1 = await instance.isOpenDeployment(1, 1);
+      const res2 = await instance.isOpenDeployment(1, 1);
+
+      // Assert
+      expect(res1).to.eq(res2).to.be.false;
+      expect(instance._isOpenDeployment).to.have.been.calledTwice;
+      stubs.forEach(stub => stub.restore());
+
+    });
+  });
 });

@@ -6,7 +6,12 @@ import * as Knex from 'knex';
 import { IFetch } from '../shared/fetch';
 import { GitlabClient } from '../shared/gitlab-client';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
-import { adminTeamNameInjectSymbol, charlesKnexInjectSymbol, fetchInjectSymbol } from '../shared/types';
+import {
+  adminTeamNameInjectSymbol,
+  charlesKnexInjectSymbol,
+  fetchInjectSymbol,
+  openTeamNameInjectSymbol,
+} from '../shared/types';
 import { authCookieDomainInjectSymbol, jwtOptionsInjectSymbol } from './types';
 
 import memoizee = require('memoizee');
@@ -22,6 +27,7 @@ class CachedAuthenticationHapiPlugin extends AuthenticationHapiPlugin {
     @inject(charlesKnexInjectSymbol) db: Knex,
     @inject(loggerInjectSymbol) logger: Logger,
     @inject(adminTeamNameInjectSymbol) adminTeamName: string,
+    @inject(openTeamNameInjectSymbol) openTeamName: string,
     @inject(fetchInjectSymbol) fetch: IFetch,
   ) {
     super(
@@ -31,6 +37,7 @@ class CachedAuthenticationHapiPlugin extends AuthenticationHapiPlugin {
       db,
       logger,
       adminTeamName,
+      openTeamName,
       fetch,
     );
     this.userHasAccessToProjectAsync = memoizee(
@@ -43,6 +50,10 @@ class CachedAuthenticationHapiPlugin extends AuthenticationHapiPlugin {
     );
     this.isAdminAsync = memoizee(
       this.isAdminAsync,
+      { primitive: true, promise: false, async: true },
+    );
+    this.isOpenDeploymentAsync = memoizee(
+      this.isOpenDeploymentAsync,
       { primitive: true, promise: false, async: true },
     );
   }
@@ -118,6 +129,28 @@ class CachedAuthenticationHapiPlugin extends AuthenticationHapiPlugin {
     done: (err: any, result: boolean) => void,
   ) {
     return this._isAdmin(userName)
+      .then(
+        result => done(undefined, result), // Cache falses
+        error => done(error, false),
+      );
+  }
+
+  public isOpenDeployment(projectId: number, _deploymentId: number) {
+    return new Promise((resolve, _reject) => {
+      this.isOpenDeploymentAsync(projectId, (error: any, result: boolean) => {
+        if (error) {
+          return resolve(false);
+        }
+        return resolve(result);
+      });
+    });
+  }
+
+  protected isOpenDeploymentAsync(
+    projectId: number,
+    done: (err: any, result: boolean) => void,
+  ) {
+    return this._isOpenDeployment(projectId, 1) // Use the knowledge that the deployment id doesn\'t matter
       .then(
         result => done(undefined, result), // Cache falses
         error => done(error, false),

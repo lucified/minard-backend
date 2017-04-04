@@ -9,6 +9,8 @@ import {
   MinardActivity,
 } from '../activity';
 import {
+  COMMENT_ADDED_EVENT_TYPE,
+  COMMENT_DELETED_EVENT_TYPE,
   CommentAddedEvent,
   CommentDeletedEvent,
   createCommentAddedEvent,
@@ -37,7 +39,7 @@ import {
   ProjectEditedEvent,
 } from '../project';
 import * as Hapi from '../server/hapi';
-import { HapiRegister } from '../server/hapi-register';
+import { HapiPlugin } from '../server/hapi-register';
 import {
   Event,
   eventCreator,
@@ -56,8 +58,10 @@ import {
 
 export const PING_INTERVAL = 20000;
 
+type StreamFactory = (request: Hapi.Request) => Promise<Observable<PersistedEvent<any>>>;
+
 @injectable()
-export class RealtimeHapiPlugin {
+export class RealtimeHapiPlugin extends HapiPlugin {
 
   public static injectSymbol = Symbol('realtime-plugin');
   private eventBusSubscription: Subscription;
@@ -68,18 +72,14 @@ export class RealtimeHapiPlugin {
     @inject(eventBusInjectSymbol) private readonly eventBus: PersistentEventBus,
     @inject(logger.loggerInjectSymbol) private readonly logger: logger.Logger,
   ) {
-
+    super({
+        name: 'realtime-plugin',
+        version: '1.0.0',
+    });
     this.persistedEvents = this.eventBus.getStream()
       .filter(isPersistedEvent)
       .map(event => event as PersistedEvent<any>)
       .share();
-
-    this.register = Object.assign(this._register.bind(this), {
-      attributes: {
-        name: 'realtime-plugin',
-        version: '1.0.0',
-      },
-    });
 
     // creates SSEEvents and posts them
     this.eventBusSubscription = this.getEnrichedStream()
@@ -94,13 +94,13 @@ export class RealtimeHapiPlugin {
       });
   }
 
-  private _register(server: Hapi.Server, _options: Hapi.IServerOptions, next: () => void) {
+  public register(server: Hapi.Server, _options: Hapi.IServerOptions, next: () => void) {
 
-    server.route({
+    server.route([{
       method: 'GET',
       path: '/events/{teamId}',
       handler: {
-        async: this.requestHandler,
+        async: this.requestHandlerFactory(this.getStream),
       },
       config: {
         bind: this,
@@ -112,21 +112,44 @@ export class RealtimeHapiPlugin {
           },
         },
       },
-    });
-
+    }, {
+      method: 'GET',
+      path: '/events/{teamId}/deployment/{projectId}-{deploymentId}',
+      handler: {
+        async: this.requestHandlerFactory(this.getStream),
+      },
+      config: {
+        bind: this,
+        auth: false, // Needs to be open for unauthenticated deployment viewers
+        cors: true,
+        validate: {
+          params: {
+            teamId: Joi.number().required(),
+            projectId: Joi.number().required(),
+            deploymentId: Joi.number().required(),
+          },
+        },
+      },
+    }]);
     next();
-
   }
 
-  public readonly register: HapiRegister;
-
-  private async onRequest(teamId: number, since?: number) {
+  private async getStream(request: Hapi.Request) {
+    const {teamId, projectId, deploymentId} = request.params;
+    const _teamId = parseInt(teamId, 10);
+    const since = parseInt(request.headers['last-event-id'], 10);
+    let predicate = (event: PersistedEvent<any>) => event.teamId === _teamId;
+    if (projectId && deploymentId) {
+      const _projectId = parseInt(projectId, 10);
+      const _deploymentId = parseInt(deploymentId, 10);
+      predicate = deploymentEventFilter(_teamId, _projectId, _deploymentId);
+    }
     let observable = Observable.concat(
       Observable.of(pingEventCreator()),
-      this.persistedEvents.filter(event => event.teamId === teamId),
+      this.persistedEvents.filter(predicate),
     );
-    if (since) {
-      const existing = await this.eventBus.getEvents(teamId, since);
+    if (since && !isNaN(since)) {
+      const existing = await this.eventBus.getEvents(_teamId, since);
       if (existing.length > 0) {
         existing.shift(); // getEvents is '>= since', but here we want '> since'
       }
@@ -137,28 +160,27 @@ export class RealtimeHapiPlugin {
       observable,
     );
     return observable;
-
   }
 
-  private async requestHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    try {
-      const teamId = parseInt(request.paramsArray[0], 10);
-      const sinceKey = 'last-event-id';
-      const since = request.headers[sinceKey];
-      const observable = await this.onRequest(teamId, since ? parseInt(since, 10) : undefined);
-      const nodeStream = new ObservableWrapper(observable);
-      reply(nodeStream)
-        .header('content-type', 'text/event-stream')
-        .header('content-encoding', 'identity');
+  private requestHandlerFactory(streamFactory: StreamFactory) {
+    return async (request: Hapi.Request, reply: Hapi.IReply) => {
+      try {
+        // const observable = await this.getObservable(teamId, since ? parseInt(since, 10) : undefined);
+        const observable = await streamFactory(request);
+        const nodeStream = new ObservableWrapper(observable);
+        reply(nodeStream)
+          .header('content-type', 'text/event-stream')
+          .header('content-encoding', 'identity');
 
-      request.once('disconnect', () => {
-        // Clean up on disconnect
-        nodeStream.push(null);
-      });
+        request.once('disconnect', () => {
+          // Clean up on disconnect
+          nodeStream.push(null);
+        });
 
-    } catch (err) {
-      this.logger.error('Error handling a SSE request', err);
-    }
+      } catch (err) {
+        this.logger.error('Error handling a SSE request', err);
+      }
+    };
   }
 
   private enrich(stream: Observable<Event<any>>): Observable<StreamingEvent<any>> {
@@ -318,5 +340,19 @@ export function pingEventCreator(): PersistedEvent<any> {
     teamId: 0,
     created: moment(),
     payload: 0,
+  };
+}
+
+export function deploymentEventFilter(teamId: number, projectId: number, deploymentId: number) {
+  return (event: PersistedEvent<any>) => {
+    switch (event.type.replace(/^SSE_/, '')) {
+      case COMMENT_ADDED_EVENT_TYPE:
+        return event.teamId === teamId &&
+          event.payload.attributes.deployment === `${projectId}-${deploymentId}`;
+      case COMMENT_DELETED_EVENT_TYPE:
+        return event.teamId === teamId &&
+          event.payload.deployment === `${projectId}-${deploymentId}`;
+    }
+    return false;
   };
 }

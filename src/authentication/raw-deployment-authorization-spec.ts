@@ -8,12 +8,17 @@ use(sinonChai);
 import { bootstrap } from '../config';
 import { getAccessToken } from '../config/config-test';
 import { DeploymentHapiPlugin } from '../deployment';
+import { fixedEncodeURIComponent } from '../deployment/deployment-hapi-plugin';
 import { getTestServer } from '../server/hapi';
+import { minardUiBaseUrlInjectSymbol } from '../server/types';
 import { MethodStubber, stubber } from '../shared/test';
 import AuthenticationHapiPlugin from './authentication-hapi-plugin';
 import { generateTeamToken } from './team-token';
 
 const validAccessToken = getAccessToken('idp|12345678', generateTeamToken(), 'foo@bar.com');
+const deploymentDomain = 'deployment.foo.com';
+const validDeploymentUrl = `http://master-abcdef-1-1.${deploymentDomain}:80/`;
+const uiBaseUrl = 'http://ui.io';
 
 async function getServer(
   authenticationStubber: MethodStubber<AuthenticationHapiPlugin>,
@@ -22,6 +27,7 @@ async function getServer(
   const kernel = bootstrap('test');
   kernel.rebind(AuthenticationHapiPlugin.injectSymbol).to(AuthenticationHapiPlugin);
   kernel.rebind(DeploymentHapiPlugin.injectSymbol).to(DeploymentHapiPlugin);
+  kernel.rebind(minardUiBaseUrlInjectSymbol).toConstantValue(uiBaseUrl);
   const authenticationPlugin = stubber(authenticationStubber, AuthenticationHapiPlugin.injectSymbol, kernel);
   const deploymentPlugin = stubber(plugin, DeploymentHapiPlugin.injectSymbol, kernel);
   const server = await getTestServer(false, authenticationPlugin.instance);
@@ -99,6 +105,7 @@ describe('authorization for raw deployments', () => {
     });
     // Assert
     expect(response.statusCode).to.eq(302);
+    expect(response.headers.location).to.eq(`${uiBaseUrl}/login/${fixedEncodeURIComponent(validDeploymentUrl)}`);
     expect(authentication.userHasAccessToProject).to.not.have.been.called;
     expect(handlerStub).to.not.have.been.called;
   });

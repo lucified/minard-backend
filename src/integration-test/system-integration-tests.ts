@@ -207,7 +207,6 @@ describe('system-integration', () => {
       expect(response.status).to.eq(201);
       openUser = await response.tryJson<User>();
 
-
     });
 
     it('should successfully respond to request for team projects', async function () {

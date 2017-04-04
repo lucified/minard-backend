@@ -195,6 +195,7 @@ services:
       - REDIS_PORT=6379
       - SYSTEMHOOK_BASEURL=http://charles:8001
       - EXTERNAL_BASEURL=http://localtest.me:8000
+      - MINARD_UI_BASEURL=http://localtest.me:3000
       - AUTH_COOKIE_DOMAIN=http://localtest.me
       - SCREENSHOT_URL_PATTERN=http://%s.deployment.charles.internal:8001
       - SCREENSHOTTER_BASEURL=http://screenshotter

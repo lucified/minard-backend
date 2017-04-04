@@ -67,7 +67,8 @@ const _keyRegExp = '\\S+-([a-z0-9]+)-(\\d+)-(\\d+)';
 const _domainRegExp = '[\\w-]+\\.[\\w-]+\\.\\S+';
 export const domainRegExp = new RegExp(`^\\S+\\.(${_domainRegExp})$`);
 export const hostnameRegExp = new RegExp(`^${_keyRegExp}\\.${_domainRegExp}$`);
-export const deploymentVhost = 'deployment.vhost';
+export const authorizedDeploymentVhost = 'authorized.deployment.vhost';
+export const openDeploymentVhost = 'open.deployment.vhost';
 
 export function isRawDeploymentHostname(hostname: string) {
   return getDeploymentKeyFromHost(hostname) !== null;

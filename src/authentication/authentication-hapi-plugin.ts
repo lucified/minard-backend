@@ -24,6 +24,7 @@ const teamIdOrNameKey = 'teamIdOrName';
 
 @injectable()
 class AuthenticationHapiPlugin extends HapiPlugin {
+  private openTeamId: number | undefined;
 
   public static injectSymbol = Symbol('authentication-hapi-plugin');
 
@@ -136,6 +137,12 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       this.isOpenDeployment.bind(this),
       { apply: false },
     );
+    server.decorate(
+      'request',
+      'getOpenTeamId',
+      this.getOpenTeamId.bind(this),
+      { apply: false },
+    );
     next();
   }
 
@@ -156,6 +163,12 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       'request',
       'isOpenDeployment',
       this.isOpenDeployment.bind(this),
+      { apply: false },
+    );
+    server.decorate(
+      'request',
+      'getOpenTeamId',
+      this.getOpenTeamId.bind(this),
       { apply: false },
     );
   }
@@ -495,6 +508,20 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       return true;
     }
     return false;
+  }
+
+  public async getOpenTeamId() {
+    if (this.openTeamName && !this.openTeamId) {
+      try {
+        const groups = await this._searchGroups(this.openTeamName);
+        if (groups && groups.length === 1) {
+          this.openTeamId = groups[0].id;
+        }
+      } catch (exception) {
+        // Nothing
+      }
+    }
+    return this.openTeamId;
   }
 
   // Public only for unit testing

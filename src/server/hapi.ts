@@ -21,6 +21,7 @@ declare module 'hapi' {
     userHasAccessToProject: (projectId: number) => Promise<boolean>;
     userHasAccessToTeam: (teamId: number) => Promise<boolean>;
     isOpenDeployment: (projectId: number, deploymentId: number) => Promise<boolean>;
+    getOpenTeamId: () => Promise<number | undefined>;
   }
   interface Request extends RequestDecorators {
   }

@@ -66,7 +66,6 @@ export class RealtimeHapiPlugin extends HapiPlugin {
         cors: true,
         validate: {
           params: {
-            teamId: Joi.number().required(),
             projectId: Joi.number().required(),
             deploymentId: Joi.number().required(),
           },

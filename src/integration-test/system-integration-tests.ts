@@ -38,14 +38,14 @@ interface SSE {
 }
 
 const flowToken = process.env.FLOWDOCK_FLOW_TOKEN;
-const projectFolder = process.env.SYSTEM_TEST_PROJECT ? process.env.SYSTEM_TEST_PROJECT : 'blank';
-const openProjectFolder = process.env.SYSTEM_TEST_PROJECT_OPEN ? process.env.SYSTEM_TEST_PROJECT_OPEN : 'blank-open';
-const charles = process.env.CHARLES ? process.env.CHARLES : 'http://localhost:8000';
-const charlesPrivate = process.env.CHARLES_PRIVATE ? process.env.CHARLES_PRIVATE : 'http://localhost:8001';
-const git_password = process.env.GIT_PASSWORD ? process.env.GIT_PASSWORD : '12345678';
-const hipchatRoomId = process.env.HIPCHAT_ROOM_ID ? process.env.HIPCHAT_ROOM_ID : 3140019;
-const hipchatAuthToken = process.env.HIPCHAT_AUTH_TOKEN ? process.env.HIPCHAT_AUTH_TOKEN : undefined;
-const skipDeleteProject = process.env.SKIP_DELETE_PROJECT ? true : false;
+const projectFolder = process.env.SYSTEM_TEST_PROJECT || 'blank';
+const openProjectFolder = process.env.SYSTEM_TEST_PROJECT_OPEN || 'blank-open';
+const charles = process.env.CHARLES || 'http://localhost:8000';
+const charlesPrivate = process.env.CHARLES_PRIVATE || 'http://localhost:8001';
+const git_password = process.env.GIT_PASSWORD || '12345678';
+const hipchatRoomId = process.env.HIPCHAT_ROOM_ID || 3140019;
+const hipchatAuthToken = process.env.HIPCHAT_AUTH_TOKEN || undefined;
+const skipDeleteProject = !!process.env.SKIP_DELETE_PROJECT;
 const kernel = bootstrap('development');
 console.log(`Project is ${projectFolder}`);
 console.log(`Charles is ${charles}`);

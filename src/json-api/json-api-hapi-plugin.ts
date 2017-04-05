@@ -44,7 +44,7 @@ function onPreResponse(_server: Hapi.Server, request: Hapi.Request, reply: Hapi.
     applyHeaders(response);
   }
   return reply.continue();
-};
+}
 
 export function parseActivityFilter(filter: string | null) {
   const ret = {

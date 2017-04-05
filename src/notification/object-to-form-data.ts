@@ -21,6 +21,6 @@ function objectToFormData(obj: any, form?: FormData, _namespace?: string) {
     }
   }
   return fd;
-};
+}
 
 export default objectToFormData;

@@ -1,7 +1,7 @@
 export {
   default as DeploymentModule,
   getDeploymentKeyFromHost,
-  deploymentFolderInjectSymbol
+  deploymentFolderInjectSymbol,
 } from './deployment-module';
 export { CIProxy } from './proxy-ci';
 export * from './types';

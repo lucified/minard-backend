@@ -85,7 +85,7 @@ function requestFilter(data: any) {
     return false;
   }
   return true;
-};
+}
 
 const goodOptions = {
   reporters: {

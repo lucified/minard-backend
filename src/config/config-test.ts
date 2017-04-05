@@ -12,7 +12,7 @@ import {
 import AuthenticationModule from '../authentication/authentication-module';
 import { eventStoreConfigInjectSymbol } from '../event-bus';
 import { JsonApiHapiPlugin } from '../json-api';
-import { goodOptionsInjectSymbol } from '../server';
+import { externalBaseUrlInjectSymbol, goodOptionsInjectSymbol } from '../server';
 import { cacheInjectSymbol } from '../shared/cache';
 import { fetchMock } from '../shared/fetch';
 import { GitlabClient } from '../shared/gitlab-client';
@@ -34,15 +34,15 @@ const getClient = () => {
 // Access token parameters
 const env = process.env;
 const PORT = env.PORT ? parseInt(env.PORT, 10) : 8000;
-const EXTERNAL_BASEURL = env.EXTERNAL_BASEURL || `http://localhost:${PORT}`;
-const AUTH_AUDIENCE = env.AUTH_AUDIENCE || EXTERNAL_BASEURL;
-const AUTH_COOKIE_DOMAIN = env.AUTH_COOKIE_DOMAIN || AUTH_AUDIENCE;
+const EXTERNAL_BASEURL = `http://localhost:${PORT}`;
+const AUTH_AUDIENCE = EXTERNAL_BASEURL;
+const AUTH_COOKIE_DOMAIN = AUTH_AUDIENCE;
 
 export const issuer = 'https://issuer.foo.com';
 export const secretKey = 'shhhhhhh';
 export const algorithm = 'HS256';
 
-export function getJwtOptions() {
+export function getJwtOptions(log = false) {
   const verifyOptions = {
     audience: AUTH_AUDIENCE,
     issuer,
@@ -57,7 +57,9 @@ export function getJwtOptions() {
     verifyOptions,
     // Validate the audience, issuer, algorithm and expiration.
     errorFunc: (context: any) => {
-      // console.dir({ ...verifyOptions, secretKey }, { colors: true });
+      if (log) {
+        console.dir({ ...verifyOptions, secretKey, context }, { colors: true });
+      }
       return context;
     },
   };
@@ -94,6 +96,7 @@ export default (kernel: Container) => {
   kernel.rebind(loggerInjectSymbol).toConstantValue(logger);
   kernel.rebind(jwtOptionsInjectSymbol).toConstantValue(getJwtOptions());
   kernel.rebind(authCookieDomainInjectSymbol).toConstantValue(AUTH_COOKIE_DOMAIN);
+  kernel.rebind(externalBaseUrlInjectSymbol).toConstantValue(EXTERNAL_BASEURL);
 
   const cache = cacheManager.caching({
     store: 'memory',

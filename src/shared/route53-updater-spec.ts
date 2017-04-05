@@ -11,7 +11,7 @@ const logger = loggerConstructor(undefined, true);
 
 interface UpdaterResult {
   ChangeInfo: ChangeInfo;
-};
+}
 function getRoute53UpdaterFunction(callback: () => UpdaterResult): Route53UpdaterFunction {
   return async (_values: {Value: string}[], _hostedZoneId: string, _name: string, _type: string, _ttl: number) => {
     return callback();
@@ -20,7 +20,7 @@ function getRoute53UpdaterFunction(callback: () => UpdaterResult): Route53Update
 function getRegistrator(callback: () => UpdaterResult) {
   const func = getRoute53UpdaterFunction(callback);
   return new Route53Updater(fetchMock.fetchMock, logger, retryDelay, retryDelay, maxRetries, func);
-};
+}
 
 describe('Route53Updater', () => {
 

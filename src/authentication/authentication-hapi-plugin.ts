@@ -502,7 +502,6 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     return false;
   }
 
-
   public async isOpenDeployment(projectId: number, _deploymentId: number) {
     return this.isOpenProject(projectId);
   }

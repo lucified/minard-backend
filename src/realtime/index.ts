@@ -1,1 +1,2 @@
-export { RealtimeHapiPlugin } from './realtime-hapi-plugin';
+export * from './realtime-hapi-plugin';
+export * from './realtime-module';

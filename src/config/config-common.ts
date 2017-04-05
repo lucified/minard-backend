@@ -75,6 +75,7 @@ import {
 
 import {
   RealtimeHapiPlugin,
+  RealtimeModule,
 } from '../realtime';
 
 import { MinardServer } from '../server';
@@ -109,6 +110,7 @@ export default new ContainerModule((bind, _unbind, _isBound, _rebind) => {
   bind(SystemHookModule.injectSymbol).to(SystemHookModule);
   bind(UserModule.injectSymbol).to(UserModule);
   bind(ViewEndpoints.injectSymbol).to(ViewEndpoints);
+  bind(RealtimeModule.injectSymbol).to(RealtimeModule).inSingletonScope();
 
   // Bindings for hapi plugins
   bind(DeploymentHapiPlugin.injectSymbol).to(DeploymentHapiPlugin);

@@ -69,7 +69,6 @@ export class RealtimeModule {
     // listens to SSEEvents and shares them
     this.sseStream = this.eventBus.getStream()
       .filter(isPersistedEvent)
-      .map(event => event as PersistedEvent<any>)
       .share();
 
   }

@@ -87,7 +87,7 @@ class DeploymentHapiPlugin extends HapiPlugin {
   private rawDeploymentRoutes(auth: boolean) {
     return [{
       method: 'GET',
-      path: '/deployment-favicon',
+      path: '/favicon.ico',
       handler: (_request: Hapi.Request, reply: Hapi.IReply) => {
         reply.file('favicon.ico');
       },

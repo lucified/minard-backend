@@ -561,25 +561,24 @@ describe('authentication-hapi-plugin', () => {
         .then(_ => expect.fail(), error => expect(error.isBoom).to.be.true);
     });
   });
-  describe('_isOpenDeployment', () => {
-    const getProject = (namespace: string) => ({
-        namespace: {
-          name: namespace,
-        },
-    });
+  describe('isOpenDeployment', () => {
+    const getProjectTeam = (name: string) => ({
+      name,
+      id: 1,
+     });
 
     it('returns true if the project belongs to the \'open\' team', async () => {
 
       // Arrange
       const { plugin } = await getPlugin(
         (p: AuthenticationHapiPlugin, k: Container) => [
-          sinon.stub(p, '_getProject')
-            .returns(Promise.resolve(getProject(k.get<string>(openTeamNameInjectSymbol)))),
+          sinon.stub(p, p.getProjectTeam.name)
+            .returns(Promise.resolve(getProjectTeam(k.get<string>(openTeamNameInjectSymbol)))),
         ],
       );
 
       // Act
-      const result = await plugin._isOpenDeployment(1, 1);
+      const result = await plugin.isOpenDeployment(1, 1);
 
       // Assert
       expect(result).to.be.true;
@@ -589,13 +588,13 @@ describe('authentication-hapi-plugin', () => {
       // Arrange
       const { plugin } = await getPlugin(
         (p: AuthenticationHapiPlugin, k: Container) => [
-          sinon.stub(p, '_getProject')
-            .returns(Promise.resolve(getProject(k.get<string>(openTeamNameInjectSymbol) + 'foo'))),
+          sinon.stub(p, p.getProjectTeam.name)
+            .returns(Promise.resolve(getProjectTeam(k.get<string>(openTeamNameInjectSymbol) + 'foo'))),
         ],
       );
 
       // Act
-      const result = await plugin._isOpenDeployment(1, 1);
+      const result = await plugin.isOpenDeployment(1, 1);
 
       // Assert
       expect(result).to.be.false;
@@ -605,13 +604,13 @@ describe('authentication-hapi-plugin', () => {
       // Arrange
       const { plugin } = await getPlugin(
         (p: AuthenticationHapiPlugin) => [
-          sinon.stub(p, '_getProject')
+          sinon.stub(p, p.getProjectTeam.name)
             .returns(Promise.reject(Boom.badGateway())),
         ],
       );
 
       // Act
-      const resultPromise = plugin._isOpenDeployment(1, 1);
+      const resultPromise = plugin.isOpenDeployment(1, 1);
 
       // Assert
       return resultPromise

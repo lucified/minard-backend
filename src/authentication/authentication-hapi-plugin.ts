@@ -22,9 +22,10 @@ import { AccessToken, authCookieDomainInjectSymbol, jwtOptionsInjectSymbol, team
 const randomstring = require('randomstring');
 const teamIdOrNameKey = 'teamIdOrName';
 
+type Authorizer = (userName: string, request: Hapi.Request) => Promise<boolean | undefined>;
+
 @injectable()
 class AuthenticationHapiPlugin extends HapiPlugin {
-  private openTeamId: number | undefined;
 
   public static injectSymbol = Symbol('authentication-hapi-plugin');
 
@@ -139,8 +140,8 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     );
     server.decorate(
       'request',
-      'getOpenTeamId',
-      this.getOpenTeamId.bind(this),
+      'getProjectTeam',
+      this.getProjectTeam.bind(this),
       { apply: false },
     );
     next();
@@ -167,8 +168,8 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     );
     server.decorate(
       'request',
-      'getOpenTeamId',
-      this.getOpenTeamId.bind(this),
+      'getProjectTeam',
+      this.getProjectTeam.bind(this),
       { apply: false },
     );
   }
@@ -295,16 +296,16 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   }
 
   private authorizeCustom(_userName: string, _request: Hapi.Request) {
-    return Promise.resolve(true);
+    return Promise.resolve(undefined);
   }
 
-  private validateFuncFactory(authorizer: (userName: string, request: Hapi.Request) => Promise<boolean>) {
+  private validateFuncFactory(authorizer: Authorizer) {
     return async (
       payload: AccessToken,
       request: Hapi.Request,
       callback: (err: any, valid: boolean, credentials?: any) => void,
     ) => {
-      let isAuthorized = false;
+      let isAuthorized: boolean | undefined = false;
       try {
         if (assertValidSubClaim(payload.sub)) {
           const userName = sanitizeUsername(payload.sub);
@@ -315,10 +316,19 @@ class AuthenticationHapiPlugin extends HapiPlugin {
         // TODO: logging, this can happen very often
         this.logger.warn('Authorization exception: %s', error.message);
       }
-      if (!isAuthorized) {
+      if (isAuthorized === false) {
         this.logger.debug('User %s not is not authorized', payload.username || payload.sub);
       }
-      return callback(undefined, isAuthorized, payload);
+      // isAuthorized === undefined means the user was authenticated
+      // but the authorization hasn't been checked
+      return callback(
+        undefined,
+        isAuthorized === true || isAuthorized === undefined,
+        {
+          ...payload,
+          isAuthorized,
+        },
+      );
     };
   }
 
@@ -492,36 +502,30 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     return false;
   }
 
-  public async isOpenDeployment(projectId: number, deploymentId: number) {
-    try {
-      return await this._isOpenDeployment(projectId, deploymentId);
-    } catch (exception) {
-      // Nothing
-    }
-    return false;
+
+  public async isOpenDeployment(projectId: number, _deploymentId: number) {
+    return this.isOpenProject(projectId);
   }
 
-  // Public only for unit testing
-  public async _isOpenDeployment(projectId: number, _deploymentId: number) {
-    const project = await this._getProject(projectId);
-    if (this.openTeamName && project.namespace.name === this.openTeamName) {
+  public async isOpenProject(projectId: number) {
+    const team = await this.getProjectTeam(projectId);
+    if (team && this.openTeamName && team.name === this.openTeamName) {
       return true;
     }
     return false;
   }
 
-  public async getOpenTeamId() {
-    if (this.openTeamName && !this.openTeamId) {
-      try {
-        const groups = await this._searchGroups(this.openTeamName);
-        if (groups && groups.length === 1) {
-          this.openTeamId = groups[0].id;
-        }
-      } catch (exception) {
-        // Nothing
-      }
-    }
-    return this.openTeamId;
+  public async getProjectTeam(projectId: number) {
+    return await this._getProjectTeam(projectId);
+  }
+
+  // Public only for unit testing
+  public async _getProjectTeam(projectId: number) {
+    const project = await this._getProject(projectId);
+    return {
+      id: project.namespace.id,
+      name: project.namespace.path,
+    };
   }
 
   // Public only for unit testing

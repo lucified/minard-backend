@@ -210,75 +210,56 @@ describe('CachedAuthenticationHapiPlugin', () => {
 
     });
   });
-  describe('isOpenDeployment', () => {
-    it('should memoize trues', async () => {
+  describe('getProjectTeam', () => {
+    it('should memoize succesfull calls', async () => {
       // Arrange
-      const { instance, stubs } = getPlugin(p => sinon.stub(p, '_isOpenDeployment')
+      const { instance, stubs } = getPlugin(p => sinon.stub(p, '_getProjectTeam')
         .returns(Promise.resolve(true)));
 
       // Act
-      const res1 = await instance.isOpenDeployment(1, 1);
-      const res2 = await instance.isOpenDeployment(1, 1);
+      const res1 = await instance.getProjectTeam(1);
+      const res2 = await instance.getProjectTeam(1);
 
       // Assert
-      expect(res1).to.eq(res2).to.be.true;
-      expect(instance._isOpenDeployment).to.have.been.calledOnce;
-      stubs.forEach(stub => stub.restore());
-    });
-    it('should memoize falses', async () => {
-      // Arrange
-      const { instance, stubs } = getPlugin(p => sinon.stub(p, '_isOpenDeployment')
-        .returns(Promise.resolve(false)));
-
-      // Act
-      const res1 = await instance.isOpenDeployment(1, 1);
-      const res2 = await instance.isOpenDeployment(1, 1);
-
-      // Assert
-      expect(res1).to.eq(res2).to.be.false;
-      expect(instance._isOpenDeployment).to.have.been.calledOnce;
+      expect(res1).to.eq(res2);
+      expect(instance._getProjectTeam).to.have.been.calledOnce;
       stubs.forEach(stub => stub.restore());
     });
     it('should not memoize different calls', async () => {
       // Arrange
-      const { instance, stubs } = getPlugin(p => sinon.stub(p, '_isOpenDeployment')
+      const { instance, stubs } = getPlugin(p => sinon.stub(p, '_getProjectTeam')
         .returns(Promise.resolve(false)));
 
       // Act
-      const res1 = await instance.isOpenDeployment(1, 1);
-      const res2 = await instance.isOpenDeployment(2, 1);
+      const res1 = await instance.getProjectTeam(1);
+      const res2 = await instance.getProjectTeam(2);
 
       // Assert
-      expect(res1).to.eq(res2).to.be.false;
-      expect(instance._isOpenDeployment).to.have.been.calledTwice;
-      stubs.forEach(stub => stub.restore());
-    });
-    it('should not care about the deployment id', async () => {
-      // Arrange
-      const { instance, stubs } = getPlugin(p => sinon.stub(p, '_isOpenDeployment')
-        .returns(Promise.resolve(false)));
-
-      // Act
-      const res1 = await instance.isOpenDeployment(1, 1);
-      const res2 = await instance.isOpenDeployment(1, 2);
-
-      // Assert
-      expect(res1).to.eq(res2).to.be.false;
-      expect(instance._isOpenDeployment).to.have.been.calledOnce;
+      expect(res1).to.eq(res2);
+      expect(instance._getProjectTeam).to.have.been.calledTwice;
       stubs.forEach(stub => stub.restore());
     });
     it('should not memoize exceptions', async () => {
       // Arrange
-      const { instance, stubs } = getPlugin(p => sinon.stub(p, '_isOpenDeployment')
+      const { instance, stubs } = getPlugin(p => sinon.stub(p, '_getProjectTeam')
         .returns(Promise.reject(Boom.badGateway())));
 
       // Act
-      const res1 = await instance.isOpenDeployment(1, 1);
-      const res2 = await instance.isOpenDeployment(1, 1);
+      try {
+        await instance.getProjectTeam(1);
+        expect.fail(undefined, undefined, 'Should throw');
+      } catch (error) {
+        // Nothing
+      }
+      try {
+        await instance.getProjectTeam(1);
+        expect.fail(undefined, undefined, 'Should throw');
+      } catch (error) {
+        // Nothing
+      }
 
       // Assert
-      expect(res1).to.eq(res2).to.be.false;
-      expect(instance._isOpenDeployment).to.have.been.calledTwice;
+      expect(instance._getProjectTeam).to.have.been.calledTwice;
       stubs.forEach(stub => stub.restore());
 
     });

@@ -52,8 +52,8 @@ class CachedAuthenticationHapiPlugin extends AuthenticationHapiPlugin {
       this.isAdminAsync,
       { primitive: true, promise: false, async: true },
     );
-    this.isOpenDeploymentAsync = memoizee(
-      this.isOpenDeploymentAsync,
+    this.getProjectTeamAsync = memoizee(
+      this.getProjectTeamAsync,
       { primitive: true, promise: false, async: true },
     );
   }
@@ -135,25 +135,25 @@ class CachedAuthenticationHapiPlugin extends AuthenticationHapiPlugin {
       );
   }
 
-  public isOpenDeployment(projectId: number, _deploymentId: number) {
-    return new Promise((resolve, _reject) => {
-      this.isOpenDeploymentAsync(projectId, (error: any, result: boolean) => {
+  public getProjectTeam(projectId: number): Promise<{id: number, name: string}> {
+    return new Promise((resolve, reject) => {
+      this.getProjectTeamAsync(projectId, (error?: any, result?: {id: number, name: string}) => {
         if (error) {
-          return resolve(false);
+          return reject(error);
         }
         return resolve(result);
       });
     });
   }
 
-  protected isOpenDeploymentAsync(
+  protected getProjectTeamAsync(
     projectId: number,
-    done: (err: any, result: boolean) => void,
+    done: (err: any, result?: {id: number, name: string}) => void,
   ) {
-    return this._isOpenDeployment(projectId, 1) // Use the knowledge that the deployment id doesn\'t matter
+    return this._getProjectTeam(projectId)
       .then(
-        result => done(undefined, result), // Cache falses
-        error => done(error, false),
+        result => done(undefined, result),
+        error => done(error),
       );
   }
 }

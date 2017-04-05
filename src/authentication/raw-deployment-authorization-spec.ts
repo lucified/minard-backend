@@ -14,7 +14,8 @@ import AuthenticationHapiPlugin from './authentication-hapi-plugin';
 import { generateTeamToken } from './team-token';
 
 const validAccessToken = getAccessToken('idp|12345678', generateTeamToken(), 'foo@bar.com');
-
+const deploymentDomain = 'deployment.foo.com';
+const validDeploymentUrl = `http://master-abcdef-1-1.${deploymentDomain}`;
 async function getServer(
   authenticationStubber: MethodStubber<AuthenticationHapiPlugin>,
   plugin: MethodStubber<DeploymentHapiPlugin>,
@@ -61,9 +62,9 @@ function arrange(
 function makeRequest(server: Server) {
   return server.inject({
     method: 'GET',
-    url: `http://deployment-abcdef-1-1.foo.com`,
+    url: validDeploymentUrl,
     headers: {
-      'Authorization': `Bearer ${validAccessToken}`,
+      'Cookie': `token=${validAccessToken}`,
     },
   });
 }
@@ -95,7 +96,7 @@ describe('authorization for raw deployments', () => {
     // Act
     const response = await server.inject({
       method: 'GET',
-      url: `http://deployment-abcdef-1-1.foo.com`,
+      url: validDeploymentUrl,
     });
     // Assert
     expect(response.statusCode).to.eq(302);

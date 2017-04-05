@@ -962,7 +962,7 @@ describe('deployment-module', () => {
   describe('getDeploymentKey()', () => {
 
     it('should match localhost hostname with single-digit ids', () => {
-      const ret = getDeploymentKeyFromHost('foo-fdl65kasjs-4-1.localhost');
+      const ret = getDeploymentKeyFromHost('foo-fdl65kasjs-4-1.baz.foo.bar');
       if (ret === null) { throw new Error(); }
       expect(ret.shortId).to.equal('fdl65kasjs');
       expect(ret.projectId).to.equal(4);
@@ -970,7 +970,7 @@ describe('deployment-module', () => {
     });
 
     it('should match localhost hostname with multi-digit ids', () => {
-      const ret = getDeploymentKeyFromHost('foo-fdl65kasjs-523-2667.localhost');
+      const ret = getDeploymentKeyFromHost('foo-fdl65kasjs-523-2667.baz.foo.bar');
       if (ret === null) { throw new Error(); }
       expect(ret.shortId).to.equal('fdl65kasjs');
       expect(ret.projectId).to.equal(523);
@@ -978,7 +978,7 @@ describe('deployment-module', () => {
     });
 
     it('should match minard.io hostname with multi-digit ids', () => {
-      const ret = getDeploymentKeyFromHost('foo-fdl65kasjs-145-3.minard.io');
+      const ret = getDeploymentKeyFromHost('foo-fdl65kasjs-145-3.baz.minard.io');
       if (ret === null) { throw new Error(); }
       expect(ret.shortId).to.equal('fdl65kasjs');
       expect(ret.projectId).to.equal(145);

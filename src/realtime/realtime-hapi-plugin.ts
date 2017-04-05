@@ -60,7 +60,9 @@ export class RealtimeHapiPlugin extends HapiPlugin {
       },
       config: {
         bind: this,
-        auth: false,
+        auth: {
+          mode: 'optional',
+        },
         cors: true,
         validate: {
           params: {
@@ -117,12 +119,17 @@ export class RealtimeHapiPlugin extends HapiPlugin {
 
   private async deploymentHandler(request: Hapi.Request, reply: Hapi.IReply) {
     try {
-      const { projectId, deploymentId } = request.params;
-      const teamId = await request.getOpenTeamId();
-      if (projectId && deploymentId && teamId) {
-        const _projectId = parseInt(projectId, 10);
-        const _deploymentId = parseInt(deploymentId, 10);
-        const predicate = deploymentEventFilter(teamId, _projectId, _deploymentId);
+      const projectId = parseInt(request.params.projectId, 10);
+      const deploymentId = parseInt(request.params.deploymentId, 10);
+      let teamId: number | undefined;
+      if (
+        (request.auth.isAuthenticated && request.auth.credentials.isAuthorized) ||
+        await request.isOpenDeployment(projectId, deploymentId)
+      ) {
+        teamId = (await request.getProjectTeam(projectId)).id;
+      }
+      if (teamId) {
+        const predicate = deploymentEventFilter(teamId, projectId, deploymentId);
         const stream = await this.getStream(teamId, predicate, getLastEventId(request));
         return this.streamReply(stream, request, reply);
       }

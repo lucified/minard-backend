@@ -105,7 +105,7 @@ describe('authorization for raw deployments', () => {
     expect(handlerStub).to.not.have.been.called;
 
   });
-  it('should redirect to login screen for unauthenticated deployments', async () => {
+  it('should redirect to login screen for unauthenticated deployment requests', async () => {
     // Arrange
     const { server, authentication, handlerStub } = await arrange('userHasAccessToProject', true);
     // Act

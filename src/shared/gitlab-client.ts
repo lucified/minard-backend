@@ -318,3 +318,10 @@ export function validateEmail(email: any): email is string {
   }
   return /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,4})+$/.test(email);
 }
+
+export function looselyValidateEmail(email: any): email is string {
+  if (typeof email !== 'string') {
+    return false;
+  }
+  return /^.+@.+$/.test(email);
+}

@@ -8,7 +8,7 @@ import * as Hapi from '../server/hapi';
 import { HapiPlugin } from '../server/hapi-register';
 import { IFetch } from '../shared/fetch';
 import { Group } from '../shared/gitlab';
-import { GitlabClient, validateEmail } from '../shared/gitlab-client';
+import { GitlabClient, looselyValidateEmail } from '../shared/gitlab-client';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
 import {
   adminTeamNameInjectSymbol,
@@ -250,11 +250,11 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     try {
       credentials = request.auth.credentials as AccessToken;
       email = credentials.email;
-      if (!validateEmail(email)) {
+      if (!looselyValidateEmail(email)) {
         // Fall back to fetching the email from Auth0
         email = await this.tryGetEmailFromAuth0((request.auth as any).token);
       }
-      if (!validateEmail(email)) {
+      if (!looselyValidateEmail(email)) {
         throw new Error(`Invalid email ${email}`);
       }
       const teamToken = credentials[teamTokenClaimKey];
@@ -342,10 +342,10 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     let email: string | undefined;
     if (this.hapiOptions.verifyOptions && this.hapiOptions.verifyOptions.issuer) {
       const userInfo = await getAuth0UserInfo(this.hapiOptions.verifyOptions.issuer, accessToken, this.fetch);
-      if (validateEmail(userInfo.email)) {
+      if (looselyValidateEmail(userInfo.email)) {
         email = userInfo.email;
         // the email can actually be in the name field depending on the identity provider
-      } else if (validateEmail(userInfo.name)) {
+      } else if (looselyValidateEmail(userInfo.name)) {
         email = userInfo.name;
       }
     }

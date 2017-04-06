@@ -4,6 +4,7 @@ import { inject, injectable } from 'inversify';
 import * as Joi from 'joi';
 import * as moment from 'moment';
 
+import { AuthorizationStatus, RequestCredentials } from '../authentication/types';
 import {
   COMMENT_ADDED_EVENT_TYPE,
   COMMENT_DELETED_EVENT_TYPE,
@@ -121,8 +122,9 @@ export class RealtimeHapiPlugin extends HapiPlugin {
       const projectId = parseInt(request.params.projectId, 10);
       const deploymentId = parseInt(request.params.deploymentId, 10);
       let teamId: number | undefined;
+      const credentials = request.auth.credentials as RequestCredentials;
       if (
-        (request.auth.isAuthenticated && request.auth.credentials.isAuthorized) ||
+        (credentials && credentials.authorizationStatus === AuthorizationStatus.AUTHORIZED) ||
         await request.isOpenDeployment(projectId, deploymentId)
       ) {
         teamId = (await request.getProjectTeam(projectId)).id;

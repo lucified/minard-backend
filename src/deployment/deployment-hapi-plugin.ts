@@ -267,8 +267,6 @@ export class PrivateDeploymentHapiPlugin extends DeploymentHapiPlugin {
     return reply(this.deploymentModule.getGitlabYml(Number(projectId), ref, sha))
       .header('content-type', 'text/plain');
   }
-
-
 }
 
 // From http://stackoverflow.com/questions/31840286/how-to-get-the-full-url-for-a-request-in-hapi

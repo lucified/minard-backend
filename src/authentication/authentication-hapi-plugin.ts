@@ -508,7 +508,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
 
   public async isOpenProject(projectId: number) {
     const team = await this.getProjectTeam(projectId);
-    if (team && this.openTeamName && team.name === this.openTeamName) {
+    if (team && this.openTeamName && team.name.toLowerCase() === this.openTeamName.toLowerCase()) {
       return true;
     }
     return false;
@@ -523,7 +523,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     const project = await this._getProject(projectId);
     return {
       id: project.namespace.id,
-      name: project.namespace.path,
+      name: project.namespace.name,
     };
   }
 

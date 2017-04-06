@@ -497,7 +497,7 @@ describe('system-integration', () => {
       log(`Fetching deployment from ${prettyUrl(url)}`);
       let status = 0;
       while (status !== 200) {
-        const ret = await fetchFactory(userAccessToken, 999)(url);
+        const ret = await userFetch(url);
         status = ret.status;
         if (status !== 200) {
           log(`Charles responded with ${status} for deployment request. Waiting for two seconds.`);
@@ -506,21 +506,28 @@ describe('system-integration', () => {
       }
     });
 
+    it('deployment should not have openly accessible web page', async function () {
+      logTitle('Checking that deployment is not openly accessible');
+      this.timeout(1000 * 30);
+      await sleep(2000);
+      const url = deployment.attributes.url + '/index.html';
+      log(`Fetching deployment from ${prettyUrl(url)}`);
+      const response1 = await openFetch(url);
+      expect(response1.status).to.equal(401);
+      const response2 = await originalFetch(url, { redirect: 'manual' });
+      expect(response2.status).to.equal(302);
+    });
+
     it('open deployment should have openly accessible web page', async function () {
-      logTitle('Checking that deployment has accessible web page');
+      logTitle('Checking that open deployment has openly accessible web page');
       this.timeout(1000 * 30);
       await sleep(2000);
       const url = openDeployment.attributes.url + '/index.html';
       log(`Fetching deployment from ${prettyUrl(url)}`);
-      let status = 0;
-      while (status !== 200) {
-        const ret = await fetchFactory(userAccessToken + 'foo', 999)(url); // Give an invalid access token on purpose
-        status = ret.status;
-        if (status !== 200) {
-          log(`Charles responded with ${status} for deployment request. Waiting for two seconds.`);
-          await sleep(200);
-        }
-      }
+      const response = await fetchFactory(userAccessToken + 'foo')(url); // Give an invalid access token on purpose
+      expect(response.status).to.equal(200);
+      const response2 = await originalFetch(url, { redirect: 'manual' });
+      expect(response2.status).to.equal(200);
     });
 
     it('deployment should have accessible screenshot', async function () {

@@ -2,20 +2,17 @@
 import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
 import * as Joi from 'joi';
+import * as memoizee from 'memoizee';
 import * as path from 'path';
 
 import * as Hapi from '../server/hapi';
 import { HapiPlugin } from '../server/hapi-register';
-
+import { minardUiBaseUrlInjectSymbol } from '../server/types';
+import { Logger, loggerInjectSymbol } from '../shared/logger';
 import DeploymentModule, {
   deploymentVhost,
   getDeploymentKeyFromHost,
-  isRawDeploymentHostname,
 } from './deployment-module';
-
-import { Logger, loggerInjectSymbol } from '../shared/logger';
-import memoizee = require('memoizee');
-import { minardUiBaseUrlInjectSymbol } from '../server/types';
 
 const PREKEY = 'key';
 
@@ -25,10 +22,10 @@ class DeploymentHapiPlugin extends HapiPlugin {
   public static injectSymbol = Symbol('deployment-hapi-plugin');
 
   constructor(
-    @inject(DeploymentModule.injectSymbol) private readonly deploymentModule: DeploymentModule,
+    @inject(DeploymentModule.injectSymbol) protected readonly deploymentModule: DeploymentModule,
     @inject(minardUiBaseUrlInjectSymbol) private readonly uiBaseUrl: string,
     @inject(loggerInjectSymbol) private readonly logger: Logger,
-    private readonly isPrivate = false,
+    isPrivate = false,
   ) {
     super({
       name: `deployment-plugin${isPrivate ? '-private' : ''}`,
@@ -41,51 +38,83 @@ class DeploymentHapiPlugin extends HapiPlugin {
   }
 
   public register(server: Hapi.Server, _options: Hapi.IServerOptions, next: () => void) {
-    if (this.isPrivate) {
-      server.route({
-        method: 'GET',
-        path: '/ci/projects/{projectId}/{ref}/{sha}/yml',
-        handler: {
-          async: this.getGitlabYmlRequestHandler,
-        },
-        config: {
-          bind: this,
-          auth: false,
-          validate: {
-            params: {
-              projectId: Joi.number().required(),
-              ref: Joi.string().required(),
-              sha: Joi.string(),
-            },
-          },
-        },
-      });
-    } else {
-      server.ext('onPreResponse', this.onPreResponse.bind(this));
-      server.route({
-        method: 'GET',
-        path: '/ci/deployments/{projectId}-{deploymentId}/trace',
-        handler: {
-          async: this.getTraceRequestHandler,
-        },
-        config: {
-          bind: this,
-          validate: {
-            params: {
-              projectId: Joi.number().required(),
-              deploymentId: Joi.number().required(),
-            },
-          },
-        },
-      });
-    }
     server.ext('onRequest', this.onRequest.bind(this));
-    server.route(this.rawDeploymentRoutes(!this.isPrivate));
+
+    server.route(this.traceRoute());
+    server.route(this.rawDeploymentRoutes());
+    server.ext('onPreResponse', this.onPreResponse.bind(this));
     next();
   }
 
-  private rawDeploymentRoutes(auth: boolean) {
+  protected async onRequest(request: Hapi.Request, reply: Hapi.IReply) {
+    // hostname doesn't include the port, host does
+    const { hostname } = request.info;
+    const key = getDeploymentKeyFromHost(hostname);
+    if (key !== null) {
+      // Store the original hostname
+      request.app.hostname = hostname;
+      // Overwrite the hostname to use virtual host routing
+      // Each vhost (including the default one) has a separate routing table
+      request.info.hostname = deploymentVhost;
+    }
+    return reply.continue();
+  }
+
+  protected onPreResponse(request: Hapi.Request, reply: Hapi.IReply) {
+    // Redirect to login page, if user didn't pass
+    const output = (request.response as any).output;
+    if (
+      request.info.hostname === deploymentVhost &&
+      request.response.isBoom &&
+      output &&
+      [401, 403].find(code => code === output.statusCode) !== undefined &&
+      !request.auth.isAuthenticated
+    ) {
+      return reply.redirect(`${this.uiBaseUrl}/login/${getEncodedUri(request)}`);
+    }
+    return reply.continue();
+  }
+
+  private traceRoute(): Hapi.IRouteConfiguration {
+    return {
+      method: 'GET',
+      path: '/ci/deployments/{projectId}-{deploymentId}/trace',
+      handler: {
+        async: this.getTraceRequestHandler,
+      },
+      config: {
+        bind: this,
+        validate: {
+          params: {
+            projectId: Joi.number().required(),
+            deploymentId: Joi.number().required(),
+          },
+        },
+      },
+    };
+  }
+
+  protected rawDeploymentRoutes(requiresAuthorization = true): Hapi.IRouteConfiguration[] {
+    const auth = {
+      mode: 'try',
+      strategies: ['customAuthorize-cookie'],
+    };
     return [{
+      method: 'GET',
+      path: '/{param*}', // A catch-all route
+      handler: this.directoryHandler(),
+      vhost: deploymentVhost,
+      config: {
+        auth: requiresAuthorization ? auth : false,
+        pre: [{
+          method: this.parseHostPre.bind(this),
+          assign: PREKEY,
+        },
+        { method: this.authorizePre.bind(this) },
+        { method: this.checkDeploymentPre.bind(this) },
+        ],
+      },
+    }, {
       method: 'GET',
       path: '/favicon.ico',
       handler: (_request: Hapi.Request, reply: Hapi.IReply) => {
@@ -95,63 +124,10 @@ class DeploymentHapiPlugin extends HapiPlugin {
       config: {
         auth: false,
       },
-    }, {
-      method: 'GET',
-      path: '/{param*}',
-      handler: this.directoryHandler(PREKEY),
-      vhost: deploymentVhost,
-      config: {
-        auth: 'customAuthorize-cookie',
-        pre: this.pre(auth, true, PREKEY),
-      },
-    }].map((route: any) => {
-      if (!auth) {
-        route.config = { ...(route.config || {}), auth: false };
-      }
-      return route;
-    });
+    }];
   }
 
-  private onRequest(request: Hapi.Request, reply: Hapi.IReply) {
-    // hostname doesn't include the port, host does
-    const { hostname } = request.info;
-    if (isRawDeploymentHostname(hostname)) {
-      // Store the original hostname
-      request.app.hostname = hostname;
-      // Overwrite the hostname to use virtual host routing
-      request.info.hostname = deploymentVhost;
-    }
-    return reply.continue();
-  }
-
-  private onPreResponse(request: Hapi.Request, reply: Hapi.IReply) {
-    if (request.info.hostname === deploymentVhost && !request.auth.isAuthenticated) {
-      return reply.redirect(`${this.uiBaseUrl}/login/${getEncodedUri(request)}`);
-    }
-    return reply.continue();
-  }
-
-  private directoryHandler(preKey: string) {
-    return {
-      directory: {
-        path: (request: Hapi.Request) => {
-          const { projectId, deploymentId } = request.pre[preKey];
-          return this.distPath(projectId, deploymentId);
-        },
-        index: true,
-        listing: true,
-        showHidden: false,
-        redirectToSlash: false,
-        lookupCompressed: false,
-      },
-    };
-  }
-
-  private distPath(projectId: number, deploymentId: number) {
-    return path.join(this.deploymentModule.getDeploymentPath(projectId, deploymentId));
-  }
-
-  private parseHost(request: Hapi.Request, reply: Hapi.IReply) {
+  protected parseHostPre(request: Hapi.Request, reply: Hapi.IReply) {
     const key = getDeploymentKeyFromHost(request.app.hostname);
 
     if (!key) {
@@ -164,28 +140,14 @@ class DeploymentHapiPlugin extends HapiPlugin {
 
   }
 
-  private parsePath(request: Hapi.Request, reply: Hapi.IReply) {
-    const { shortId, projectId, deploymentId } = request.params;
-    return reply({
-      shortId,
-      projectId: Number(projectId),
-      deploymentId: Number(deploymentId),
-    });
-  }
-
-  // internal method
-  public async checkHash(deploymentId: number, shortId: string): Promise<boolean> {
-    const deployment = await this.deploymentModule.getDeployment(deploymentId);
-    if (!deployment) {
-      return false;
-    }
-    return shortId === deployment.commit.shortId;
-  }
-
-  private async authorize(request: Hapi.Request, reply: Hapi.IReply) {
+  protected async authorizePre(request: Hapi.Request, reply: Hapi.IReply) {
     try {
-      const { projectId } = request.pre[PREKEY];
-      if (await request.userHasAccessToProject(projectId)) {
+      const projectId: number = request.pre[PREKEY].projectId;
+      const deploymentId: number = request.pre[PREKEY].deploymentId;
+      if (
+        await request.isOpenDeployment(projectId, deploymentId) ||
+        (request.auth.isAuthenticated && await request.userHasAccessToProject(projectId))
+      ) {
         return reply('ok');
       }
     } catch (exception) {
@@ -194,25 +156,8 @@ class DeploymentHapiPlugin extends HapiPlugin {
     return reply(Boom.unauthorized());
   }
 
-  private pre(auth: boolean, host: boolean, preKey: string) {
-    const preMethods: object[] = [
-      {
-        method: host ? this.parseHost.bind(this) : this.parsePath.bind(this),
-        assign: preKey,
-      },
-    ];
-    if (auth) {
-      preMethods.push({ method: this.authorize.bind(this) });
-    }
-    preMethods.push({ method: this.preCheck.bind(this) });
-    return preMethods;
-  }
-
-  public async preCheck(request: Hapi.Request, reply: Hapi.IReply) {
+  public async checkDeploymentPre(request: Hapi.Request, reply: Hapi.IReply) {
     const { shortId, projectId, deploymentId } = request.pre[PREKEY];
-    if (!shortId) {
-      return reply(Boom.badRequest('URL is missing commit hash'));
-    }
     try {
       if (!(await this.checkHash(deploymentId, shortId))) {
         this.logger.info(`checkHash failed for deployment`, { deploymentId, projectId, shortId });
@@ -234,10 +179,13 @@ class DeploymentHapiPlugin extends HapiPlugin {
     return reply('ok');
   }
 
-  private async getGitlabYmlRequestHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const { projectId, ref, sha } = request.params;
-    return reply(this.deploymentModule.getGitlabYml(Number(projectId), ref, sha))
-      .header('content-type', 'text/plain');
+  // internal method
+  public async checkHash(deploymentId: number, shortId: string): Promise<boolean> {
+    const deployment = await this.deploymentModule.getDeployment(deploymentId);
+    if (!deployment) {
+      return false;
+    }
+    return shortId === deployment.commit.shortId;
   }
 
   private async getTraceRequestHandler(request: Hapi.Request, reply: Hapi.IReply) {
@@ -245,6 +193,26 @@ class DeploymentHapiPlugin extends HapiPlugin {
     const text = await this.deploymentModule.getBuildTrace(Number(projectId), Number(deploymentId));
     return reply(text)
       .header('content-type', 'text/plain');
+  }
+
+  private directoryHandler() {
+    return {
+      directory: {
+        path: (request: Hapi.Request) => {
+          const { projectId, deploymentId } = request.pre[PREKEY];
+          return this.distPath(projectId, deploymentId);
+        },
+        index: true,
+        listing: true,
+        showHidden: false,
+        redirectToSlash: false,
+        lookupCompressed: false,
+      },
+    };
+  }
+
+  private distPath(projectId: number, deploymentId: number) {
+    return path.join(this.deploymentModule.getDeploymentPath(projectId, deploymentId));
   }
 
 }
@@ -260,6 +228,44 @@ export class PrivateDeploymentHapiPlugin extends DeploymentHapiPlugin {
     @inject(loggerInjectSymbol) logger: Logger,
   ) {
     super(deploymentModule, uiBaseUrl, logger, true);
+  }
+
+  protected async authorizePre(_request: Hapi.Request, reply: Hapi.IReply) {
+    return reply('ok');
+  }
+
+  public register(server: Hapi.Server, _options: Hapi.IServerOptions, next: () => void) {
+    server.ext('onRequest', this.onRequest.bind(this));
+    server.route(this.gitlabYmlRoute());
+    server.route(this.rawDeploymentRoutes(false));
+    next();
+  }
+
+  private gitlabYmlRoute(): Hapi.IRouteConfiguration {
+    return {
+      method: 'GET',
+      path: '/ci/projects/{projectId}/{ref}/{sha}/yml',
+      handler: {
+        async: this.getGitlabYmlRequestHandler,
+      },
+      config: {
+        bind: this,
+        auth: false,
+        validate: {
+          params: {
+            projectId: Joi.number().required(),
+            ref: Joi.string().required(),
+            sha: Joi.string(),
+          },
+        },
+      },
+    };
+  }
+
+  private async getGitlabYmlRequestHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    const { projectId, ref, sha } = request.params;
+    return reply(this.deploymentModule.getGitlabYml(Number(projectId), ref, sha))
+      .header('content-type', 'text/plain');
   }
 }
 

@@ -1,7 +1,11 @@
 #!/bin/bash
 
 PROJECT=${SYSTEM_TEST_PROJECT:-"blank"}
+if [[ -n "$1" ]]; then
+  PROJECT="$1"
+fi
 FOLDER=src/integration-test/$PROJECT
+
 
 echo "Folder is $FOLDER"
 

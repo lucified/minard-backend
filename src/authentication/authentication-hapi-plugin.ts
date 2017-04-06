@@ -8,11 +8,23 @@ import * as Hapi from '../server/hapi';
 import { HapiPlugin } from '../server/hapi-register';
 import { IFetch } from '../shared/fetch';
 import { Group } from '../shared/gitlab';
-import { GitlabClient, validateEmail } from '../shared/gitlab-client';
+import { GitlabClient, looselyValidateEmail } from '../shared/gitlab-client';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
-import { adminTeamNameInjectSymbol, charlesKnexInjectSymbol, fetchInjectSymbol } from '../shared/types';
+import {
+  adminTeamNameInjectSymbol,
+  charlesKnexInjectSymbol,
+  fetchInjectSymbol,
+  openTeamNameInjectSymbol,
+} from '../shared/types';
 import { generateAndSaveTeamToken, getTeamIdWithToken, teamTokenQuery } from './team-token';
-import { AccessToken, authCookieDomainInjectSymbol, jwtOptionsInjectSymbol, teamTokenClaimKey } from './types';
+import {
+  AccessToken,
+  authCookieDomainInjectSymbol,
+  AuthorizationStatus,
+  Authorizer,
+  jwtOptionsInjectSymbol,
+  teamTokenClaimKey,
+} from './types';
 
 const randomstring = require('randomstring');
 const teamIdOrNameKey = 'teamIdOrName';
@@ -29,6 +41,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     @inject(charlesKnexInjectSymbol) private readonly db: Knex,
     @inject(loggerInjectSymbol) private readonly logger: Logger,
     @inject(adminTeamNameInjectSymbol) private readonly adminTeamName: string,
+    @inject(openTeamNameInjectSymbol) private readonly openTeamName: string,
     @inject(fetchInjectSymbol) private readonly fetch: IFetch,
   ) {
     super({
@@ -41,6 +54,9 @@ class AuthenticationHapiPlugin extends HapiPlugin {
         version: '1.0.0',
       },
     });
+    this.authorizeAdmin = this.authorizeAdmin.bind(this);
+    this.authorizeUser = this.authorizeUser.bind(this);
+    this.authorizeCustom = this.authorizeCustom.bind(this);
   }
 
   public async register(server: Hapi.Server, _options: Hapi.IServerOptions, next: () => void) {
@@ -124,6 +140,18 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       (_: any) => (_teamId: number) => Promise.resolve(true),
       { apply: true },
     );
+    server.decorate(
+      'request',
+      'isOpenDeployment',
+      this.isOpenDeployment.bind(this),
+      { apply: false },
+    );
+    server.decorate(
+      'request',
+      'getProjectTeam',
+      this.getProjectTeam.bind(this),
+      { apply: false },
+    );
     next();
   }
 
@@ -139,6 +167,18 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       'userHasAccessToTeam',
       this.userHasAccessToTeamDecorator.bind(this),
       { apply: true },
+    );
+    server.decorate(
+      'request',
+      'isOpenDeployment',
+      this.isOpenDeployment.bind(this),
+      { apply: false },
+    );
+    server.decorate(
+      'request',
+      'getProjectTeam',
+      this.getProjectTeam.bind(this),
+      { apply: false },
     );
   }
 
@@ -218,11 +258,11 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     try {
       credentials = request.auth.credentials as AccessToken;
       email = credentials.email;
-      if (!validateEmail(email)) {
+      if (!looselyValidateEmail(email)) {
         // Fall back to fetching the email from Auth0
         email = await this.tryGetEmailFromAuth0((request.auth as any).token);
       }
-      if (!validateEmail(email)) {
+      if (!looselyValidateEmail(email)) {
         throw new Error(`Invalid email ${email}`);
       }
       const teamToken = credentials[teamTokenClaimKey];
@@ -256,38 +296,48 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   }
 
   private async authorizeUser(userName: string, request: Hapi.Request) {
-    return await this.isAdmin(userName) || await this.authorize(userName, request);
+    const isAuthorized = await this.isAdmin(userName) || await this.authorize(userName, request);
+    return isAuthorized ? AuthorizationStatus.AUTHORIZED : AuthorizationStatus.UNAUTHORIZED;
   }
 
   private async authorizeAdmin(userName: string, _request: Hapi.Request) {
-    return this.isAdmin(userName);
+    const isAuthorized = await this.isAdmin(userName);
+    return isAuthorized ? AuthorizationStatus.AUTHORIZED : AuthorizationStatus.UNAUTHORIZED;
   }
 
   private authorizeCustom(_userName: string, _request: Hapi.Request) {
-    return Promise.resolve(true);
+    return Promise.resolve(AuthorizationStatus.NOT_CHECKED);
   }
 
-  private validateFuncFactory(authorizer: (userName: string, request: Hapi.Request) => Promise<boolean>) {
+  private validateFuncFactory(authorizer: Authorizer) {
     return async (
       payload: AccessToken,
       request: Hapi.Request,
       callback: (err: any, valid: boolean, credentials?: any) => void,
     ) => {
-      let isAuthorized = false;
+      let authorizationStatus: AuthorizationStatus = AuthorizationStatus.UNAUTHORIZED;
       try {
         if (assertValidSubClaim(payload.sub)) {
           const userName = sanitizeUsername(payload.sub);
           payload.username = userName;
-          isAuthorized = await authorizer(userName, request);
+          authorizationStatus = await authorizer(userName, request);
         }
       } catch (error) {
         // TODO: logging, this can happen very often
         this.logger.warn('Authorization exception: %s', error.message);
       }
-      if (!isAuthorized) {
+      if (authorizationStatus === AuthorizationStatus.UNAUTHORIZED) {
         this.logger.debug('User %s not is not authorized', payload.username || payload.sub);
       }
-      return callback(undefined, isAuthorized, payload);
+      return callback(
+        undefined,
+        authorizationStatus === AuthorizationStatus.AUTHORIZED ||
+          authorizationStatus === AuthorizationStatus.NOT_CHECKED,
+        {
+          ...payload,
+          authorizationStatus,
+        },
+      );
     };
   }
 
@@ -301,10 +351,10 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     let email: string | undefined;
     if (this.hapiOptions.verifyOptions && this.hapiOptions.verifyOptions.issuer) {
       const userInfo = await getAuth0UserInfo(this.hapiOptions.verifyOptions.issuer, accessToken, this.fetch);
-      if (validateEmail(userInfo.email)) {
+      if (looselyValidateEmail(userInfo.email)) {
         email = userInfo.email;
         // the email can actually be in the name field depending on the identity provider
-      } else if (validateEmail(userInfo.name)) {
+      } else if (looselyValidateEmail(userInfo.name)) {
         email = userInfo.name;
       }
     }
@@ -329,7 +379,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   private setAuthCookie(request: Hapi.Request, reply: Hapi.IReply) {
     const headerToken: string | undefined = (request.auth as any).token;
     const cookieToken: string | undefined = request.state && request.state.token;
-    if (headerToken && request.auth.credentials && cookieToken !== headerToken) {
+    if (headerToken && request.auth.isAuthenticated && cookieToken !== headerToken) {
       reply.state('token', headerToken);
     }
   }
@@ -341,35 +391,35 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       headerKey: 'authorization',
       cookieKey: false,
       urlKey: false,
-      validateFunc: this.validateFuncFactory(this.authorizeUser.bind(this)),
+      validateFunc: this.validateFuncFactory(this.authorizeUser),
     });
     server.auth.strategy('jwt-url', 'jwt', false, {
       ...this.hapiOptions,
       headerKey: false,
       cookieKey: false,
       urlKey: 'token',
-      validateFunc: this.validateFuncFactory(this.authorizeUser.bind(this)),
+      validateFunc: this.validateFuncFactory(this.authorizeUser),
     });
     server.auth.strategy('admin', 'jwt', false, {
       ...this.hapiOptions,
       headerKey: 'authorization',
       cookieKey: false,
       urlKey: false,
-      validateFunc: this.validateFuncFactory(this.authorizeAdmin.bind(this)),
+      validateFunc: this.validateFuncFactory(this.authorizeAdmin),
     });
     server.auth.strategy('customAuthorize', 'jwt', false, {
       ...this.hapiOptions,
       headerKey: 'authorization',
       cookieKey: false,
       urlKey: false,
-      validateFunc: this.validateFuncFactory(this.authorizeCustom.bind(this)),
+      validateFunc: this.validateFuncFactory(this.authorizeCustom),
     });
     server.auth.strategy('customAuthorize-cookie', 'jwt', false, {
       ...this.hapiOptions,
       headerKey: false,
       cookieKey: 'token',
       urlKey: false,
-      validateFunc: this.validateFuncFactory(this.authorizeCustom.bind(this)),
+      validateFunc: this.validateFuncFactory(this.authorizeCustom),
     });
     const ttl = 365 * 24 * 3600 * 1000; // ~year in ms
     server.state('token', accessTokenCookieSettings(this.authCookieDomain, ttl));
@@ -459,6 +509,31 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       // Nothing
     }
     return false;
+  }
+
+  public async isOpenDeployment(projectId: number, _deploymentId: number) {
+    return this.isOpenProject(projectId);
+  }
+
+  public async isOpenProject(projectId: number) {
+    const team = await this.getProjectTeam(projectId);
+    if (team && this.openTeamName && team.name.toLowerCase() === this.openTeamName.toLowerCase()) {
+      return true;
+    }
+    return false;
+  }
+
+  public async getProjectTeam(projectId: number) {
+    return await this._getProjectTeam(projectId);
+  }
+
+  // Public only for unit testing
+  public async _getProjectTeam(projectId: number) {
+    const project = await this._getProject(projectId);
+    return {
+      id: project.namespace.id,
+      name: project.namespace.name,
+    };
   }
 
   // Public only for unit testing

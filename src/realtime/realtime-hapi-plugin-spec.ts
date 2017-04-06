@@ -5,8 +5,20 @@ import * as moment from 'moment';
 import * as Redis from 'redis';
 import 'reflect-metadata';
 
+import {
+  CommentModule,
+} from '../comment';
+import {
+  CommentAddedEvent,
+  CommentDeletedEvent,
+  createCommentAddedEvent,
+  createCommentDeletedEvent,
+} from '../comment';
+import {
+  createDeploymentEvent,
+  DeploymentEvent,
+} from '../deployment';
 import { PersistentEventBus } from '../event-bus';
-
 import {
   ApiBranch,
   ApiProject,
@@ -17,21 +29,6 @@ import {
   toApiCommitId,
   toApiDeploymentId,
 } from '../json-api';
-
-import logger from '../shared/logger';
-import { RealtimeHapiPlugin } from './realtime-hapi-plugin';
-
-import { promisify } from '../shared/promisify';
-
-import {
-  CommentModule,
-} from '../comment';
-
-import {
-  createDeploymentEvent,
-  DeploymentEvent,
-} from '../deployment';
-
 import {
   codePushed,
   CodePushedEvent,
@@ -39,23 +36,19 @@ import {
   projectDeleted,
   projectEdited,
 } from '../project';
-
-import {
-  CommentAddedEvent,
-  CommentDeletedEvent,
-  createCommentAddedEvent,
-  createCommentDeletedEvent,
-} from '../comment';
-
+import logger from '../shared/logger';
+import { promisify } from '../shared/promisify';
+import { deploymentEventFilter } from './realtime-hapi-plugin';
+import { RealtimeModule } from './realtime-module';
 import {
   StreamingCodePushedEvent,
   StreamingCommentDeletedEvent,
   StreamingDeploymentEvent,
 } from './types';
 
-function getPlugin(bus: PersistentEventBus, jsonApiModule: JsonApiModule) {
+function getModule(bus: PersistentEventBus, jsonApiModule: JsonApiModule) {
   const jsonApi = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any);
-  return new RealtimeHapiPlugin(jsonApi, bus, logger(undefined, true));
+  return new RealtimeModule(jsonApi, bus, logger(undefined, true));
 }
 
 function getMockCommentModule() {
@@ -95,7 +88,7 @@ async function clearDb() {
 
 const baseUrl = 'http://localhost:8000';
 
-describe('realtime-hapi-plugin', () => {
+describe('realtime-hapi-sseModule', () => {
 
   describe('project events', () => {
     beforeEach(clearDb);
@@ -135,8 +128,8 @@ describe('realtime-hapi-plugin', () => {
             }),
           } as JsonApiModule;
           const eventBus = getEventBus();
-          const plugin = getPlugin(eventBus, jsonApiModule);
-          const promise = plugin.persistedEvents.take(1).toPromise();
+          const sseModule = getModule(eventBus, jsonApiModule);
+          const promise = sseModule.getSSEStream().take(1).toPromise();
           // Act
           await eventBus.post(event);
           return promise;
@@ -206,10 +199,10 @@ describe('realtime-hapi-plugin', () => {
         toApiCommit: JsonApiModule.prototype.toApiCommit,
       } as JsonApiModule;
       const eventBus = getEventBus();
-      const plugin = getPlugin(eventBus, jsonApiModule);
+      const sseModule = getModule(eventBus, jsonApiModule);
 
       // Act
-      const promise = plugin.persistedEvents.take(1).toPromise();
+      const promise = sseModule.getSSEStream().take(1).toPromise();
       const event = codePushed(_payload);
       eventBus.post(event);
       return await promise;
@@ -259,7 +252,7 @@ describe('realtime-hapi-plugin', () => {
       );
 
       const eventBus = getEventBus();
-      const plugin = getPlugin(eventBus, jsonApiModule);
+      const sseModule = getModule(eventBus, jsonApiModule);
 
       // Act
       const payload: DeploymentEvent = {
@@ -277,7 +270,7 @@ describe('realtime-hapi-plugin', () => {
         } as any,
         statusUpdate: {} as any,
       };
-      const promise = plugin.persistedEvents.take(1).toPromise();
+      const promise = sseModule.getSSEStream().take(1).toPromise();
       const event = createDeploymentEvent(payload);
       eventBus.post(event);
 
@@ -303,7 +296,7 @@ describe('realtime-hapi-plugin', () => {
         toApiComment: JsonApiModule.prototype.toApiComment,
       } as JsonApiModule;
       const eventBus = getEventBus();
-      const plugin = getPlugin(eventBus, jsonApiModule);
+      const sseModule = getModule(eventBus, jsonApiModule);
 
       // Act
       const payload: CommentAddedEvent = {
@@ -316,7 +309,47 @@ describe('realtime-hapi-plugin', () => {
         message: 'foo msg',
         name: 'foo name',
       };
-      const promise = plugin.persistedEvents.take(1).toPromise();
+      const promise = sseModule.getSSEStream().take(1).toPromise();
+      const event = createCommentAddedEvent(payload);
+      eventBus.post(event);
+
+      const created = await promise;
+
+      // Assert
+      expect(created.type).to.equal('SSE_COMMENT_ADDED');
+      const createdPayload = created.payload as JsonApiEntity;
+      expect(createdPayload.attributes.deployment).to.equal('2-3');
+      expect(created.teamId).to.equal(payload.teamId);
+    });
+    it('is filtered by deploymentEventFilter', async () => {
+      const jsonApiModule = {
+        toApiComment: JsonApiModule.prototype.toApiComment,
+      } as JsonApiModule;
+      const eventBus = getEventBus();
+      const sseModule = getModule(eventBus, jsonApiModule);
+
+      // Act
+      const payload: CommentAddedEvent = {
+        teamId: 1,
+        projectId: 2,
+        createdAt: moment(),
+        deploymentId: 3,
+        email: 'foo@foomail.com',
+        id: 4,
+        message: 'foo msg',
+        name: 'foo name',
+      };
+      const promise = sseModule.getSSEStream()
+        .filter(deploymentEventFilter(1, 2, 3))
+        .take(1)
+        .toPromise();
+      eventBus.post(projectEdited({
+        description: 'foo',
+        name: 'bar',
+        id: 6,
+        repoUrl: 'foo',
+        teamId: 1,
+      }));
       const event = createCommentAddedEvent(payload);
       eventBus.post(event);
 
@@ -335,7 +368,7 @@ describe('realtime-hapi-plugin', () => {
 
     it('is transformed correctly to streaming event', async () => {
       const eventBus = getEventBus();
-      const plugin = getPlugin(eventBus, {} as any);
+      const sseModule = getModule(eventBus, {} as any);
 
       // Act
       const payload: CommentDeletedEvent = {
@@ -344,7 +377,7 @@ describe('realtime-hapi-plugin', () => {
         deploymentId: 3,
         commentId: 4,
       };
-      const promise = plugin.persistedEvents.take(1).toPromise();
+      const promise = sseModule.getSSEStream().take(1).toPromise();
       const event = createCommentDeletedEvent(payload);
       eventBus.post(event);
 
@@ -357,6 +390,44 @@ describe('realtime-hapi-plugin', () => {
       expect(createdPayload.comment).to.equal(String(payload.commentId));
       expect(created.teamId).to.equal(payload.teamId);
     });
+    it('is filtered by deploymentEventFilter', async () => {
+      const jsonApiModule = {
+        toApiComment: JsonApiModule.prototype.toApiComment,
+      } as JsonApiModule;
+      const eventBus = getEventBus();
+      const sseModule = getModule(eventBus, jsonApiModule);
+
+      // Act
+      const payload: CommentDeletedEvent = {
+        teamId: 1,
+        projectId: 2,
+        deploymentId: 3,
+        commentId: 4,
+      };
+      const promise = sseModule.getSSEStream()
+        .filter(deploymentEventFilter(1, 2, 3))
+        .take(1)
+        .toPromise();
+      eventBus.post(projectEdited({
+        description: 'foo',
+        name: 'bar',
+        id: 6,
+        repoUrl: 'foo',
+        teamId: 1,
+      }));
+      const event = createCommentDeletedEvent(payload);
+      eventBus.post(event);
+
+      const created = await promise;
+
+      // Assert
+      expect(created.type).to.equal('SSE_COMMENT_DELETED');
+      const createdPayload = created.payload as StreamingCommentDeletedEvent;
+      expect(createdPayload.deployment).to.equal('2-3');
+      expect(createdPayload.comment).to.equal(String(payload.commentId));
+      expect(created.teamId).to.equal(payload.teamId);
+    });
+
   });
 
 });

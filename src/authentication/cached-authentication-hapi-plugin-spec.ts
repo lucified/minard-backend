@@ -210,4 +210,58 @@ describe('CachedAuthenticationHapiPlugin', () => {
 
     });
   });
+  describe('getProjectTeam', () => {
+    it('should memoize succesfull calls', async () => {
+      // Arrange
+      const { instance, stubs } = getPlugin(p => sinon.stub(p, '_getProjectTeam')
+        .returns(Promise.resolve(true)));
+
+      // Act
+      const res1 = await instance.getProjectTeam(1);
+      const res2 = await instance.getProjectTeam(1);
+
+      // Assert
+      expect(res1).to.eq(res2);
+      expect(instance._getProjectTeam).to.have.been.calledOnce;
+      stubs.forEach(stub => stub.restore());
+    });
+    it('should not memoize different calls', async () => {
+      // Arrange
+      const { instance, stubs } = getPlugin(p => sinon.stub(p, '_getProjectTeam')
+        .returns(Promise.resolve(false)));
+
+      // Act
+      const res1 = await instance.getProjectTeam(1);
+      const res2 = await instance.getProjectTeam(2);
+
+      // Assert
+      expect(res1).to.eq(res2);
+      expect(instance._getProjectTeam).to.have.been.calledTwice;
+      stubs.forEach(stub => stub.restore());
+    });
+    it('should not memoize exceptions', async () => {
+      // Arrange
+      const { instance, stubs } = getPlugin(p => sinon.stub(p, '_getProjectTeam')
+        .returns(Promise.reject(Boom.badGateway())));
+
+      // Act
+      try {
+        await instance.getProjectTeam(1);
+        expect.fail(undefined, undefined, 'Should throw');
+      } catch (error) {
+        // Nothing
+      }
+      try {
+        await instance.getProjectTeam(1);
+        expect.fail(undefined, undefined, 'Should throw');
+      } catch (error) {
+        // Nothing
+      }
+
+      // Assert
+      expect(instance._getProjectTeam).to.have.been.calledTwice;
+      stubs.forEach(stub => stub.restore());
+
+    });
+  });
 });

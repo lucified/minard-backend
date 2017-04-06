@@ -38,13 +38,14 @@ interface SSE {
 }
 
 const flowToken = process.env.FLOWDOCK_FLOW_TOKEN;
-const projectFolder = process.env.SYSTEM_TEST_PROJECT ? process.env.SYSTEM_TEST_PROJECT : 'blank';
-const charles = process.env.CHARLES ? process.env.CHARLES : 'http://localhost:8000';
-const charlesPrivate = process.env.CHARLES_PRIVATE ? process.env.CHARLES_PRIVATE : 'http://localhost:8001';
-const git_password = process.env.GIT_PASSWORD ? process.env.GIT_PASSWORD : '12345678';
-const hipchatRoomId = process.env.HIPCHAT_ROOM_ID ? process.env.HIPCHAT_ROOM_ID : 3140019;
-const hipchatAuthToken = process.env.HIPCHAT_AUTH_TOKEN ? process.env.HIPCHAT_AUTH_TOKEN : undefined;
-const skipDeleteProject = process.env.SKIP_DELETE_PROJECT ? true : false;
+const projectFolder = process.env.SYSTEM_TEST_PROJECT || 'blank';
+const openProjectFolder = process.env.SYSTEM_TEST_PROJECT_OPEN || 'blank-open';
+const charles = process.env.CHARLES || 'http://localhost:8000';
+const charlesPrivate = process.env.CHARLES_PRIVATE || 'http://localhost:8001';
+const git_password = process.env.GIT_PASSWORD || '12345678';
+const hipchatRoomId = process.env.HIPCHAT_ROOM_ID || 3140019;
+const hipchatAuthToken = process.env.HIPCHAT_AUTH_TOKEN || undefined;
+const skipDeleteProject = !!process.env.SKIP_DELETE_PROJECT;
 const kernel = bootstrap('development');
 console.log(`Project is ${projectFolder}`);
 console.log(`Charles is ${charles}`);
@@ -57,6 +58,7 @@ describe('system-integration', () => {
   const projectName = 'integration-test-project';
   const projectCopyName = 'integration-test-project-copy';
   const adminTeamName = 'integrationTestAdminTeam';
+  const openTeamName = 'integrationTestOpenTeam';
   const randomComponent = randomstring.generate({ length: 5, charset: 'alphanumeric', readable: true });
   const teamName = 'integrationTestTeam' + randomComponent;
   const teamPath = 'integration-test-team-' + randomComponent;
@@ -71,37 +73,58 @@ describe('system-integration', () => {
   let userFetch: Fetch;
   let userFetchWithRetry: Fetch;
   let userAccessToken: string;
+  let openTeam: Group;
+  let openUser: User;
+  let openFetch: Fetch;
+  let openFetchWithRetry: Fetch;
+  let openAccessToken: string;
   let projectId: number | undefined;
   let adminProjectId: number | undefined;
+  let openProjectId: number | undefined;
   let copyProjectId: number | undefined;
   let deploymentId: string | undefined;
   let deployment: any;
+  let openDeploymentId: string | undefined;
+  let openDeployment: any;
   let oldProjectId: number | undefined;
   let repoUrl: string | undefined;
   let adminRepoUrl: string | undefined;
+  let openRepoUrl: string | undefined;
   let oldCopyProjectId: number | undefined;
   let commentId: number | undefined;
   let hipchatNotificationId: number | undefined;
   let flowdockNotificationId: number | undefined;
 
-  before(async function () {
-    this.timeout(1000 * 120);
-    logTitle('Cleaning up previous integration test teams');
-    try {
-      const groups = await gitlab.getALLGroups();
-      for (const group of groups) {
-        if (group.name.match(/integration/i)) {
-          log(`Deleting group ${group.name}`);
-          await gitlab.deleteGroup(group.id);
-        }
+  const setup = async() => {
+    const groups = await gitlab.getALLGroups();
+    for (const group of groups) {
+      if (group.name.match(/integration/i)) {
+        log(`Deleting group ${group.name}`);
+        await gitlab.deleteGroup(group.id);
+        await sleep(3000);
       }
-    } catch (err) {
-      log(`Error when cleaning: ${err.message}`);
     }
     log('Creating the admin team');
     adminTeam = await gitlab.createGroup(adminTeamName, adminTeamName.toLowerCase());
     log('Creating the user team');
     userTeam = await gitlab.createGroup(teamName, teamPath);
+    log('Creating the open team');
+    openTeam = await gitlab.createGroup(openTeamName, openTeamName.toLocaleLowerCase());
+  };
+
+  before(async function () {
+    this.timeout(1000 * 120);
+    logTitle('Re/creating integration test teams');
+    let done = false;
+    while (!done) {
+      try {
+        await setup();
+        done = true;
+      } catch (error) {
+        log(`Sleeping and retrying: ${error.message}`);
+        await sleep(2000);
+      }
+    }
   });
 
   describe('set up users and teams', () => {
@@ -168,6 +191,21 @@ describe('system-integration', () => {
       response = await userFetch(`${charles}/signup`);
       expect(response.status).to.eq(201);
       user = await response.tryJson<User>();
+
+      logTitle(`Signing up a user to team ${openTeam.name}`);
+      const openTeamToken = await (await adminFetch(`${charles}/team-token/${openTeam.id}`, { method: 'POST' }))
+        .tryJson<TeamToken>();
+      openAccessToken = getAccessToken(
+        `integration|3${randomComponent}`,
+        openTeamToken.token,
+        `openUser${randomComponent}@integration.com`,
+      );
+      openFetch = fetchFactory(openAccessToken);
+      openFetchWithRetry = fetchFactory(openAccessToken, 5);
+
+      response = await openFetch(`${charles}/signup`);
+      expect(response.status).to.eq(201);
+      openUser = await response.tryJson<User>();
 
     });
 
@@ -238,6 +276,13 @@ describe('system-integration', () => {
       const createdProject = await shouldSuccessfullyCreateProject(projectName + 'admin', adminTeam.id);
       adminProjectId = createdProject.projectId;
       adminRepoUrl = createdProject.repoUrl;
+    });
+    it('should successfully create open project', async function () {
+      this.timeout(1000 * 60);
+      logTitle('Creating project');
+      const createdProject = await shouldSuccessfullyCreateProject(projectName + 'open', openTeam.id);
+      openProjectId = createdProject.projectId;
+      openRepoUrl = createdProject.repoUrl;
     });
     it('should not allow unauthorized access to team projects', async function () {
       logTitle('Requesting team projects');
@@ -332,6 +377,24 @@ describe('system-integration', () => {
       await runCommand('git', '-C', repoFolder, 'push', 'minard', 'master');
     });
 
+    it('should be able to commit code to the open repo', async function () {
+      logTitle(`Committing code to repo`);
+      const repoFolder = `src/integration-test/${openProjectFolder}`;
+      this.timeout(1000 * 20);
+
+      const matches = openRepoUrl!.match(/^(\S+\/\/[^\/]+)/);
+      if (!matches) {
+        throw Error('Could not match server url from repo url'); // make typescript happy
+      }
+      const gitserver = matches[0];
+      const gitServerWithCredentials = gitserver
+        .replace('//', `//root:${encodeURIComponent(git_password)}@`);
+      const repoUrlWithCredentials = openRepoUrl!.replace(gitserver, gitServerWithCredentials);
+      await runCommand('src/integration-test/setup-repo', openProjectFolder);
+      await runCommand('git', '-C', repoFolder, 'remote', 'add', 'minard', repoUrlWithCredentials);
+      await runCommand('git', '-C', repoFolder, 'push', 'minard', 'master');
+    });
+
     it('branch information should include information on deployment', async function () {
       logTitle(`Fetching info on project`);
       this.timeout(1000 * 60 * 2);
@@ -352,6 +415,32 @@ describe('system-integration', () => {
           log(`Deployment id is ${deploymentId}`);
         }
         if (!deploymentId) {
+          log('Project did not yet have deployment. Sleeping for 2 seconds');
+          await sleep(2000);
+        }
+      }
+    });
+
+    it('branch information should include information on open deployment', async function () {
+      logTitle(`Fetching info on project`);
+      this.timeout(1000 * 60 * 2);
+      // sleep a to give some time got GitLab
+      const url = `${charles}/api/projects/${openProjectId}/relationships/branches`;
+      log(`Using URL ${prettyUrl(url)}`);
+      while (!openDeploymentId) {
+        const ret = await openFetchWithRetry(url);
+        expect(ret.status).to.equal(200);
+        const json = await ret.json() as JsonApiResponse;
+        const data = json.data as JsonApiEntity[];
+        expect(data[0].id, JSON.stringify(json)).to.equal(`${openProjectId}-master`);
+        const included = json.included as JsonApiEntity[];
+        expect(included).to.exist;
+        const includedDeployment = included.find((item: JsonApiEntity) => item.type === 'deployments');
+        if (includedDeployment) {
+          openDeploymentId = includedDeployment.id;
+          log(`Deployment id is ${openDeploymentId}`);
+        }
+        if (!openDeploymentId) {
           log('Project did not yet have deployment. Sleeping for 2 seconds');
           await sleep(2000);
         }
@@ -379,6 +468,27 @@ describe('system-integration', () => {
       }
     });
 
+    it('open deployment should succeed within five minutes', async function () {
+      this.timeout(1000 * 60 * 5);
+      logTitle('Waiting for deployment to succeed');
+      const url = `${charles}/api/deployments/${openDeploymentId}`;
+      log(`Fetching information on deployment from ${prettyUrl(url)}`);
+      while (!openDeployment || openDeployment.attributes.status !== 'success') {
+        const ret = await fetchFactory(openAccessToken, 999)(url);
+        expect(ret.status).to.equal(200);
+        const json = await ret.tryJson<JsonApiResponse>();
+        openDeployment = json.data as JsonApiEntity;
+        expect(openDeployment.attributes.status).to.exist;
+        if (['running', 'pending', 'success'].indexOf(openDeployment.attributes.status) === -1) {
+          expect.fail(`openDeployment has unexpected status ${openDeployment.attributes.status}`);
+        }
+        if (openDeployment.attributes.status !== 'success') {
+          log(`openDeployment has status ${openDeployment.attributes.status}. Sleeping for 2 seconds`);
+          await sleep(2000);
+        }
+      }
+    });
+
     it('deployment should have accessible web page', async function () {
       logTitle('Checking that deployment has accessible web page');
       this.timeout(1000 * 30);
@@ -387,13 +497,37 @@ describe('system-integration', () => {
       log(`Fetching deployment from ${prettyUrl(url)}`);
       let status = 0;
       while (status !== 200) {
-        const ret = await fetchFactory(userAccessToken, 999)(url);
+        const ret = await userFetch(url);
         status = ret.status;
         if (status !== 200) {
           log(`Charles responded with ${status} for deployment request. Waiting for two seconds.`);
           await sleep(200);
         }
       }
+    });
+
+    it('deployment should not have openly accessible web page', async function () {
+      logTitle('Checking that deployment is not openly accessible');
+      this.timeout(1000 * 30);
+      await sleep(2000);
+      const url = deployment.attributes.url + '/index.html';
+      log(`Fetching deployment from ${prettyUrl(url)}`);
+      const response1 = await openFetch(url);
+      expect(response1.status).to.equal(401);
+      const response2 = await originalFetch(url, { redirect: 'manual' });
+      expect(response2.status).to.equal(302);
+    });
+
+    it('open deployment should have openly accessible web page', async function () {
+      logTitle('Checking that open deployment has openly accessible web page');
+      this.timeout(1000 * 30);
+      await sleep(2000);
+      const url = openDeployment.attributes.url + '/index.html';
+      log(`Fetching deployment from ${prettyUrl(url)}`);
+      const response = await fetchFactory(userAccessToken + 'foo')(url); // Give an invalid access token on purpose
+      expect(response.status).to.equal(200);
+      const response2 = await originalFetch(url, { redirect: 'manual' });
+      expect(response2.status).to.equal(200);
     });
 
     it('deployment should have accessible screenshot', async function () {

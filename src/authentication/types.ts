@@ -1,3 +1,5 @@
+import { Request } from '../server/hapi';
+
 export const authServerBaseUrlInjectSymbol = Symbol('auth-server-base-url');
 export const gitlabRootPasswordInjectSymbol = Symbol('gitlab-root-password');
 export const jwtOptionsInjectSymbol = Symbol('token-verify-options');
@@ -18,3 +20,13 @@ export interface AccessToken {
   username?: string;
   teams?: number[];
 }
+
+export const enum AuthorizationStatus {
+  AUTHORIZED = 100,
+  UNAUTHORIZED,
+  NOT_CHECKED,
+}
+
+export type Authorizer = (userName: string, request: Request) => Promise<AuthorizationStatus>;
+
+export type RequestCredentials = undefined | (AccessToken & { authorizationStatus: AuthorizationStatus });

@@ -11,7 +11,7 @@ import { bootstrap } from '../config';
 import { getAccessToken } from '../config/config-test';
 import { getTestServer } from '../server/hapi';
 import { makeRequestWithAuthentication, MethodStubber, stubber } from '../shared/test';
-import { adminTeamNameInjectSymbol, charlesKnexInjectSymbol } from '../shared/types';
+import { adminTeamNameInjectSymbol, charlesKnexInjectSymbol, openTeamNameInjectSymbol } from '../shared/types';
 import {
   accessTokenCookieSettings,
   default as AuthenticationHapiPlugin,
@@ -34,6 +34,7 @@ async function getPlugin(authenticationStubber?: MethodStubber<AuthenticationHap
   kernel.rebind(AuthenticationHapiPlugin.injectSymbol).to(AuthenticationHapiPlugin);
   const db = kernel.get<Knex>(charlesKnexInjectSymbol);
   kernel.rebind(charlesKnexInjectSymbol).toConstantValue(db);
+  kernel.rebind(openTeamNameInjectSymbol).toConstantValue('foo');
   await initializeTeamTokenTable(db);
   if (authenticationStubber) {
     const { instance } = stubber(authenticationStubber, AuthenticationHapiPlugin.injectSymbol, kernel);
@@ -554,6 +555,62 @@ describe('authentication-hapi-plugin', () => {
 
       // Act
       const resultPromise = plugin._isAdmin('foo');
+
+      // Assert
+      return resultPromise
+        .then(_ => expect.fail(), error => expect(error.isBoom).to.be.true);
+    });
+  });
+  describe('isOpenDeployment', () => {
+    const getProjectTeam = (name: string) => ({
+      name,
+      id: 1,
+     });
+
+    it('returns true if the project belongs to the \'open\' team', async () => {
+
+      // Arrange
+      const { plugin } = await getPlugin(
+        (p: AuthenticationHapiPlugin, k: Container) => [
+          sinon.stub(p, p.getProjectTeam.name)
+            .returns(Promise.resolve(getProjectTeam(k.get<string>(openTeamNameInjectSymbol)))),
+        ],
+      );
+
+      // Act
+      const result = await plugin.isOpenDeployment(1, 1);
+
+      // Assert
+      expect(result).to.be.true;
+    });
+    it('returns false if the project doesn\'t belong to the \'open\' team', async () => {
+
+      // Arrange
+      const { plugin } = await getPlugin(
+        (p: AuthenticationHapiPlugin, k: Container) => [
+          sinon.stub(p, p.getProjectTeam.name)
+            .returns(Promise.resolve(getProjectTeam(k.get<string>(openTeamNameInjectSymbol) + 'foo'))),
+        ],
+      );
+
+      // Act
+      const result = await plugin.isOpenDeployment(1, 1);
+
+      // Assert
+      expect(result).to.be.false;
+    });
+    it('throws if something unexpected happens', async () => {
+
+      // Arrange
+      const { plugin } = await getPlugin(
+        (p: AuthenticationHapiPlugin) => [
+          sinon.stub(p, p.getProjectTeam.name)
+            .returns(Promise.reject(Boom.badGateway())),
+        ],
+      );
+
+      // Act
+      const resultPromise = plugin.isOpenDeployment(1, 1);
 
       // Assert
       return resultPromise

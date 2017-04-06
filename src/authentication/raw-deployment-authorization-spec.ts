@@ -38,21 +38,34 @@ async function getServer(
   };
 }
 
-type AuthorizationMethod = 'userHasAccessToProject' | 'userHasAccessToTeam';
+type AuthorizationMethod = 'userHasAccessToProject' | 'userHasAccessToTeam' | 'isOpenDeployment';
 
 function arrange(
   authorizationMethod: AuthorizationMethod,
   hasAccess: boolean,
 ) {
   return getServer(
+    p => {
+      if (authorizationMethod === 'isOpenDeployment') {
+        return [
+          sinon.stub(p, authorizationMethod)
+            .returns(Promise.resolve(hasAccess)),
+          sinon.stub(p, p.isAdmin.name)
+            .returns(Promise.resolve(false)),
+        ];
+      } else {
+        return [
+          sinon.stub(p, authorizationMethod)
+            .returns(Promise.resolve(hasAccess)),
+          sinon.stub(p, p.isAdmin.name)
+            .returns(Promise.resolve(false)),
+          sinon.stub(p, p.isOpenDeployment.name)
+            .returns(Promise.resolve(false)),
+        ];
+      }
+    },
     p => [
-      sinon.stub(p, authorizationMethod)
-        .returns(Promise.resolve(hasAccess)),
-      sinon.stub(p, 'isAdmin')
-        .returns(Promise.resolve(false)),
-    ],
-    p => [
-      sinon.stub(p, 'preCheck')
+      sinon.stub(p, p.checkDeploymentPre.name)
         .yields(200)
         .returns(Promise.resolve(true)),
     ],
@@ -76,6 +89,7 @@ describe('authorization for raw deployments', () => {
     const response = await makeRequest(server);
     // Assert
     expect(response.statusCode).to.exist;
+    expect(authentication.isOpenDeployment).to.have.been.calledOnce;
     expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
     expect(handlerStub).to.have.been.calledOnce;
   });
@@ -86,11 +100,12 @@ describe('authorization for raw deployments', () => {
     const response = await makeRequest(server);
     // Assert
     expect(response.statusCode).to.eq(401);
+    expect(authentication.isOpenDeployment).to.have.been.calledOnce;
     expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
     expect(handlerStub).to.not.have.been.called;
 
   });
-  it('should redirect to login screen for unauthenticated deployments', async () => {
+  it('should redirect to login screen for unauthenticated deployment requests', async () => {
     // Arrange
     const { server, authentication, handlerStub } = await arrange('userHasAccessToProject', true);
     // Act
@@ -100,7 +115,21 @@ describe('authorization for raw deployments', () => {
     });
     // Assert
     expect(response.statusCode).to.eq(302);
+    expect(authentication.isOpenDeployment).to.have.been.calledOnce;
     expect(authentication.userHasAccessToProject).to.not.have.been.called;
     expect(handlerStub).to.not.have.been.called;
+  });
+  it('should allow open access to open deployments', async () => {
+    // Arrange
+    const { server, authentication, handlerStub } = await arrange('isOpenDeployment', true);
+    // Act
+    const response = await server.inject({
+      method: 'GET',
+      url: validDeploymentUrl,
+    });
+    // Assert
+    expect(response.statusCode).to.exist;
+    expect(authentication.isOpenDeployment).to.have.been.calledOnce;
+    expect(handlerStub).to.have.been.calledOnce;
   });
 });

@@ -1,6 +1,7 @@
 import * as Boom from 'boom';
 import * as chalk from 'chalk';
 import { spawn } from 'child_process';
+import { merge } from 'lodash';
 import 'reflect-metadata';
 
 import { fetch as originalFetch, RequestInit, Response as OriginalResponse} from '../shared/fetch';
@@ -18,20 +19,16 @@ export type Fetch = (url: string, options?: RequestInit) => Promise<Response>;
 export function fetchFactory(accessToken: string, retryCount = 0, sleepFor = 2000) {
 
   const innerFetch = async (url: string, options?: RequestInit) => {
-    const headers: {[key: string]: string} = {};
-    let _options: RequestInit | undefined;
-    if (accessToken) {
-      headers.authorization = `Bearer ${accessToken}`;
-      if (options) {
-        const _opt = options as any;
-        _opt.headers = { ...headers, ...(options.headers || {}) };
-        _options = _opt;
-      } else {
-        _options = { headers };
-      }
-    } else {
-      _options = options;
-    }
+    const _options: RequestInit = merge({
+      redirect: 'manual',
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+        cookie: `token=${accessToken}`,
+      },
+    }, options || {});
+    // These are here intentionally for debugging purposes
+    // console.log('--> HTTP %s %s', (_options && _options.method) || 'GET', url);
+    // console.dir(_options, { colors: true });
     return wrapResponse(await originalFetch(url, _options));
   };
   let out = innerFetch;
@@ -71,6 +68,9 @@ function wrapResponse(response: OriginalResponse): Response {
       throw Boom.create(response.status);
     }
   };
+  // These are here intentionally for debugging purposes
+  // console.log('<-- HTTP %s', response.status);
+  // console.dir(response.headers, { colors: true });
   return _response;
 }
 

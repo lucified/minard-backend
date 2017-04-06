@@ -332,7 +332,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       return callback(
         undefined,
         authorizationStatus === AuthorizationStatus.AUTHORIZED ||
-        authorizationStatus === AuthorizationStatus.NOT_CHECKED,
+          authorizationStatus === AuthorizationStatus.NOT_CHECKED,
         {
           ...payload,
           authorizationStatus,

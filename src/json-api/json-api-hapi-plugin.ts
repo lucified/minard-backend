@@ -106,7 +106,12 @@ export class JsonApiHapiPlugin {
 
     server.ext('onPreResponse', onPreResponse.bind(undefined, server));
 
-    server.route({
+    const openAuth = {
+      mode: 'try',
+      strategies: [STRATEGY_ROUTELEVEL_USER_HEADER],
+    };
+
+    const deployment: Hapi.IRouteConfiguration[] = [{
       method: 'GET',
       path: '/deployments/{projectId}-{deploymentId}',
       handler: {
@@ -122,9 +127,9 @@ export class JsonApiHapiPlugin {
           },
         },
       },
-    });
+    }];
 
-    server.route({
+    const preview: Hapi.IRouteConfiguration[] = [{
       method: 'GET',
       path: '/preview/{projectId}-{deploymentId}',
       handler: {
@@ -133,9 +138,10 @@ export class JsonApiHapiPlugin {
       config: {
         bind: this,
         cors: true,
-        auth: {
-          mode: 'optional',
-        },
+        auth: openAuth,
+        pre: [
+          this.authorizeOpenDeployment,
+        ],
         validate: {
           params: {
             projectId: Joi.number().required(),
@@ -146,9 +152,9 @@ export class JsonApiHapiPlugin {
           },
         },
       },
-    });
+    }];
 
-    server.route({
+    const project: Hapi.IRouteConfiguration[] = [{
       method: 'GET',
       path: '/projects/{projectId}',
       handler: {
@@ -163,18 +169,16 @@ export class JsonApiHapiPlugin {
           },
         },
       },
-    });
-
-    server.route({
+    }, {
       method: 'POST',
       path: '/projects',
       handler: {
         async: this.postProjectHandler,
       },
       config: {
+        auth: STRATEGY_ROUTELEVEL_USER_HEADER,
         bind: this,
         cors: true,
-        auth: 'customAuthorize',
         pre: [{
           method: this.authorizeProjectCreation,
           assign: 'teamId',
@@ -200,9 +204,7 @@ export class JsonApiHapiPlugin {
           },
         },
       },
-    });
-
-    server.route({
+    }, {
       method: 'DELETE',
       path: '/projects/{projectId}',
       handler: {
@@ -217,9 +219,7 @@ export class JsonApiHapiPlugin {
           },
         },
       },
-    });
-
-    server.route({
+    }, {
       method: 'PATCH',
       path: '/projects/{projectId}',
       handler: {
@@ -244,9 +244,7 @@ export class JsonApiHapiPlugin {
           },
         },
       },
-    });
-
-    server.route({
+    }, {
       method: 'GET',
       path: '/projects/{projectId}/relationships/branches',
       handler: {
@@ -261,9 +259,9 @@ export class JsonApiHapiPlugin {
           },
         },
       },
-    });
+    }];
 
-    server.route({
+    const team: Hapi.IRouteConfiguration[] = [{
       method: 'GET',
       path: '/teams/{teamId}/relationships/projects',
       handler: {
@@ -278,9 +276,9 @@ export class JsonApiHapiPlugin {
           },
         },
       },
-    });
+    }];
 
-    server.route({
+    const branch: Hapi.IRouteConfiguration[] = [{
       method: 'GET',
       path: '/branches/{branchId}',
       handler: {
@@ -295,9 +293,7 @@ export class JsonApiHapiPlugin {
           },
         },
       },
-    });
-
-    server.route({
+    }, {
       method: 'GET',
       path: '/branches/{branchId}/relationships/commits',
       handler: {
@@ -316,9 +312,9 @@ export class JsonApiHapiPlugin {
           },
         },
       },
-    });
+    }];
 
-    server.route({
+    const commit: Hapi.IRouteConfiguration[] = [{
       method: 'GET',
       path: '/commits/{projectId}-{hash}',
       handler: {
@@ -334,9 +330,9 @@ export class JsonApiHapiPlugin {
           },
         },
       },
-    });
+    }];
 
-    server.route({
+    const activity: Hapi.IRouteConfiguration[] = [{
       method: 'GET',
       path: '/activity',
       handler: {
@@ -345,7 +341,7 @@ export class JsonApiHapiPlugin {
       config: {
         bind: this,
         cors: true,
-        auth: 'customAuthorize',
+        auth: STRATEGY_ROUTELEVEL_USER_HEADER,
         pre: [{
           method: this.parseActivityFilter,
           assign: TEAM_OR_PROJECT_PRE_KEY,
@@ -361,9 +357,9 @@ export class JsonApiHapiPlugin {
           },
         },
       },
-    });
+    }];
 
-    server.route({
+    const notification: Hapi.IRouteConfiguration[] = [{
       method: 'GET',
       path: '/projects/{projectId}/relationships/notification',
       handler: {
@@ -378,9 +374,7 @@ export class JsonApiHapiPlugin {
           },
         },
       },
-    });
-
-    server.route({
+    }, {
       method: 'DELETE',
       path: '/notifications/{id}',
       handler: {
@@ -388,7 +382,8 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
-        auth: 'customAuthorize',
+        cors: true,
+        auth: STRATEGY_ROUTELEVEL_USER_HEADER,
         pre: [{
           method: this.authorizeNotificationRemoval,
           assign: 'notificationId',
@@ -399,9 +394,7 @@ export class JsonApiHapiPlugin {
           },
         },
       },
-    });
-
-    server.route({
+    }, {
       method: 'POST',
       path: '/notifications',
       handler: {
@@ -409,7 +402,8 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
-        auth: 'customAuthorize',
+        cors: true,
+        auth: STRATEGY_ROUTELEVEL_USER_HEADER,
         pre: [{
           method: this.tryGetNotificationConfiguration,
           assign: TEAM_OR_PROJECT_PRE_KEY,
@@ -440,9 +434,9 @@ export class JsonApiHapiPlugin {
           },
         },
       },
-    });
+    }];
 
-    server.route({
+    const comment: Hapi.IRouteConfiguration[] = [{
       method: 'DELETE',
       path: '/comments/{id}',
       handler: {
@@ -451,7 +445,7 @@ export class JsonApiHapiPlugin {
       config: {
         bind: this,
         cors: true,
-        auth: 'customAuthorize',
+        auth: openAuth,
         pre: [{
           method: this.authorizeCommentRemoval,
           assign: 'commentId',
@@ -462,9 +456,7 @@ export class JsonApiHapiPlugin {
           },
         },
       },
-    });
-
-    server.route({
+    }, {
       method: 'POST',
       path: '/comments',
       handler: {
@@ -473,7 +465,7 @@ export class JsonApiHapiPlugin {
       config: {
         bind: this,
         cors: true,
-        auth: 'customAuthorize',
+        auth: openAuth,
         pre: [{
           method: this.authorizeCommentCreation,
           assign: 'deploymentId',
@@ -492,9 +484,7 @@ export class JsonApiHapiPlugin {
           },
         },
       },
-    });
-
-    server.route({
+    }, {
       method: 'GET',
       path: '/comments/deployment/{projectId}-{deploymentId}',
       handler: {
@@ -503,6 +493,7 @@ export class JsonApiHapiPlugin {
       config: {
         bind: this,
         cors: true,
+        auth: openAuth,
         validate: {
           params: {
             projectId: Joi.number().required(),
@@ -510,8 +501,18 @@ export class JsonApiHapiPlugin {
           },
         },
       },
-    });
-
+    }];
+    const routes =  deployment.concat(
+      comment,
+      notification,
+      project,
+      branch,
+      commit,
+      team,
+      activity,
+      preview,
+    );
+    server.route(routes);
     next();
   }
 
@@ -744,7 +745,7 @@ export class JsonApiHapiPlugin {
       if (!parsed) {
         return reply(Boom.badRequest('Invalid deployment id'));
       }
-      if (await request.userHasAccessToProject(parsed.projectId)) {
+      if (await request.userHasAccessToDeployment(parsed.projectId, deploymentId, request.auth.credentials)) {
         return reply(parsed.deploymentId);
       }
     } catch (exception) {
@@ -753,15 +754,19 @@ export class JsonApiHapiPlugin {
     return reply(Boom.unauthorized());
   }
 
-  public async getCommentProjectId(commentId: number) {
-    return (await this.jsonApi.getComment(commentId)).project;
+  public async getComment(commentId: number) {
+    return (await this.jsonApi.getComment(commentId));
   }
 
   public async authorizeCommentRemoval(request: Hapi.Request, reply: Hapi.IReply) {
     try {
       const commentId = Number(request.params.id);
-      const projectId =  await this.getCommentProjectId(commentId);
-      if (await request.userHasAccessToProject(projectId)) {
+      const comment = await this.getComment(commentId);
+      const parsed = parseApiDeploymentId(comment.deployment);
+      if (
+        parsed &&
+          await request.userHasAccessToDeployment(parsed.projectId, parsed.deploymentId, request.auth.credentials)
+      ) {
         return reply(commentId);
       }
     } catch (exception) {
@@ -773,7 +778,7 @@ export class JsonApiHapiPlugin {
   public async postCommentHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const { name, email, message } = request.payload.data.attributes;
     const comment = await this.jsonApi.addComment(
-        request.pre.deploymentId, email, message, name || undefined);
+      request.pre.deploymentId, email, message, name || undefined);
     return reply(this.serializeApiEntity('comment', comment))
       .created(`/api/comments/${comment.id}`);
   }
@@ -786,6 +791,17 @@ export class JsonApiHapiPlugin {
   public async getDeploymentCommentsHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const { deploymentId } = request.params;
     return reply(this.getEntity('comment', api => api.getDeploymentComments(Number(deploymentId))));
+  }
+
+  public async authorizeOpenDeployment(request: Hapi.Request, reply: Hapi.IReply) {
+    try {
+      const projectId = parseInt(request.params.projectId, 10);
+      const deploymentId = parseInt(request.params.deploymentId, 10);
+      return reply(await request.userHasAccessToDeployment(projectId, deploymentId, request.auth.credentials));
+    } catch (err) {
+      // Nothing to be done
+    }
+    return reply(Boom.unauthorized());
   }
 
 }

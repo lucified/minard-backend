@@ -4,7 +4,7 @@ import { inject, injectable } from 'inversify';
 import * as Joi from 'joi';
 import * as moment from 'moment';
 
-import { AuthorizationStatus, RequestCredentials } from '../authentication/types';
+import { STRATEGY_TOPLEVEL_USER_URL } from '../authentication';
 import {
   COMMENT_ADDED_EVENT_TYPE,
   COMMENT_DELETED_EVENT_TYPE,
@@ -45,7 +45,7 @@ export class RealtimeHapiPlugin extends HapiPlugin {
       },
       config: {
         bind: this,
-        auth: 'jwt-url',
+        auth: STRATEGY_TOPLEVEL_USER_URL,
         cors: true,
         validate: {
           params: {
@@ -62,7 +62,8 @@ export class RealtimeHapiPlugin extends HapiPlugin {
       config: {
         bind: this,
         auth: {
-          mode: 'optional',
+          mode: 'try',
+          strategies: [STRATEGY_TOPLEVEL_USER_URL],
         },
         cors: true,
         validate: {
@@ -125,11 +126,7 @@ export class RealtimeHapiPlugin extends HapiPlugin {
       const projectId = parseInt(request.params.projectId, 10);
       const deploymentId = parseInt(request.params.deploymentId, 10);
       let teamId: number | undefined;
-      const credentials = request.auth.credentials as RequestCredentials;
-      if (
-        (credentials && credentials.authorizationStatus === AuthorizationStatus.AUTHORIZED) ||
-        await request.isOpenDeployment(projectId, deploymentId)
-      ) {
+      if (await request.userHasAccessToDeployment(projectId, deploymentId, request.auth.credentials)) {
         teamId = (await request.getProjectTeam(projectId)).id;
       }
       if (teamId) {

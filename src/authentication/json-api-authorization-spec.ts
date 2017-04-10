@@ -33,7 +33,7 @@ async function getServer(
   };
 }
 
-type AuthorizationMethod = 'userHasAccessToProject' | 'userHasAccessToTeam';
+type AuthorizationMethod = 'userHasAccessToProject' | 'userHasAccessToTeam' | 'userHasAccessToDeployment';
 
 function arrange(
   authorizationMethod: AuthorizationMethod,
@@ -197,7 +197,7 @@ describe('authorization for api routes', () => {
       it('should allow creating a comment for a deployment in an authorized project', async () => {
         // Arrange
         const { server, authentication, api } = await arrange(
-          'userHasAccessToProject',
+          'userHasAccessToDeployment',
           true,
           'postCommentHandler',
         );
@@ -205,17 +205,17 @@ describe('authorization for api routes', () => {
         await makeRequest(server, '/comments', 'POST', payload);
 
         // Assert
-        expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
+        expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
         expect(api.postCommentHandler).to.have.been.calledOnce;
       });
       it('should not allow creating a comment for a deployment in an unauthorized project', async () => {
         // Arrange
-        const { server, authentication, api } = await arrange('userHasAccessToProject', false, 'postCommentHandler');
+        const { server, authentication, api } = await arrange('userHasAccessToDeployment', false, 'postCommentHandler');
         // Act
         const response = await makeRequest(server, '/comments', 'POST', payload);
         // Assert
         expect(response.statusCode).to.eq(401);
-        expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
+        expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
         expect(api.postCommentHandler).to.not.have.been.called;
       });
     });
@@ -223,7 +223,7 @@ describe('authorization for api routes', () => {
       function arrangeCommentRemoval(hasAccess: boolean) {
         return getServer(
           p => [
-            sinon.stub(p, 'userHasAccessToProject')
+            sinon.stub(p, 'userHasAccessToDeployment')
               .returns(Promise.resolve(hasAccess)),
             sinon.stub(p, 'isAdmin')
               .returns(Promise.resolve(false)),
@@ -232,8 +232,8 @@ describe('authorization for api routes', () => {
             sinon.stub(p, 'deleteCommentHandler')
               .yields(200)
               .returns(Promise.resolve(true)),
-            sinon.stub(p, 'getCommentProjectId')
-              .returns(Promise.resolve(1)),
+            sinon.stub(p, 'getComment')
+              .returns(Promise.resolve({deployment: '1-1'})),
           ],
         );
       }
@@ -244,8 +244,8 @@ describe('authorization for api routes', () => {
         const response = await makeRequest(server, '/comments/1', 'DELETE');
         // Assert
         expect(response).to.exist;
-        expect(api.getCommentProjectId).to.have.been.calledOnce;
-        expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
+        expect(api.getComment).to.have.been.calledOnce;
+        expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
         expect(api.deleteCommentHandler).to.have.been.calledOnce;
       });
       it('should not allow deleting a comment for a deployment in an unauthorized project', async () => {
@@ -254,8 +254,8 @@ describe('authorization for api routes', () => {
         // Act
         const response = await makeRequest(server, '/comments/1', 'DELETE');
         // Assert
-        expect(api.getCommentProjectId).to.have.been.calledOnce;
-        expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
+        expect(api.getComment).to.have.been.calledOnce;
+        expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
         expect(api.deleteCommentHandler).to.not.have.been.called;
         expect(response.statusCode).to.eq(401);
       });

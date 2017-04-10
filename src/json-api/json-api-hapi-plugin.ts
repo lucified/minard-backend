@@ -4,6 +4,7 @@ import { inject, injectable } from 'inversify';
 import * as Joi from 'joi';
 import * as moment from 'moment';
 
+import { AuthorizationStatus, RequestCredentials } from '../authentication/types';
 import * as Hapi from '../server/hapi';
 import { HapiRegister } from '../server/hapi-register';
 import { externalBaseUrlInjectSymbol } from '../server/types';
@@ -128,6 +129,9 @@ export class JsonApiHapiPlugin {
       config: {
         bind: this,
         cors: true,
+        auth: {
+          mode: 'optional',
+        },
         validate: {
           params: {
             projectId: Joi.number().required(),
@@ -578,14 +582,25 @@ export class JsonApiHapiPlugin {
   }
 
   public async getPreviewHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const projectId = Number((<any> request.params).projectId);
-    const deploymentId = Number((<any> request.params).deploymentId);
-    const sha = request.query.sha;
-    const preview = await this.viewEndpoints.getPreview(projectId, deploymentId, sha);
-    if (!preview) {
-      throw Boom.notFound();
+    try {
+      const projectId = Number(request.params.projectId);
+      const deploymentId = Number(request.params.deploymentId);
+      const sha = request.query.sha;
+      const credentials = request.auth.credentials as RequestCredentials;
+      if (
+        (credentials && credentials.authorizationStatus === AuthorizationStatus.AUTHORIZED) ||
+        await request.isOpenDeployment(projectId, deploymentId)
+      ) {
+        const preview = await this.viewEndpoints.getPreview(projectId, deploymentId, sha);
+        if (preview) {
+          return reply(preview);
+        }
+      }
+    } catch (err) {
+      return reply(Boom.wrap(err));
     }
-    return reply(preview);
+    return reply(Boom.notFound());
+
   }
 
   public async getBranchHandler(request: Hapi.Request, reply: Hapi.IReply) {

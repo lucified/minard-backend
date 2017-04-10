@@ -23,6 +23,12 @@ import {
   AuthorizationStatus,
   Authorizer,
   jwtOptionsInjectSymbol,
+  RequestCredentials,
+  STRATEGY_ROUTELEVEL_ADMIN_HEADER,
+  STRATEGY_ROUTELEVEL_USER_COOKIE,
+  STRATEGY_ROUTELEVEL_USER_HEADER,
+  STRATEGY_TOPLEVEL_USER_HEADER,
+  STRATEGY_TOPLEVEL_USER_URL,
   teamTokenClaimKey,
 } from './types';
 
@@ -69,7 +75,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       },
       config: {
         bind: this,
-        auth: 'customAuthorize',
+        auth: STRATEGY_ROUTELEVEL_USER_HEADER,
         cors: {
           credentials: true,
         },
@@ -83,7 +89,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       },
       config: {
         bind: this,
-        auth: 'customAuthorize',
+        auth: STRATEGY_ROUTELEVEL_USER_HEADER,
         cors: {
           credentials: true,
         },
@@ -97,7 +103,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       },
       config: {
         bind: this,
-        auth: 'customAuthorize',
+        auth: STRATEGY_ROUTELEVEL_USER_HEADER,
       },
     });
     server.route({
@@ -108,7 +114,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       },
       config: {
         bind: this,
-        auth: 'admin',
+        auth: STRATEGY_ROUTELEVEL_ADMIN_HEADER,
       },
     });
 
@@ -126,8 +132,8 @@ class AuthenticationHapiPlugin extends HapiPlugin {
         },
       };
     });
-    server.auth.strategy('customAuthorize', 'noOp', false);
-    server.auth.strategy('admin', 'noOp', false);
+    server.auth.strategy(STRATEGY_ROUTELEVEL_USER_HEADER, 'noOp', false);
+    server.auth.strategy(STRATEGY_ROUTELEVEL_ADMIN_HEADER, 'noOp', false);
     server.decorate(
       'request',
       'userHasAccessToProject',
@@ -167,6 +173,12 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       'userHasAccessToTeam',
       this.userHasAccessToTeamDecorator.bind(this),
       { apply: true },
+    );
+    server.decorate(
+      'request',
+      'userHasAccessToDeployment',
+      this.userHasAccessToDeployment.bind(this),
+      { apply: false },
     );
     server.decorate(
       'request',
@@ -386,35 +398,35 @@ class AuthenticationHapiPlugin extends HapiPlugin {
 
   protected async registerAuth(server: Hapi.Server) {
     await server.register(auth);
-    server.auth.strategy('jwt', 'jwt', true, {
+    server.auth.strategy(STRATEGY_TOPLEVEL_USER_HEADER, 'jwt', true, {
       ...this.hapiOptions,
       headerKey: 'authorization',
       cookieKey: false,
       urlKey: false,
       validateFunc: this.validateFuncFactory(this.authorizeUser),
     });
-    server.auth.strategy('jwt-url', 'jwt', false, {
+    server.auth.strategy(STRATEGY_TOPLEVEL_USER_URL, 'jwt', false, {
       ...this.hapiOptions,
       headerKey: false,
       cookieKey: false,
       urlKey: 'token',
       validateFunc: this.validateFuncFactory(this.authorizeUser),
     });
-    server.auth.strategy('admin', 'jwt', false, {
+    server.auth.strategy(STRATEGY_ROUTELEVEL_ADMIN_HEADER, 'jwt', false, {
       ...this.hapiOptions,
       headerKey: 'authorization',
       cookieKey: false,
       urlKey: false,
       validateFunc: this.validateFuncFactory(this.authorizeAdmin),
     });
-    server.auth.strategy('customAuthorize', 'jwt', false, {
+    server.auth.strategy(STRATEGY_ROUTELEVEL_USER_HEADER, 'jwt', false, {
       ...this.hapiOptions,
       headerKey: 'authorization',
       cookieKey: false,
       urlKey: false,
       validateFunc: this.validateFuncFactory(this.authorizeCustom),
     });
-    server.auth.strategy('customAuthorize-cookie', 'jwt', false, {
+    server.auth.strategy(STRATEGY_ROUTELEVEL_USER_COOKIE, 'jwt', false, {
       ...this.hapiOptions,
       headerKey: false,
       cookieKey: 'token',
@@ -498,6 +510,27 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       return await this._userHasAccessToTeam(userName, teamId);
     } catch (error) {
       // Nothing
+    }
+    return false;
+  }
+
+  public async userHasAccessToDeployment(
+    projectId: number,
+    deploymentId: number,
+    credentialsOrUsername?: RequestCredentials | string,
+  ) {
+    try {
+      if (
+        (typeof credentialsOrUsername === 'object' &&
+          credentialsOrUsername.authorizationStatus === AuthorizationStatus.AUTHORIZED) ||
+        (typeof credentialsOrUsername === 'string' &&
+          await this.userHasAccessToProject(credentialsOrUsername, projectId)) ||
+        await this.isOpenDeployment(projectId, deploymentId)
+      ) {
+        return true;
+      }
+    } catch (err) {
+      // Nothing to be done
     }
     return false;
   }

@@ -30,3 +30,9 @@ export const enum AuthorizationStatus {
 export type Authorizer = (userName: string, request: Request) => Promise<AuthorizationStatus>;
 
 export type RequestCredentials = undefined | (AccessToken & { authorizationStatus: AuthorizationStatus });
+
+export const STRATEGY_TOPLEVEL_USER_HEADER = 'jwt-user-header';
+export const STRATEGY_TOPLEVEL_USER_URL = 'jwt-user-url';
+export const STRATEGY_ROUTELEVEL_ADMIN_HEADER = 'jwt-admin-header';
+export const STRATEGY_ROUTELEVEL_USER_HEADER = 'jwt-route-user-header';
+export const STRATEGY_ROUTELEVEL_USER_COOKIE = 'jwt-route-user-cookie';

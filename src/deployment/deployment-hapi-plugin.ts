@@ -5,6 +5,7 @@ import * as Joi from 'joi';
 import * as memoizee from 'memoizee';
 import * as path from 'path';
 
+import { STRATEGY_ROUTELEVEL_USER_COOKIE } from '../authentication';
 import * as Hapi from '../server/hapi';
 import { HapiPlugin } from '../server/hapi-register';
 import { minardUiBaseUrlInjectSymbol } from '../server/types';
@@ -98,7 +99,7 @@ class DeploymentHapiPlugin extends HapiPlugin {
   protected rawDeploymentRoutes(requiresAuthorization = true): Hapi.IRouteConfiguration[] {
     const auth = {
       mode: 'try',
-      strategies: ['customAuthorize-cookie'],
+      strategies: [STRATEGY_ROUTELEVEL_USER_COOKIE],
     };
     return [{
       method: 'GET',
@@ -145,10 +146,7 @@ class DeploymentHapiPlugin extends HapiPlugin {
     try {
       const projectId: number = request.pre[PREKEY].projectId;
       const deploymentId: number = request.pre[PREKEY].deploymentId;
-      if (
-        await request.isOpenDeployment(projectId, deploymentId) ||
-        (request.auth.isAuthenticated && await request.userHasAccessToProject(projectId))
-      ) {
+      if (await request.userHasAccessToDeployment(projectId, deploymentId, request.auth.credentials)) {
         return reply('ok');
       }
     } catch (exception) {

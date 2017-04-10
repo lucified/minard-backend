@@ -4,7 +4,11 @@ import { inject, injectable } from 'inversify';
 import * as Joi from 'joi';
 import * as moment from 'moment';
 
-import { AuthorizationStatus, RequestCredentials } from '../authentication/types';
+import {
+  AuthorizationStatus,
+  RequestCredentials,
+  STRATEGY_ROUTELEVEL_USER_HEADER,
+} from '../authentication/types';
 import * as Hapi from '../server/hapi';
 import { HapiRegister } from '../server/hapi-register';
 import { externalBaseUrlInjectSymbol } from '../server/types';
@@ -31,7 +35,7 @@ function onPreResponse(_server: Hapi.Server, request: Hapi.Request, reply: Hapi.
   }
 
   if (response.isBoom) {
-    const output = (<any> response).output;
+    const output = (response as any).output;
     const error = {
       title: output.payload.error,
       status: output.statusCode,
@@ -90,7 +94,7 @@ export class JsonApiHapiPlugin {
     @inject(JsonApiModule.injectSymbol) private readonly jsonApi: JsonApiModule,
     @inject(externalBaseUrlInjectSymbol) baseUrl: string,
     @inject(ViewEndpoints.injectSymbol) private readonly viewEndpoints: ViewEndpoints,
-    ) {
+  ) {
     this.register.attributes = {
       name: 'json-api-plugin',
       version: '1.0.0',
@@ -524,17 +528,17 @@ export class JsonApiHapiPlugin {
   }
 
   public async getProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const projectId = (<any> request.params).projectId;
+    const projectId = (request.params as any).projectId;
     return reply(this.getEntity('project', api => api.getProject(projectId)));
   }
 
   public async getProjectBranchesHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const projectId = (<any> request.params).projectId;
+    const projectId = (request.params as any).projectId;
     return reply(this.getEntity('branch', api => api.getProjectBranches(projectId)));
   }
 
   public async getProjectsHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const teamId = (<any> request.params).teamId;
+    const teamId = (request.params as any).teamId;
     return reply(this.getEntity('project', api => api.getProjects(teamId)));
   }
 
@@ -560,7 +564,7 @@ export class JsonApiHapiPlugin {
 
   public async patchProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const attributes = request.payload.data.attributes;
-    const projectId = (<any> request.params).projectId;
+    const projectId = (request.params as any).projectId;
     if (!attributes.name && !attributes.description) {
       // Require that at least something is edited
       throw Boom.badRequest();
@@ -570,14 +574,14 @@ export class JsonApiHapiPlugin {
   }
 
   public async deleteProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const projectId = (<any> request.params).projectId;
+    const projectId = (request.params as any).projectId;
     await this.jsonApi.deleteProject(projectId);
     return reply({});
   }
 
   public async getDeploymentHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const projectId = Number((<any> request.params).projectId);
-    const deploymentId = Number((<any> request.params).deploymentId);
+    const projectId = Number((request.params as any).projectId);
+    const deploymentId = Number((request.params as any).deploymentId);
     return reply(this.getEntity('deployment', api => api.getDeployment(projectId, deploymentId)));
   }
 
@@ -604,7 +608,7 @@ export class JsonApiHapiPlugin {
   }
 
   public async getBranchHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const matches = parseApiBranchId((<any> request.params).branchId);
+    const matches = parseApiBranchId((request.params as any).branchId);
     if (!matches) {
       throw Boom.badRequest('Invalid branch id');
     }
@@ -613,7 +617,7 @@ export class JsonApiHapiPlugin {
   }
 
   public async getBranchCommitsHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const matches = parseApiBranchId((<any> request.params).branchId);
+    const matches = parseApiBranchId((request.params as any).branchId);
     if (!matches) {
       throw Boom.badRequest('Invalid branch id');
     }
@@ -627,8 +631,8 @@ export class JsonApiHapiPlugin {
   }
 
   public async getCommitHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const projectId = Number((<any> request.params).projectId);
-    const hash = (<any> request.params).hash as string;
+    const projectId = Number((request.params as any).projectId);
+    const hash = (request.params as any).hash as string;
     return reply(this.getEntity('commit', api => api.getCommit(projectId, hash)));
   }
 
@@ -658,7 +662,7 @@ export class JsonApiHapiPlugin {
   }
 
   public async getProjectNotificationConfigurationsHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const projectId = (<any> request.params).projectId;
+    const projectId = (request.params as any).projectId;
     return reply(this.getEntity('notification', api => api.getProjectNotificationConfigurations(projectId)));
   }
 
@@ -671,12 +675,12 @@ export class JsonApiHapiPlugin {
   }
 
   public async authorizeTeamOrProjectAccess(
-    request: Hapi.RequestDecorators & {pre: TeamOrProject},
+    request: Hapi.RequestDecorators & { pre: TeamOrProject },
     reply: Hapi.IReply,
   ) {
     try {
       const pre = request.pre[TEAM_OR_PROJECT_PRE_KEY];
-      const {teamId, projectId} = pre;
+      const { teamId, projectId } = pre;
       if (!teamId && !projectId) {
         return reply(Boom.badRequest('teamId or projectId should be defined'));
       }
@@ -702,11 +706,11 @@ export class JsonApiHapiPlugin {
   public async authorizeNotificationRemoval(request: Hapi.Request, reply: Hapi.IReply) {
     try {
       const id = Number(request.params.id);
-      const configuration =  await this.getNotificationConfiguration(id);
+      const configuration = await this.getNotificationConfiguration(id);
       if (!configuration) {
         throw new Error(`Tried to remove a nonexistent notification configuration ${id}`);
       }
-      const {projectId, teamId} = configuration;
+      const { projectId, teamId } = configuration;
       if (projectId && await request.userHasAccessToProject(projectId)) {
         return reply(id);
       }
@@ -728,8 +732,8 @@ export class JsonApiHapiPlugin {
   }
 
   public async deleteNotificationConfigurationHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const id = (<any> request.params).id;
-    await this.jsonApi.deleteNotificationConfiguration(id);
+    const id = request.params.id;
+    await this.jsonApi.deleteNotificationConfiguration(Number(id));
     return reply({});
   }
 

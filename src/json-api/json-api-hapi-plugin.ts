@@ -4,11 +4,7 @@ import { inject, injectable } from 'inversify';
 import * as Joi from 'joi';
 import * as moment from 'moment';
 
-import {
-  AuthorizationStatus,
-  RequestCredentials,
-  STRATEGY_ROUTELEVEL_USER_HEADER,
-} from '../authentication/types';
+import { STRATEGY_ROUTELEVEL_USER_HEADER } from '../authentication/types';
 import * as Hapi from '../server/hapi';
 import { HapiRegister } from '../server/hapi-register';
 import { externalBaseUrlInjectSymbol } from '../server/types';
@@ -494,6 +490,9 @@ export class JsonApiHapiPlugin {
         bind: this,
         cors: true,
         auth: openAuth,
+        pre: [
+          this.authorizeOpenDeployment,
+        ],
         validate: {
           params: {
             projectId: Joi.number().required(),
@@ -591,15 +590,9 @@ export class JsonApiHapiPlugin {
       const projectId = Number(request.params.projectId);
       const deploymentId = Number(request.params.deploymentId);
       const sha = request.query.sha;
-      const credentials = request.auth.credentials as RequestCredentials;
-      if (
-        (credentials && credentials.authorizationStatus === AuthorizationStatus.AUTHORIZED) ||
-        await request.isOpenDeployment(projectId, deploymentId)
-      ) {
-        const preview = await this.viewEndpoints.getPreview(projectId, deploymentId, sha);
-        if (preview) {
-          return reply(preview);
-        }
+      const preview = await this.viewEndpoints.getPreview(projectId, deploymentId, sha);
+      if (preview) {
+        return reply(preview);
       }
     } catch (err) {
       return reply(Boom.wrap(err));
@@ -763,10 +756,10 @@ export class JsonApiHapiPlugin {
       const commentId = Number(request.params.id);
       const comment = await this.getComment(commentId);
       const parsed = parseApiDeploymentId(comment.deployment);
-      if (
-        parsed &&
-          await request.userHasAccessToDeployment(parsed.projectId, parsed.deploymentId, request.auth.credentials)
-      ) {
+      if (!parsed) {
+        return reply(Boom.badRequest('Invalid deployment id'));
+      }
+      if (await request.userHasAccessToDeployment(parsed.projectId, parsed.deploymentId, request.auth.credentials)) {
         return reply(commentId);
       }
     } catch (exception) {
@@ -797,7 +790,10 @@ export class JsonApiHapiPlugin {
     try {
       const projectId = parseInt(request.params.projectId, 10);
       const deploymentId = parseInt(request.params.deploymentId, 10);
-      return reply(await request.userHasAccessToDeployment(projectId, deploymentId, request.auth.credentials));
+      if (await request.userHasAccessToDeployment(projectId, deploymentId, request.auth.credentials)) {
+        return reply('ok');
+      }
+
     } catch (err) {
       // Nothing to be done
     }

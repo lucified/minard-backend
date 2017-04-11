@@ -3,21 +3,8 @@
   "configurations": [
     {
       "type": "node",
-      "request": "launch",
-      "name": "Test",
-      "program": "${workspaceRoot}/node_modules/mocha/bin/_mocha",
-      "args": [
-        "--compilers",
-        "ts:ts-node/register,tsx:ts-node/register",
-        "-t",
-        "1000000000",
-        "src/**/*-spec.ts"
-      ],
-      "env": {
-        "NODE_ENV": "test",
-        "TS_NODE_FAST": "true"
-      },
-      "cwd": "${workspaceRoot}",
+      "request": "attach",
+      "name": "Attach (Inspector Protocol)",
       "port": 9229,
       "protocol": "inspector"
     },
@@ -30,6 +17,7 @@
       "args": [],
       "cwd": "${workspaceRoot}",
       "preLaunchTask": null,
+      "runtimeExecutable": null,
       "runtimeArgs": [
         "--nolazy"
       ],
@@ -39,6 +27,19 @@
       "externalConsole": false,
       "sourceMaps": true,
       "outDir": "${workspaceRoot}/dist"
+    },
+    {
+      "name": "Run mocha",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceRoot}/node_modules/mocha/bin/_mocha",
+      "stopOnEntry": false,
+      "args": ["-t", "100000000", "dist/*/*-spec.js"],
+      "cwd": "${workspaceRoot}",
+      "runtimeExecutable": null,
+      "env": { "NODE_ENV": "test", "TEST_USE_REDIS": "true", "TEST_ECS": "true"},
+      "sourceMaps": true,
+      "outFiles": ["${workspaceRoot}/dist/**/*.js"]
     },
     {
       "name": "Attach",
@@ -53,6 +54,15 @@
       ],
       "localRoot": "${workspaceRoot}/dist",
       "remoteRoot": "/code/dist"
+    },
+    {
+      "name": "Attach to Process",
+      "type": "node",
+      "request": "attach",
+      "processId": "${command.PickProcess}",
+      "port": 5858,
+      "sourceMaps": false,
+      "outDir": null
     }
   ]
 }

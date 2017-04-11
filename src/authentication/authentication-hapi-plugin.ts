@@ -522,6 +522,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     try {
       if (
         (typeof credentialsOrUsername === 'object' &&
+          credentialsOrUsername !== null &&
           credentialsOrUsername.authorizationStatus === AuthorizationStatus.AUTHORIZED) ||
         (typeof credentialsOrUsername === 'string' &&
           await this.userHasAccessToProject(credentialsOrUsername, projectId)) ||

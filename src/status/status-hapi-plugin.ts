@@ -4,6 +4,7 @@ import { HapiRegister } from '../server/hapi-register';
 
 import { inject, injectable } from 'inversify';
 
+import { STRATEGY_ROUTELEVEL_ADMIN_HEADER } from '../authentication';
 import * as logger from '../shared/logger';
 import { default as StatusModule, getEcsStatus } from './status-module';
 
@@ -48,7 +49,7 @@ class StatusHapiPlugin {
       },
       config: {
         bind: this,
-        auth: 'admin',
+        auth: STRATEGY_ROUTELEVEL_ADMIN_HEADER,
       },
     }, {
       method: 'GET',
@@ -68,7 +69,7 @@ class StatusHapiPlugin {
       },
       config: {
         bind: this,
-        auth: 'admin',
+        auth: STRATEGY_ROUTELEVEL_ADMIN_HEADER,
       },
     }].map((route: any) => {
       if (!auth) {

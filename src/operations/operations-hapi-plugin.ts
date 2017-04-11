@@ -1,6 +1,7 @@
 
 import { inject, injectable } from 'inversify';
 
+import { STRATEGY_ROUTELEVEL_ADMIN_HEADER } from '../authentication';
 import * as Hapi from '../server/hapi';
 import { HapiRegister } from '../server/hapi-register';
 import OperationsModule from './operations-module';
@@ -23,7 +24,7 @@ export default class OperationsHapiPlugin {
 
   public register: HapiRegister = (server, _options, next) => {
     const config = {
-      auth: 'admin',
+      auth: STRATEGY_ROUTELEVEL_ADMIN_HEADER,
       bind: this,
     };
     server.route({

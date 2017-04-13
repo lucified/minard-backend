@@ -4,7 +4,10 @@ import { inject, injectable } from 'inversify';
 import * as Joi from 'joi';
 import * as moment from 'moment';
 
-import { STRATEGY_ROUTELEVEL_USER_HEADER } from '../authentication/types';
+import {
+  STRATEGY_ROUTELEVEL_USER_HEADER,
+  STRATEGY_TOPLEVEL_USER_HEADER,
+} from '../authentication/types';
 import * as Hapi from '../server/hapi';
 import { HapiRegister } from '../server/hapi-register';
 import { externalBaseUrlInjectSymbol } from '../server/types';
@@ -104,7 +107,7 @@ export class JsonApiHapiPlugin {
 
     const openAuth = {
       mode: 'try',
-      strategies: [STRATEGY_ROUTELEVEL_USER_HEADER],
+      strategies: [STRATEGY_TOPLEVEL_USER_HEADER],
     };
 
     const deployment: Hapi.IRouteConfiguration[] = [{

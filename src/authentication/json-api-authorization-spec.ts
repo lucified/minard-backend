@@ -5,7 +5,7 @@ import * as sinonChai from 'sinon-chai';
 use(sinonChai);
 
 import { bootstrap } from '../config';
-import { getAccessToken } from '../config/config-test';
+import { getSignedAccessToken } from '../config/config-test';
 import { JsonApiHapiPlugin } from '../json-api';
 import { ProjectModule } from '../project';
 import { getTestServer } from '../server/hapi';
@@ -13,7 +13,7 @@ import { makeRequestWithAuthentication, MethodStubber, stubber } from '../shared
 import AuthenticationHapiPlugin from './authentication-hapi-plugin';
 import { generateTeamToken } from './team-token';
 
-const validAccessToken = getAccessToken('idp|12345678', generateTeamToken(), 'foo@bar.com');
+const validAccessToken = getSignedAccessToken('idp|12345678', generateTeamToken(), 'foo@bar.com');
 const makeRequest = makeRequestWithAuthentication(validAccessToken);
 
 async function getServer(

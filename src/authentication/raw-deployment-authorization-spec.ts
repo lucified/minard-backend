@@ -6,14 +6,14 @@ import * as sinonChai from 'sinon-chai';
 use(sinonChai);
 
 import { bootstrap } from '../config';
-import { getAccessToken } from '../config/config-test';
+import { getSignedAccessToken } from '../config/config-test';
 import { DeploymentHapiPlugin } from '../deployment';
 import { getTestServer } from '../server/hapi';
 import { MethodStubber, stubber } from '../shared/test';
 import AuthenticationHapiPlugin from './authentication-hapi-plugin';
 import { generateTeamToken } from './team-token';
 
-const validAccessToken = getAccessToken('idp|12345678', generateTeamToken(), 'foo@bar.com');
+const validAccessToken = getSignedAccessToken('idp|12345678', generateTeamToken(), 'foo@bar.com');
 const deploymentDomain = 'deployment.foo.com';
 const validDeploymentUrl = `http://master-abcdef-1-1.${deploymentDomain}`;
 async function getServer(

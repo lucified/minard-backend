@@ -19,6 +19,7 @@ import { GitlabClient } from '../shared/gitlab-client';
 import Logger, { loggerInjectSymbol } from '../shared/logger';
 import { charlesKnexInjectSymbol, fetchInjectSymbol } from '../shared/types';
 import developmentConfig from './config-development';
+import { sanitizeUsername } from "../authentication/authentication-hapi-plugin";
 
 const logger = Logger(undefined, true);
 
@@ -65,21 +66,26 @@ export function getJwtOptions(log = false) {
   };
 }
 
-export function getAccessToken(sub: string, teamToken?: string, email?: string) {
-  let payload: Partial<AccessToken> = {
+export function getAccessToken(sub: string, teamToken?: string, email?: string): AccessToken {
+  let payload = {
     iss: issuer,
     sub,
     aud: [AUTH_AUDIENCE],
     azp: 'azp',
     scope: 'openid profile email',
+    exp: Math.round(Date.now() / 1000) + 3600,
+    iat: Math.round(Date.now() / 1000) - 3600,
+    email: email || 'foo@bar.com',
+    username: sanitizeUsername(sub),
   };
   if (teamToken) {
     payload = { ...payload, [teamTokenClaimKey]: teamToken };
   }
-  if (email) {
-    payload = { ...payload, email };
-  }
-  return sign(payload, secretKey);
+  return payload;
+}
+
+export function getSignedAccessToken(sub: string, teamToken?: string, email?: string) {
+  return sign(getAccessToken(sub, teamToken, email), secretKey);
 }
 
 export default (kernel: Container) => {

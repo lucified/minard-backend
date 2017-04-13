@@ -531,17 +531,17 @@ export class JsonApiHapiPlugin {
   }
 
   public async getProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const projectId = (request.params as any).projectId;
+    const projectId = Number(request.params.projectId);
     return reply(this.getEntity('project', api => api.getProject(projectId)));
   }
 
   public async getProjectBranchesHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const projectId = (request.params as any).projectId;
+    const projectId = Number(request.params.projectId);
     return reply(this.getEntity('branch', api => api.getProjectBranches(projectId)));
   }
 
   public async getProjectsHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const teamId = (request.params as any).teamId;
+    const teamId = Number(request.params.teamId);
     return reply(this.getEntity('project', api => api.getProjects(teamId)));
   }
 
@@ -567,7 +567,7 @@ export class JsonApiHapiPlugin {
 
   public async patchProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const attributes = request.payload.data.attributes;
-    const projectId = (request.params as any).projectId;
+    const projectId = Number(request.params.projectId);
     if (!attributes.name && !attributes.description) {
       // Require that at least something is edited
       throw Boom.badRequest();
@@ -577,14 +577,14 @@ export class JsonApiHapiPlugin {
   }
 
   public async deleteProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const projectId = (request.params as any).projectId;
+    const projectId = Number(request.params.projectId);
     await this.jsonApi.deleteProject(projectId);
     return reply({});
   }
 
   public async getDeploymentHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const projectId = Number((request.params as any).projectId);
-    const deploymentId = Number((request.params as any).deploymentId);
+    const projectId = Number(request.params.projectId);
+    const deploymentId = Number(request.params.deploymentId);
     return reply(this.getEntity('deployment', api => api.getDeployment(projectId, deploymentId)));
   }
 
@@ -605,7 +605,7 @@ export class JsonApiHapiPlugin {
   }
 
   public async getBranchHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const matches = parseApiBranchId((request.params as any).branchId);
+    const matches = parseApiBranchId(request.params.branchId);
     if (!matches) {
       throw Boom.badRequest('Invalid branch id');
     }
@@ -614,7 +614,7 @@ export class JsonApiHapiPlugin {
   }
 
   public async getBranchCommitsHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const matches = parseApiBranchId((request.params as any).branchId);
+    const matches = parseApiBranchId(request.params.branchId);
     if (!matches) {
       throw Boom.badRequest('Invalid branch id');
     }
@@ -628,8 +628,8 @@ export class JsonApiHapiPlugin {
   }
 
   public async getCommitHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const projectId = Number((request.params as any).projectId);
-    const hash = (request.params as any).hash as string;
+    const projectId = Number(request.params.projectId);
+    const hash = request.params.hash as string;
     return reply(this.getEntity('commit', api => api.getCommit(projectId, hash)));
   }
 
@@ -659,7 +659,7 @@ export class JsonApiHapiPlugin {
   }
 
   public async getProjectNotificationConfigurationsHandler(request: Hapi.Request, reply: Hapi.IReply) {
-    const projectId = (request.params as any).projectId;
+    const projectId = Number(request.params.projectId);
     return reply(this.getEntity('notification', api => api.getProjectNotificationConfigurations(projectId)));
   }
 
@@ -773,8 +773,7 @@ export class JsonApiHapiPlugin {
 
   public async postCommentHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const { name, email, message } = request.payload.data.attributes;
-    const comment = await this.jsonApi.addComment(
-      request.pre.deploymentId, email, message, name || undefined);
+    const comment = await this.jsonApi.addComment(request.pre.deploymentId, email, message, name || undefined);
     return reply(this.serializeApiEntity('comment', comment))
       .created(`/api/comments/${comment.id}`);
   }

@@ -8,7 +8,7 @@ import * as sinonChai from 'sinon-chai';
 use(sinonChai);
 
 import { bootstrap } from '../config';
-import { getSignedAccessToken, getAccessToken } from '../config/config-test';
+import { getAccessToken, getSignedAccessToken } from '../config/config-test';
 import { getTestServer } from '../server/hapi';
 import { makeRequestWithAuthentication, MethodStubber, stubber } from '../shared/test';
 import { adminTeamNameInjectSymbol, charlesKnexInjectSymbol, openTeamNameInjectSymbol } from '../shared/types';
@@ -19,7 +19,7 @@ import {
 } from './authentication-hapi-plugin';
 import { generateAndSaveTeamToken, generateTeamToken, teamTokenLength } from './team-token';
 import { initializeTeamTokenTable } from './team-token-spec';
-import { AuthorizationStatus, RequestCredentials } from "./types";
+import { AuthorizationStatus, RequestCredentials } from './types';
 
 const defaultTeamTokenString = generateTeamToken();
 expect(defaultTeamTokenString.length).to.equal(teamTokenLength);

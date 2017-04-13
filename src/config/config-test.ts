@@ -9,6 +9,7 @@ import {
   jwtOptionsInjectSymbol,
   teamTokenClaimKey,
 } from '../authentication';
+import { sanitizeUsername } from '../authentication/authentication-hapi-plugin';
 import AuthenticationModule from '../authentication/authentication-module';
 import { eventStoreConfigInjectSymbol } from '../event-bus';
 import { JsonApiHapiPlugin } from '../json-api';
@@ -19,7 +20,6 @@ import { GitlabClient } from '../shared/gitlab-client';
 import Logger, { loggerInjectSymbol } from '../shared/logger';
 import { charlesKnexInjectSymbol, fetchInjectSymbol } from '../shared/types';
 import developmentConfig from './config-development';
-import { sanitizeUsername } from "../authentication/authentication-hapi-plugin";
 
 const logger = Logger(undefined, true);
 

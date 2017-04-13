@@ -71,9 +71,6 @@ export class RealtimeHapiPlugin extends HapiPlugin {
             projectId: Joi.number().required(),
             deploymentId: Joi.number().required(),
           },
-          query: {
-            sha: Joi.string(),
-          },
         },
       },
     }]);

@@ -132,7 +132,10 @@ class AuthenticationHapiPlugin extends HapiPlugin {
         },
       };
     });
+    server.auth.strategy(STRATEGY_TOPLEVEL_USER_HEADER, 'noOp', false);
+    server.auth.strategy(STRATEGY_TOPLEVEL_USER_URL, 'noOp', false);
     server.auth.strategy(STRATEGY_ROUTELEVEL_USER_HEADER, 'noOp', false);
+    server.auth.strategy(STRATEGY_ROUTELEVEL_USER_COOKIE, 'noOp', false);
     server.auth.strategy(STRATEGY_ROUTELEVEL_ADMIN_HEADER, 'noOp', false);
     server.decorate(
       'request',
@@ -156,6 +159,12 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       'request',
       'getProjectTeam',
       this.getProjectTeam.bind(this),
+      { apply: false },
+    );
+    server.decorate(
+      'request',
+      'userHasAccessToDeployment',
+      this.userHasAccessToDeployment.bind(this),
       { apply: false },
     );
     next();
@@ -344,7 +353,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       return callback(
         undefined,
         authorizationStatus === AuthorizationStatus.AUTHORIZED ||
-          authorizationStatus === AuthorizationStatus.NOT_CHECKED,
+        authorizationStatus === AuthorizationStatus.NOT_CHECKED,
         {
           ...payload,
           authorizationStatus,
@@ -517,16 +526,17 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   public async userHasAccessToDeployment(
     projectId: number,
     deploymentId: number,
-    credentialsOrUsername?: RequestCredentials | string,
+    credentials?: RequestCredentials,
   ) {
     try {
-      if (
-        (typeof credentialsOrUsername === 'object' &&
-          credentialsOrUsername !== null &&
-          credentialsOrUsername.authorizationStatus === AuthorizationStatus.AUTHORIZED) ||
-        (typeof credentialsOrUsername === 'string' &&
-          await this.userHasAccessToProject(credentialsOrUsername, projectId)) ||
-        await this.isOpenDeployment(projectId, deploymentId)
+      // If it's AUTHORIZED, it was checked on the top level
+      // If it's NOT_CHECKED, we need to chek here
+      // Otherwise only allow access to open deployments
+    if (
+        (credentials && credentials.authorizationStatus === AuthorizationStatus.AUTHORIZED) ||
+        (credentials && credentials.authorizationStatus === AuthorizationStatus.NOT_CHECKED &&
+          (await this.userHasAccessToProject(credentials.username!, projectId))) ||
+        (await this.isOpenDeployment(projectId, deploymentId))
       ) {
         return true;
       }

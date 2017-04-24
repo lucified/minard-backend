@@ -114,7 +114,7 @@ export default class MinardServer {
     return this.hapiServer;
   }
 
-  public stop(): Hapi.IPromise<void> {
+  public stop(): Promise<void> {
     return this.hapiServer.stop();
   }
 

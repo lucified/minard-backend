@@ -90,8 +90,7 @@
   "scripts": {
     "clean-test": "rm -rf dist && npm run-script transpile && mocha ./dist/**/*-spec.js",
     "test": "TS_NODE_FAST=true NODE_ENV=test mocha --opts mocha.opts",
-    "system-test-mocha": "TS_NODE_FAST=true NODE_ENV=development mocha --opts mocha-integration.opts",
-    "system-test": "src/integration-test/system-integration-tests",
+    "system-test": "TS_NODE_FAST=true NODE_ENV=development mocha --opts mocha-integration.opts",
     "dot-test": "mocha --opts mocha.opts --reporter dot",
     "dev": "npm run transpile && node-dev --inspect=${DEBUG_PORT:-9229} --nolazy dist/app.js",
     "start": "node dist/app.js",

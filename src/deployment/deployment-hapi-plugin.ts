@@ -83,6 +83,7 @@ class DeploymentHapiPlugin extends HapiPlugin {
         async: this.getTraceRequestHandler,
       },
       config: {
+        cors: true,
         bind: this,
         validate: {
           params: {

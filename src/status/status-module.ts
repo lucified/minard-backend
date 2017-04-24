@@ -252,7 +252,7 @@ export default class StatusModule {
     const response = {
       charles: {
         active: true,
-        version: charlesVersion ? charlesVersion : `Unknown (only available in production & staging)`,
+        version: charlesVersion || `Unknown (only available in production & staging)`,
       },
       systemHook,
       gitlab,

@@ -51,7 +51,9 @@ export class RemoteScreenshotter implements Screenshotter {
     // is really the screenshotter that is responding
     //
     // TODO: add proper health check endpoint for screenshotter
-    // and use that one for this ping function
+    // and use that one for this ping function.
+    // Currently we use the regular endpoint for taking screenshots.
+    // Without parameters it is expected to return status code 400
     if (response.status !== 400) {
       throw new Error(`Unexpected status code ${response.status} for screenshotter`);
     }
@@ -59,7 +61,7 @@ export class RemoteScreenshotter implements Screenshotter {
     try {
       json = await response.json();
     } catch (error) {
-      throw new Error(`Screenshotter is responding`);
+      throw new Error(`Response from screenshotter is not valid JSON`);
     }
     if (json.statusCode !== 400) {
       throw new Error(`Unexpected message content from screenshotter`);

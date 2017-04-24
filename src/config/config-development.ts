@@ -7,7 +7,7 @@ import { getJwtOptions } from './config-test';
 
 export default (kernel: Container) => {
   productionConfig(kernel);
-  if (process.env.INTEGRATION_TEST === '1') {
+  if (process.env.INTEGRATION_TEST) {
     console.log('** INTEGRATION TEST MODE **');
     kernel.rebind(jwtOptionsInjectSymbol).toConstantValue(getJwtOptions());
     const ADMIN_TEAM_NAME = process.env.ADMIN_TEAM_NAME

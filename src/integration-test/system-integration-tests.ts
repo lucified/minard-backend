@@ -174,7 +174,11 @@ describe('system-integration', () => {
       adminFetch = fetchFactory(adminAccessToken);
       adminFetchWithRetry = fetchFactory(adminAccessToken, 5);
       let response = await adminFetch(`${charles}/signup`);
-      expect(response.status, `If you get 401 here, check that you're using INTEGRATION_TEST_MODE`).to.eq(201);
+      expect(
+        response.status,
+        // tslint:disable-next-line:max-line-length
+        `If you get 401 here, check that you're running the backend with the INTEGRATION_TEST environment variable set to true`,
+      ).to.eq(201);
       admin = await response.tryJson<User>();
 
       logTitle(`Signing up a user to team ${userTeam.name}`);

@@ -74,8 +74,8 @@ async function expectServerError(functionToRun: () => any) {
      await functionToRun();
      failed = true;
    } catch (err) {
-      expect((<Boom.BoomError> err).isBoom).to.equal(true);
-      expect((<Boom.BoomError> err).isServer).to.equal(true);
+      expect((err as Boom.BoomError).isBoom).to.equal(true);
+      expect((err as Boom.BoomError).isServer).to.equal(true);
    }
    if (failed) {
      expect.fail('should throw');
@@ -1072,9 +1072,9 @@ describe('project-module', () => {
         await projectModule.doCreateProject(teamId, name, description);
         expect.fail('should throw');
       } catch (err) {
-        expect((<Boom.BoomError> err).isBoom).to.equal(true);
-        expect((<Boom.BoomError> err).isServer).to.equal(false);
-        expect((<Boom.BoomError> err).data).to.equal('name-already-taken');
+        expect((err as Boom.BoomError).isBoom).to.equal(true);
+        expect((err as Boom.BoomError).isServer).to.equal(false);
+        expect(err.data).to.equal('name-already-taken');
       }
     });
 
@@ -1152,8 +1152,8 @@ describe('project-module', () => {
         await projectModule.deleteProject(projectId);
         expect.fail('should throw');
       } catch (err) {
-        expect((<Boom.BoomError> err).isBoom).to.equal(true);
-        expect((<Boom.BoomError> err).isServer).to.equal(true);
+        expect((err as Boom.BoomError).isBoom).to.equal(true);
+        expect((err as Boom.BoomError).isServer).to.equal(true);
       }
     });
 
@@ -1164,8 +1164,8 @@ describe('project-module', () => {
         await projectModule.deleteProject(projectId);
         expect.fail('should throw');
       } catch (err) {
-        expect((<Boom.BoomError> err).isBoom).to.equal(true);
-        expect((<Boom.BoomError> err).isServer).to.equal(true);
+        expect((err as Boom.BoomError).isBoom).to.equal(true);
+        expect((err as Boom.BoomError).isServer).to.equal(true);
       }
     });
 
@@ -1180,9 +1180,9 @@ describe('project-module', () => {
         await projectModule.deleteProject(projectId);
         expect.fail('should throw');
       } catch (err) {
-        expect((<Boom.BoomError> err).isBoom).to.equal(true);
-        expect((<Boom.BoomError> err).isServer).to.equal(false);
-        expect((<Boom.BoomError> err).output.statusCode).to.equal(404);
+        expect((err as Boom.BoomError).isBoom).to.equal(true);
+        expect((err as Boom.BoomError).isServer).to.equal(false);
+        expect((err as Boom.BoomError).output.statusCode).to.equal(404);
       }
     });
 
@@ -1277,9 +1277,9 @@ describe('project-module', () => {
         await projectModule.editProject(projectId, { name, description });
         expect.fail('should throw');
       } catch (err) {
-        expect((<Boom.BoomError> err).isBoom).to.equal(true);
-        expect((<Boom.BoomError> err).isServer).to.equal(false);
-        expect((<Boom.BoomError> err).data).to.equal('name-already-taken');
+        expect((err as Boom.BoomError).isBoom).to.equal(true);
+        expect((err as Boom.BoomError).isServer).to.equal(false);
+        expect(err.data).to.equal('name-already-taken');
       }
     });
 
@@ -1303,8 +1303,8 @@ describe('project-module', () => {
         expect.fail('should throw');
       } catch (err) {
         expect(fetchMock.called()).to.equal(true);
-        expect((<Boom.BoomError> err).isBoom).to.equal(true);
-        expect((<Boom.BoomError> err).isServer).to.equal(true);
+        expect((err as Boom.BoomError).isBoom).to.equal(true);
+        expect((err as Boom.BoomError).isServer).to.equal(true);
       }
     }
 
@@ -1392,8 +1392,8 @@ describe('project-module', () => {
       await projectModule.registerProjectHook(projectId).then(
         () => expect.fail('should throw'),
         (err) => {
-          expect(<Boom.BoomError> err.isBoom).to.equal(true);
-          expect(<Boom.BoomError> err.isServer).to.equal(false);
+          expect((err as Boom.BoomError).isBoom).to.equal(true);
+          expect((err as Boom.BoomError).isServer).to.equal(false);
         });
     });
 
@@ -1403,8 +1403,8 @@ describe('project-module', () => {
       await projectModule.registerProjectHook(projectId).then(
         () => expect.fail('should throw'),
         (err) => {
-          expect(<Boom.BoomError> err.isBoom).to.equal(true);
-          expect(<Boom.BoomError> err.isServer).to.equal(true);
+          expect((err as Boom.BoomError).isBoom).to.equal(true);
+          expect((err as Boom.BoomError).isServer).to.equal(true);
         });
     });
   });
@@ -1466,8 +1466,8 @@ describe('project-module', () => {
       await projectModule.fetchProjectHooks(projectId).then(
         () => expect.fail('should throw'),
         (err) => {
-          expect(<Boom.BoomError> err.isBoom).to.equal(true);
-          expect(<Boom.BoomError> err.isServer).to.equal(true);
+          expect((err as Boom.BoomError).isBoom).to.equal(true);
+          expect((err as Boom.BoomError).isServer).to.equal(true);
         });
     });
 
@@ -1479,8 +1479,8 @@ describe('project-module', () => {
       await projectModule.fetchProjectHooks(projectId).then(
         () => expect.fail('should throw'),
         (err) => {
-          expect(<Boom.BoomError> err.isBoom).to.equal(true);
-          expect(<Boom.BoomError> err.isServer).to.equal(false);
+          expect((err as Boom.BoomError).isBoom).to.equal(true);
+          expect((err as Boom.BoomError).isServer).to.equal(false);
         });
     });
 
@@ -1492,8 +1492,8 @@ describe('project-module', () => {
       await projectModule.fetchProjectHooks(projectId).then(
         () => expect.fail('should throw'),
         (err) => {
-          expect(<Boom.BoomError> err.isBoom).to.equal(true);
-          expect(<Boom.BoomError> err.isServer).to.equal(true);
+          expect((err as Boom.BoomError).isBoom).to.equal(true);
+          expect((err as Boom.BoomError).isServer).to.equal(true);
         });
     });
 

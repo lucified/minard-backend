@@ -571,8 +571,8 @@ describe('deployment-module', () => {
         await shouldMoveCorrectly('bar', 'test-extracted-artifact-2', silentLogger);
         expect.fail('should throw');
       } catch (err) {
-        expect((<Boom.BoomError> err).isBoom).to.equal(true);
-        expect((<Boom.BoomError> err).data).to.equal('no-dir-at-public-root');
+        expect((err as Boom.BoomError).isBoom).to.equal(true);
+        expect(err.data).to.equal('no-dir-at-public-root');
       }
     });
 
@@ -1385,8 +1385,8 @@ describe('deployment-module', () => {
         await deploymentModule.filesAtPath(2, branch, repoPath);
         expect.fail('should throw');
       } catch (err) {
-        expect((<Boom.BoomError> err).isBoom).to.equal(true);
-        expect((<Boom.BoomError> err).output.statusCode).to.equal(404);
+        expect((err as Boom.BoomError).isBoom).to.equal(true);
+        expect((err as Boom.BoomError).output.statusCode).to.equal(404);
       }
     });
 

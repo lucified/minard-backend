@@ -49,7 +49,7 @@ class StatusHapiPlugin {
       },
       config: {
         bind: this,
-        auth: STRATEGY_ROUTELEVEL_ADMIN_HEADER,
+        auth: false,
       },
     }, {
       method: 'GET',

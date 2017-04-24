@@ -276,7 +276,7 @@ export class JsonApiModule {
       ref: deployment.ref,
       status: deployment.status,
       buildStatus: deployment.buildStatus,
-      extractionStatus: deployment.buildStatus,
+      extractionStatus: deployment.extractionStatus,
       screenshotStatus: deployment.screenshotStatus,
       commentCount,
     };

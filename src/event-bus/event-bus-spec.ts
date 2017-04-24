@@ -45,7 +45,30 @@ describe('event-creator', () => {
 
 });
 
+
 describe('event-bus', () => {
+
+  // TODO: implement this and then enable the test
+  it.skip('should not crash if flatMap throws', async () => {
+    const bus = new EventBus();
+    let count = 0;
+    const promise = new Promise((resolve, _reject) => {
+      bus.filterEvents<Payload>(TEST_EVENT_TYPE)
+        .flatMap(_event => {
+          count++;
+          if (count === 1) {
+            throw new Error('moi');
+          }
+          return Promise.resolve();
+        }, 1)
+        .subscribe();
+      resolve();
+    });
+    bus.post(testEventCreator({ status: 'bar' }));
+    bus.post(testEventCreator({ status: 'bar' }));
+    await promise;
+    expect(count).to.equal(2);
+  });
 
   it('should work with single event', async () => {
     const bus = new EventBus();

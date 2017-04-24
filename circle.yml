@@ -3,6 +3,8 @@ machine:
     version: 7.4
   services:
     - docker
+  environment:
+    COMMIT: $CIRCLE_SHA1
 
 test:
   override:

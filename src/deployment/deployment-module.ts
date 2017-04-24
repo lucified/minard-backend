@@ -463,10 +463,14 @@ export default class DeploymentModule {
     return this.prepareQueue.add(() => this.doPrepareDeploymentForServing(projectId, deploymentId, checkStatus));
   }
 
+  /**
+   * Prepare deployment for serving and return true on success
+   */
   public async doPrepareDeploymentForServing(
     projectId: number,
     deploymentId: number,
-    checkStatus: boolean = true): Promise<boolean> {
+    checkStatus: boolean = true,
+  ): Promise<boolean> {
     if (checkStatus) {
       const deployment = await this.getDeployment(deploymentId);
       if (!deployment) {
@@ -496,9 +500,8 @@ export default class DeploymentModule {
     try {
       const path = await this.moveExtractedDeployment(projectId, deploymentId);
       const extractionStatus = path ? 'success' : 'failed';
-      console.log(extractionStatus);
       await this.updateDeploymentStatus(deploymentId, { extractionStatus });
-      return true;
+      return extractionStatus === 'success';
     } catch (err) {
       this.logger.error(`Failed to prepare deployment ${projectId}_${deploymentId} for serving`, err);
       await this.updateDeploymentStatus(deploymentId, { extractionStatus: 'failed' });

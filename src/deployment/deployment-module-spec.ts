@@ -563,7 +563,7 @@ describe('deployment-module', () => {
     });
 
     it('should move files correctly when publicRoot is "."', async () => {
-      await shouldMoveCorrectly('foo/bar', 'test-extracted-artifact-2');
+      await shouldMoveCorrectly('.', 'test-extracted-artifact-3');
       expect(fs.existsSync(path.join(deploymentPath, 'index.html'))).to.equal(true);
     });
 
@@ -901,6 +901,29 @@ describe('deployment-module', () => {
       };
       deploymentModule.moveExtractedDeployment = async (_projectId, _deploymentId) => {
         throw Error('some error');
+      };
+
+      // Act
+      const ret = await deploymentModule.doPrepareDeploymentForServing(2, 4);
+
+      // Assert
+      expect(ret).to.equal(false);
+    });
+
+    it('should return false if moveExtractedDeployment returns undefined', async () => {
+      // Arrange
+      const deploymentModule = getDeploymentModule({} as GitlabClient, '', silentLogger);
+      deploymentModule.getDeployment = async (_deploymentId) => {
+        return {
+          buildStatus: 'success',
+        } as MinardDeployment;
+      };
+      deploymentModule.updateDeploymentStatus = async () => undefined;
+      deploymentModule.downloadAndExtractDeployment = async (_projectId, _deploymentId) => {
+        return 'string';
+      };
+      deploymentModule.moveExtractedDeployment = async (_projectId, _deploymentId) => {
+        return undefined;
       };
 
       // Act

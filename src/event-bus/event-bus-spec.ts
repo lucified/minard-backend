@@ -1,4 +1,3 @@
-
 import { expect } from 'chai';
 import * as moment from 'moment';
 import 'reflect-metadata';
@@ -44,7 +43,6 @@ describe('event-creator', () => {
   });
 
 });
-
 
 describe('event-bus', () => {
 

@@ -249,7 +249,6 @@ export default class StatusModule {
       getCharlesVersion(),
     ]);
 
-
     const response = {
       charles: {
         active: true,

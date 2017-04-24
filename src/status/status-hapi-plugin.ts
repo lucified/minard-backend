@@ -48,7 +48,7 @@ class StatusHapiPlugin {
       },
       config: {
         bind: this,
-        auth: false,
+        auth: 'admin',
       },
     }, {
       method: 'GET',

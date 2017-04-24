@@ -1,3 +1,4 @@
+
 const env = process.env.LUCIFY_ENV === 'production' ? 'production' : 'staging';
 
 module.exports = {

@@ -1,3 +1,4 @@
+
 import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
 
@@ -37,33 +38,11 @@ export class RemoteScreenshotter implements Screenshotter {
     return RemoteScreenshotter.webshot(this.host, websiteUrl, imageFile, webshotOptions);
   }
 
-  public async ping(): Promise<void> {
-    let response;
-    try {
-      response = await fetch(this.host, {
-        method: 'GET',
-        timeout: 0.5 * 60 * 1000,
-      });
-    } catch (error) {
-      throw new Error(`Ping request to screenshotter failed`);
-    }
-    // Do some additional checks, so that we know that it
-    // is really the screenshotter that is responding
-    //
-    // TODO: add proper health check endpoint for screenshotter
-    // and use that one for this ping function
-    if (response.status !== 400) {
-      throw new Error(`Unexpected status code ${response.status} for screenshotter`);
-    }
-    let json;
-    try {
-      json = await response.json();
-    } catch (error) {
-      throw new Error(`Screenshotter is responding`);
-    }
-    if (json.statusCode !== 400) {
-      throw new Error(`Unexpected message content from screenshotter`);
-    }
+  public async ping() {
+    return fetch(this.host, {
+      method: 'GET',
+      timeout: 0.5 * 60 * 1000,
+    });
   }
 
   public static async webshot(

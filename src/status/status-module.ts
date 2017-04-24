@@ -1,5 +1,5 @@
+
 import { ECS } from 'aws-sdk';
-import { exists, readFile } from 'fs-promise';
 import { inject, injectable } from 'inversify';
 import * as _ from 'lodash';
 import * as moment from 'moment';
@@ -128,7 +128,8 @@ export default class StatusModule {
       active: status === 'success',
       status: status === 'success' ? 'ok' : 'error',
       message: status === 'success' ?
-        `Successfully verified ${this.latestSystemHookRegistration.created.fromNow()}` : undefined,
+        `Successfully verified ${this.latestSystemHookRegistration.created.fromNow()}` :
+        this.latestSystemHookRegistration.payload.message,
     };
   }
 
@@ -177,9 +178,7 @@ export default class StatusModule {
         message: 'Gitlab is responding',
       };
     } catch (err) {
-      const message = err.output ?
-        `Gitlab is responding with statusCode ${err.output.statusCode}` :
-        `GitLab is not responding`;
+      const message = err.output ? `Gitlab is responding with statusCode ${err.output.statusCode}` : err.message;
       return {
         active: false,
         status: 'error',
@@ -194,14 +193,12 @@ export default class StatusModule {
       return {
         active: true,
         status: 'ok',
-        message: 'Screenshotter responds correctly to ping',
       };
     } catch (err) {
       return {
         active: false,
         status: 'error',
-        // the message if safe for being public
-        message: err.message,
+        message: `Screenshotter: ${err.message}`,
       };
     }
   }
@@ -225,7 +222,7 @@ export default class StatusModule {
       return {
         active: false,
         status: 'error',
-        message: 'Could not fetch data from PostgreSQL',
+        message: 'Could not fetch data from postgresql',
       };
     }
   }
@@ -240,20 +237,17 @@ export default class StatusModule {
   }
 
   public async getStatus(withEcs = false) {
-    const [gitlab, runners, postgresql, screenshotter, systemHook, charlesVersion] = await Promise.all([
+    const [gitlab, runners, postgresql, screenshotter, systemHook] = await Promise.all([
       this.getGitlabStatus(),
       this.getRunnersStatus(),
       this.getPostgreSqlStatus(),
       this.getScreenshotterStatus(),
       this.getSystemHookStatus(),
-      getCharlesVersion(),
     ]);
-
 
     const response = {
       charles: {
         active: true,
-        version: charlesVersion ? charlesVersion : `Unknown (only available in production & staging)`,
       },
       systemHook,
       gitlab,
@@ -285,12 +279,7 @@ export default class StatusModule {
     }
     return response as SystemStatus;
   }
-}
 
-export async function getCharlesVersion(): Promise<string | undefined> {
-  const filename = 'commit-sha';
-  const fileExists = await exists(filename);
-  return fileExists ? (await readFile('commit-sha', { encoding: 'utf-8' })).trim() : undefined;
 }
 
 export async function getEcsStatus(_env?: string) {

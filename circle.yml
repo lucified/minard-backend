@@ -1,3 +1,4 @@
+
 machine:
   node:
     version: 7.4
@@ -13,10 +14,8 @@ deployment:
   auto:
     branch: master
     commands:
-      - npm run write-version
       - npm run deploy
   chatops:
     branch: /^(?!nodeploy-).*$/
     commands:
-      - npm run write-version
       - npm run deploy-chatops

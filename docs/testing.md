@@ -23,19 +23,19 @@ the id by running system integration tests using the `TEAM_ID` environment varia
 
 ### Running tests
 
-Start the backend locally and run system integration tests against it with:
+Start the backend locally
+```shell
+INTEGRATION_TEST=true ./compose-all
+```
+
+Run system integration tests
 ```shell
 npm run-script system-test
 ```
 
-Run system integration tests against an already running local backend with
-```shell
-npm run-script system-test-mocha
-```
-
 You can run system integration tests against a custom backend with
 ```shell
-CHARLES=$CHARLES_BASEURL_QA MINARD_GIT_SERVER=$GIT_SERVER_QA npm run-script system-test-mocha
+CHARLES=$CHARLES_BASEURL_QA MINARD_GIT_SERVER=$GIT_SERVER_QA npm run-script system-test
 ```
 
 For this to work, you need to have `CHARLES_BASEURL_QA` and `MINARD_GIT_SERVER` environment

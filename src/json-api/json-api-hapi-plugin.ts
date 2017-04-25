@@ -762,7 +762,8 @@ export class JsonApiHapiPlugin {
       if (!parsed) {
         return reply(Boom.badRequest('Invalid deployment id'));
       }
-      if (await request.userHasAccessToDeployment(parsed.projectId, parsed.deploymentId, request.auth.credentials)) {
+      const { projectId, deploymentId } = parsed;
+      if (await request.userHasAccessToDeployment(projectId, deploymentId, request.auth.credentials, false)) {
         return reply(commentId);
       }
     } catch (exception) {

@@ -319,18 +319,19 @@ describe('authorization for api routes', () => {
         expect(api.deleteCommentHandler).to.not.have.been.called;
         expect(response.statusCode).to.eq(401);
       });
-      it('should allow deleting a comment for an open deployment without authentication', async () => {
+      it('should not allow deleting a comment for an open deployment without authentication', async () => {
         // Arrange
         const { server, authentication, api } = await arrangeCommentRemoval(true, true);
         // Act
-        await server.inject({
+        const response = await server.inject({
           method: 'DELETE',
           url: 'http://foo.com/comments/1',
         });
         // Assert
         expect(api.getComment).to.have.been.calledOnce;
-        expect(authentication.isOpenDeployment).to.have.been.calledOnce;
-        expect(api.deleteCommentHandler).to.have.been.calledOnce;
+        expect(authentication.isOpenDeployment).to.not.have.been.called;
+        expect(api.deleteCommentHandler).to.not.have.been.called;
+        expect(response.statusCode).to.eq(401);
       });
 
     });

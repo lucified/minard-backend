@@ -510,11 +510,28 @@ describe('authentication-hapi-plugin', () => {
     });
   });
   describe('userHasAccessToDeployment', () => {
-    it('returns true when the caller is already authorized', async () => {
+    it('returns true when the caller is already authorized and the deployment is not open', async () => {
 
       // Arrange
       const status = AuthorizationStatus.AUTHORIZED;
       const { plugin } = await getPlugin();
+
+      // Act
+      const result = await plugin.userHasAccessToDeployment(1, 1, getRequestCredentials(status));
+
+      // Assert
+      expect(result).to.be.true;
+    });
+    it('returns true when the caller is already authorized and the deployment is open', async () => {
+
+      // Arrange
+      const status = AuthorizationStatus.AUTHORIZED;
+      const { plugin } = await getPlugin(
+        (p: AuthenticationHapiPlugin) => [
+          sinon.stub(p, p.isOpenDeployment.name)
+            .returns(Promise.resolve(true)),
+        ],
+      );
 
       // Act
       const result = await plugin.userHasAccessToDeployment(1, 1, getRequestCredentials(status));
@@ -578,6 +595,25 @@ describe('authentication-hapi-plugin', () => {
       expect(plugin.isOpenDeployment).to.have.been.calledOnce;
     });
 
+    // tslint:disable-next-line:max-line-length
+    it('returns false when no credentials are provided, the deployment is open and anonymous access is not allowed', async () => {
+
+      // Arrange
+      const { plugin } = await getPlugin(
+        (p: AuthenticationHapiPlugin) => [
+          sinon.stub(p, p.isOpenDeployment.name)
+            .returns(Promise.resolve(true)),
+        ],
+      );
+
+      // Act
+      const result = await plugin.userHasAccessToDeployment(1, 1, undefined, false);
+
+      // Assert
+      expect(result).to.be.false;
+      expect(plugin.isOpenDeployment).to.not.have.been.called;
+    });
+
     it('returns false when the caller is not authorized and the deployment is not open', async () => {
 
       // Arrange
@@ -593,8 +629,8 @@ describe('authentication-hapi-plugin', () => {
       const result = await plugin.userHasAccessToDeployment(1, 1, getRequestCredentials(status));
 
       // Assert
-      expect(result).to.be.false;
       expect(plugin.isOpenDeployment).to.have.been.calledOnce;
+      expect(result).to.be.false;
     });
 
     it('returns false when no credentials are provided and the deployment is not open', async () => {

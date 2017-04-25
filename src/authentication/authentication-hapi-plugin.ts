@@ -527,6 +527,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     projectId: number,
     deploymentId: number,
     credentials?: RequestCredentials,
+    allowAnonymousAccessToOpenDeployments = true,
   ) {
     try {
     // If it's AUTHORIZED, it was checked on the top level
@@ -536,7 +537,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
         (credentials && credentials.authorizationStatus === AuthorizationStatus.AUTHORIZED) ||
         (credentials && credentials.authorizationStatus === AuthorizationStatus.NOT_CHECKED &&
           (await this.userHasAccessToProject(credentials.username!, projectId))) ||
-        (await this.isOpenDeployment(projectId, deploymentId))
+        (allowAnonymousAccessToOpenDeployments && await this.isOpenDeployment(projectId, deploymentId))
       ) {
         return true;
       }

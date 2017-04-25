@@ -353,7 +353,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       return callback(
         undefined,
         authorizationStatus === AuthorizationStatus.AUTHORIZED ||
-        authorizationStatus === AuthorizationStatus.NOT_CHECKED,
+          authorizationStatus === AuthorizationStatus.NOT_CHECKED,
         {
           ...payload,
           authorizationStatus,
@@ -529,9 +529,9 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     credentials?: RequestCredentials,
   ) {
     try {
-      // If it's AUTHORIZED, it was checked on the top level
-      // If it's NOT_CHECKED, we need to chek here
-      // Otherwise only allow access to open deployments
+    // If it's AUTHORIZED, it was checked on the top level
+    // If it's NOT_CHECKED, we need to check here
+    // Otherwise only allow access to open deployments
     if (
         (credentials && credentials.authorizationStatus === AuthorizationStatus.AUTHORIZED) ||
         (credentials && credentials.authorizationStatus === AuthorizationStatus.NOT_CHECKED &&

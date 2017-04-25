@@ -5,7 +5,7 @@ import * as sinonChai from 'sinon-chai';
 use(sinonChai);
 
 import { bootstrap } from '../config';
-import { getAccessToken } from '../config/config-test';
+import { getSignedAccessToken } from '../config/config-test';
 import { JsonApiHapiPlugin } from '../json-api';
 import { ProjectModule } from '../project';
 import { getTestServer } from '../server/hapi';
@@ -13,7 +13,7 @@ import { makeRequestWithAuthentication, MethodStubber, stubber } from '../shared
 import AuthenticationHapiPlugin from './authentication-hapi-plugin';
 import { generateTeamToken } from './team-token';
 
-const validAccessToken = getAccessToken('idp|12345678', generateTeamToken(), 'foo@bar.com');
+const validAccessToken = getSignedAccessToken('idp|12345678', generateTeamToken(), 'foo@bar.com');
 const makeRequest = makeRequestWithAuthentication(validAccessToken);
 
 async function getServer(
@@ -33,7 +33,11 @@ async function getServer(
   };
 }
 
-type AuthorizationMethod = 'userHasAccessToProject' | 'userHasAccessToTeam';
+type AuthorizationMethod =
+  'userHasAccessToProject' |
+  'userHasAccessToTeam' |
+  'userHasAccessToDeployment' |
+  'isOpenDeployment';
 
 function arrange(
   authorizationMethod: AuthorizationMethod,
@@ -183,6 +187,49 @@ describe('authorization for api routes', () => {
         expect(api.postProjectHandler).to.not.have.been.called;
       });
     });
+    describe('getDeploymentCommentsHandler', () => {
+      it('should allow fetching comments for a deployment in an authorized project', async () => {
+        // Arrange
+        const { server, authentication, api } = await arrange(
+          'userHasAccessToDeployment',
+          true,
+          'getDeploymentCommentsHandler',
+        );
+        // Act
+        await makeRequest(server, '/comments/deployment/1-1', 'GET');
+
+        // Assert
+        expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
+        expect(api.getDeploymentCommentsHandler).to.have.been.calledOnce;
+      });
+      it('should not allow fetching comments for a deployment in an unauthorized project', async () => {
+        // Arrange
+        const { server, authentication, api } = await arrange(
+          'userHasAccessToDeployment',
+          false,
+          'getDeploymentCommentsHandler',
+        );
+        // Act
+        const response = await makeRequest(server, '/comments/deployment/1-1', 'GET');
+
+        expect(response.statusCode).to.eq(401);
+        expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
+        expect(api.getDeploymentCommentsHandler).to.not.have.been.called;
+      });
+      it('should allow fetching comments for an open deployment without authentication', async () => {
+        // Arrange
+        const { server, authentication, api } = await arrange('isOpenDeployment', true, 'getDeploymentCommentsHandler');
+        // Act
+        await server.inject({
+          method: 'GET',
+          url: 'http://foo.com/comments/deployment/1-1',
+        });
+        // Assert
+        expect(authentication.isOpenDeployment).to.have.been.calledOnce;
+        expect(api.getDeploymentCommentsHandler).to.have.been.calledOnce;
+      });
+    });
+
     describe('postCommentHandler', () => {
       const payload = {
         data: {
@@ -197,7 +244,7 @@ describe('authorization for api routes', () => {
       it('should allow creating a comment for a deployment in an authorized project', async () => {
         // Arrange
         const { server, authentication, api } = await arrange(
-          'userHasAccessToProject',
+          'userHasAccessToDeployment',
           true,
           'postCommentHandler',
         );
@@ -205,25 +252,38 @@ describe('authorization for api routes', () => {
         await makeRequest(server, '/comments', 'POST', payload);
 
         // Assert
-        expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
+        expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
         expect(api.postCommentHandler).to.have.been.calledOnce;
       });
       it('should not allow creating a comment for a deployment in an unauthorized project', async () => {
         // Arrange
-        const { server, authentication, api } = await arrange('userHasAccessToProject', false, 'postCommentHandler');
+        const { server, authentication, api } = await arrange('userHasAccessToDeployment', false, 'postCommentHandler');
         // Act
         const response = await makeRequest(server, '/comments', 'POST', payload);
         // Assert
         expect(response.statusCode).to.eq(401);
-        expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
+        expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
         expect(api.postCommentHandler).to.not.have.been.called;
+      });
+      it('should allow creating a comment for an open deployment without authentication', async () => {
+        // Arrange
+        const { server, authentication, api } = await arrange('isOpenDeployment', true, 'postCommentHandler');
+        // Act
+        await server.inject({
+          method: 'POST',
+          url: 'http://foo.com/comments',
+          payload,
+        });
+        // Assert
+        expect(authentication.isOpenDeployment).to.have.been.calledOnce;
+        expect(api.postCommentHandler).to.have.been.calledOnce;
       });
     });
     describe('deleteCommentHandler', () => {
-      function arrangeCommentRemoval(hasAccess: boolean) {
+      function arrangeCommentRemoval(hasAccess: boolean, isOpen = false) {
         return getServer(
           p => [
-            sinon.stub(p, 'userHasAccessToProject')
+            sinon.stub(p, isOpen ? 'isOpenDeployment' : 'userHasAccessToDeployment')
               .returns(Promise.resolve(hasAccess)),
             sinon.stub(p, 'isAdmin')
               .returns(Promise.resolve(false)),
@@ -232,8 +292,8 @@ describe('authorization for api routes', () => {
             sinon.stub(p, 'deleteCommentHandler')
               .yields(200)
               .returns(Promise.resolve(true)),
-            sinon.stub(p, 'getCommentProjectId')
-              .returns(Promise.resolve(1)),
+            sinon.stub(p, 'getComment')
+              .returns(Promise.resolve({deployment: '1-1'})),
           ],
         );
       }
@@ -244,8 +304,8 @@ describe('authorization for api routes', () => {
         const response = await makeRequest(server, '/comments/1', 'DELETE');
         // Assert
         expect(response).to.exist;
-        expect(api.getCommentProjectId).to.have.been.calledOnce;
-        expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
+        expect(api.getComment).to.have.been.calledOnce;
+        expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
         expect(api.deleteCommentHandler).to.have.been.calledOnce;
       });
       it('should not allow deleting a comment for a deployment in an unauthorized project', async () => {
@@ -254,11 +314,26 @@ describe('authorization for api routes', () => {
         // Act
         const response = await makeRequest(server, '/comments/1', 'DELETE');
         // Assert
-        expect(api.getCommentProjectId).to.have.been.calledOnce;
-        expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
+        expect(api.getComment).to.have.been.calledOnce;
+        expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
         expect(api.deleteCommentHandler).to.not.have.been.called;
         expect(response.statusCode).to.eq(401);
       });
+      it('should not allow deleting a comment for an open deployment without authentication', async () => {
+        // Arrange
+        const { server, authentication, api } = await arrangeCommentRemoval(true, true);
+        // Act
+        const response = await server.inject({
+          method: 'DELETE',
+          url: 'http://foo.com/comments/1',
+        });
+        // Assert
+        expect(api.getComment).to.have.been.calledOnce;
+        expect(authentication.isOpenDeployment).to.not.have.been.called;
+        expect(api.deleteCommentHandler).to.not.have.been.called;
+        expect(response.statusCode).to.eq(401);
+      });
+
     });
 
     describe('postNotificationConfigurationHandler', () => {
@@ -462,5 +537,51 @@ describe('authorization for api routes', () => {
         expect(api.getActivityHandler).to.not.have.been.called;
       });
     });
+    describe('getPreviewHandler', () => {
+      it('should allow fetching the preview for a deployment in an authorized project', async () => {
+        // Arrange
+        const { server, authentication, api } = await arrange(
+          'userHasAccessToDeployment',
+          true,
+          'getPreviewHandler',
+        );
+        // Act
+        await makeRequest(server, '/preview/1-1?sha=12345678', 'GET');
+
+        // Assert
+        expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
+        expect(api.getPreviewHandler).to.have.been.calledOnce;
+      });
+      it('should not allow fetching the preview for a deployment in an unauthorized project', async () => {
+        // Arrange
+        const { server, authentication, api } = await arrange(
+          'userHasAccessToDeployment',
+          false,
+          'getPreviewHandler',
+        );
+        // Act
+        const response = await makeRequest(server, '/preview/1-1?sha=12345678', 'GET');
+
+        expect(response.statusCode).to.eq(401);
+        expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
+        expect(api.getPreviewHandler).to.not.have.been.called;
+      });
+      it('should allow fetching the preview for an open deployment without authentication', async () => {
+        // Arrange
+        const { server, authentication, api } = await arrange(
+          'isOpenDeployment',
+          true,
+          'getPreviewHandler',
+        );        // Act
+        await server.inject({
+          method: 'GET',
+          url: 'http://foo.com/preview/1-1?sha=12345678',
+        });
+        // Assert
+        expect(authentication.isOpenDeployment).to.have.been.calledOnce;
+        expect(api.getPreviewHandler).to.have.been.calledOnce;
+      });
+    });
+
   });
 });

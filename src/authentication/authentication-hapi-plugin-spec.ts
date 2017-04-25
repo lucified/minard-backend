@@ -8,7 +8,7 @@ import * as sinonChai from 'sinon-chai';
 use(sinonChai);
 
 import { bootstrap } from '../config';
-import { getAccessToken } from '../config/config-test';
+import { getAccessToken, getSignedAccessToken } from '../config/config-test';
 import { getTestServer } from '../server/hapi';
 import { makeRequestWithAuthentication, MethodStubber, stubber } from '../shared/test';
 import { adminTeamNameInjectSymbol, charlesKnexInjectSymbol, openTeamNameInjectSymbol } from '../shared/types';
@@ -19,13 +19,14 @@ import {
 } from './authentication-hapi-plugin';
 import { generateAndSaveTeamToken, generateTeamToken, teamTokenLength } from './team-token';
 import { initializeTeamTokenTable } from './team-token-spec';
+import { AuthorizationStatus, RequestCredentials } from './types';
 
 const defaultTeamTokenString = generateTeamToken();
 expect(defaultTeamTokenString.length).to.equal(teamTokenLength);
 const defaultEmail = 'foo@bar.com';
 const defaultSub = 'idp|12345678';
 
-const validAccessToken = getAccessToken(defaultSub, defaultTeamTokenString, defaultEmail);
+const validAccessToken = getSignedAccessToken(defaultSub, defaultTeamTokenString, defaultEmail);
 const invalidAccessToken = `${validAccessToken}a`;
 const makeRequest = makeRequestWithAuthentication(validAccessToken);
 
@@ -91,7 +92,7 @@ describe('authentication-hapi-plugin', () => {
         method: 'GET',
         url: 'http://foo.com/team',
         headers: {
-          'Authorization': `Bearer ${getAccessToken('abc')}`,
+          'Authorization': `Bearer ${getSignedAccessToken('abc')}`,
         },
       });
 
@@ -242,7 +243,6 @@ describe('authentication-hapi-plugin', () => {
     });
   });
   describe('team endpoint', () => {
-
     it('should be able to fetch caller\'s team', async () => {
       // Arrange
       const callerTeamId = 1;
@@ -280,7 +280,7 @@ describe('authentication-hapi-plugin', () => {
         ],
       );
       const teamToken = await generateAndSaveTeamToken(callerTeamId, db);
-      const accessToken = getAccessToken(defaultSub, teamToken.token, defaultEmail);
+      const accessToken = getSignedAccessToken(defaultSub, teamToken.token, defaultEmail);
 
       // Act
       const response = await makeRequestWithAuthentication(accessToken)(server, `/signup`);
@@ -318,7 +318,6 @@ describe('authentication-hapi-plugin', () => {
       expect((result.message as string).indexOf(defaultEmail)).to.not.eq(-1);
 
     });
-
   });
 
   describe('generatePassword', () => {
@@ -510,6 +509,149 @@ describe('authentication-hapi-plugin', () => {
       expect(result).to.be.true;
     });
   });
+  describe('userHasAccessToDeployment', () => {
+    it('returns true when the caller is already authorized and the deployment is not open', async () => {
+
+      // Arrange
+      const status = AuthorizationStatus.AUTHORIZED;
+      const { plugin } = await getPlugin();
+
+      // Act
+      const result = await plugin.userHasAccessToDeployment(1, 1, getRequestCredentials(status));
+
+      // Assert
+      expect(result).to.be.true;
+    });
+    it('returns true when the caller is already authorized and the deployment is open', async () => {
+
+      // Arrange
+      const status = AuthorizationStatus.AUTHORIZED;
+      const { plugin } = await getPlugin(
+        (p: AuthenticationHapiPlugin) => [
+          sinon.stub(p, p.isOpenDeployment.name)
+            .returns(Promise.resolve(true)),
+        ],
+      );
+
+      // Act
+      const result = await plugin.userHasAccessToDeployment(1, 1, getRequestCredentials(status));
+
+      // Assert
+      expect(result).to.be.true;
+    });
+    it('returns true when the caller is not yet authorized but has access to project', async () => {
+
+      // Arrange
+      const status = AuthorizationStatus.NOT_CHECKED;
+      const { plugin } = await getPlugin(
+        (p: AuthenticationHapiPlugin) => [
+          sinon.stub(p, p._userHasAccessToProject.name)
+            .returns(Promise.resolve(true)),
+        ],
+      );
+
+      // Act
+      const result = await plugin.userHasAccessToDeployment(1, 1, getRequestCredentials(status));
+
+      // Assert
+      expect(result).to.be.true;
+      expect(plugin._userHasAccessToProject).to.have.been.calledOnce;
+    });
+
+    it('returns true when the caller is not authorized but the deployment is open', async () => {
+
+      // Arrange
+      const status = AuthorizationStatus.UNAUTHORIZED;
+      const { plugin } = await getPlugin(
+        (p: AuthenticationHapiPlugin) => [
+          sinon.stub(p, p.isOpenDeployment.name)
+            .returns(Promise.resolve(true)),
+        ],
+      );
+
+      // Act
+      const result = await plugin.userHasAccessToDeployment(1, 1, getRequestCredentials(status));
+
+      // Assert
+      expect(result).to.be.true;
+      expect(plugin.isOpenDeployment).to.have.been.calledOnce;
+    });
+
+    it('returns true when no credentials are provided but the deployment is open', async () => {
+
+      // Arrange
+      const { plugin } = await getPlugin(
+        (p: AuthenticationHapiPlugin) => [
+          sinon.stub(p, p.isOpenDeployment.name)
+            .returns(Promise.resolve(true)),
+        ],
+      );
+
+      // Act
+      const result = await plugin.userHasAccessToDeployment(1, 1);
+
+      // Assert
+      expect(result).to.be.true;
+      expect(plugin.isOpenDeployment).to.have.been.calledOnce;
+    });
+
+    // tslint:disable-next-line:max-line-length
+    it('returns false when no credentials are provided, the deployment is open and anonymous access is not allowed', async () => {
+
+      // Arrange
+      const { plugin } = await getPlugin(
+        (p: AuthenticationHapiPlugin) => [
+          sinon.stub(p, p.isOpenDeployment.name)
+            .returns(Promise.resolve(true)),
+        ],
+      );
+
+      // Act
+      const result = await plugin.userHasAccessToDeployment(1, 1, undefined, false);
+
+      // Assert
+      expect(result).to.be.false;
+      expect(plugin.isOpenDeployment).to.not.have.been.called;
+    });
+
+    it('returns false when the caller is not authorized and the deployment is not open', async () => {
+
+      // Arrange
+      const status = AuthorizationStatus.UNAUTHORIZED;
+      const { plugin } = await getPlugin(
+        (p: AuthenticationHapiPlugin) => [
+          sinon.stub(p, p.isOpenDeployment.name)
+            .returns(Promise.resolve(false)),
+        ],
+      );
+
+      // Act
+      const result = await plugin.userHasAccessToDeployment(1, 1, getRequestCredentials(status));
+
+      // Assert
+      expect(plugin.isOpenDeployment).to.have.been.calledOnce;
+      expect(result).to.be.false;
+    });
+
+    it('returns false when no credentials are provided and the deployment is not open', async () => {
+
+      // Arrange
+      const { plugin } = await getPlugin(
+        (p: AuthenticationHapiPlugin) => [
+          sinon.stub(p, p.isOpenDeployment.name)
+            .returns(Promise.resolve(false)),
+        ],
+      );
+
+      // Act
+      const result = await plugin.userHasAccessToDeployment(1, 1);
+
+      // Assert
+      expect(result).to.be.false;
+      expect(plugin.isOpenDeployment).to.have.been.calledOnce;
+    });
+
+  });
   describe('_isAdmin', () => {
     it('returns true if the user belongs to a team with the correct name', async () => {
 
@@ -618,3 +760,10 @@ describe('authentication-hapi-plugin', () => {
     });
   });
 });
+
+function getRequestCredentials(authorizationStatus: AuthorizationStatus): RequestCredentials {
+  return {
+    ...getAccessToken('foo|123123'),
+    authorizationStatus,
+  };
+}

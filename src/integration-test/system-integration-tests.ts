@@ -13,7 +13,7 @@ import 'reflect-metadata';
 
 import { generateAndSaveTeamToken, TeamToken } from '../authentication/team-token';
 import { bootstrap } from '../config';
-import { getAccessToken } from '../config/config-test';
+import { getSignedAccessToken } from '../config/config-test';
 import { JsonApiEntity, JsonApiResponse } from '../json-api';
 import { fetch as originalFetch } from '../shared/fetch';
 import { Group, User } from '../shared/gitlab';
@@ -166,7 +166,7 @@ describe('system-integration', () => {
       this.timeout(1000 * 30);
       logTitle(`Creating an admin user to the admin team ${adminTeam.name}`);
       const adminTeamToken = await generateAndSaveTeamToken(adminTeam.id, charlesDb);
-      adminAccessToken = getAccessToken(
+      adminAccessToken = getSignedAccessToken(
         `integration|1${randomComponent}`,
         adminTeamToken.token,
         `admin${randomComponent}@integration.com`,
@@ -184,7 +184,7 @@ describe('system-integration', () => {
       logTitle(`Signing up a user to team ${userTeam.name}`);
       const userTeamToken = await (await adminFetch(`${charles}/team-token/${userTeam.id}`, { method: 'POST' }))
         .tryJson<TeamToken>();
-      userAccessToken = getAccessToken(
+      userAccessToken = getSignedAccessToken(
         `integration|2${randomComponent}`,
         userTeamToken.token,
         `user${randomComponent}@integration.com`,
@@ -199,7 +199,7 @@ describe('system-integration', () => {
       logTitle(`Signing up a user to team ${openTeam.name}`);
       const openTeamToken = await (await adminFetch(`${charles}/team-token/${openTeam.id}`, { method: 'POST' }))
         .tryJson<TeamToken>();
-      openAccessToken = getAccessToken(
+      openAccessToken = getSignedAccessToken(
         `integration|3${randomComponent}`,
         openTeamToken.token,
         `openUser${randomComponent}@integration.com`,

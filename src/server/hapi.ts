@@ -1,5 +1,6 @@
 export * from 'hapi';
 import { IReply, IRoute, IServerOptions, Request, Server } from 'hapi';
+import { RequestCredentials } from '../authentication';
 import { HapiRegister } from './hapi-register';
 
 interface PluginConfig {
@@ -20,6 +21,12 @@ declare module 'hapi' {
   interface RequestDecorators {
     userHasAccessToProject: (projectId: number) => Promise<boolean>;
     userHasAccessToTeam: (teamId: number) => Promise<boolean>;
+    userHasAccessToDeployment: (
+      projectId: number,
+      deploymentId: number,
+      credentials?: RequestCredentials,
+      allowAnonymousAccessToOpenDeployments?: boolean,
+    ) => Promise<boolean>;
     isOpenDeployment: (projectId: number, deploymentId: number) => Promise<boolean>;
     getProjectTeam: (projectId: number) => Promise<{id: number, name: string}>;
   }

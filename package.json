@@ -92,7 +92,7 @@
     "test": "TS_NODE_FAST=true NODE_ENV=test mocha --opts mocha.opts",
     "system-test": "TS_NODE_FAST=true NODE_ENV=development mocha --opts mocha-integration.opts",
     "dot-test": "mocha --opts mocha.opts --reporter dot",
-    "dev": "npm run transpile && node-dev --inspect=${DEBUG_PORT:-9229} --nolazy dist/app.js",
+    "dev": "npm run transpile && node-dev --inspect=0.0.0.0:${DEBUG_PORT:-9229} --nolazy dist/app.js",
     "start": "node dist/app.js",
     "transpile": "tsc",
     "watch": "tsc -w",

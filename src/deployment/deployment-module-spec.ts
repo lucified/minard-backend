@@ -835,7 +835,7 @@ describe('deployment-module', () => {
       expect(ret).to.equal(false);
     });
 
-    it('should return true when on success', async () => {
+    it('should return true on success', async () => {
       // Arrange
       const deploymentModule = getDeploymentModule({} as GitlabClient, '');
       deploymentModule.getDeployment = async (_deploymentId) => {
@@ -1098,7 +1098,10 @@ describe('deployment-module', () => {
       // Act & Assert
       const promise = new Promise((resolve, _reject) => {
         deploymentModule.prepareDeploymentForServing = (
-          _projectId: number, _deploymentId: number, checkStatus: boolean) => {
+          _projectId: number,
+          _deploymentId: number,
+          checkStatus: boolean,
+        ) => {
           expect(deploymentId).to.equal(_deploymentId);
           expect(projectId).to.equal(_projectId);
           expect(checkStatus).to.equal(false);

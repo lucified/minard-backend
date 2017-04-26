@@ -548,34 +548,29 @@ describe('deployment-module', () => {
         .prototype.moveExtractedDeployment.bind(deploymentModule);
 
       // Act
-      await deploymentModule.moveExtractedDeployment(projectId, deploymentId);
-
-      // Assert
-      expect(fs.existsSync(path.join(deploymentPath, 'index.html'))).to.equal(true);
+      return await deploymentModule.moveExtractedDeployment(projectId, deploymentId);
     }
 
     it('should move files correctly when publicRoot is "foo"', async () => {
-      await shouldMoveCorrectly('foo', 'test-extracted-artifact-1');
+      const ret = await shouldMoveCorrectly('foo', 'test-extracted-artifact-1');
+      expect(fs.existsSync(path.join(deploymentPath, 'index.html'))).to.equal(true);
+      expect(ret).to.equal(deploymentPath);
     });
 
     it('should move files correctly when publicRoot is "foo/bar"', async () => {
       await shouldMoveCorrectly('foo/bar', 'test-extracted-artifact-2');
+      expect(fs.existsSync(path.join(deploymentPath, 'index.html'))).to.equal(true);
     });
 
     it('should move files correctly when publicRoot is "."', async () => {
       await shouldMoveCorrectly('.', 'test-extracted-artifact-3');
+      expect(fs.existsSync(path.join(deploymentPath, 'index.html'))).to.equal(true);
     });
 
-    it('should throw error when publicRoot does not exist in artifacts"', async () => {
-      try {
-        await shouldMoveCorrectly('bar', 'test-extracted-artifact-2', silentLogger);
-        expect.fail('should throw');
-      } catch (err) {
-        expect((err as Boom.BoomError).isBoom).to.equal(true);
-        expect(err.data).to.equal('no-dir-at-public-root');
-      }
+    it('should return undefined when publicRoot does not exist in artifacts"', async () => {
+      const ret = await shouldMoveCorrectly('bar', 'test-extracted-artifact-2', silentLogger);
+      expect(ret).to.be.undefined;
     });
-
   });
 
   it('getDeploymentPath()', () => {
@@ -585,7 +580,6 @@ describe('deployment-module', () => {
   });
 
   describe('prepareDeploymentForServing', () => {
-
     function sleep(ms = 0) {
       return new Promise(resolve => setTimeout(resolve, ms));
     }
@@ -660,7 +654,6 @@ describe('deployment-module', () => {
       expect(error).to.equal('foo');
       expect(await ret[1]).to.equal('bar');
     });
-
   });
 
   describe('getMinardJsonInfo()', () => {
@@ -811,36 +804,39 @@ describe('deployment-module', () => {
 
   describe('doPrepareDeploymentForServing()', () => {
 
-    it('should throw error when deployment not found', async () => {
+    it('should return false when deployment not found', async () => {
+      // Arrange
       const deploymentModule = getDeploymentModule({} as GitlabClient, '');
       deploymentModule.getDeployment = async (deploymentId) => {
         expect(deploymentId).to.equal(4);
         return undefined as MinardDeployment | undefined;
       };
-      try {
-        await deploymentModule.doPrepareDeploymentForServing(2, 4);
-        expect.fail('should throw exception');
-      } catch (err) {
-        expect(err.message).to.equal('No deployment found for: projectId 2, deploymentId 4');
-      }
+
+      // Act
+      const ret = await deploymentModule.doPrepareDeploymentForServing(2, 4);
+
+      // Assert
+      expect(ret).to.equal(false);
     });
 
-    it('should throw error when build status is not success', async () => {
+    it('should return false when build status is not success', async () => {
+      // Arrange
       const deploymentModule = getDeploymentModule({} as GitlabClient, '', silentLogger);
       deploymentModule.getDeployment = async (_deploymentId) => {
         return {
           buildStatus: 'failed',
         } as MinardDeployment;
       };
-      try {
-        await deploymentModule.doPrepareDeploymentForServing(2, 4);
-        expect.fail('should throw exception');
-      } catch (err) {
-        expect(err.message).to.equal('Deployment status is "failed" for: projectId 2, deploymentId 4');
-      }
+
+      // Act
+      const ret = await deploymentModule.doPrepareDeploymentForServing(2, 4);
+
+      // Assert
+      expect(ret).to.equal(false);
     });
 
-    it('should call downloadAndExtractDeployment when deployment is successful', async () => {
+    it('should return true on success', async () => {
+      // Arrange
       const deploymentModule = getDeploymentModule({} as GitlabClient, '');
       deploymentModule.getDeployment = async (_deploymentId) => {
         return {
@@ -862,12 +858,17 @@ describe('deployment-module', () => {
         moveCalled = true;
         return 'string';
       };
-      await deploymentModule.doPrepareDeploymentForServing(2, 4);
+      // Act
+      const ret = await deploymentModule.doPrepareDeploymentForServing(2, 4);
+
+      // Assert
       expect(called).to.equal(true);
       expect(moveCalled).to.equal(true);
+      expect(ret).to.equal(true);
     });
 
-    it('should report internal error', async () => {
+    it('should return false if downloadAndExtractDeployment fails', async () => {
+      // Arrange
       const deploymentModule = getDeploymentModule({} as GitlabClient, '', silentLogger);
       deploymentModule.getDeployment = async (_deploymentId) => {
         return {
@@ -878,14 +879,59 @@ describe('deployment-module', () => {
       deploymentModule.downloadAndExtractDeployment = async (_projectId, _deploymentId) => {
         throw Error('some error');
       };
-      let error: any;
-      await (deploymentModule.doPrepareDeploymentForServing(2, 4)
-        .then(() => expect.fail('should throw exception')))
-        .catch((err) => error = err);
-      expect(error.isBoom).to.be.true;
-      expect(error.isServer).to.be.true;
+
+      // Act
+      const ret = await deploymentModule.doPrepareDeploymentForServing(2, 4);
+
+      // Assert
+      expect(ret).to.equal(false);
     });
 
+    it('should return false if moveExtractedDeployment fails', async () => {
+      // Arrange
+      const deploymentModule = getDeploymentModule({} as GitlabClient, '', silentLogger);
+      deploymentModule.getDeployment = async (_deploymentId) => {
+        return {
+          buildStatus: 'success',
+        } as MinardDeployment;
+      };
+      deploymentModule.updateDeploymentStatus = async () => undefined;
+      deploymentModule.downloadAndExtractDeployment = async (_projectId, _deploymentId) => {
+        return 'string';
+      };
+      deploymentModule.moveExtractedDeployment = async (_projectId, _deploymentId) => {
+        throw Error('some error');
+      };
+
+      // Act
+      const ret = await deploymentModule.doPrepareDeploymentForServing(2, 4);
+
+      // Assert
+      expect(ret).to.equal(false);
+    });
+
+    it('should return false if moveExtractedDeployment returns undefined', async () => {
+      // Arrange
+      const deploymentModule = getDeploymentModule({} as GitlabClient, '', silentLogger);
+      deploymentModule.getDeployment = async (_deploymentId) => {
+        return {
+          buildStatus: 'success',
+        } as MinardDeployment;
+      };
+      deploymentModule.updateDeploymentStatus = async () => undefined;
+      deploymentModule.downloadAndExtractDeployment = async (_projectId, _deploymentId) => {
+        return 'string';
+      };
+      deploymentModule.moveExtractedDeployment = async (_projectId, _deploymentId) => {
+        return undefined;
+      };
+
+      // Act
+      const ret = await deploymentModule.doPrepareDeploymentForServing(2, 4);
+
+      // Assert
+      expect(ret).to.equal(false);
+    });
   });
 
   describe('getGitLabYml()', () => {
@@ -1051,12 +1097,16 @@ describe('deployment-module', () => {
 
       // Act & Assert
       const promise = new Promise((resolve, _reject) => {
-        deploymentModule.prepareDeploymentForServing = async (
-          _projectId: number, _deploymentId: number, checkStatus: boolean) => {
+        deploymentModule.prepareDeploymentForServing = (
+          _projectId: number,
+          _deploymentId: number,
+          checkStatus: boolean,
+        ) => {
           expect(deploymentId).to.equal(_deploymentId);
           expect(projectId).to.equal(_projectId);
           expect(checkStatus).to.equal(false);
           resolve();
+          return Promise.resolve();
         };
       });
 
@@ -1071,6 +1121,44 @@ describe('deployment-module', () => {
       } as any;
       bus.post(createDeploymentEvent(payload));
       await promise;
+    });
+
+    it('should prepare finished builds for serving even if previous preparation throws an error', async () => {
+      // Arrange
+      const deploymentId = 5;
+      const projectId = 7;
+      const bus = getEventBus();
+      let count = 0;
+      const deploymentModule = createDeploymentModule(bus, silentLogger);
+
+      // Act & Assert
+      const promise = new Promise((resolve, _reject) => {
+        deploymentModule.prepareDeploymentForServing = (
+          _projectId: number, _deploymentId: number, checkStatus: boolean) => {
+          count++;
+          if (count === 1) {
+            throw new Error('foo');
+          }
+          expect(deploymentId).to.equal(_deploymentId);
+          expect(projectId).to.equal(_projectId);
+          expect(checkStatus).to.equal(false);
+          resolve();
+          return Promise.resolve();
+        };
+      });
+      const payload: DeploymentEvent = {
+        deployment: {
+          id: deploymentId,
+          projectId,
+        },
+        statusUpdate: {
+          buildStatus: 'success',
+        },
+      } as any;
+      bus.post(createDeploymentEvent(payload));
+      bus.post(createDeploymentEvent(payload));
+      await promise;
+      expect(count).to.equal(2);
     });
 
     it('should take screenshots after successful extractions', async () => {
@@ -1177,7 +1265,7 @@ describe('deployment-module', () => {
       // Arrange
       const bus = getEventBus();
       const deploymentModule = await arrangeDeploymentModule(bus, await initializeDb(beforeState));
-      deploymentModule.doPrepareDeploymentForServing = async(_projectId: number, _deploymentId: number) => 'string';
+      deploymentModule.doPrepareDeploymentForServing = async(_projectId: number, _deploymentId: number) => true;
       deploymentModule.takeScreenshot = async(_projectId: number, _deploymentId: number) => undefined;
 
       const promise = bus.filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
@@ -1210,7 +1298,7 @@ describe('deployment-module', () => {
       // Arrange
       const bus = getEventBus();
       const deploymentModule = await arrangeDeploymentModule(bus, await initializeDb(beforeState));
-      deploymentModule.doPrepareDeploymentForServing = async(_projectId: number, _deploymentId: number) => 'string';
+      deploymentModule.doPrepareDeploymentForServing = async(_projectId: number, _deploymentId: number) => true;
       deploymentModule.takeScreenshot = async(_projectId: number, _deploymentId: number) => undefined;
 
       let called = false;

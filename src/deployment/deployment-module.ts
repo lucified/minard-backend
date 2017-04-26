@@ -139,13 +139,17 @@ export default class DeploymentModule {
     // subscribe on finished builds
     this.eventBus.filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
       .filter(event => event.payload.statusUpdate.buildStatus === 'success')
-      .flatMap(event => {
+      .flatMap(async event => {
         const { projectId, id } = event.payload.deployment;
-        return this.prepareDeploymentForServing(projectId, id, false);
+        try {
+          await this.prepareDeploymentForServing(projectId, id, false);
+        } catch (error) {
+          this.logger.error(`Failed to prepare deployment ${id} for serving`, error);
+        }
       })
       .subscribe();
 
-    // subscribe on exracted builds
+    // subscribe on extracted builds
     this.eventBus.filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
       .filter(event => event.payload.statusUpdate.extractionStatus === 'success')
       .flatMap(event => {
@@ -459,37 +463,49 @@ export default class DeploymentModule {
     return this.prepareQueue.add(() => this.doPrepareDeploymentForServing(projectId, deploymentId, checkStatus));
   }
 
-  public async doPrepareDeploymentForServing(projectId: number, deploymentId: number, checkStatus: boolean = true) {
+  /**
+   * Prepare deployment for serving and return true on success
+   */
+  public async doPrepareDeploymentForServing(
+    projectId: number,
+    deploymentId: number,
+    checkStatus: boolean = true,
+  ): Promise<boolean> {
     if (checkStatus) {
       const deployment = await this.getDeployment(deploymentId);
       if (!deployment) {
-        throw Boom.notFound(
-          `No deployment found for: projectId ${projectId}, deploymentId ${deploymentId}`);
+        this.logger.error(`No deployment ${deploymentId} found when trying to prepare it for serving`);
+        return false;
       }
       // GitLab will return status === 'running' for a while also after
       // deployment has succeeded. if we know that the deployment is OK,
       // it is okay to skip the status check
       if (deployment.buildStatus !== 'success') {
-        this.logger.warn(`Tried to prepare deployment for serving while deployment build status is ` +
+        this.logger.error(`Tried to prepare deployment for serving while deployment build status is ` +
           `"${deployment.buildStatus}", projectId: ${projectId}, deploymentId: ${deploymentId}`);
-
-        // From wikipedia (https://en.wikipedia.org/wiki/List_of_HTTP_status_codes)
-        // "The requested resource could not be found but may be available in the future.
-        // Subsequent requests by the client are permissible"
-        throw Boom.notFound(`Deployment status is "${deployment.buildStatus}" for: projectId ${projectId}, ` +
-          `deploymentId ${deploymentId}`);
+        return false;
       }
     }
+
+    await this.updateDeploymentStatus(deploymentId, { extractionStatus: 'running' });
+
     try {
-      this.updateDeploymentStatus(deploymentId, { extractionStatus: 'running' });
       await this.downloadAndExtractDeployment(projectId, deploymentId);
-      const finalPath = await this.moveExtractedDeployment(projectId, deploymentId);
-      this.updateDeploymentStatus(deploymentId, { extractionStatus: 'success' });
-      return finalPath;
     } catch (err) {
-      this.logger.warn(`Failed to prepare deployment ${projectId}_${deploymentId} for serving`, err);
-      this.updateDeploymentStatus(deploymentId, { extractionStatus: 'failed' });
-      throw Boom.badImplementation();
+      this.logger.error('Failed to download and extract deployment', err);
+      await this.updateDeploymentStatus(deploymentId, { extractionStatus: 'failed' });
+      return false;
+    }
+
+    try {
+      const path = await this.moveExtractedDeployment(projectId, deploymentId);
+      const extractionStatus = path ? 'success' : 'failed';
+      await this.updateDeploymentStatus(deploymentId, { extractionStatus });
+      return extractionStatus === 'success';
+    } catch (err) {
+      this.logger.error(`Failed to prepare deployment ${projectId}_${deploymentId} for serving`, err);
+      await this.updateDeploymentStatus(deploymentId, { extractionStatus: 'failed' });
+      return false;
     }
   }
 
@@ -599,8 +615,9 @@ export default class DeploymentModule {
     if (!exists) {
       const msg = `Deployment "${projectId}_${deploymentId}" did not have directory at repo path ` +
         `"${minardJson.effective.publicRoot}". Local sourcePath was ${sourcePath}`;
-      this.logger.warn(msg);
-      throw Boom.badData(msg, 'no-dir-at-public-root');
+      // This should be caused by an user error, so just log this as an info message
+      this.logger.info(msg);
+      return undefined;
     }
     try {
       await mkpath(finalPath);

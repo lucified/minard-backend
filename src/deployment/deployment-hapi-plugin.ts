@@ -168,12 +168,7 @@ class DeploymentHapiPlugin extends HapiPlugin {
     }
     const isReady = this.deploymentModule.isDeploymentReadyToServe(projectId, deploymentId);
     if (!isReady) {
-      try {
-        await this.deploymentModule.prepareDeploymentForServing(projectId, deploymentId);
-        this.logger.info(`Prepared deployment for serving (projectId: ${projectId}, deploymentId: ${deploymentId})`);
-      } catch (err) {
-        return reply(Boom.notFound(err.message));
-      }
+      return reply(Boom.notFound(`Deployment is not ready for serving`));
     }
     return reply('ok');
   }

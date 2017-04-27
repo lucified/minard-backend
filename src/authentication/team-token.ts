@@ -16,7 +16,8 @@ export interface TeamToken {
  * The results can be filtered by specifying a token,
  * a teamId or both.
  */
-export function teamTokenQuery(db: Knex, token?: string, teamId?: number) {
+export function teamTokenQuery(db: Knex, options: { token?: string, teamId?: number }) {
+  const { token, teamId } = options;
   const latestTokens = db('teamtoken')
     .select('teamId')
     .max('createdAt AS latestStamp')
@@ -50,7 +51,7 @@ export async function getTeamIdWithToken(token: string, db: Knex) {
   if (typeof token !== 'string') {
     throw new Error(`Token is not a string`);
   }
-  const teamTokens: TeamToken[] = await teamTokenQuery(db, token);
+  const teamTokens: TeamToken[] = await teamTokenQuery(db, { token });
   if (!teamTokens || teamTokens.length === 0) {
     throw new Error(`Unable to find teamId for the token ${token}`);
   }
@@ -77,7 +78,7 @@ export async function generateAndSaveTeamToken(teamId: number, db: Knex): Promis
       token: generateTeamToken(),
       createdAt: moment.utc().valueOf(),
     };
-    const existing = await teamTokenQuery(db, token.token);
+    const existing = await teamTokenQuery(db, { token: token.token });
     if (existing && existing.length > 0) {
       continue;
     }

@@ -261,7 +261,48 @@ describe('authentication-hapi-plugin', () => {
       expect(plugin._getUserGroups).to.have.been.calledOnce;
       const team = JSON.parse(response.payload);
       expect(team.id).to.eq(callerTeamId);
+    });
 
+    it('should return the team\'s teamToken', async () => {
+      // Arrange
+      const callerTeamId = 1;
+      const { server, plugin, db } = await getServer(
+        (p: AuthenticationHapiPlugin) => [
+          sinon.stub(p, '_getUserGroups')
+            .returns(Promise.resolve([{ id: callerTeamId, name: 'foo' }])),
+        ],
+      );
+
+      const teamTokenObject = await generateAndSaveTeamToken(callerTeamId, db);
+
+      // Act
+      const response = await makeRequest(server, `/team`);
+
+      // Assert
+      expect(response.statusCode).to.eq(200);
+      expect(plugin._getUserGroups).to.have.been.calledOnce;
+      const team = JSON.parse(response.payload);
+      expect(team['invitation-token']).to.eq(teamTokenObject.token);
+    });
+
+    it('should return undefined as the teamToken if one doesn\'t exist', async () => {
+      // Arrange
+      const callerTeamId = 1;
+      const { server, plugin } = await getServer(
+        (p: AuthenticationHapiPlugin) => [
+          sinon.stub(p, '_getUserGroups')
+            .returns(Promise.resolve([{ id: callerTeamId, name: 'foo' }])),
+        ],
+      );
+
+      // Act
+      const response = await makeRequest(server, `/team`);
+
+      // Assert
+      expect(response.statusCode).to.eq(200);
+      expect(plugin._getUserGroups).to.have.been.calledOnce;
+      const team = JSON.parse(response.payload);
+      expect(team['invitation-token']).to.be.undefined;
     });
   });
 

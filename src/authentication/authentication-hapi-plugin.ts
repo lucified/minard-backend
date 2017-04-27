@@ -206,9 +206,14 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   public async getTeamHandler(request: Hapi.Request, reply: Hapi.IReply) {
     try {
       const credentials = request.auth.credentials as AccessToken;
-      const teams = await this._getUserGroups(sanitizeUsername(credentials.sub));
+      const username = sanitizeUsername(credentials.sub);
+      const teams = await this._getUserGroups(username);
+      const team = teams[0]; // NOTE: we only support a single team for now
       this.setAuthCookie(request, reply);
-      return reply(teams[0]); // NOTE: we only support a single team for now
+      const teamTokenResult = await teamTokenQuery(this.db, { teamId: team.id });
+      const teamToken =
+        (teamTokenResult && teamTokenResult.length) ? teamTokenResult[0].token : undefined;
+      return reply({ ...team, 'invitation-token': teamToken });
     } catch (error) {
       this.logger.error(`Can't fetch user or team`, error);
       return reply(Boom.wrap(error, 404));
@@ -251,7 +256,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       } else {
         return reply(Boom.create(401, `Insufficient privileges`));
       }
-      const teamToken = await teamTokenQuery(this.db, undefined, teamId);
+      const teamToken = await teamTokenQuery(this.db, { teamId });
       if (!teamToken || !teamToken.length) {
         throw new Error(`No token found for team ${teamId}`);
       }

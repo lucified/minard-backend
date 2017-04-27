@@ -284,6 +284,26 @@ describe('authentication-hapi-plugin', () => {
       const team = JSON.parse(response.payload);
       expect(team['invitation-token']).to.eq(teamTokenObject.token);
     });
+
+    it('should return undefined as the teamToken if one doesn\'t exist', async () => {
+      // Arrange
+      const callerTeamId = 1;
+      const { server, plugin } = await getServer(
+        (p: AuthenticationHapiPlugin) => [
+          sinon.stub(p, '_getUserGroups')
+            .returns(Promise.resolve([{ id: callerTeamId, name: 'foo' }])),
+        ],
+      );
+
+      // Act
+      const response = await makeRequest(server, `/team`);
+
+      // Assert
+      expect(response.statusCode).to.eq(200);
+      expect(plugin._getUserGroups).to.have.been.calledOnce;
+      const team = JSON.parse(response.payload);
+      expect(team['invitation-token']).to.eq(undefined);
+    });
   });
 
   describe('signup endpoint', () => {

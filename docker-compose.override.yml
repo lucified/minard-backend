@@ -46,6 +46,7 @@ services:
       - ./gitlab-data/charles/screenshots:/screenshots
     environment:
       - DEBUG=1
+      - DNS_HOSTNAME=bind.local
 
   bind:
     image: cosmicq/docker-bind

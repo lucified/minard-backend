@@ -28,7 +28,6 @@ export default class ScreenshotModule {
 
   public static injectSymbol = Symbol('screenshot-module');
 
-
   constructor(
     @inject(logger.loggerInjectSymbol) private readonly logger: logger.Logger,
     @inject(screenshotUrlPattern) private readonly urlPattern: string,

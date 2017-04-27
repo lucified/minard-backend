@@ -302,7 +302,7 @@ describe('authentication-hapi-plugin', () => {
       expect(response.statusCode).to.eq(200);
       expect(plugin._getUserGroups).to.have.been.calledOnce;
       const team = JSON.parse(response.payload);
-      expect(team['invitation-token']).to.eq(undefined);
+      expect(team['invitation-token']).to.be.undefined;
     });
   });
 

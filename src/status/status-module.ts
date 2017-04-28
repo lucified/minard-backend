@@ -38,6 +38,7 @@ interface SystemStatus {
 interface Status {
   active: boolean;
   status?: string;
+  statusCode?: number;
   message?: string;
   ecs?: any;
 }

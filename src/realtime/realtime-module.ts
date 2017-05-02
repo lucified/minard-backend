@@ -81,8 +81,9 @@ export class RealtimeModule {
     const existing = await this.eventBus.getEvents(teamId, lastEventId);
     if (existing && existing.length > 0) {
       existing.shift(); // getEvents is '>= since', but here we want '> since'
+      return Observable.from(existing);
     }
-    return Observable.from(existing || []);
+    return Observable.empty<PersistedEvent<any>>();
   }
 
   private getEnrichedStream(stream: Observable<Event<any>>): Observable<StreamingEvent<any>> {

@@ -52,7 +52,9 @@ export default class EventStore {
       try {
         await this.connect();
         this.logger.debug('Trying to get event stream for team %s', teamId);
-        return this.eventStore.getEventStream(String(teamId), since, -1) as { events: PersistedEvent<any>[] };
+        const stream = await this.eventStore.getEventStream(String(teamId), since, -1);
+        this.logger.debug('Found %d events', stream && stream.events && stream.events.length || 0);
+        return stream as { events: PersistedEvent<any>[] };
       } catch (error) {
         this.isConnected = false;
         this.logger.error('Unable to get event stream for team %s', teamId, error);

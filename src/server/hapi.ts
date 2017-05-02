@@ -62,6 +62,9 @@ export async function getTestServer(initialize: boolean, ...plugins: PluginConfi
     // A connection needs to be defined at least for authentication
     server.connection({
       port: 65551,
+      routes: {
+        cors: true,
+      },
     });
     await server.register(plugins);
     if (initialize) {

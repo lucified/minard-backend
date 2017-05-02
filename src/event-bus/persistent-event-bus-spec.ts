@@ -199,6 +199,9 @@ describe('persistent-event-bus', () => {
 
     await promise;
     const events = await bus.getEvents(teamId);
+    if (!events) {
+      return expect.fail('Unexpected error');
+    }
     expect(events.length).to.eql(2);
     expect(events[0].streamRevision).to.eql(0);
     expect(events[1].streamRevision).to.eql(1);
@@ -221,6 +224,9 @@ describe('persistent-event-bus', () => {
 
     await promise;
     const events = await bus.getEvents(teamId, 1);
+    if (!events) {
+      return expect.fail('Unexpected error');
+    }
     expect(events.length).to.eql(1);
     expect(events[0].streamRevision).to.eql(1);
     expect(events[0].payload.foo).to.eql('baz');
@@ -248,6 +254,9 @@ describe('persistent-event-bus', () => {
     const persisted = await persistedPromise;
     expect(persisted.length).to.eq(numPersisted);
     const existing = await bus.getEvents(teamId, since);
+    if (!existing) {
+      return expect.fail('Unexpected error');
+    }
     expect(existing.length).to.eq(numPersisted - since);
     const realTime = bus.getStream().filter(isPersistedEvent)
       .map(event => <PersistedEvent<any>> event);

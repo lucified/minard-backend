@@ -89,7 +89,7 @@ export default class ScreenshotModule {
     const url = sprintf(this.urlPattern, `${shortId}-${projectId}-${deploymentId}`);
     const dest = this.getRemoteDest(projectId, deploymentId);
     const options: PageresOptions = {
-      filename: this.getScreenshotFilename(projectId, deploymentId).replace(/\.[^.]+$/, ''),
+      filename: stripExtension(this.getScreenshotFilename(projectId, deploymentId)),
       delay: 5,
       format: 'jpg',
     };
@@ -103,4 +103,8 @@ export default class ScreenshotModule {
     }
   }
 
+}
+
+export function stripExtension(filename: string) {
+  return filename.replace(/\.[^.]+$/, '');
 }

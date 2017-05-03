@@ -5,6 +5,30 @@ import { sleep } from '../shared/sleep';
 
 const eventStoreConstructor = require('eventstore');
 
+export interface EventStoreEvent<T> {
+  streamId: string;
+  aggregateId: string;
+  aggregate: any;
+  context: any;
+  streamRevision: number;
+  commitId: string;
+  commitSequence: number;
+  commitStamp: Date;
+  payload: T;
+  id: string;
+  restInCommitStream: number;
+}
+
+export interface EventStoreStream<T> {
+  streamId: string;
+  aggregateId: string;
+  aggregate: any;
+  context: any;
+  events: EventStoreEvent<T>[];
+  id: string;
+  lastRevision: number;
+}
+
 export default class EventStore {
 
   private isConnected = false;
@@ -16,27 +40,11 @@ export default class EventStore {
     private readonly logger: Logger,
     private readonly numRetries = 1,
     private readonly sleepFor = 300,
-  ) {
-  }
+  ) { }
 
   public async persistEvent(event: Event<any>) {
-    const tryPersistEvent = async () => {
-      try {
-        await this.connect();
-        const stream = await this.eventStore.getLastEventAsStream({
-          aggregateId: String(event.teamId),
-        });
-        stream.addEvent(event);
-        await this.eventStore.commit(stream);
-        return true;
-      } catch (err) {
-        this.logger.error('Unable to post event %s', event.type, err);
-        this.isConnected = false;
-        return false;
-      }
-    };
     for (let i = 0; i < this.numRetries + 1; i++) {
-      const persisted = await tryPersistEvent();
+      const persisted = await this.tryPersistEvent(event);
       if (persisted === true) {
         return true;
       }
@@ -47,32 +55,31 @@ export default class EventStore {
     return false;
   }
 
-  public async getEvents(teamId: number, since: number = 0): Promise<PersistedEvent<any>[] |  false> {
-    const tryGetStream = async () => {
-      try {
-        await this.connect();
-        this.logger.debug('Trying to get event stream for team %s', teamId);
-        const stream = await this.eventStore.getEventStream(String(teamId), since, -1);
-        this.logger.debug('Found %d events', stream && stream.events && stream.events.length || 0);
-        return stream as { events: PersistedEvent<any>[] };
-      } catch (error) {
-        this.isConnected = false;
-        this.logger.error('Unable to get event stream for team %s', teamId, error);
-        return false;
-      }
-    };
+  private async tryPersistEvent(event: Event<any>) {
+    try {
+      await this.connect();
+      const stream = await this.eventStore.getLastEventAsStream({
+        aggregateId: String(event.teamId),
+      });
+      stream.addEvent(event);
+      await this.eventStore.commit(stream);
+      return true;
+    } catch (err) {
+      this.logger.error('Unable to post event %s', event.type, err);
+      this.isConnected = false;
+      return false;
+    }
+  }
+
+  public async getEvents(teamId: number, since: number = 0): Promise<PersistedEvent<any>[] | false> {
     for (let i = 0; i < this.numRetries + 1; i++) {
-      const stream = await tryGetStream();
+      const stream = await this.tryGetStream(teamId, since);
       if (stream) {
-        if (!stream.events) {
-          return [];
-        }
-        return stream.events.map((event: any, j: number) => {
+        return stream.map((event: any, j: number) => {
           event.payload.streamRevision = since + j;
           return event.payload;
         });
       }
-      // Force reconnect
       if (i < this.numRetries) {
         await sleep(this.sleepFor);
       }
@@ -80,7 +87,25 @@ export default class EventStore {
     return false;
   }
 
-  private async connect(): Promise<boolean> {
+  private async tryGetStream(
+    teamId: number,
+    since: number = 0,
+  ): Promise<EventStoreEvent<PersistedEvent<any>>[] | false> {
+    try {
+      await this.connect();
+      this.logger.debug('Trying to get event stream for team %s', teamId);
+      const _stream = await this.eventStore.getEventStream(String(teamId), since, -1);
+      const stream = _stream as EventStoreStream<PersistedEvent<any>>;
+      this.logger.debug('Found %d events', stream && stream.events && stream.events.length || 0);
+      return (stream && stream.events) || [];
+    } catch (error) {
+      this.isConnected = false;
+      this.logger.error('Unable to get event stream for team %s', teamId, error);
+      return false;
+    }
+  }
+
+  private async connect(): Promise<void> {
     if (!this.isConnected) {
       const eventStore = promisifyEventStore(eventStoreConstructor(this.eventStoreConfig));
       eventStore.useEventPublisher(this.publisher);
@@ -93,7 +118,6 @@ export default class EventStore {
       this.isConnected = true;
       this.logger.info('Connected to persistence of type %s', this.eventStoreConfig.type);
     }
-    return true;
   }
 }
 

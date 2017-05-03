@@ -76,7 +76,6 @@ export class PersistentEventBus extends LocalEventBus {
       }, 1)
       .timeInterval()
       .do(executedJob => {
-        // const executedJob = _executedJob as any;
         const { event, duration } = executedJob.value;
         const interval = executedJob.interval;
         this.logger.debug('%sms %sms %s', duration, interval, event.type);

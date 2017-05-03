@@ -75,7 +75,7 @@
     "@types/wreck": "^7.0.28",
     "@types/yamljs": "^0.2.30",
     "chai": "^3.5.0",
-    "ecs-updater": "^0.3.0",
+    "ecs-updater": "^0.3.4",
     "eventsource": "^0.2.1",
     "fetch-mock": "^5.10.0",
     "jsonwebtoken": "^7.3.0",

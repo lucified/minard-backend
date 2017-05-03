@@ -63,7 +63,6 @@ export default class MinardServer {
     @inject(exitDelayInjectSymbol) private readonly exitDelay: number,
     @inject(hapiOptionsInjectSymbol) @optional() hapiOptions?: Hapi.IServerOptions,
   ) {
-    console.log(this.minardUiBaseUrl);
     this.hapiServer = Hapi.getServer(hapiOptions);
     this.publicServer = this.hapiServer.connection({
       host: this.host,
@@ -76,7 +75,7 @@ export default class MinardServer {
         cors: {
           origin: [this.minardUiBaseUrl],
           additionalHeaders: [
-            'Accept-language',
+            'Accept-Language',
           ],
         },
       },

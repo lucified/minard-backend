@@ -1,7 +1,11 @@
 
 const envVars = process.env;
 const environment = envVars.LUCIFY_ENV === 'production' ? 'production' : 'staging';
-const statusUrl = `https://${environment === 'production' ? '' : 'staging.'}minard.io/charles/status/ecs`;
+
+const statusUrl = environment === production ?
+'https://charles.minard.io/status' :
+'https://charles.minard.team/status';
+
 module.exports = {
   deployment: {
     branch: {

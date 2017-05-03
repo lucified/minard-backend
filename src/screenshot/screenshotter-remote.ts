@@ -56,7 +56,7 @@ export class RemoteScreenshotter implements Screenshotter {
   public async ping(): Promise<void> {
     let response;
     try {
-      response = await this.fetch(this.host, {
+      response = await this.fetch(`${this.host}/health`, {
         method: 'GET',
         timeout: 0.5 * 60 * 1000,
       });
@@ -68,17 +68,18 @@ export class RemoteScreenshotter implements Screenshotter {
     //
     // TODO: add proper health check endpoint for screenshotter
     // and use that one for this ping function.
-    if (response.status !== 404) {
+    if (response.status !== 200) {
       throw new Error(`Unexpected status code ${response.status} for screenshotter`);
     }
-    let json;
+
+    let text;
     try {
-      json = await response.json();
+      text = await response.text();
     } catch (error) {
-      throw new Error(`Response from screenshotter is not valid JSON`);
+      throw new Error(`Could not read response text from screenshotter`);
     }
-    if (json.statusCode !== 404) {
-      throw new Error(`Unexpected message content from screenshotter`);
+    if (text !== 'screenshotter ok') {
+      throw new Error('Unexpected response from screenshotter');
     }
   }
 }

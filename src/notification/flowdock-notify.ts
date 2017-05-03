@@ -92,7 +92,9 @@ export class FlowdockNotify {
       },
       body: form,
     };
-    return this.doFetch(options);
+    // We need to cast here since fetch expects the type of the body to be the
+    // globally defined FormData which doesn't exist in node
+    return this.doFetch(options as any);
   }
 
   private async doFetch(options: RequestInit) {

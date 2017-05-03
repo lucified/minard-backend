@@ -9,4 +9,5 @@ module.exports = {
   BUCKET: 'lucify-configuration',
   KEY: `ecs_services/charles_${env}`,
   DOCKERFILE: 'Dockerfile-production',
+  TASKDEFINITION_SOURCE: 'ecs-only',
 };

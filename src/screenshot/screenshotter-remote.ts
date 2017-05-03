@@ -1,26 +1,22 @@
 import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
 
-import { fetch } from '../shared/fetch';
+import { IFetch } from '../shared/fetch';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
-import { Screenshotter, screenshotterBaseurlInjectSymbol } from './types';
+import { fetchInjectSymbol } from '../shared/types';
+import { PageresOptions, Screenshotter, screenshotterBaseurlInjectSymbol } from './types';
 
 @injectable()
 export class RemoteScreenshotter implements Screenshotter {
 
   public static injectSymbol = Symbol('screenshotter-client');
 
-  public readonly host: string;
-  private logger: Logger;
-  private logging: boolean;
-
   public constructor(
-    @inject(screenshotterBaseurlInjectSymbol) host: string,
-    @inject(loggerInjectSymbol) logger: Logger,
-    logging: boolean = false) {
-    this.host = host.replace(/\/$/, '') + '/';
-    this.logger = logger;
-    this.logging = logging;
+    @inject(screenshotterBaseurlInjectSymbol) private readonly host: string,
+    @inject(fetchInjectSymbol) private readonly fetch: IFetch,
+    @inject(loggerInjectSymbol) private readonly logger: Logger,
+    private readonly logging: boolean = false) {
+    this.host = host.replace(/\/$/, '');
   }
 
   private log(msg: string): void {
@@ -32,54 +28,15 @@ export class RemoteScreenshotter implements Screenshotter {
   /**
    * Take a screenshot of a website and save to a file
    */
-  public async webshot(websiteUrl: string, imageFile: string, webshotOptions?: any): Promise<boolean> {
+  public async save(url: string, dest: string, options?: PageresOptions): Promise<boolean> {
     this.log(`RemoteScreenshotter: sending a request to ${this.host}`);
-    return RemoteScreenshotter.webshot(this.host, websiteUrl, imageFile, webshotOptions);
-  }
-
-  public async ping(): Promise<void> {
-    let response;
-    try {
-      response = await fetch(this.host, {
-        method: 'GET',
-        timeout: 0.5 * 60 * 1000,
-      });
-    } catch (error) {
-      throw new Error(`Ping request to screenshotter failed`);
-    }
-    // Do some additional checks, so that we know that it
-    // is really the screenshotter that is responding
-    //
-    // TODO: add proper health check endpoint for screenshotter
-    // and use that one for this ping function.
-    // Currently we use the regular endpoint for taking screenshots.
-    // Without parameters it is expected to return status code 400
-    if (response.status !== 400) {
-      throw new Error(`Unexpected status code ${response.status} for screenshotter`);
-    }
-    let json;
-    try {
-      json = await response.json();
-    } catch (error) {
-      throw new Error(`Response from screenshotter is not valid JSON`);
-    }
-    if (json.statusCode !== 400) {
-      throw new Error(`Unexpected message content from screenshotter`);
-    }
-  }
-
-  public static async webshot(
-    host: string,
-    websiteUrl: string,
-    imageFile: string,
-    webshotOptions?: any): Promise<boolean> {
     const body = {
-      url: websiteUrl,
-      fileName: imageFile,
-      options: webshotOptions || {},
+      url,
+      dest,
+      options,
     };
     try {
-      const response = await fetch(host.replace(/\/$/, '') + '/', {
+      const response = await this.fetch(`${this.host}/save`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -93,6 +50,35 @@ export class RemoteScreenshotter implements Screenshotter {
       return true;
     } catch (err) {
       throw Boom.wrap(err);
+    }
+  }
+
+  public async ping(): Promise<void> {
+    let response;
+    try {
+      response = await this.fetch(this.host, {
+        method: 'GET',
+        timeout: 0.5 * 60 * 1000,
+      });
+    } catch (error) {
+      throw new Error(`Ping request to screenshotter failed`);
+    }
+    // Do some additional checks, so that we know that it
+    // is really the screenshotter that is responding
+    //
+    // TODO: add proper health check endpoint for screenshotter
+    // and use that one for this ping function.
+    if (response.status !== 404) {
+      throw new Error(`Unexpected status code ${response.status} for screenshotter`);
+    }
+    let json;
+    try {
+      json = await response.json();
+    } catch (error) {
+      throw new Error(`Response from screenshotter is not valid JSON`);
+    }
+    if (json.statusCode !== 404) {
+      throw new Error(`Unexpected message content from screenshotter`);
     }
   }
 }

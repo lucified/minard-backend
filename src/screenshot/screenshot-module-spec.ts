@@ -25,7 +25,7 @@ describe('screenshot-module', () => {
       let url = null as string | null;
       let path = null as string | null;
       const webshot = {
-        webshot: (_url: string, _path: string, _options?: any) => {
+        save: (_url: string, _path: string, _options?: any) => {
           url = _url;
           path = _path;
           return Promise.resolve(true);

@@ -11,6 +11,7 @@ import * as logger from '../shared/logger';
 import TokenGenerator from '../shared/token-generator';
 
 import {
+  PageresOptions,
   screenshotFolderInjectSymbol,
   Screenshotter,
   screenshotterInjectSymbol,
@@ -26,26 +27,16 @@ import { promisify } from '../shared/promisify';
 export default class ScreenshotModule {
 
   public static injectSymbol = Symbol('screenshot-module');
-  private readonly logger: logger.Logger;
-  private readonly urlPattern: string;
-  private readonly screenshotter: Screenshotter;
-  private readonly folder: string;
-  private readonly externalBaseUrl: string;
-  private readonly tokenGenerator: TokenGenerator;
 
   constructor(
-    @inject(logger.loggerInjectSymbol) logger: logger.Logger,
-    @inject(screenshotUrlPattern) urlPattern: string,
-    @inject(screenshotterInjectSymbol) screenshotter: Screenshotter,
-    @inject(screenshotFolderInjectSymbol) folder: string,
-    @inject(externalBaseUrlInjectSymbol) baseUrl: string,
-    @inject(TokenGenerator.injectSymbol) tokenGenerator: TokenGenerator) {
-    this.logger = logger;
-    this.urlPattern = urlPattern;
-    this.screenshotter = screenshotter;
-    this.folder = folder;
-    this.externalBaseUrl = baseUrl;
-    this.tokenGenerator = tokenGenerator;
+    @inject(logger.loggerInjectSymbol) private readonly logger: logger.Logger,
+    @inject(screenshotUrlPattern) private readonly urlPattern: string,
+    @inject(screenshotterInjectSymbol) private readonly screenshotter: Screenshotter,
+    @inject(screenshotFolderInjectSymbol) private readonly folder: string,
+    @inject(externalBaseUrlInjectSymbol) private readonly externalBaseUrl: string,
+    @inject(TokenGenerator.injectSymbol) private readonly tokenGenerator: TokenGenerator,
+  ) {
+
   }
 
   private getScreenshotDir(projectId: number, deploymentId: number) {
@@ -72,17 +63,23 @@ export default class ScreenshotModule {
   }
 
   public getScreenshotPath(projectId: number, deploymentId: number) {
-    return path.join(this.getScreenshotDir(projectId, deploymentId), 'screenshot.jpg');
+    return path.join(
+      this.getScreenshotDir(projectId, deploymentId),
+      this.getScreenshotFilename(projectId, deploymentId),
+    );
+  }
+
+  public getScreenshotFilename(_projectId: number, _deploymentId: number) {
+    return 'screenshot.jpg';
   }
 
   public async deploymentHasScreenshot(projectId: number, deploymentId: number) {
-    return await new Promise(resolve => {
-      fs.exists(this.getScreenshotPath(projectId, deploymentId), resolve);
-    });
+    return await new Promise<boolean>(resolve => fs.exists(this.getScreenshotPath(projectId, deploymentId), resolve));
   }
 
-  private getScreenshotterPath(projectId: number, deploymentId: number) {
-    return path.join('/screenshots', String(projectId), String(deploymentId), 'screenshot.jpg');
+  private getRemoteDest(projectId: number, deploymentId: number) {
+    // TODO: the remote path shouldn't be hardcoded here
+    return path.join('/screenshots', String(projectId), String(deploymentId));
   }
 
   /*
@@ -90,17 +87,14 @@ export default class ScreenshotModule {
    */
   public async takeScreenshot(projectId: number, deploymentId: number, shortId: string) {
     const url = sprintf(this.urlPattern, `${shortId}-${projectId}-${deploymentId}`);
+    const dest = this.getRemoteDest(projectId, deploymentId);
+    const options: PageresOptions = {
+      filename: stripExtension(this.getScreenshotFilename(projectId, deploymentId)),
+      delay: 5,
+      format: 'jpg',
+    };
     try {
-      const file = this.getScreenshotterPath(projectId, deploymentId);
-      const webshotOptions = {
-        defaultWhiteBackground: true,
-        renderDelay: 5000,
-        windowSize: {
-          width: 1200,
-          height: 750,
-        },
-      };
-      await this.screenshotter.webshot(url, file, webshotOptions);
+      await this.screenshotter.save(url, dest, options);
       return this.getPublicUrl(projectId, deploymentId);
     } catch (err) {
       // TODO: detect issues taking screenshot that are not Minard's fault
@@ -109,4 +103,8 @@ export default class ScreenshotModule {
     }
   }
 
+}
+
+export function stripExtension(filename: string) {
+  return filename.replace(/\.[^.]+$/, '');
 }

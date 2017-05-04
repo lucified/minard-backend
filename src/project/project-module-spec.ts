@@ -1533,7 +1533,7 @@ describe('project-module', () => {
     it('should register project hook if existing one differs by webhook url', async () => {
       // Arrange
       const path = `/projects/${projectId}/hooks`;
-      const body = gitlabResponse.map(item => Object.assign({}, item, { url: 'foo' }));
+      const body = gitlabResponse.map(item => ({ ...item, url: 'foo' }));
       const projectModule = arrangeProjectModuleForProjectHookTest(200, body, path);
 
       // Act & Assert

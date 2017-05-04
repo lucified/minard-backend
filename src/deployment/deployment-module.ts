@@ -85,11 +85,12 @@ export function getDeploymentKeyFromHost(hostname: string) {
 }
 
 export function toDbDeployment(deployment: MinardDeployment) {
-  return Object.assign({}, deployment, {
+  return {
+    ...deployment,
     commit: JSON.stringify(deployment.commit),
     finishedAt: deployment.finishedAt && deployment.finishedAt.valueOf(),
     createdAt: deployment.createdAt && deployment.createdAt.valueOf(),
-  });
+  };
 }
 
 @injectable()
@@ -549,7 +550,7 @@ export default class DeploymentModule {
       }
       const payload: DeploymentEvent = {
         teamId: deployment.teamId,
-        statusUpdate: omitBy(Object.assign({}, realUpdates, { finishedAt: undefined }), isNil),
+        statusUpdate: omitBy({ ...realUpdates, finishedAt: undefined }, isNil),
         deployment,
       };
       this.eventBus.post(createDeploymentEvent(payload));

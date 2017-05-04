@@ -7,6 +7,7 @@ import { MinardCommit } from '../shared/minard-commit';
 import * as moment from 'moment';
 
 export interface MinardCommentActivity extends MinardActivity {
+  activityType: 'comment';
   commentId: number;
   name?: string;
   email: string;
@@ -14,7 +15,17 @@ export interface MinardCommentActivity extends MinardActivity {
 }
 
 export interface MinardDeploymentActivity extends MinardActivity {
+  activityType: 'deployment';
+}
 
+export function isCommentActivity(activity: any): activity is MinardCommentActivity {
+  return (
+    activity &&
+    activity.deployment &&
+    activity.teamId &&
+    activity.projectId &&
+    activity.activityType === 'comment'
+  );
 }
 
 export interface MinardActivity {

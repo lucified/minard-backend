@@ -1,28 +1,33 @@
 export type NotificationType = 'flowdock' | 'hipchat' | 'slack';
 
-export interface HipChatNotificationConfiguration extends NotificationConfiguration {
+export interface HipChatNotificationConfiguration extends BaseNotificationConfiguration {
   type: 'hipchat';
   hipchatRoomId: number;
   hipchatAuthToken: string;
 }
 
-export interface FlowdockNotificationConfiguration extends NotificationConfiguration {
+export interface FlowdockNotificationConfiguration extends BaseNotificationConfiguration {
   type: 'flowdock';
   flowToken: string;
 }
 
-export interface SlackNotificationConfiguration extends NotificationConfiguration {
+export interface SlackNotificationConfiguration extends BaseNotificationConfiguration {
   type: 'slack';
   slackWebhookUrl: string;
 }
 
-export interface NotificationConfiguration {
+export interface BaseNotificationConfiguration {
   id?: number;
   projectId: number | null;
   teamId: number | null;
   type: NotificationType;
   [others: string]: any;
 }
+
+export type NotificationConfiguration =
+  HipChatNotificationConfiguration |
+  FlowdockNotificationConfiguration |
+  SlackNotificationConfiguration;
 
 export interface NotificationComment {
   name?: string;

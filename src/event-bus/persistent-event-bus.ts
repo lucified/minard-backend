@@ -3,7 +3,7 @@ import { inject, injectable } from 'inversify';
 
 import { Event, isSSE } from '../shared/events';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
-import EventStore from './EventStore';
+import EventStore from './event-store';
 import { default as LocalEventBus } from './local-event-bus';
 export const eventStoreConfigInjectSymbol = Symbol('event-store-config');
 

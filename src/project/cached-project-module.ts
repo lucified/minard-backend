@@ -1,4 +1,3 @@
-
 import { inject, injectable } from 'inversify';
 
 import { AuthenticationModule } from '../authentication';

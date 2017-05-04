@@ -1,4 +1,3 @@
-
 import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
 import { differenceBy, isNil, omitBy } from 'lodash';

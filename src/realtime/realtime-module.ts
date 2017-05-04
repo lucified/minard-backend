@@ -61,7 +61,6 @@ export class RealtimeModule {
     @inject(eventBusInjectSymbol) private readonly eventBus: PersistentEventBus,
     @inject(logger.loggerInjectSymbol) private readonly logger: logger.Logger,
   ) {
-
     // creates SSEEvents and posts them
     this.eventBusSubscription = this.getEnrichedStream(this.eventBus.getStream())
       .subscribe(this.eventBus.post.bind(this.eventBus));
@@ -70,7 +69,6 @@ export class RealtimeModule {
     this.sseStream = this.eventBus.getStream()
       .filter(isPersistedEvent)
       .share();
-
   }
 
   public getSSEStream() {

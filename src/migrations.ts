@@ -1,4 +1,3 @@
-
 import { inject, injectable } from 'inversify';
 import * as Knex from 'knex';
 

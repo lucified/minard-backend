@@ -1,4 +1,3 @@
-
 import { inject, injectable } from 'inversify';
 
 import { STRATEGY_ROUTELEVEL_ADMIN_HEADER } from '../authentication';

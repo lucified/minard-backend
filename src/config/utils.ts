@@ -1,4 +1,3 @@
-
 import * as stream from 'stream';
 
 export class FilterStream extends stream.Transform {

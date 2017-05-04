@@ -1,4 +1,3 @@
-
 import { Observable } from '@reactivex/rxjs';
 import { expect } from 'chai';
 import * as moment from 'moment';

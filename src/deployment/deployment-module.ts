@@ -1,4 +1,3 @@
-
 import * as Boom from 'boom';
 import * as fs from 'fs';
 import { inject, injectable } from 'inversify';

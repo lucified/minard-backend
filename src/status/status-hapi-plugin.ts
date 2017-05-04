@@ -1,4 +1,3 @@
-
 import * as Hapi from '../server/hapi';
 import { HapiRegister } from '../server/hapi-register';
 

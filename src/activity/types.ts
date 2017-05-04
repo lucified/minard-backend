@@ -1,4 +1,3 @@
-
 import { eventCreator } from '../shared/events';
 
 import { MinardDeployment } from '../deployment';

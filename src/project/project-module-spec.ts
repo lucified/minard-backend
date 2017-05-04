@@ -1,4 +1,3 @@
-
 import * as Boom from 'boom';
 import * as moment from 'moment';
 import * as queryString from 'querystring';

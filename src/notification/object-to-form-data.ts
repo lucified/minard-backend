@@ -1,4 +1,3 @@
-
 import * as FormData from 'form-data';
 
 // adapted from https://gist.github.com/ghinda/8442a57f22099bdb2e34

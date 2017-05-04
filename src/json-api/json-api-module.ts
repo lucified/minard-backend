@@ -174,10 +174,11 @@ export class JsonApiModule {
   }
 
   public async toApiActivity(activity: MinardActivity): Promise<ApiActivity> {
-    const commit = Object.assign({}, activity.commit, {
+    const commit = {
+      ...activity.commit,
       id: `${activity.projectId}-${activity.commit.id}`,
       hash: activity.commit.id,
-    });
+    };
     const project = {
       id: String(activity.projectId),
       name: activity.projectName,
@@ -186,10 +187,11 @@ export class JsonApiModule {
       id: `${activity.projectId}-${activity.branch}`,
       name: activity.branch,
     };
-    const deployment = Object.assign({}, activity.deployment, {
+    const deployment = {
+      ...activity.deployment,
       id: `${activity.projectId}-${activity.deployment.id}`,
       creator: activity.deployment.creator!,
-    });
+    };
     delete deployment.ref;
     delete deployment.commit;
     delete deployment.commitHash;

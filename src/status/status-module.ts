@@ -1,7 +1,7 @@
 import { ECS } from 'aws-sdk';
 import { exists, readFile } from 'fs-promise';
 import { inject, injectable } from 'inversify';
-import * as _ from 'lodash';
+import { pick } from 'lodash';
 import * as moment from 'moment';
 
 import { AuthenticationModule } from '../authentication';
@@ -285,7 +285,6 @@ export async function getCharlesVersion(): Promise<string | undefined> {
 }
 
 export async function getEcsStatus(_env?: string) {
-
   // Yes, we access an environment variable here. It's bad. Don't do it.
   const env = _env || process.env.LUCIFY_ENV;
 
@@ -309,19 +308,20 @@ export async function getEcsStatus(_env?: string) {
       }
     }
 
-    return Object.assign(_.pick(service, [
-      'serviceName',
-      'status',
-      'runningCount',
-    ]), {
-        revision: parseInt(service.taskDefinition.split(':').pop(), 10),
-        image,
-        environment: env,
-      });
+    return {
+      ...pick<{ serviceName: string, status: string, runningCount: number }, any>(service, [
+        'serviceName',
+        'status',
+        'runningCount',
+      ]),
+      revision: parseInt(service.taskDefinition.split(':').pop(), 10),
+      image,
+      environment: env,
+    };
   }));
 
   return serviceData.reduce((response: any, service: any, i: number) => {
-    return Object.assign({}, response, { [services[i]]: service });
+    return { ...response, [services[i]]: service };
   }, {});
 
 }

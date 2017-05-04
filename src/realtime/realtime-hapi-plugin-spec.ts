@@ -226,8 +226,7 @@ describe('realtime-hapi-sseModule', () => {
 
     it('is transformed correctly when commits is an empty array', async () => {
       // Arrange & Act
-      const _payload = Object.assign(payload, { commits: [] });
-      const created = await testCodePushed(_payload);
+      const created = await testCodePushed({ ...payload, commits: [] });
 
       // Assert
       const createdPayload = created.payload as StreamingCodePushedEvent;
@@ -242,7 +241,6 @@ describe('realtime-hapi-sseModule', () => {
       const branchName = 'foo-branch-name';
       const projectId = 5;
       const jsonApiModule = new JsonApiModule(
-        {} as any,
         {} as any,
         {} as any,
         {} as any,

@@ -45,6 +45,7 @@ const charlesPrivate = process.env.CHARLES_PRIVATE || 'http://localhost:8001';
 const git_password = process.env.GIT_PASSWORD || '12345678';
 const hipchatRoomId = process.env.HIPCHAT_ROOM_ID || 3140019;
 const hipchatAuthToken = process.env.HIPCHAT_AUTH_TOKEN || undefined;
+const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL || undefined;
 const skipDeleteProject = !!process.env.SKIP_DELETE_PROJECT;
 const kernel = bootstrap('development');
 console.log(`Project is ${projectFolder}`);
@@ -94,6 +95,7 @@ describe('system-integration', () => {
   let commentId: number | undefined;
   let hipchatNotificationId: number | undefined;
   let flowdockNotificationId: number | undefined;
+  let slackNotificationId: number | undefined;
 
   const setup = async() => {
     const groups = await gitlab.getALLGroups();
@@ -303,7 +305,7 @@ describe('system-integration', () => {
   });
   describe('notifications', () => {
 
-    it('should be able to configure flowdock notification', async function () {
+    it('should be able to configure flowdock notifications', async function () {
       this.timeout(1000 * 20);
       if (!flowToken) {
         log('No flowToken defined. Not configuring notifications');
@@ -329,7 +331,7 @@ describe('system-integration', () => {
       flowdockNotificationId = json.data.id;
     });
 
-    it('should be able to configure Hipchat notification', async function () {
+    it('should be able to configure Hipchat notifications', async function () {
       this.timeout(1000 * 20);
       if (!hipchatAuthToken) {
         log('No hipchatAuthToken defined. Not configuring notifications');
@@ -360,7 +362,37 @@ describe('system-integration', () => {
       expect(json.data.attributes['hipchat-auth-token'])
         .to.equal(createNotificationPayload.data.attributes.hipchatAuthToken);
     });
+
+    it('should be able to configure Slack notifications', async function () {
+      this.timeout(1000 * 20);
+      if (!slackWebhookUrl) {
+        log('No slackWebhookUrl defined. Not configuring notifications');
+        return;
+      }
+      logTitle('Creating Slack notification configuration');
+      const createNotificationPayload = {
+        'data': {
+          'type': 'notifications',
+          'attributes': {
+            type: 'slack',
+            teamId: userTeam.id,
+            slackWebhookUrl,
+          },
+        },
+      };
+      const ret = await userFetch(`${charles}/api/notifications`, {
+        method: 'POST',
+        body: JSON.stringify(createNotificationPayload),
+      });
+      expect(ret.status).to.equal(201);
+      const json = await ret.json();
+      slackNotificationId = json.data.id;
+
+      expect(json.data.attributes['slack-webhook-url'])
+        .to.equal(createNotificationPayload.data.attributes.slackWebhookUrl);
+    });
   });
+
   describe('committing, building and deployments', () => {
 
     it('should be able to commit code to repo', async function () {
@@ -665,7 +697,7 @@ describe('system-integration', () => {
       await testSSEPersistence(firstEventId, secondEventId, 'PROJECT_EDITED');
     });
 
-    it('should be able to delete configured flowdock notification', async function () {
+    it('should be able to delete configured Flowdock notifications', async function () {
       this.timeout(1000 * 10);
       if (!flowToken) {
         log('No flowToken defined. Skipping deletion of notification configuration');
@@ -678,13 +710,26 @@ describe('system-integration', () => {
       log('Notification configuration deleted');
     });
 
-    it('should be able to delete configured hipchat notification', async function () {
+    it('should be able to delete configured HipChat notifications', async function () {
       this.timeout(1000 * 10);
       if (!hipchatAuthToken) {
         log('No hipchatAuthToken defined. Skipping deletion of notification configuration');
         return;
       }
       const ret = await userFetchWithRetry(`${charles}/api/notifications/${hipchatNotificationId}`, {
+        method: 'DELETE',
+      });
+      expect(ret.status).to.equal(200);
+      log('Notification configuration deleted');
+    });
+
+    it('should be able to delete configured Slack notifications', async function () {
+      this.timeout(1000 * 10);
+      if (!slackWebhookUrl) {
+        log('No slackWebhookUrl defined. Skipping deletion of notification configuration');
+        return;
+      }
+      const ret = await userFetchWithRetry(`${charles}/api/notifications/${slackNotificationId}`, {
         method: 'DELETE',
       });
       expect(ret.status).to.equal(200);

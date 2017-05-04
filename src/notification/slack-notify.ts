@@ -41,6 +41,7 @@ export function getMessage(
         ],
         image_url: deployment.screenshot,
         footer_icon: 'https://minard.io/favicon-16x16.png',
+        // TODO: Can a comment's timestamp be fetched from somewhere?
         ts: comment ? Date.now() / 1000 : deployment.createdAt.unix(),
       },
     ],

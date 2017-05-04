@@ -4,7 +4,7 @@ import { inject, injectable } from 'inversify';
 import { MinardDeployment } from '../deployment';
 import { IFetch } from '../shared/fetch';
 import { fetchInjectSymbol } from '../shared/types';
-import { NotificationComment, SlackMessage } from './types';
+import { NotificationComment, SlackAttachment, SlackMessage } from './types';
 
 export function getMessage(
   deployment: MinardDeployment,
@@ -16,35 +16,45 @@ export function getMessage(
   const author = comment || deployment.commit.author;
   const fallback = `New ${comment ? 'comment' : 'preview'} in ` +
     `${deployment.projectName}/${deployment.ref}: ${previewUrl}`;
-
-  return {
-    attachments: [
+  const message: SlackAttachment = {
+    fallback,
+    color: '#40C1AC',
+    author_name: author.name,
+    author_icon: gravatar.url(author.email),
+    title: comment ? 'New comment' : 'New preview',
+    title_link: previewUrl,
+    text: comment ? comment.message : deployment.commit.message,
+    fields: [
       {
-        fallback,
-        color: '#40C1AC',
-        author_name: author.name,
-        author_icon: gravatar.url(author.email),
-        title: comment ? 'New comment' : 'New preview',
-        title_link: previewUrl,
-        text: comment ? comment.message : deployment.commit.message,
-        fields: [
-          {
-            title: 'Project',
-            value: `<${projectUrl}|${deployment.projectName}>`,
-            short: true,
-          },
-          {
-            title: 'Branch',
-            value: `<${branchUrl}|${deployment.ref}>`,
-            short: true,
-          },
-        ],
-        image_url: deployment.screenshot,
-        footer_icon: 'https://minard.io/favicon-16x16.png',
-        // TODO: Can a comment's timestamp be fetched from somewhere?
-        ts: comment ? Date.now() / 1000 : deployment.createdAt.unix(),
+        title: 'Project',
+        value: `<${projectUrl}|${deployment.projectName}>`,
+        short: true,
+      },
+      {
+        title: 'Branch',
+        value: `<${branchUrl}|${deployment.ref}>`,
+        short: true,
       },
     ],
+    footer_icon: 'https://minard.io/favicon-16x16.png',
+    // TODO: Can a comment's timestamp be fetched from somewhere?
+    ts: comment ? Date.now() / 1000 : deployment.createdAt.unix(),
+  };
+
+  if (deployment.screenshot) {
+    message.image_url = deployment.screenshot;
+  }
+
+  if (comment) {
+    message.fields.push({
+      title: 'Commit',
+      value: deployment.commit.message,
+      short: false,
+    });
+  }
+
+  return {
+    attachments: [message],
   };
 }
 

@@ -423,6 +423,12 @@ export class JsonApiHapiPlugin {
                   hipchatRoomId: Joi.number().required(),
                   hipchatAuthToken: Joi.string().required(),
                 }),
+                Joi.object({
+                  type: Joi.string().equal('slack').required(),
+                  teamId: Joi.number(),
+                  projectId: Joi.number(),
+                  slackWebhookUrl: Joi.string().required(),
+                }),
               ),
             }).required(),
           },

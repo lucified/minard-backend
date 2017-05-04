@@ -41,9 +41,14 @@ import {
 } from './flowdock-notify';
 
 import {
+  SlackNotify,
+} from './slack-notify';
+
+import {
   FlowdockNotificationConfiguration,
   HipChatNotificationConfiguration,
   NotificationConfiguration,
+  SlackNotificationConfiguration,
 } from './types';
 
 import {
@@ -84,6 +89,7 @@ export class NotificationModule {
     @inject(FlowdockNotify.injectSymbol) private readonly flowdockNotify: FlowdockNotify,
     @inject(ScreenshotModule.injectSymbol) private readonly screenshotModule: ScreenshotModule,
     @inject(HipchatNotify.injectSymbol) private readonly hipchatNotify: HipchatNotify,
+    @inject(SlackNotify.injectSymbol) private readonly slackNotify: SlackNotify,
   ) {
     this.subscribe();
   }
@@ -174,6 +180,8 @@ export class NotificationModule {
       return this.notifyFlowdock(event, config as FlowdockNotificationConfiguration);
     } else if (config.type === 'hipchat') {
       return this.notifyHipchat(event, config as HipChatNotificationConfiguration);
+    } else if (config.type === 'slack') {
+      return this.notifySlack(event, config as SlackNotificationConfiguration);
     }
   }
 
@@ -240,6 +248,27 @@ export class NotificationModule {
       );
     } catch (error) {
       this.logger.error(`Failed to send Flowdock notification`, error);
+    }
+  }
+
+  public async notifySlack(event: Event<NotificationEvent>, config: SlackNotificationConfiguration) {
+    try {
+      const { projectUrl, branchUrl, previewUrl, commentUrl, comment } = this.getBasicParams(event);
+      const deployment: MinardDeployment = {
+        ...event.payload.deployment,
+        screenshot: await this.getScreenshotData(event),
+      };
+      await this.slackNotify.notify(
+        deployment,
+        config.flowToken,
+        projectUrl,
+        branchUrl,
+        previewUrl,
+        commentUrl,
+        comment,
+      );
+    } catch (error) {
+      this.logger.error(`Failed to send Slack notification`, error);
     }
   }
 

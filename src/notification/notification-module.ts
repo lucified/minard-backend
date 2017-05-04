@@ -256,7 +256,9 @@ export class NotificationModule {
       const { projectUrl, branchUrl, previewUrl, commentUrl, comment } = this.getBasicParams(event);
       const deployment: MinardDeployment = {
         ...event.payload.deployment,
-        screenshot: await this.getScreenshotData(event),
+        // TODO: Slack does not support sending image data in the payload.
+        // Figure out a way of getting a public URL for screenshots.
+        // screenshot: await this.getScreenshotData(event),
       };
       await this.slackNotify.notify(
         deployment,

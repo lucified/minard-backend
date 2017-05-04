@@ -20,7 +20,7 @@ export function getMessage(
     fallback,
     color: '#40C1AC',
     author_name: author.name,
-    author_icon: gravatar.url(author.email),
+    author_icon: gravatar.url(author.email, undefined, false),
     title: comment ? 'New comment' : 'New preview',
     title_link: previewUrl,
     text: comment ? comment.message : deployment.commit.message,

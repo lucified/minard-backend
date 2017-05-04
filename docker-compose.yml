@@ -195,7 +195,7 @@ services:
       - REDIS_PORT=6379
       - SYSTEMHOOK_BASEURL=http://charles:8001
       - EXTERNAL_BASEURL=http://localtest.me:8000
-      - MINARD_UI_BASEURL=http://localtest.me:3000
+      - MINARD_UI_BASEURL=http://localhost:3000
       - AUTH_COOKIE_DOMAIN=http://localtest.me
       - SCREENSHOT_URL_PATTERN=http://minard-%s.deployment.charles.internal:8001
       - SCREENSHOTTER_BASEURL=http://screenshotter
@@ -205,3 +205,4 @@ services:
       - SENTRY_DSN=$SENTRY_DSN
       - INTEGRATION_TEST=$INTEGRATION_TEST
       - EXIT_DELAY=0
+      - DEBUG=1

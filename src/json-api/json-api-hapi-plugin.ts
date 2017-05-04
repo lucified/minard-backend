@@ -118,7 +118,6 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
-        cors: true,
         validate: {
           params: {
             projectId: Joi.number().required(),
@@ -136,7 +135,6 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
-        cors: true,
         auth: openAuth,
         pre: [
           this.authorizeOpenDeployment,
@@ -161,7 +159,6 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
-        cors: true,
         validate: {
           params: {
             projectId: Joi.number().required(),
@@ -177,7 +174,6 @@ export class JsonApiHapiPlugin {
       config: {
         auth: STRATEGY_ROUTELEVEL_USER_HEADER,
         bind: this,
-        cors: true,
         pre: [{
           method: this.authorizeProjectCreation,
           assign: 'teamId',
@@ -211,7 +207,6 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
-        cors: true,
         validate: {
           params: {
             projectId: Joi.number().required(),
@@ -226,7 +221,6 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
-        cors: true,
         validate: {
           params: {
             projectId: Joi.number().required(),
@@ -251,7 +245,6 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
-        cors: true,
         validate: {
           params: {
             projectId: Joi.number().required(),
@@ -268,7 +261,6 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
-        cors: true,
         validate: {
           params: {
             teamId: Joi.number().required(),
@@ -285,7 +277,6 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
-        cors: true,
         validate: {
           params: {
             branchId: Joi.string().required(),
@@ -300,7 +291,6 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
-        cors: true,
         validate: {
           params: {
             branchId: Joi.string().required(),
@@ -321,7 +311,6 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
-        cors: true,
         validate: {
           params: {
             projectId: Joi.number().required(),
@@ -339,7 +328,6 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
-        cors: true,
         auth: STRATEGY_ROUTELEVEL_USER_HEADER,
         pre: [{
           method: this.parseActivityFilter,
@@ -366,7 +354,6 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
-        cors: true,
         validate: {
           params: {
             projectId: Joi.number().required(),
@@ -381,7 +368,6 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
-        cors: true,
         auth: STRATEGY_ROUTELEVEL_USER_HEADER,
         pre: [{
           method: this.authorizeNotificationRemoval,
@@ -401,7 +387,6 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
-        cors: true,
         auth: STRATEGY_ROUTELEVEL_USER_HEADER,
         pre: [{
           method: this.tryGetNotificationConfiguration,
@@ -443,7 +428,6 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
-        cors: true,
         auth: openAuth,
         pre: [{
           method: this.authorizeCommentRemoval,
@@ -463,7 +447,6 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
-        cors: true,
         auth: openAuth,
         pre: [{
           method: this.authorizeCommentCreation,
@@ -491,7 +474,6 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
-        cors: true,
         auth: openAuth,
         pre: [
           this.authorizeOpenDeployment,

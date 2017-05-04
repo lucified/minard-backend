@@ -27,6 +27,7 @@ import {
   exitDelayInjectSymbol,
   goodOptionsInjectSymbol,
   hostInjectSymbol,
+  minardUiBaseUrlInjectSymbol,
   portInjectSymbol,
 } from './types';
 
@@ -51,6 +52,7 @@ export default class MinardServer {
     @inject(CIProxy.injectSymbol) private readonly ciProxy: CIProxy,
     @inject(hostInjectSymbol) private readonly host: string,
     @inject(portInjectSymbol) private readonly port: number,
+    @inject(minardUiBaseUrlInjectSymbol) private readonly minardUiBaseUrl: string,
     @inject(StatusHapiPlugin.injectSymbol) private readonly statusPlugin: StatusHapiPlugin,
     @inject(goodOptionsInjectSymbol) private readonly goodOptions: any,
     @inject(loggerInjectSymbol) public readonly logger: Logger,
@@ -61,7 +63,6 @@ export default class MinardServer {
     @inject(exitDelayInjectSymbol) private readonly exitDelay: number,
     @inject(hapiOptionsInjectSymbol) @optional() hapiOptions?: Hapi.IServerOptions,
   ) {
-
     this.hapiServer = Hapi.getServer(hapiOptions);
     this.publicServer = this.hapiServer.connection({
       host: this.host,
@@ -70,6 +71,12 @@ export default class MinardServer {
       routes: {
         json: {
           space: 4,
+        },
+        cors: {
+          origin: [this.minardUiBaseUrl],
+          additionalHeaders: [
+            'Accept-Language',
+          ],
         },
       },
     });

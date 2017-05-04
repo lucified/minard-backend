@@ -46,7 +46,6 @@ export class RealtimeHapiPlugin extends HapiPlugin {
       config: {
         bind: this,
         auth: STRATEGY_TOPLEVEL_USER_URL,
-        cors: true,
         validate: {
           params: {
             teamId: Joi.number().required(),
@@ -65,7 +64,6 @@ export class RealtimeHapiPlugin extends HapiPlugin {
           mode: 'try',
           strategies: [STRATEGY_TOPLEVEL_USER_URL],
         },
-        cors: true,
         validate: {
           params: {
             projectId: Joi.number().required(),

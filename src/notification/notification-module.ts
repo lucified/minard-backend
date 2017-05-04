@@ -76,29 +76,15 @@ export class NotificationModule {
 
   public static injectSymbol = Symbol('notification-module');
 
-  private readonly eventBus: EventBus;
-  private readonly logger: Logger;
-  private readonly knex: Knex;
-  private readonly uiBaseUrl: string;
-  private readonly flowdockNotify: FlowdockNotify;
-  private readonly screenshotModule: ScreenshotModule;
-  private readonly hipchatNotify: HipchatNotify;
-
   constructor(
-    @inject(eventBusInjectSymbol) bus: EventBus,
-    @inject(loggerInjectSymbol) logger: Logger,
-    @inject(charlesKnexInjectSymbol) knex: Knex,
-    @inject(minardUiBaseUrlInjectSymbol) uiBaseUrl: string,
-    @inject(FlowdockNotify.injectSymbol) flowdockNotify: FlowdockNotify,
-    @inject(ScreenshotModule.injectSymbol) screenshotModule: ScreenshotModule,
-    @inject(HipchatNotify.injectSymbol) hipchatNotify: HipchatNotify) {
-    this.eventBus = bus;
-    this.logger = logger;
-    this.knex = knex;
-    this.uiBaseUrl = uiBaseUrl;
-    this.flowdockNotify = flowdockNotify;
-    this.hipchatNotify = hipchatNotify;
-    this.screenshotModule = screenshotModule;
+    @inject(eventBusInjectSymbol) private readonly eventBus: EventBus,
+    @inject(loggerInjectSymbol) private readonly logger: Logger,
+    @inject(charlesKnexInjectSymbol) private readonly knex: Knex,
+    @inject(minardUiBaseUrlInjectSymbol) private readonly uiBaseUrl: string,
+    @inject(FlowdockNotify.injectSymbol) private readonly flowdockNotify: FlowdockNotify,
+    @inject(ScreenshotModule.injectSymbol) private readonly screenshotModule: ScreenshotModule,
+    @inject(HipchatNotify.injectSymbol) private readonly hipchatNotify: HipchatNotify,
+  ) {
     this.subscribe();
   }
 
@@ -239,8 +225,10 @@ export class NotificationModule {
   public async notifyFlowdock(event: Event<NotificationEvent>, config: FlowdockNotificationConfiguration) {
     try {
       const { projectUrl, branchUrl, previewUrl, commentUrl, comment } = this.getBasicParams(event);
-      const deployment = Object.assign({}, event.payload.deployment,
-        { screenshot: await this.getScreenshotData(event) }) as MinardDeployment;
+      const deployment: MinardDeployment = {
+        ...event.payload.deployment,
+        screenshot: await this.getScreenshotData(event),
+      };
       await this.flowdockNotify.notify(
         deployment,
         config.flowToken,
@@ -248,7 +236,8 @@ export class NotificationModule {
         branchUrl,
         previewUrl,
         commentUrl,
-        comment);
+        comment,
+      );
     } catch (error) {
       this.logger.error(`Failed to send Flowdock notification`, error);
     }

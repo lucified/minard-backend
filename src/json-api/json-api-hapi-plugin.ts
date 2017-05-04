@@ -174,10 +174,12 @@ export class JsonApiHapiPlugin {
       config: {
         auth: STRATEGY_ROUTELEVEL_USER_HEADER,
         bind: this,
-        pre: [{
-          method: this.authorizeProjectCreation,
-          assign: 'teamId',
-        }],
+        pre: [
+          {
+            method: this.authorizeProjectCreation,
+            assign: 'teamId',
+          },
+        ],
         validate: {
           payload: {
             data: Joi.object({
@@ -329,13 +331,16 @@ export class JsonApiHapiPlugin {
       config: {
         bind: this,
         auth: STRATEGY_ROUTELEVEL_USER_HEADER,
-        pre: [{
-          method: this.parseActivityFilter,
-          assign: TEAM_OR_PROJECT_PRE_KEY,
-        }, {
-          method: this.authorizeTeamOrProjectAccess,
-          assign: 'filter',
-        }],
+        pre: [
+          {
+            method: this.parseActivityFilter,
+            assign: TEAM_OR_PROJECT_PRE_KEY,
+          },
+          {
+            method: this.authorizeTeamOrProjectAccess,
+            assign: 'filter',
+          },
+        ],
         validate: {
           query: {
             until: Joi.date(),
@@ -369,10 +374,12 @@ export class JsonApiHapiPlugin {
       config: {
         bind: this,
         auth: STRATEGY_ROUTELEVEL_USER_HEADER,
-        pre: [{
-          method: this.authorizeNotificationRemoval,
-          assign: 'notificationId',
-        }],
+        pre: [
+          {
+            method: this.authorizeNotificationRemoval,
+            assign: 'notificationId',
+          },
+        ],
         validate: {
           params: {
             id: Joi.number().required(),
@@ -388,13 +395,16 @@ export class JsonApiHapiPlugin {
       config: {
         bind: this,
         auth: STRATEGY_ROUTELEVEL_USER_HEADER,
-        pre: [{
-          method: this.tryGetNotificationConfiguration,
-          assign: TEAM_OR_PROJECT_PRE_KEY,
-        }, {
-          method: this.authorizeTeamOrProjectAccess,
-          assign: 'config',
-        }],
+        pre: [
+          {
+            method: this.tryGetNotificationConfiguration,
+            assign: TEAM_OR_PROJECT_PRE_KEY,
+          },
+          {
+            method: this.authorizeTeamOrProjectAccess,
+            assign: 'config',
+          },
+        ],
         validate: {
           payload: {
             data: Joi.object({
@@ -429,10 +439,12 @@ export class JsonApiHapiPlugin {
       config: {
         bind: this,
         auth: openAuth,
-        pre: [{
-          method: this.authorizeCommentRemoval,
-          assign: 'commentId',
-        }],
+        pre: [
+          {
+            method: this.authorizeCommentRemoval,
+            assign: 'commentId',
+          },
+        ],
         validate: {
           params: {
             id: Joi.number().required(),
@@ -448,10 +460,12 @@ export class JsonApiHapiPlugin {
       config: {
         bind: this,
         auth: openAuth,
-        pre: [{
-          method: this.authorizeCommentCreation,
-          assign: 'deploymentId',
-        }],
+        pre: [
+          {
+            method: this.authorizeCommentCreation,
+            assign: 'deploymentId',
+          },
+        ],
         validate: {
           payload: {
             data: Joi.object({

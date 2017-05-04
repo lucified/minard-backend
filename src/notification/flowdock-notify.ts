@@ -1,4 +1,3 @@
-
 import * as gravatar from 'gravatar';
 import { inject, injectable } from 'inversify';
 
@@ -41,7 +40,8 @@ export class FlowdockNotify {
     branchUrl: string,
     previewUrl: string,
     commentUrl: string | undefined,
-    comment: NotificationComment | undefined) {
+    comment: NotificationComment | undefined,
+  ) {
     const state = deployment.status;
     const body = {
       flow_token: flowToken,
@@ -64,8 +64,7 @@ export class FlowdockNotify {
     previewUrl: string,
     commentUrl: string | undefined,
     comment: NotificationComment | undefined,
-    ): Promise<void> {
-
+  ): Promise<void> {
     const body = this.getBody(deployment, flowToken, projectUrl, branchUrl, previewUrl, commentUrl, comment);
     const fields = body.thread.fields;
 
@@ -184,7 +183,8 @@ export class FlowdockNotify {
     projectUrl: string,
     branchUrl: string,
     previewUrl: string,
-    _comment?: NotificationComment) {
+    _comment?: NotificationComment,
+  ) {
     const state = deployment.status;
     return {
       title: this.threadTitle(deployment),
@@ -207,7 +207,7 @@ export class FlowdockNotify {
     projectUrl: string,
     branchUrl: string,
     previewUrl: string,
-    ): ThreadField[] {
+  ): ThreadField[] {
     const fields: ThreadField[] = [];
 
     fields.push({

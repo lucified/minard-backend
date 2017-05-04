@@ -52,8 +52,6 @@ export const notificationSerialization = {
 export const branchSerialization = (apiBaseUrl: string) => ({
   attributes: [
     'name',
-    'description',
-    'project',
     'commits',
     'project',
     'latestCommit',

@@ -1,4 +1,4 @@
-// Script for manually testing flowdock notifications
+// Script for manually testing HipChat notifications
 // during development
 
 import 'reflect-metadata';

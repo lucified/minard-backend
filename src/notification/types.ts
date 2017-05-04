@@ -1,4 +1,3 @@
-
 export type NotificationType = 'flowdock' | 'hipchat' | 'slack';
 
 export interface HipChatNotificationConfiguration extends NotificationConfiguration {

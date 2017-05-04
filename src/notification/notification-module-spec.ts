@@ -2,41 +2,16 @@ import { expect } from 'chai';
 import * as Knex from 'knex';
 import 'reflect-metadata';
 
-import {
-  createDeploymentEvent,
-  MinardDeployment,
-} from '../deployment';
-
-import {
-  LocalEventBus,
-} from '../event-bus';
-
+import { createDeploymentEvent, MinardDeployment } from '../deployment';
+import { LocalEventBus } from '../event-bus';
+import { getUiBranchUrl, getUiProjectUrl } from '../project';
+import { ScreenshotModule } from '../screenshot';
 import Logger from '../shared/logger';
-
-import {
-  HipchatNotify,
-} from './hipchat-notify';
-
-import {
-  FlowdockNotify,
-} from './flowdock-notify';
-
-import {
-  SlackNotify,
-} from './slack-notify';
-
-import {
-  getUiBranchUrl,
-  getUiProjectUrl,
-} from '../project';
-
-import {
-  ScreenshotModule,
-} from '../screenshot';
-
 import { sleep } from '../shared/sleep';
-
+import { FlowdockNotify } from './flowdock-notify';
+import { HipchatNotify } from './hipchat-notify';
 import { NotificationModule } from './notification-module';
+import { SlackNotify } from './slack-notify';
 
 const basicLogger = Logger(undefined, false);
 

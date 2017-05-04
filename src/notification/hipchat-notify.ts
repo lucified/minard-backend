@@ -6,7 +6,6 @@ import {
 } from '../deployment';
 import { IFetch } from '../shared/fetch';
 import { fetchInjectSymbol } from '../shared/types';
-
 import {
   NotificationComment,
 } from './types';

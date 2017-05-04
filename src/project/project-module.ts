@@ -4,13 +4,15 @@ import { isNil, omitBy } from 'lodash';
 import * as moment from 'moment';
 import * as queryString from 'querystring';
 
+import { AuthenticationModule } from '../authentication';
+import { EventBus, eventBusInjectSymbol } from '../event-bus/';
 import { Branch, Commit } from '../shared/gitlab';
 import { gitBaseUrlInjectSymbol, GitlabClient } from '../shared/gitlab-client';
 import * as logger from '../shared/logger';
 import { MINARD_ERROR_CODE } from '../shared/minard-error';
 import { sleep } from '../shared/sleep';
 import { toGitlabTimestamp } from '../shared/time-conversion';
-
+import { SystemHookModule } from '../system-hook';
 import { GitlabPushEvent } from './gitlab-push-hook-types';
 
 import {
@@ -29,15 +31,10 @@ import {
   toMinardCommit,
 } from '../shared/minard-commit';
 
-import { AuthenticationModule } from '../authentication';
-import { EventBus, eventBusInjectSymbol } from '../event-bus/';
-
 import {
   Project,
   ProjectHook,
 } from '../shared/gitlab';
-
-import { SystemHookModule } from '../system-hook';
 
 @injectable()
 export default class ProjectModule {

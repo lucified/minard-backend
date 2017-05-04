@@ -6,13 +6,12 @@ import { Cache, cacheInjectSymbol } from '../shared/cache';
 import { gitBaseUrlInjectSymbol, GitlabClient } from '../shared/gitlab-client';
 import * as logger from '../shared/logger';
 import { SystemHookModule } from '../system-hook';
+import { GitlabPushEvent } from './gitlab-push-hook-types';
 import ProjectModule from './project-module';
 
 import {
   MinardProjectContributor,
 } from './types';
-
-import { GitlabPushEvent } from './gitlab-push-hook-types';
 
 function getProjectContributorsCacheKey(projectId: number) {
   return `${projectId}-contributors`;

@@ -6,7 +6,7 @@ import { sprintf } from 'sprintf-js';
 
 import { externalBaseUrlInjectSymbol } from '../server/types';
 import * as logger from '../shared/logger';
-
+import { promisify } from '../shared/promisify';
 import TokenGenerator from '../shared/token-generator';
 
 import {
@@ -19,8 +19,6 @@ import {
 
 const urljoin = require('url-join');
 const dataURI = require('datauri').promise;
-
-import { promisify } from '../shared/promisify';
 
 @injectable()
 export default class ScreenshotModule {

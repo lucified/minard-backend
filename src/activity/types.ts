@@ -1,9 +1,8 @@
-import { eventCreator } from '../shared/events';
+import * as moment from 'moment';
 
 import { MinardDeployment } from '../deployment';
+import { eventCreator } from '../shared/events';
 import { MinardCommit } from '../shared/minard-commit';
-
-import * as moment from 'moment';
 
 export interface MinardCommentActivity extends MinardActivity {
   activityType: 'comment';

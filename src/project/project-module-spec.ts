@@ -1,4 +1,5 @@
 import * as Boom from 'boom';
+import { expect } from 'chai';
 import * as moment from 'moment';
 import * as queryString from 'querystring';
 import 'reflect-metadata';
@@ -11,8 +12,6 @@ import Logger from '../shared/logger';
 import { MINARD_ERROR_CODE } from '../shared/minard-error';
 import { toGitlabTimestamp } from '../shared/time-conversion';
 import SystemHookModule from '../system-hook/system-hook-module';
-
-import { expect } from 'chai';
 
 import ProjectModule from './project-module';
 

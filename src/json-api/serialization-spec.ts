@@ -1,6 +1,6 @@
-import 'reflect-metadata';
-
+import { expect } from 'chai';
 import { values } from 'lodash';
+import 'reflect-metadata';
 
 import {
   ApiActivity,
@@ -20,8 +20,6 @@ import {
 } from '../notification';
 
 import { serializeApiEntity } from './serialization';
-
-import { expect } from 'chai';
 
 const apiBaseUrl = 'http://localhost:8000/api';
 

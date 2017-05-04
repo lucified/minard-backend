@@ -152,7 +152,7 @@ export class NotificationModule {
         .from('notification_configuration')
         .where('teamId', teamId);
       const ret = await select;
-      return ret ? ret : [];
+      return ret || [];
     } catch (error) {
       this.logger.error('Failed to fetch notification configurations', error);
       throw Boom.badImplementation();
@@ -168,7 +168,7 @@ export class NotificationModule {
         .from('notification_configuration')
         .where('projectId', projectId);
       const ret = await select;
-      return ret ? ret : [];
+      return ret || [];
     } catch (error) {
       this.logger.error('Failed to fetch notification configurations', error);
       throw Boom.badImplementation();

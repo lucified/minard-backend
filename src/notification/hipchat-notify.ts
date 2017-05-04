@@ -1,6 +1,4 @@
-
 import { inject, injectable } from 'inversify';
-
 import { truncate } from 'lodash';
 
 import {

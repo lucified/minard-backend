@@ -107,6 +107,20 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       },
     });
     server.route({
+      method: 'GET',
+      path: '/logout',
+      handler: {
+        async: this.logoutHandler,
+      },
+      config: {
+        bind: this,
+        auth: STRATEGY_ROUTELEVEL_USER_HEADER,
+        cors: {
+          credentials: true,
+        },
+      },
+    });
+    server.route({
       method: 'POST',
       path: '/team-token/{teamIdOrName}',
       handler: {
@@ -218,6 +232,10 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       this.logger.error(`Can't fetch user or team`, error);
       return reply(Boom.wrap(error, 404));
     }
+  }
+
+  public async logoutHandler(_request: Hapi.Request, reply: Hapi.IReply) {
+    return reply(200).state('token', '');
   }
 
   /**

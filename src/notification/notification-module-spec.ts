@@ -40,7 +40,7 @@ import { NotificationModule } from './notification-module';
 
 const basicLogger = Logger(undefined, false);
 
-describe.only('notification-module', () => {
+describe('notification-module', () => {
 
   async function setupKnex() {
     const knex = Knex({

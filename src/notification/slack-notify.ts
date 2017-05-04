@@ -47,7 +47,7 @@ export function getMessage(
   }
 
   if (comment) {
-    message.fields.push({
+    message.fields.unshift({
       title: 'Commit',
       value: deployment.commit.message,
       short: false,

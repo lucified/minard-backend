@@ -11,12 +11,13 @@ Notification resources have the following attributes:
 
 Name|Type|Description
 ----|----|-----------
-`type`|"flowdock"&#124;"hipchat"|Type of activity
+`type`|"flowdock"&#124;"hipchat"&#124;"slack"|Type of activity
 `team-id`|string|Project id (only for team-scoped notifications)
 `project-id`|string|Project id (only for project-scoped notifications)
 `flow-token`|string|Flow token (only for `flowdock`)
 `hipchat-auth-token`|string|Hipchat authorization token (only for `hipchat`)
-`hipchat-room-id`|string|Hipchat room id(only for `hipchat`)
+`hipchat-room-id`|string|Hipchat room id (only for `hipchat`)
+`slack-webhook-url`|string|Slack webhook URL (only for `slack`)
 
 ## Add notification configuration
 
@@ -25,7 +26,7 @@ Name|Type|Description
 - Method: `POST`
 - URL: `/api/notifications`
 
-Payload for project-scoped Flowdock notification:
+Payload for project-scoped Flowdock notifications:
 ```json
 {
   "data": {
@@ -39,7 +40,7 @@ Payload for project-scoped Flowdock notification:
 }
 ```
 
-Payload for project-scoped HipChat notification
+Payload for project-scoped HipChat notifications:
 ```json
 {
   "data": {
@@ -54,7 +55,7 @@ Payload for project-scoped HipChat notification
 }
 ```
 
-Payload for team-scoped HipChat notification
+Payload for team-scoped HipChat notifications:
 ```json
 {
   "data": {
@@ -64,6 +65,20 @@ Payload for team-scoped HipChat notification
       "teamId": "[YOUR_TEAM_ID]",
       "hipchatAuthToken": "[YOUR_HIP_CHAT_AUTH_TOKEN]",
       "hipchatRoomId": "[YOUR_HIP_CHAT_ROOM_ID]"
+    }
+  }
+}
+```
+
+Payload for project-scoped Slack notifications:
+```json
+{
+  "data": {
+    "type": "notifications",
+    "attributes": {
+      "type": "slack",
+      "projectId": "[YOUR_PROJECT_ID]",
+      "slackWebhookUrl": "[YOUR_SLACK_WEBHOOK_URL]"
     }
   }
 }

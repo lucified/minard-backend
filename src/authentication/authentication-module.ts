@@ -6,19 +6,14 @@ import { gitlabRootPasswordInjectSymbol } from './types';
 
 @injectable()
 export default class AuthenticationModule {
-
   public static injectSymbol = Symbol('auth-module');
 
   private rootToken: string;
-  private rootPassword: string;
-  private gitlabKnex: Knex;
 
   constructor(
-    @inject(gitlabKnexInjectSymbol) gitlabKnex: Knex,
-    @inject(gitlabRootPasswordInjectSymbol) rootPassword: string) {
-    this.gitlabKnex = gitlabKnex;
-    this.rootPassword = rootPassword;
-  }
+    @inject(gitlabKnexInjectSymbol) private gitlabKnex: Knex,
+    @inject(gitlabRootPasswordInjectSymbol) private rootPassword: string,
+  ) { }
 
   public async getPrivateAuthenticationToken(userId: number): Promise<string> {
     const row = await this.gitlabKnex.select('authentication_token')

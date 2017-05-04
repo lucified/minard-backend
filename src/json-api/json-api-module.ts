@@ -39,10 +39,6 @@ import {
 } from '../project/';
 
 import {
-  ScreenshotModule,
-} from '../screenshot';
-
-import {
   NotificationConfiguration,
   NotificationModule,
 } from '../notification';
@@ -59,30 +55,15 @@ const deepcopy = require('deepcopy');
 
 @injectable()
 export class JsonApiModule {
-
   public static injectSymbol = Symbol('json-api-injectsymbol');
 
-  private readonly deploymentModule: DeploymentModule;
-  private readonly projectModule: ProjectModule;
-  private readonly activityModule: ActivityModule;
-  private readonly screenshotModule: ScreenshotModule;
-  private readonly notificationModule: NotificationModule;
-  private readonly commentModule: CommentModule;
-
   constructor(
-    @inject(DeploymentModule.injectSymbol) deploymentModule: DeploymentModule,
-    @inject(ProjectModule.injectSymbol) projectModule: ProjectModule,
-    @inject(ActivityModule.injectSymbol) activityModule: ActivityModule,
-    @inject(ScreenshotModule.injectSymbol) screenshotModule: ScreenshotModule,
-    @inject(NotificationModule.injectSymbol) notificationModule: NotificationModule,
-    @inject(CommentModule.injectSymbol) commentModule: CommentModule) {
-      this.deploymentModule = deploymentModule;
-      this.projectModule = projectModule;
-      this.activityModule = activityModule;
-      this.screenshotModule = screenshotModule;
-      this.notificationModule = notificationModule;
-      this.commentModule = commentModule;
-  }
+    @inject(DeploymentModule.injectSymbol) private readonly deploymentModule: DeploymentModule,
+    @inject(ProjectModule.injectSymbol) private readonly projectModule: ProjectModule,
+    @inject(ActivityModule.injectSymbol) private readonly activityModule: ActivityModule,
+    @inject(NotificationModule.injectSymbol) private readonly notificationModule: NotificationModule,
+    @inject(CommentModule.injectSymbol) private readonly commentModule: CommentModule,
+  ) { }
 
   public async getCommit(projectId: number, hash: string): Promise<ApiCommit | null> {
     const commit = await this.projectModule.getCommit(projectId, hash);

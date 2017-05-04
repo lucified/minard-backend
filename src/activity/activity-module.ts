@@ -63,23 +63,14 @@ function createDeploymentRelatedActivity(deployment: MinardDeployment) {
 
 @injectable()
 export default class ActivityModule {
-
   public static injectSymbol = Symbol('activity-module');
 
-  private readonly deploymentModule: DeploymentModule;
-  private readonly logger: logger.Logger;
-  private readonly knex: Knex;
-  private readonly eventBus: EventBus;
-
   public constructor(
-    @inject(DeploymentModule.injectSymbol) deploymentModule: DeploymentModule,
-    @inject(logger.loggerInjectSymbol) logger: logger.Logger,
-    @inject(eventBusInjectSymbol) eventBus: EventBus,
-    @inject(charlesKnexInjectSymbol) knex: Knex) {
-    this.deploymentModule = deploymentModule;
-    this.logger = logger;
-    this.eventBus = eventBus;
-    this.knex = knex;
+    @inject(DeploymentModule.injectSymbol) private readonly deploymentModule: DeploymentModule,
+    @inject(logger.loggerInjectSymbol) private readonly logger: logger.Logger,
+    @inject(eventBusInjectSymbol) private readonly eventBus: EventBus,
+    @inject(charlesKnexInjectSymbol) private readonly knex: Knex,
+  ) {
     this.subscribeForFinishedDeployments();
     this.subscribeForComments();
   }
@@ -193,5 +184,4 @@ export default class ActivityModule {
     }
     return (await select).map((item: any) => this.toMinardActivity(item));
   }
-
 }

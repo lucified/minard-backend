@@ -30,28 +30,19 @@ export class Route53Updater {
   public readonly apiPrefix: string = '/api/v3';
   public readonly authenticationHeader = 'PRIVATE-TOKEN';
 
-  private logger: Logger;
-  private fetch: IFetch;
-  private retryDelay: number;
-  private syncDelay: number;
-  private maxTimes: number;
   private route53: any;
   private changeResourceRecordSets: any;
   private getChange: any;
   private listResourceRecordSets: any;
 
   public constructor(
-    @inject(fetchInjectSymbol) fetch: IFetch,
-    @inject(loggerInjectSymbol) logger: Logger,
-    retryDelay = 200,
-    syncDelay = 5000,
-    maxTimes = 5,
-    updateRecordSet?: Route53UpdaterFunction) {
-    this.logger = logger;
-    this.fetch = fetch;
-    this.retryDelay = retryDelay;
-    this.syncDelay = syncDelay;
-    this.maxTimes = maxTimes;
+    @inject(fetchInjectSymbol) private fetch: IFetch,
+    @inject(loggerInjectSymbol) private logger: Logger,
+    private retryDelay = 200,
+    private syncDelay = 5000,
+    private maxTimes = 5,
+    updateRecordSet?: Route53UpdaterFunction,
+  ) {
     // For unit testing
     if (updateRecordSet) {
       this.updateRecordSet = updateRecordSet;

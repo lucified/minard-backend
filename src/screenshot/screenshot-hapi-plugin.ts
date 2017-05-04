@@ -11,11 +11,9 @@ export default class ScreenshotHapiPlugin {
 
   public static injectSymbol = Symbol('screenshot-hapi-plugin');
 
-  private screenshotModule: ScreenshotModule;
-
   constructor(
-    @inject(ScreenshotModule.injectSymbol) screenshotModule: ScreenshotModule) {
-    this.screenshotModule = screenshotModule;
+    @inject(ScreenshotModule.injectSymbol) private screenshotModule: ScreenshotModule,
+  ) {
     this.register.attributes = {
       name: 'screenshot-plugin',
       version: '1.0.0',

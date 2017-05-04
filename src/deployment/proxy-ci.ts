@@ -22,18 +22,15 @@ export class CIProxy {
   public static readonly injectSymbol = Symbol('ci-proxy');
   private gitlabHost: string;
   private proxyOptions: { host: string, port: number, protocol: string, passThrough: boolean };
-  private eventBus: EventBus;
-  private logger: logger.Logger;
   public readonly routeNamespace = '/ci/api/v1/';
   public readonly routePath = this.routeNamespace + '{what}/{id}/{action?}';
+
   public constructor(
     @inject(gitlabHostInjectSymbol) gitlabHost: string,
-    @inject(eventBusInjectSymbol) eventBus: EventBus,
-    @inject(logger.loggerInjectSymbol) logger: logger.Logger) {
-
+    @inject(eventBusInjectSymbol) private eventBus: EventBus,
+    @inject(logger.loggerInjectSymbol) private logger: logger.Logger,
+  ) {
     this.gitlabHost = gitlabHost;
-    this.eventBus = eventBus;
-    this.logger = logger;
     const gitlab = url.parse(gitlabHost);
 
     if (!gitlab.hostname) {

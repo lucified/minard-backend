@@ -1,11 +1,8 @@
+import { expect } from 'chai';
 import 'reflect-metadata';
 
-import { expect } from 'chai';
-import Logger from '../shared/logger';
-
-import { LocalEventBus } from '../event-bus';
 import { ProjectModule } from '../project';
-import { ScreenshotModule } from '../screenshot';
+import Logger from '../shared/logger';
 import { OperationsModule } from './';
 
 import {
@@ -54,12 +51,12 @@ describe('operations-module', () => {
           return [_projectId];
         }
       }
-      const eventBus = new LocalEventBus();
       return new OperationsModule(
         new MockProjectModule() as ProjectModule,
         new MockDeploymentModule() as any,
+        logger,
         {} as any,
-        eventBus, logger, {} as any);
+      );
     }
 
     it('should create missing screenshot for extracted deployment', async () => {
@@ -118,12 +115,12 @@ describe('operations-module', () => {
         }
       }
 
-      const eventBus = new LocalEventBus();
       const operationsModule = new OperationsModule(
         new MockProjectModule() as ProjectModule,
         new MockDeploymentModule() as any,
+        logger,
         {} as any,
-        eventBus, logger, {} as any);
+      );
 
       // Act
       await operationsModule.assureScreenshotsGenerated();
@@ -163,12 +160,12 @@ describe('operations-module', () => {
           return [_projectId, failProjectId];
         }
       }
-      const eventBus = new LocalEventBus();
       const operationsModule = new OperationsModule(
         new MockProjectModule() as ProjectModule,
         new MockDeploymentModule() as any,
-        {} as ScreenshotModule,
-        eventBus, logger, {} as any);
+        logger,
+        {} as any,
+      );
 
       // Act
       await operationsModule.assureScreenshotsGenerated();
@@ -202,10 +199,9 @@ describe('operations-module', () => {
       const operationsModule = new OperationsModule(
         {} as any,
         deploymentModule,
-        {} as any,
-        {} as any,
         logger,
-        {} as any);
+        {} as any,
+      );
 
       // Act
       operationsModule.cleanupRunningDeployments();

@@ -14,21 +14,12 @@ export default class Migrations {
 
   public static injectSymbol = Symbol('migrations');
 
-  private readonly postgresKnex: Knex;
-  private readonly charlesKnex: Knex;
-  private readonly logger: Logger;
-  private readonly charlesDbName: string;
-
   public constructor(
-    @inject(charlesKnexInjectSymbol) charlesKnex: Knex,
-    @inject(postgresKnexInjectSymbol) postgresKnex: Knex,
-    @inject(loggerInjectSymbol) logger: Logger,
-    @inject(charlesDbNameInjectSymbol) charlesDbName: string) {
-    this.postgresKnex = postgresKnex;
-    this.charlesKnex = charlesKnex;
-    this.logger = logger;
-    this.charlesDbName = charlesDbName;
-  }
+    @inject(charlesKnexInjectSymbol) private readonly charlesKnex: Knex,
+    @inject(postgresKnexInjectSymbol) private readonly postgresKnex: Knex,
+    @inject(loggerInjectSymbol) private readonly logger: Logger,
+    @inject(charlesDbNameInjectSymbol) private readonly charlesDbName: string,
+  ) { }
 
   public async prepareDatabase() {
     this.logger.info('Preparing charles database');

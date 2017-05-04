@@ -21,8 +21,6 @@ function getProjectContributorsCacheKey(projectId: number) {
 @injectable()
 export default class CachedProjectModule extends ProjectModule {
 
-  private readonly cache: Cache;
-
   constructor(
     @inject(AuthenticationModule.injectSymbol) authenticationModule: AuthenticationModule,
     @inject(SystemHookModule.injectSymbol) systemHookModule: SystemHookModule,
@@ -30,9 +28,9 @@ export default class CachedProjectModule extends ProjectModule {
     @inject(GitlabClient.injectSymbol) gitlab: GitlabClient,
     @inject(logger.loggerInjectSymbol) logger: logger.Logger,
     @inject(gitBaseUrlInjectSymbol) gitBaseUrl: string,
-    @inject(cacheInjectSymbol) cache: Cache) {
+    @inject(cacheInjectSymbol) private readonly cache: Cache,
+  ) {
     super(authenticationModule, systemHookModule, eventBus, gitlab, logger, gitBaseUrl);
-    this.cache = cache;
   }
 
   public async getProjectContributors(projectId: number): Promise<MinardProjectContributor[] | null> {

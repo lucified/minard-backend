@@ -69,11 +69,8 @@ export function getDescription(
 export class HipchatNotify {
 
   public static injectSymbol = Symbol('hipchat-notify');
-  private fetch: IFetch;
 
-  public constructor(@inject(fetchInjectSymbol) fetch: IFetch) {
-    this.fetch = fetch;
-  }
+  public constructor(@inject(fetchInjectSymbol) private fetch: IFetch) { }
 
   private getCard(deployment: MinardDeployment, projectUrl: string, previewUrl: string, comment?: NotificationComment) {
     // we need this hack to show proper screenshot in integration

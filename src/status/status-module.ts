@@ -86,25 +86,16 @@ export default class StatusModule {
 
   public static injectSymbol = Symbol('status-module');
 
-  private readonly gitlab: GitlabClient;
-  private readonly screenshotter: Screenshotter;
-  private readonly eventBus: EventBus;
-  private readonly authentication: AuthenticationModule;
   private latestSystemHookRegistration: Event<SystemHookRegistrationEvent>;
-  private fetch: IFetch;
   private ip: string|undefined = undefined;
 
   public constructor(
-    @inject(GitlabClient.injectSymbol) gitlab: GitlabClient,
-    @inject(screenshotterInjectSymbol) screenshotter: Screenshotter,
-    @inject(eventBusInjectSymbol) eventBus: EventBus,
-    @inject(AuthenticationModule.injectSymbol) authentication: AuthenticationModule,
-    @inject(fetchInjectSymbol) fetch: IFetch) {
-    this.gitlab = gitlab;
-    this.screenshotter = screenshotter;
-    this.eventBus = eventBus;
-    this.authentication = authentication;
-    this.fetch = fetch;
+    @inject(GitlabClient.injectSymbol) private readonly gitlab: GitlabClient,
+    @inject(screenshotterInjectSymbol) private readonly screenshotter: Screenshotter,
+    @inject(eventBusInjectSymbol) private readonly eventBus: EventBus,
+    @inject(AuthenticationModule.injectSymbol) private readonly authentication: AuthenticationModule,
+    @inject(fetchInjectSymbol) private fetch: IFetch,
+  ) {
     this.subscribeToEvents();
   }
 

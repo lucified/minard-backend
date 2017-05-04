@@ -23,10 +23,6 @@ import {
 } from '../activity';
 
 import {
-  ScreenshotModule,
-} from '../screenshot';
-
-import {
   CommentModule,
 } from '../comment';
 
@@ -82,7 +78,7 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         {} as any,
-        {} as any);
+      );
 
       // Act
       const commit = await jsonApiModule.toApiCommit(projectId, minardCommit, deployments);
@@ -109,7 +105,7 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         {} as any,
-        {} as any);
+      );
 
       jsonApiModule.toApiDeployment = async (_projectId: number, deployment: MinardDeployment) => {
         // rewrite the ids to chech that this was called, with correct parameters
@@ -179,7 +175,7 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         {} as any,
-        {} as any);
+      );
 
       // Act
       const activity = await jsonApiModule.toApiActivity(minardActivity);
@@ -214,7 +210,7 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         {} as any,
-        {} as any);
+      );
 
       // Act
       const activity = await jsonApiModule.toApiActivity(commentActivity);
@@ -253,8 +249,8 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         {} as any,
-        {} as any,
-        commentModule);
+        commentModule,
+      );
 
       // Act
       const deployment = await jsonApiModule.toApiDeployment(projectId, minardDeployment);
@@ -317,8 +313,8 @@ describe('json-api-module', () => {
         projectModule,
         {} as any,
         {} as any,
-        {} as any,
-        getMockCommentModule());
+        getMockCommentModule(),
+      );
 
       // Act
       const commits = await jsonApiModule.getBranchCommits(projectId, branchName);
@@ -374,18 +370,14 @@ describe('json-api-module', () => {
         return minardDeployment as any;
       };
       const projectModule = {} as ProjectModule;
-      const screenshotModule = {} as ScreenshotModule;
-      screenshotModule.deploymentHasScreenshot = async (_projectId: number, _deploymentId: number) => {
-        return false;
-      };
 
       const jsonApiModule = new JsonApiModule(
         deploymentModule,
         projectModule,
         {} as any,
-        screenshotModule,
         {} as any,
-        getMockCommentModule());
+        getMockCommentModule(),
+      );
       jsonApiModule.toApiCommit = async(_projectId: number, commit: MinardCommit, _deployments?: ApiDeployment[]) => {
         expect(commit).to.exist;
         if (commit.id === minardBranch.latestCommit.id) {
@@ -433,18 +425,14 @@ describe('json-api-module', () => {
         return minardDeployment;
       };
       const projectModule = {} as ProjectModule;
-      const screenshotModule = {} as ScreenshotModule;
-      screenshotModule.deploymentHasScreenshot = async (_projectId: number, _deploymentId: number) => {
-        return false;
-      };
 
       const jsonApiModule = new JsonApiModule(
         deploymentModule,
         projectModule,
         {} as any,
-        screenshotModule,
         {} as any,
-        getMockCommentModule());
+        getMockCommentModule(),
+      );
 
       // Act
       const project = await jsonApiModule.toApiProject(minardProject);

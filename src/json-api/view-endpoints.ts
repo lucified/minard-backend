@@ -29,21 +29,13 @@ import {
 
 @injectable()
 export class ViewEndpoints {
-
   public static injectSymbol = Symbol('view-endpoints');
 
-  private readonly deploymentModule: DeploymentModule;
-  private readonly jsonApi: JsonApiModule;
-  private readonly baseUrl: string;
-
   constructor(
-    @inject(JsonApiModule.injectSymbol) jsonApiModule: JsonApiModule,
-    @inject(DeploymentModule.injectSymbol) deploymentModule: DeploymentModule,
-    @inject(externalBaseUrlInjectSymbol) baseUrl: string) {
-      this.jsonApi = jsonApiModule;
-      this.deploymentModule = deploymentModule;
-      this.baseUrl = baseUrl + '/api';
-  }
+    @inject(JsonApiModule.injectSymbol) private readonly jsonApi: JsonApiModule,
+    @inject(DeploymentModule.injectSymbol) private readonly deploymentModule: DeploymentModule,
+    @inject(externalBaseUrlInjectSymbol) private readonly baseUrl: string,
+  ) { }
 
   public async getPreview(projectId: number, deploymentId: number, sha: string): Promise<PreviewView | null> {
      const _deployment = await this.deploymentModule.getDeployment(deploymentId);
@@ -68,5 +60,4 @@ export class ViewEndpoints {
        deployment: serializeApiEntity('deployment', deployment, this.baseUrl).data,
      };
   }
-
 }

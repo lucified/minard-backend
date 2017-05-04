@@ -4,7 +4,6 @@ import { Readable } from 'stream';
 import { PersistedEvent } from '../shared/events';
 
 export class ObservableWrapper extends Readable {
-  private readonly stream: Observable<PersistedEvent<any>>;
   private subscription: Subscription;
 
   // http://hapijs.com/api#replyerr-result
@@ -12,9 +11,8 @@ export class ObservableWrapper extends Readable {
   // that status code will be used as the default response code.
   public readonly statusCode = 200;
 
-  constructor(stream: Observable<PersistedEvent<any>>) {
+  constructor(private readonly stream: Observable<PersistedEvent<any>>) {
     super();
-    this.stream = stream;
 
     this.on('end', () => this.subscription && this.subscription.unsubscribe());
     this.on('error', (err: any) => { throw err; });

@@ -44,28 +44,16 @@ export default class ProjectModule {
 
   public static injectSymbol = Symbol('project-module');
 
-  private authenticationModule: AuthenticationModule;
-  private systemHookModule: SystemHookModule;
-  private eventBus: EventBus;
-  private gitlab: GitlabClient;
-  private readonly logger: logger.Logger;
-  private readonly gitBaseUrl: string;
   public failSleepTime = 2000;
 
   constructor(
-    @inject(AuthenticationModule.injectSymbol) authenticationModule: AuthenticationModule,
-    @inject(SystemHookModule.injectSymbol) systemHookModule: SystemHookModule,
-    @inject(eventBusInjectSymbol) eventBus: EventBus,
-    @inject(GitlabClient.injectSymbol) gitlab: GitlabClient,
-    @inject(logger.loggerInjectSymbol) logger: logger.Logger,
-    @inject(gitBaseUrlInjectSymbol) gitBaseUrl: string) {
-    this.authenticationModule = authenticationModule;
-    this.systemHookModule = systemHookModule;
-    this.eventBus = eventBus;
-    this.gitlab = gitlab;
-    this.logger = logger;
-    this.gitBaseUrl = gitBaseUrl;
-  }
+    @inject(AuthenticationModule.injectSymbol) private authenticationModule: AuthenticationModule,
+    @inject(SystemHookModule.injectSymbol) private systemHookModule: SystemHookModule,
+    @inject(eventBusInjectSymbol) private eventBus: EventBus,
+    @inject(GitlabClient.injectSymbol) private gitlab: GitlabClient,
+    @inject(logger.loggerInjectSymbol) private readonly logger: logger.Logger,
+    @inject(gitBaseUrlInjectSymbol) private readonly gitBaseUrl: string,
+  ) { }
 
   public async getProjectContributors(projectId: number): Promise<MinardProjectContributor[] | null> {
     try {

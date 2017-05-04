@@ -14,11 +14,13 @@ export function getMessage(
   comment?: NotificationComment,
 ): SlackMessage {
   const author = comment || deployment.commit.author;
+  const fallback = `New ${comment ? 'comment' : 'preview'} in ` +
+    `${deployment.projectName}/${deployment.ref}: ${previewUrl}`;
 
   return {
     attachments: [
       {
-        fallback: `New preview in ${deployment.projectName}: ${previewUrl}`,
+        fallback,
         color: '#40C1AC',
         author_name: author.name,
         author_icon: gravatar.url(author.email),

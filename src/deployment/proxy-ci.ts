@@ -82,7 +82,7 @@ export class CIProxy {
       method: 'POST',
       path: this.routeNamespace + '{entities}/register.json',
       handler: {
-        proxy: { ...this.proxyOptions, onResponse: this.postReplyHandler },
+        proxy: Object.assign({}, this.proxyOptions, { onResponse: this.postReplyHandler }),
       },
       config,
     });

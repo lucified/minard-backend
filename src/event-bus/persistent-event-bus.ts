@@ -1,84 +1,54 @@
-import { Observable, Subject } from '@reactivex/rxjs';
+import { Subject, Subscription } from '@reactivex/rxjs';
 import { inject, injectable } from 'inversify';
 
-import { Event, isSSE, PersistedEvent } from '../shared/events';
+import { Event, isSSE } from '../shared/events';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
+import EventStore from './EventStore';
 import { default as LocalEventBus } from './local-event-bus';
-
-import { promisify } from '../shared/promisify';
-
-const eventStoreConstructor = require('eventstore');
 export const eventStoreConfigInjectSymbol = Symbol('event-store-config');
 
-interface Job {
-  type: string;
-  execute: () => Promise<any>;
-}
+type Command = () => Promise<Event<any>>;
 
 @injectable()
 export class PersistentEventBus extends LocalEventBus {
-
-  private isEventStoreReady = false;
-  private eventStore: any;
-  private logger: Logger;
-  private readonly pipe: Subject<Job>;
+  private eventStore: EventStore;
+  private readonly queue: Subject<Command>;
+  private readonly queueSubscription: Subscription;
 
   constructor(
-    @inject(loggerInjectSymbol) logger: Logger,
-    @inject(eventStoreConfigInjectSymbol) eventStoreConfig?: any) {
+    @inject(loggerInjectSymbol) private readonly logger: Logger,
+    @inject(eventStoreConfigInjectSymbol) eventStoreConfig: any,
+    debug = false,
+  ) {
     super();
-    this.logger = logger;
-    this.pipe = new Subject<Job>();
-    this.eventStore = promisifyEventStore(eventStoreConstructor(eventStoreConfig));
-    this.eventStore.useEventPublisher(this._publish.bind(this));
-    this.eventStore.defineEventMappings({
-      id: 'id',
-      streamRevision: 'streamRevision',
-    });
-    this.subscribeToPipe();
-  }
-
-  private prependInit(pipe: Subject<Job>) {
-    return Observable.concat(
-      Observable.of({ type: 'INIT', execute: () => this.ensureInit() }),
-      pipe,
+    this.queue = new Subject<Command>();
+    this.eventStore = new EventStore(
+      this.publish.bind(this),
+      eventStoreConfig,
+      logger,
     );
-  }
-
-  private subscribeToPipe() {
-    let stream: any;
-    if (process.env.DEBUG) {
-      stream = this.prependInit(this.pipe)
-        .flatMap(async job => {
-          const start = Date.now();
-          const result = await job.execute();
-          const duration = Date.now() - start;
-          return { job, result, duration };
-        }, 1)
-        .timeInterval()
-        .do(_executedJob => {
-          const executedJob = _executedJob as any;
-          const result = executedJob.value.result;
-          const interval = executedJob.interval;
-          const duration = executedJob.value.duration;
-          const jobType = executedJob.value.job.type;
-
-          const event = result && result.type ? result.type : '';
-          this.logger.debug('%sms %sms %s %s', duration, interval, jobType, event);
-        });
+    if (debug) {
+      this.queueSubscription = this.subscribeWithTiming();
     } else {
-      stream = this.prependInit(this.pipe).flatMap(job => job.execute(), 1);
+      this.queueSubscription = this.queue
+        .flatMap(job => job(), 1)
+        .subscribe();
     }
-    stream.subscribe();
   }
 
-  private _publish(event: Event<any>, callback: (err?: any) => void) {
-    this.subject.next(event);
-    callback();
+  private publish(event: Event<any>, callback: (err?: any) => void) {
+    try {
+      this.subject.next(event);
+      this.logger.debug(`Published ${event.type}`);
+      callback();
+    } catch (error) {
+      this.logger.error(error.message);
+      callback(error);
+    }
   }
 
   public post(event: Event<any>) {
-    this.pipe.next({ type: 'POST', execute: () => this._post(event) });
+    this.queue.next(() => this._post(event));
   }
 
   private async _post(event: Event<any>) {
@@ -86,49 +56,30 @@ export class PersistentEventBus extends LocalEventBus {
       this.subject.next(event);
       return event;
     }
-
-    try {
-      const stream = await this.eventStore.getLastEventAsStream({
-        aggregateId: String(event.teamId),
-      });
-      stream.addEvent(event);
-      await this.eventStore.commit(stream);
-      return event;
-    } catch (err) {
-      this.logger.error('Unable to post event', err);
-      throw err;
-    }
+    await this.eventStore.persistEvent(event);
+    return event;
   }
 
-  public async getEvents(teamId: number, since: number = 0): Promise<PersistedEvent<any>[]> {
-    await this.ensureInit();
-    const stream = await this.eventStore.getEventStream(String(teamId), since, -1);
-    if (!stream) {
-      throw new Error(`No event\'s for team ${teamId}`);
-    }
-    if (!stream.events) {
-      return [];
-    }
-    const events = stream.events as PersistedEvent<any>[];
-    return events.map((event: any, i: number) => {
-      event.payload.streamRevision = since + i;
-      return event.payload;
-    });
+  public getEvents(teamId: number, since: number = 0) {
+    return this.eventStore.getEvents(teamId, since);
   }
 
-  private async ensureInit(): Promise<boolean> {
-    if (!this.isEventStoreReady) {
-      await this.eventStore.init();
-      this.isEventStoreReady = true;
-    }
-    return true;
+  private subscribeWithTiming() {
+    return this.queue
+      .flatMap(async job => {
+        const start = Date.now();
+        this.logger.debug('Starting job');
+        const event = await job();
+        this.logger.debug('Finished job');
+        const duration = Date.now() - start;
+        return { event, duration };
+      }, 1)
+      .timeInterval()
+      .do(executedJob => {
+        const { event, duration } = executedJob.value;
+        const interval = executedJob.interval;
+        this.logger.debug('%sms %sms %s', duration, interval, event.type);
+      })
+      .subscribe();
   }
-}
-
-function promisifyEventStore(eventStore: any) {
-  eventStore.init = promisify(eventStore.init, eventStore);
-  eventStore.getLastEventAsStream = promisify(eventStore.getLastEventAsStream, eventStore);
-  eventStore.getEventStream = promisify(eventStore.getEventStream, eventStore);
-  eventStore.commit = promisify(eventStore.commit, eventStore);
-  return eventStore;
 }

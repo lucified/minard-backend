@@ -87,7 +87,8 @@ export default class ProjectModule {
     projectId: number,
     branchName: string,
     until?: moment.Moment,
-    count: number = 10): Promise<Commit[] | null> {
+    count: number = 10,
+  ): Promise<Commit[] | null> {
     try {
       const params = {
         per_page: count,
@@ -129,7 +130,8 @@ export default class ProjectModule {
     branchName: string,
     until?: moment.Moment,
     count: number = 10,
-    extraCount: number = 5): Promise<MinardCommit[] | null> {
+    extraCount: number = 5,
+  ): Promise<MinardCommit[] | null> {
     const fetchAmount = count + extraCount;
     const commits = await this.fetchBranchCommits(projectId, branchName, until, fetchAmount);
     if (!commits) {
@@ -348,8 +350,8 @@ export default class ProjectModule {
     teamId: number,
     path: string,
     description?: string,
-    importUrl?: string): Promise<Project> {
-
+    importUrl?: string,
+  ): Promise<Project> {
     const params = omitBy({
       name: path,
       path,
@@ -410,7 +412,9 @@ export default class ProjectModule {
   }
 
   public async editGitLabProject(
-    projectId: number, attributes: { name?: string, description?: string}): Promise<Project> {
+    projectId: number,
+    attributes: { name?: string, description?: string},
+  ): Promise<Project> {
     const params = {
       name: attributes.name,
       path: attributes.name,
@@ -456,7 +460,11 @@ export default class ProjectModule {
   }
 
   public createProject(
-    teamId: number, name: string, description?: string, templateProjectId?: number): Promise<number> {
+    teamId: number,
+    name: string,
+    description?: string,
+    templateProjectId?: number,
+  ): Promise<number> {
     if (!templateProjectId) {
       return this.doCreateProject(teamId, name, description);
     }
@@ -465,7 +473,11 @@ export default class ProjectModule {
 
   // internal function
   public async doCreateProjectFromTemplate(
-    templateProjectId: number, teamId: number, name: string, description?: string): Promise<number> {
+    templateProjectId: number,
+    teamId: number,
+    name: string,
+    description?: string,
+  ): Promise<number> {
     const templateProject = await this.getProject(templateProjectId);
     if (!templateProject) {
       throw Boom.notFound(`Template project ${templateProjectId} not found`);

@@ -14,7 +14,8 @@ export function getMessageWithScreenshot(
   deployment: MinardDeployment,
   projectUrl: string,
   previewUrl: string,
-  comment?: NotificationComment) {
+  comment?: NotificationComment,
+) {
   const imgStyle = 'height: 100px; border: 1px solid #d8d8d8;';
   return `
     <table style="background-color: white; border: 1px solid #d8d8d8;">
@@ -34,7 +35,11 @@ export function getMessageWithScreenshot(
 }
 
 export function getBasicMessage(
-  deployment: MinardDeployment, projectUrl: string, previewUrl: string, comment?: NotificationComment) {
+  deployment: MinardDeployment,
+  projectUrl: string,
+  previewUrl: string,
+  comment?: NotificationComment,
+) {
   return `
     <table>
       <tr>
@@ -48,7 +53,11 @@ export function getBasicMessage(
 }
 
 export function getDescription(
-  deployment: MinardDeployment, projectUrl: string, previewUrl: string, comment?: NotificationComment) {
+  deployment: MinardDeployment,
+  projectUrl: string,
+  previewUrl: string,
+  comment?: NotificationComment,
+) {
   if (comment) {
     const name = comment.name || comment.email;
     return `<b>${name}</b> added a new comment: <i>${comment.message}</i>`;
@@ -113,7 +122,7 @@ export class HipchatNotify {
     previewUrl: string,
     commentUrl: string | undefined,
     comment: NotificationComment | undefined,
-    ): Promise<any> {
+  ): Promise<any> {
 
     const status = deployment.status;
 

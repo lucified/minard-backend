@@ -55,7 +55,7 @@ export default class ScreenshotHapiPlugin {
       throw Boom.forbidden('Invalid token');
     }
     const path = this.screenshotModule.getScreenshotPath(projectId, deploymentId);
-    return reply.file(path, {confine: false} as any);
+    return reply.file(path, { confine: false } as any);
   }
 
 }

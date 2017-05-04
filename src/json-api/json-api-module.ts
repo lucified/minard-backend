@@ -77,7 +77,11 @@ export class JsonApiModule {
   }
 
   public async createProject(
-    teamId: number, name: string, description?: string, templateProjectId?: number): Promise<ApiProject> {
+    teamId: number,
+    name: string,
+    description?: string,
+    templateProjectId?: number,
+  ): Promise<ApiProject> {
     const id = await this.projectModule.createProject(teamId, name, description, templateProjectId);
     const project = await this.getProject(id);
     if (!project) {
@@ -94,7 +98,9 @@ export class JsonApiModule {
   }
 
   public async editProject(
-    projectId: number, attributes: { name?: string, description?: string }): Promise<ApiProject> {
+    projectId: number,
+    attributes: { name?: string, description?: string },
+  ): Promise<ApiProject> {
     await this.projectModule.editProject(projectId, attributes);
     const project = await this.getProject(projectId);
     if (!project) {
@@ -150,7 +156,8 @@ export class JsonApiModule {
     projectId: number,
     branchName: string,
     until?: moment.Moment,
-    count: number = 10): Promise<ApiCommit[] | null> {
+    count: number = 10,
+  ): Promise<ApiCommit[] | null> {
     const minardCommits = await this.projectModule.getBranchCommits(projectId, branchName, until, count);
     if (!minardCommits) {
       throw Boom.notFound('branch not found');
@@ -161,13 +168,19 @@ export class JsonApiModule {
   }
 
   public async getTeamActivity(
-    teamId: number, until?: string, count: number = 10): Promise<ApiActivity[] | null> {
+    teamId: number,
+    until?: string,
+    count: number = 10,
+  ): Promise<ApiActivity[] | null> {
     const activity = await this.activityModule.getTeamActivity(teamId, until ? toMoment(until) : undefined, count);
     return activity ? await Promise.all(activity.map(item => this.toApiActivity(item))) : null;
   }
 
   public async getProjectActivity(
-    projectId: number, until?: string, count: number = 10): Promise<ApiActivity[] | null> {
+    projectId: number,
+    until?: string,
+    count: number = 10,
+  ): Promise<ApiActivity[] | null> {
     const activity = await this.activityModule.getProjectActivity(
       projectId, until ? toMoment(until) : undefined, count);
     return activity ? await Promise.all(activity.map(item => this.toApiActivity(item))) : null;
@@ -224,7 +237,8 @@ export class JsonApiModule {
   public async toApiCommit(
     projectId: number,
     commit: MinardCommit,
-    deployments?: ApiDeployment[]): Promise<ApiCommit> {
+    deployments?: ApiDeployment[],
+  ): Promise<ApiCommit> {
     const ret = deepcopy(commit) as MinardCommit as ApiCommit;
     if (!commit) {
       throw Boom.badImplementation();
@@ -237,7 +251,8 @@ export class JsonApiModule {
         ret.deployments = [];
       } else {
         ret.deployments = await Promise.all<ApiDeployment>(
-          minardDeployments.map((deployment: MinardDeployment) => this.toApiDeployment(projectId, deployment)));
+          minardDeployments.map((deployment: MinardDeployment) => this.toApiDeployment(projectId, deployment)),
+        );
       }
     }
     ret.id = `${projectId}-${commit.id}`;
@@ -247,7 +262,8 @@ export class JsonApiModule {
 
   public async toApiDeployment(
     projectId: number,
-    deployment: MinardDeployment): Promise<ApiDeployment> {
+    deployment: MinardDeployment,
+  ): Promise<ApiDeployment> {
     const commentCount = await this.commentModule.getCommentCountForDeployment(deployment.id);
     return {
       id: `${projectId}-${deployment.id}`,
@@ -378,5 +394,4 @@ export class JsonApiModule {
   public toApiNotificationConfiguration(configuration: NotificationConfiguration): ApiNotificationConfiguration {
     return { ...configuration };
   }
-
 }

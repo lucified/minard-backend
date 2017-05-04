@@ -12,12 +12,12 @@ export interface ChangeInfo {
   Id: string;
 }
 export type Route53UpdaterFunction = (
-    values: {Value: string}[],
-    hostedZoneId: string,
-    name: string,
-    type: string,
-    ttl: number,
-  ) => Promise<{ChangeInfo: ChangeInfo}>;
+  values: {Value: string}[],
+  hostedZoneId: string,
+  name: string,
+  type: string,
+  ttl: number,
+) => Promise<{ChangeInfo: ChangeInfo}>;
 
 // The IP below is the IP for the AWS metadata URL
 const ec2IpUrl = 'http://169.254.169.254/latest/meta-data/local-ipv4';
@@ -59,7 +59,6 @@ export class Route53Updater {
   }
 
   public async update(baseUrl: string, hostedZoneId: string) {
-
     if (!baseUrl) {
       this.logger.info('[route53Update] Base url undefined, skipping update.');
       return false;
@@ -114,7 +113,8 @@ export class Route53Updater {
     hostedZoneId: string,
     name: string,
     type = 'A',
-    ttl = 5): Promise<any> {
+    ttl = 5,
+  ): Promise<any> {
     const params = {
       'ChangeBatch': {
         'Changes': [{
@@ -148,7 +148,6 @@ export class Route53Updater {
       return true;
     }
     throw new Error('unsupported status ' + changeInfo.Status);
-
   }
 
 }

@@ -32,9 +32,7 @@ export default class ScreenshotModule {
     @inject(screenshotFolderInjectSymbol) private readonly folder: string,
     @inject(externalBaseUrlInjectSymbol) private readonly externalBaseUrl: string,
     @inject(TokenGenerator.injectSymbol) private readonly tokenGenerator: TokenGenerator,
-  ) {
-
-  }
+  ) { }
 
   private getScreenshotDir(projectId: number, deploymentId: number) {
     return path.join(this.folder, String(projectId), String(deploymentId));

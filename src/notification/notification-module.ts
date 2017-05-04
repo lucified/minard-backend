@@ -17,7 +17,6 @@ import {
 import {
   isCommentActivity,
   MinardActivity,
-  MinardCommentActivity,
   NEW_ACTIVITY,
 } from '../activity';
 

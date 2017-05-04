@@ -1,6 +1,6 @@
 exports.up = (knex) => Promise.all([
   knex.schema.table('notification_configuration', table => {
-    table.integer('slackWebhookUrl');
+    table.string('slackWebhookUrl');
   }),
 ]);
 

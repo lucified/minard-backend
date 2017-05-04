@@ -117,7 +117,8 @@ export class CIProxy {
       return event;
     } else {
       this.logger.warn(
-        `Deployments status was ${status} for deployment ${deploymentId}. Not posting build status event.`);
+        `Unknown deployment status ${status} for deployment ${deploymentId}. Not posting build status event.`,
+      );
     }
     return undefined;
   }

@@ -13,7 +13,7 @@ import {
 } from '../deployment/';
 
 import {
-  NotificationConfiguration,
+  BaseNotificationConfiguration,
 } from '../notification';
 
 export interface JsonApiEntity {
@@ -114,7 +114,7 @@ export interface ApiComment {
   project: number;
 }
 
-export interface ApiNotificationConfiguration extends NotificationConfiguration {}
+export interface ApiNotificationConfiguration extends BaseNotificationConfiguration {}
 
 export interface PreviewView {
   project: {

@@ -216,14 +216,14 @@ export class JsonApiModule {
       deployment,
       comment,
     };
-    return omitBy(ret, isNil) as ApiActivity;
+    return omitBy<ApiActivity, ApiActivity>(ret, isNil);
   }
 
   public async toApiCommit(
     projectId: number,
     commit: MinardCommit,
     deployments?: ApiDeployment[]): Promise<ApiCommit> {
-    const ret = deepcopy(commit) as ApiCommit;
+    const ret = deepcopy(commit) as MinardCommit as ApiCommit;
     if (!commit) {
       throw Boom.badImplementation();
     }

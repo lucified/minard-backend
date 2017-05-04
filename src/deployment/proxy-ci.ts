@@ -6,6 +6,7 @@ import * as url from 'url';
 import { EventBus, eventBusInjectSymbol } from '../event-bus';
 import * as Hapi from '../server/hapi';
 import { HapiRegister } from '../server/hapi-register';
+import { isBuildStatus } from '../shared/gitlab';
 import { gitlabHostInjectSymbol } from '../shared/gitlab-client';
 import * as logger from '../shared/logger';
 
@@ -107,14 +108,10 @@ export class CIProxy {
   }
 
   private postEvent(deploymentId: number, status: string) {
-    if (status === 'success'
-      || status === 'failed'
-      || status === 'canceled'
-      || status === 'pending'
-      || status === 'running') {
+    if (isBuildStatus(status)) {
       const event = createBuildStatusEvent({
         deploymentId,
-        status: status as 'success' | 'failed' | 'canceled' | 'pending' | 'running',
+        status,
       });
       this.eventBus.post(event);
       return event;

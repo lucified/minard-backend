@@ -25,6 +25,9 @@ export interface Commit {
 }
 
 export type BuildStatus = 'running' | 'success' | 'failed' | 'canceled' | 'pending';
+export function isBuildStatus(status: string): status is BuildStatus {
+  return ['success', 'failed', 'canceled', 'pending', 'running'].indexOf(status) > -1;
+}
 
 export interface Build {
   commit: Commit;

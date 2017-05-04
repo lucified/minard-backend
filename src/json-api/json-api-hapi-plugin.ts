@@ -630,13 +630,13 @@ export class JsonApiHapiPlugin {
 
   public async getCommitHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const projectId = Number(request.params.projectId);
-    const hash = request.params.hash as string;
+    const hash = request.params.hash;
     return reply(this.getEntity('commit', api => api.getCommit(projectId, hash)));
   }
 
   public parseActivityFilter(request: Hapi.Request, reply: Hapi.IReply) {
     try {
-      const filter = request.query.filter as string;
+      const filter: string = request.query.filter;
       return reply(parseActivityFilter(filter));
     } catch (exception) {
       return reply(Boom.badRequest());

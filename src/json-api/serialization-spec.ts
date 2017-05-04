@@ -34,7 +34,7 @@ const exampleDeploymentOne = {
     timestamp: '2015-12-24T17:54:31.198Z',
   },
   commentCount: 2,
-} as {} as ApiDeployment;
+} as ApiDeployment;
 
 const exampleDeploymentTwo = {
   id: '1-2',
@@ -46,7 +46,7 @@ const exampleDeploymentTwo = {
     timestamp: '2015-12-24T17:55:31.198Z',
   },
   commentCount: 4,
-} as {} as ApiDeployment;
+} as ApiDeployment;
 
 const exampleCommitOne = {
   id: '1-8ds7f89as7f89sa',

@@ -260,7 +260,7 @@ export class NotificationModule {
       };
       await this.slackNotify.notify(
         deployment,
-        config.flowToken,
+        config.slackWebhookUrl,
         projectUrl,
         branchUrl,
         previewUrl,

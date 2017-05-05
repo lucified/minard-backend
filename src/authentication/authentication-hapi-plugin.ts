@@ -235,7 +235,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   }
 
   public async logoutHandler(_request: Hapi.Request, reply: Hapi.IReply) {
-    return reply(200).state('token', '');
+    return reply(200).unstate('token');
   }
 
   /**

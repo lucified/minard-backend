@@ -140,11 +140,4 @@ export type ApiEntity =
   ApiNotificationConfiguration |
   ApiComment;
 
-export type ApiEntities =
-  ApiActivity[] |
-  ApiProject[] |
-  ApiCommit[] |
-  ApiDeployment[] |
-  ApiBranch[] |
-  ApiNotificationConfiguration[] |
-  ApiComment[];
+export type ApiEntities = ApiEntity[];

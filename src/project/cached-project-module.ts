@@ -8,10 +8,7 @@ import * as logger from '../shared/logger';
 import { SystemHookModule } from '../system-hook';
 import { GitlabPushEvent } from './gitlab-push-hook-types';
 import ProjectModule from './project-module';
-
-import {
-  MinardProjectContributor,
-} from './types';
+import { MinardProjectContributor } from './types';
 
 function getProjectContributorsCacheKey(projectId: number) {
   return `${projectId}-contributors`;
@@ -29,7 +26,14 @@ export default class CachedProjectModule extends ProjectModule {
     @inject(gitBaseUrlInjectSymbol) gitBaseUrl: string,
     @inject(cacheInjectSymbol) private readonly cache: Cache,
   ) {
-    super(authenticationModule, systemHookModule, eventBus, gitlab, logger, gitBaseUrl);
+    super(
+      authenticationModule,
+      systemHookModule,
+      eventBus,
+      gitlab,
+      logger,
+      gitBaseUrl,
+    );
   }
 
   public async getProjectContributors(projectId: number): Promise<MinardProjectContributor[] | null> {

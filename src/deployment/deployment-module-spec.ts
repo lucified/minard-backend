@@ -8,25 +8,31 @@ import * as Knex from 'knex';
 import * as moment from 'moment';
 import * as os from 'os';
 import * as path from 'path';
-
+import Authentication from '../authentication/authentication-module';
+import {
+  Event,
+  LocalEventBus,
+} from '../event-bus';
 import {
   MinardProject,
   ProjectModule,
 } from '../project';
-
+import {
+  ScreenshotModule,
+} from '../screenshot';
+import { fetch, fetchMock } from '../shared/fetch';
+import { GitlabClient } from '../shared/gitlab-client';
+import Logger from '../shared/logger';
+import { MinardCommit } from '../shared/minard-commit';
+import { promisify } from '../shared/promisify';
+import {
+  toGitlabTimestamp,
+} from '../shared/time-conversion';
 import DeploymentModule, {
   getDeploymentKeyFromHost,
   toDbDeployment,
 } from './deployment-module';
-
-import {
-  ScreenshotModule,
-} from '../screenshot';
-
-import {
-  toGitlabTimestamp,
-} from '../shared/time-conversion';
-
+import { applyDefaults } from './gitlab-yml';
 import {
   BuildCreatedEvent,
   createBuildCreatedEvent,
@@ -38,21 +44,6 @@ import {
   MinardDeployment,
   MinardJsonInfo,
 } from './types';
-
-import { applyDefaults } from './gitlab-yml';
-
-import Authentication from '../authentication/authentication-module';
-
-import {
-  Event,
-  LocalEventBus,
-} from '../event-bus';
-
-import { fetch, fetchMock } from '../shared/fetch';
-import { GitlabClient } from '../shared/gitlab-client';
-import Logger from '../shared/logger';
-import { MinardCommit } from '../shared/minard-commit';
-import { promisify } from '../shared/promisify';
 
 const rimraf = require('rimraf');
 const ncp = promisify(require('ncp'));
@@ -75,7 +66,6 @@ const silentLogger = Logger(undefined, true);
 const basicLogger = Logger(undefined, false);
 
 const eventBus = new LocalEventBus();
-
 const deploymentUrlPattern = 'http://%s.localhost:8000';
 
 const getDeploymentModule = (client: GitlabClient, path: string, _logger: any = basicLogger) => new DeploymentModule(
@@ -214,7 +204,8 @@ describe('deployment-module', () => {
       urlPattern,
       screenshotModule,
       projectModule,
-      knex);
+      knex,
+    );
     return deploymentModule;
   }
 
@@ -1253,7 +1244,8 @@ describe('deployment-module', () => {
         urlPattern,
         screenshotModule,
         {} as any,
-        knex);
+        knex,
+      );
       return deploymentModule;
     }
 

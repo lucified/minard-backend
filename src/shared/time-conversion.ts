@@ -1,4 +1,3 @@
-
 import * as moment from 'moment';
 
 export function toGitlabTimestamp(time: moment.Moment) {

@@ -441,7 +441,7 @@ describe('deployment-module', () => {
 
       // Assert
       const deployment = await deploymentModule.getDeployment(5);
-      const compare = Object.assign({}, deployment, { createdAt: undefined });
+      const compare = { ...deployment, createdAt: undefined };
       const expected = {
         teamId,
         projectId: buildCreatedEvent.payload.project_id,
@@ -1205,7 +1205,7 @@ describe('deployment-module', () => {
 
     async function initializeDb(beforeState: any) {
       const knex = await setupKnex();
-      await knex('deployment').insert(toDbDeployment(Object.assign({
+      await knex('deployment').insert(toDbDeployment({
         id: deploymentId,
         status: 'pending',
         buildStatus: 'pending',
@@ -1221,7 +1221,8 @@ describe('deployment-module', () => {
         },
         finishedAt: undefined,
         teamId,
-      }, beforeState)));
+        ...beforeState,
+      }));
       await knex('deployment').insert(toDbDeployment({
         id: otherDeploymentId,
         status: 'pending',

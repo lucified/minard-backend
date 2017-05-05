@@ -1,17 +1,18 @@
-
 import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
 import { isNil, omitBy } from 'lodash';
 import * as moment from 'moment';
 import * as queryString from 'querystring';
 
+import { AuthenticationModule } from '../authentication';
+import { EventBus, eventBusInjectSymbol } from '../event-bus/';
 import { Branch, Commit } from '../shared/gitlab';
 import { gitBaseUrlInjectSymbol, GitlabClient } from '../shared/gitlab-client';
 import * as logger from '../shared/logger';
 import { MINARD_ERROR_CODE } from '../shared/minard-error';
 import { sleep } from '../shared/sleep';
 import { toGitlabTimestamp } from '../shared/time-conversion';
-
+import { SystemHookModule } from '../system-hook';
 import { GitlabPushEvent } from './gitlab-push-hook-types';
 
 import {
@@ -30,43 +31,26 @@ import {
   toMinardCommit,
 } from '../shared/minard-commit';
 
-import { AuthenticationModule } from '../authentication';
-import { EventBus, eventBusInjectSymbol } from '../event-bus/';
-
 import {
   Project,
   ProjectHook,
 } from '../shared/gitlab';
-
-import { SystemHookModule } from '../system-hook';
 
 @injectable()
 export default class ProjectModule {
 
   public static injectSymbol = Symbol('project-module');
 
-  private authenticationModule: AuthenticationModule;
-  private systemHookModule: SystemHookModule;
-  private eventBus: EventBus;
-  private gitlab: GitlabClient;
-  private readonly logger: logger.Logger;
-  private readonly gitBaseUrl: string;
   public failSleepTime = 2000;
 
   constructor(
-    @inject(AuthenticationModule.injectSymbol) authenticationModule: AuthenticationModule,
-    @inject(SystemHookModule.injectSymbol) systemHookModule: SystemHookModule,
-    @inject(eventBusInjectSymbol) eventBus: EventBus,
-    @inject(GitlabClient.injectSymbol) gitlab: GitlabClient,
-    @inject(logger.loggerInjectSymbol) logger: logger.Logger,
-    @inject(gitBaseUrlInjectSymbol) gitBaseUrl: string) {
-    this.authenticationModule = authenticationModule;
-    this.systemHookModule = systemHookModule;
-    this.eventBus = eventBus;
-    this.gitlab = gitlab;
-    this.logger = logger;
-    this.gitBaseUrl = gitBaseUrl;
-  }
+    @inject(AuthenticationModule.injectSymbol) private authenticationModule: AuthenticationModule,
+    @inject(SystemHookModule.injectSymbol) private systemHookModule: SystemHookModule,
+    @inject(eventBusInjectSymbol) private eventBus: EventBus,
+    @inject(GitlabClient.injectSymbol) private gitlab: GitlabClient,
+    @inject(logger.loggerInjectSymbol) private readonly logger: logger.Logger,
+    @inject(gitBaseUrlInjectSymbol) private readonly gitBaseUrl: string,
+  ) { }
 
   public async getProjectContributors(projectId: number): Promise<MinardProjectContributor[] | null> {
     try {
@@ -103,7 +87,8 @@ export default class ProjectModule {
     projectId: number,
     branchName: string,
     until?: moment.Moment,
-    count: number = 10): Promise<Commit[] | null> {
+    count: number = 10,
+  ): Promise<Commit[] | null> {
     try {
       const params = {
         per_page: count,
@@ -145,7 +130,8 @@ export default class ProjectModule {
     branchName: string,
     until?: moment.Moment,
     count: number = 10,
-    extraCount: number = 5): Promise<MinardCommit[] | null> {
+    extraCount: number = 5,
+  ): Promise<MinardCommit[] | null> {
     const fetchAmount = count + extraCount;
     const commits = await this.fetchBranchCommits(projectId, branchName, until, fetchAmount);
     if (!commits) {
@@ -364,8 +350,8 @@ export default class ProjectModule {
     teamId: number,
     path: string,
     description?: string,
-    importUrl?: string): Promise<Project> {
-
+    importUrl?: string,
+  ): Promise<Project> {
     const params = omitBy({
       name: path,
       path,
@@ -426,7 +412,9 @@ export default class ProjectModule {
   }
 
   public async editGitLabProject(
-    projectId: number, attributes: { name?: string, description?: string}): Promise<Project> {
+    projectId: number,
+    attributes: { name?: string, description?: string},
+  ): Promise<Project> {
     const params = {
       name: attributes.name,
       path: attributes.name,
@@ -472,7 +460,11 @@ export default class ProjectModule {
   }
 
   public createProject(
-    teamId: number, name: string, description?: string, templateProjectId?: number): Promise<number> {
+    teamId: number,
+    name: string,
+    description?: string,
+    templateProjectId?: number,
+  ): Promise<number> {
     if (!templateProjectId) {
       return this.doCreateProject(teamId, name, description);
     }
@@ -481,7 +473,11 @@ export default class ProjectModule {
 
   // internal function
   public async doCreateProjectFromTemplate(
-    templateProjectId: number, teamId: number, name: string, description?: string): Promise<number> {
+    templateProjectId: number,
+    teamId: number,
+    name: string,
+    description?: string,
+  ): Promise<number> {
     const templateProject = await this.getProject(templateProjectId);
     if (!templateProject) {
       throw Boom.notFound(`Template project ${templateProjectId} not found`);

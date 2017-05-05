@@ -1,4 +1,3 @@
-
 import { inject, injectable } from 'inversify';
 
 import { STRATEGY_ROUTELEVEL_ADMIN_HEADER } from '../authentication';
@@ -11,11 +10,9 @@ export default class OperationsHapiPlugin {
 
   public static injectSymbol = Symbol('operations-hapi-plugin');
 
-  public operationsModule: OperationsModule;
-
   constructor(
-    @inject(OperationsModule.injectSymbol) operationsModule: OperationsModule) {
-    this.operationsModule = operationsModule;
+    @inject(OperationsModule.injectSymbol) public operationsModule: OperationsModule,
+  ) {
     this.register.attributes = {
       name: 'operations-plugin',
       version: '1.0.0',

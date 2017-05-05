@@ -1,13 +1,12 @@
-
 import * as events from 'events';
 import * as http from 'http';
-import * as url from 'url';
-
 import { inject, injectable } from 'inversify';
+import * as url from 'url';
 
 import { EventBus, eventBusInjectSymbol } from '../event-bus';
 import * as Hapi from '../server/hapi';
 import { HapiRegister } from '../server/hapi-register';
+import { isBuildStatus } from '../shared/gitlab';
 import { gitlabHostInjectSymbol } from '../shared/gitlab-client';
 import * as logger from '../shared/logger';
 
@@ -23,18 +22,15 @@ export class CIProxy {
   public static readonly injectSymbol = Symbol('ci-proxy');
   private gitlabHost: string;
   private proxyOptions: { host: string, port: number, protocol: string, passThrough: boolean };
-  private eventBus: EventBus;
-  private logger: logger.Logger;
   public readonly routeNamespace = '/ci/api/v1/';
   public readonly routePath = this.routeNamespace + '{what}/{id}/{action?}';
+
   public constructor(
     @inject(gitlabHostInjectSymbol) gitlabHost: string,
-    @inject(eventBusInjectSymbol) eventBus: EventBus,
-    @inject(logger.loggerInjectSymbol) logger: logger.Logger) {
-
+    @inject(eventBusInjectSymbol) private eventBus: EventBus,
+    @inject(logger.loggerInjectSymbol) private logger: logger.Logger,
+  ) {
     this.gitlabHost = gitlabHost;
-    this.eventBus = eventBus;
-    this.logger = logger;
     const gitlab = url.parse(gitlabHost);
 
     if (!gitlab.hostname) {
@@ -86,9 +82,7 @@ export class CIProxy {
       method: 'POST',
       path: this.routeNamespace + '{entities}/register.json',
       handler: {
-        proxy: Object.assign({}, this.proxyOptions, {
-          onResponse: this.postReplyHandler,
-        }),
+        proxy: Object.assign({}, this.proxyOptions, { onResponse: this.postReplyHandler }),
       },
       config,
     });
@@ -114,20 +108,17 @@ export class CIProxy {
   }
 
   private postEvent(deploymentId: number, status: string) {
-    if (status === 'success'
-      || status === 'failed'
-      || status === 'canceled'
-      || status === 'pending'
-      || status === 'running') {
+    if (isBuildStatus(status)) {
       const event = createBuildStatusEvent({
         deploymentId,
-        status: status as 'success' | 'failed' | 'canceled' | 'pending' | 'running',
+        status,
       });
       this.eventBus.post(event);
       return event;
     } else {
       this.logger.warn(
-        `Deployments status was ${status} for deployment ${deploymentId}. Not posting build status event.`);
+        `Unknown deployment status ${status} for deployment ${deploymentId}. Not posting build status event.`,
+      );
     }
     return undefined;
   }

@@ -632,7 +632,7 @@ describe('system-integration', () => {
       expect(json.data.attributes.description).to.equal(editProjectPayload.data.attributes.description);
     });
 
-    it('should be able to add comment for deployment', async function () {
+    it.skip('should be able to add comment for deployment', async function () {
       logTitle('Adding comment');
       this.timeout(1000 * 10);
       const addCommentPayload = {
@@ -658,7 +658,7 @@ describe('system-integration', () => {
       expect(commentId).to.exist;
     });
 
-    it('should be able to fetch comments for deployment', async function () {
+    it.skip('should be able to fetch comments for deployment', async function () {
       logTitle('Fetching comments for deployment');
       const url = `${charles}/api/comments/deployment/${deploymentId}`;
       log(`Using URL ${prettyUrl(url)}`);
@@ -670,7 +670,7 @@ describe('system-integration', () => {
       expect(json.data[0].attributes.message).to.equal('foo message');
     });
 
-    it('should be able to delete comment for deployment', async function () {
+    it.skip('should be able to delete comment for deployment', async function () {
       logTitle('Deleting comment');
       this.timeout(1000 * 10);
       const url = `${charles}/api/comments/${commentId}`;

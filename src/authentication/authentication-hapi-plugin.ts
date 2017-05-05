@@ -385,7 +385,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     };
   }
 
-  private getUserName(request: Hapi.Request) {
+  private getUserName(request: Hapi.Request): string {
     // the username field is set above by the 'validateFuncFactory'
     return request.auth.credentials.username as string;
   }
@@ -408,7 +408,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   private async teamIdOrNameToTeamId(teamIdOrName: string | number) {
     let teamId = parseInt(String(teamIdOrName), 10);
     if (isNaN(teamId)) {
-      const teams = await this._searchGroups(teamIdOrName as string);
+      const teams = await this._searchGroups(String(teamIdOrName));
       if (!teams.length) {
         throw Error(`No teams found matching ${teamIdOrName}`);
       }

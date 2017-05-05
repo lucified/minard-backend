@@ -46,7 +46,7 @@ export class CommentModule {
   }
 
   public async addComment(comment: NewMinardComment): Promise<MinardComment> {
-    const dbComment: DbComment = {
+    const partialDbComment: Partial<DbComment> = {
       createdAt: moment().valueOf(),
       deploymentId: comment.deploymentId,
       email: comment.email,
@@ -55,10 +55,13 @@ export class CommentModule {
       status: 'n',
       teamId: comment.teamId,
       projectId: comment.projectId,
-    } as any; // cast because at this point id is missing
+    };
 
-    const ids = await this.knex('comment').insert(dbComment).returning('id');
-    dbComment.id = ids[0];
+    const ids = await this.knex('comment').insert(partialDbComment).returning('id');
+    const dbComment: DbComment = {
+      ...partialDbComment as DbComment,
+      id: ids[0],
+    };
     const created = toMinardComment(dbComment);
     await this.eventBus.post(createCommentAddedEvent(created));
     return created;

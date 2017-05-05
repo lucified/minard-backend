@@ -1,4 +1,3 @@
-
 import { expect } from 'chai';
 import * as moment from 'moment';
 

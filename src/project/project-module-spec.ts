@@ -1,5 +1,5 @@
-
 import * as Boom from 'boom';
+import { expect } from 'chai';
 import * as moment from 'moment';
 import * as queryString from 'querystring';
 import 'reflect-metadata';
@@ -12,8 +12,6 @@ import Logger from '../shared/logger';
 import { MINARD_ERROR_CODE } from '../shared/minard-error';
 import { toGitlabTimestamp } from '../shared/time-conversion';
 import SystemHookModule from '../system-hook/system-hook-module';
-
-import { expect } from 'chai';
 
 import ProjectModule from './project-module';
 
@@ -1534,7 +1532,7 @@ describe('project-module', () => {
     it('should register project hook if existing one differs by webhook url', async () => {
       // Arrange
       const path = `/projects/${projectId}/hooks`;
-      const body = gitlabResponse.map(item => Object.assign({}, item, { url: 'foo' }));
+      const body = gitlabResponse.map(item => ({ ...item, url: 'foo' }));
       const projectModule = arrangeProjectModuleForProjectHookTest(200, body, path);
 
       // Act & Assert

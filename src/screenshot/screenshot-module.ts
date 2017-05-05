@@ -1,4 +1,3 @@
-
 import * as Boom from 'boom';
 import * as fs from 'fs';
 import { inject, injectable } from 'inversify';
@@ -7,7 +6,7 @@ import { sprintf } from 'sprintf-js';
 
 import { externalBaseUrlInjectSymbol } from '../server/types';
 import * as logger from '../shared/logger';
-
+import { promisify } from '../shared/promisify';
 import TokenGenerator from '../shared/token-generator';
 
 import {
@@ -21,8 +20,6 @@ import {
 const urljoin = require('url-join');
 const dataURI = require('datauri').promise;
 
-import { promisify } from '../shared/promisify';
-
 @injectable()
 export default class ScreenshotModule {
 
@@ -35,9 +32,7 @@ export default class ScreenshotModule {
     @inject(screenshotFolderInjectSymbol) private readonly folder: string,
     @inject(externalBaseUrlInjectSymbol) private readonly externalBaseUrl: string,
     @inject(TokenGenerator.injectSymbol) private readonly tokenGenerator: TokenGenerator,
-  ) {
-
-  }
+  ) { }
 
   private getScreenshotDir(projectId: number, deploymentId: number) {
     return path.join(this.folder, String(projectId), String(deploymentId));

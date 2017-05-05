@@ -1,7 +1,7 @@
 import { ECS } from 'aws-sdk';
 import { exists, readFile } from 'fs-promise';
 import { inject, injectable } from 'inversify';
-import * as _ from 'lodash';
+import { pick } from 'lodash';
 import * as moment from 'moment';
 
 import { AuthenticationModule } from '../authentication';
@@ -86,25 +86,16 @@ export default class StatusModule {
 
   public static injectSymbol = Symbol('status-module');
 
-  private readonly gitlab: GitlabClient;
-  private readonly screenshotter: Screenshotter;
-  private readonly eventBus: EventBus;
-  private readonly authentication: AuthenticationModule;
   private latestSystemHookRegistration: Event<SystemHookRegistrationEvent>;
-  private fetch: IFetch;
   private ip: string|undefined = undefined;
 
   public constructor(
-    @inject(GitlabClient.injectSymbol) gitlab: GitlabClient,
-    @inject(screenshotterInjectSymbol) screenshotter: Screenshotter,
-    @inject(eventBusInjectSymbol) eventBus: EventBus,
-    @inject(AuthenticationModule.injectSymbol) authentication: AuthenticationModule,
-    @inject(fetchInjectSymbol) fetch: IFetch) {
-    this.gitlab = gitlab;
-    this.screenshotter = screenshotter;
-    this.eventBus = eventBus;
-    this.authentication = authentication;
-    this.fetch = fetch;
+    @inject(GitlabClient.injectSymbol) private readonly gitlab: GitlabClient,
+    @inject(screenshotterInjectSymbol) private readonly screenshotter: Screenshotter,
+    @inject(eventBusInjectSymbol) private readonly eventBus: EventBus,
+    @inject(AuthenticationModule.injectSymbol) private readonly authentication: AuthenticationModule,
+    @inject(fetchInjectSymbol) private fetch: IFetch,
+  ) {
     this.subscribeToEvents();
   }
 
@@ -294,7 +285,6 @@ export async function getCharlesVersion(): Promise<string | undefined> {
 }
 
 export async function getEcsStatus(_env?: string) {
-
   // Yes, we access an environment variable here. It's bad. Don't do it.
   const env = _env || process.env.LUCIFY_ENV;
 
@@ -318,19 +308,20 @@ export async function getEcsStatus(_env?: string) {
       }
     }
 
-    return Object.assign(_.pick(service, [
-      'serviceName',
-      'status',
-      'runningCount',
-    ]), {
-        revision: parseInt(service.taskDefinition.split(':').pop(), 10),
-        image,
-        environment: env,
-      });
+    return {
+      ...pick<{ serviceName: string, status: string, runningCount: number }, any>(service, [
+        'serviceName',
+        'status',
+        'runningCount',
+      ]),
+      revision: parseInt(service.taskDefinition.split(':').pop(), 10),
+      image,
+      environment: env,
+    };
   }));
 
   return serviceData.reduce((response: any, service: any, i: number) => {
-    return Object.assign({}, response, { [services[i]]: service });
+    return { ...response, [services[i]]: service };
   }, {});
 
 }

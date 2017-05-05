@@ -1,14 +1,8 @@
-
 import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
 import { differenceBy, isNil, omitBy } from 'lodash';
 
-import { EventBus, eventBusInjectSymbol } from '../event-bus';
 import * as logger from '../shared/logger';
-
-import {
-  ScreenshotModule,
-} from '../screenshot';
 
 import {
   ProjectModule,
@@ -28,27 +22,13 @@ import {
 export default class OperationsModule {
 
   public static injectSymbol = Symbol('operations-module');
-  private readonly logger: logger.Logger;
-  private readonly eventBus: EventBus;
-  private readonly projectModule: ProjectModule;
-  private readonly deploymentModule: DeploymentModule;
-  private readonly screenshotModule: ScreenshotModule;
-  private readonly activityModule: ActivityModule;
 
   constructor(
-    @inject(ProjectModule.injectSymbol) projectModule: ProjectModule,
-    @inject(DeploymentModule.injectSymbol) deploymentModule: DeploymentModule,
-    @inject(ScreenshotModule.injectSymbol) screenshotModule: ScreenshotModule,
-    @inject(eventBusInjectSymbol) eventBus: EventBus,
-    @inject(logger.loggerInjectSymbol) logger: logger.Logger,
-    @inject(ActivityModule.injectSymbol) activityModule: ActivityModule) {
-    this.projectModule = projectModule;
-    this.deploymentModule = deploymentModule;
-    this.screenshotModule = screenshotModule;
-    this.eventBus = eventBus;
-    this.logger = logger;
-    this.activityModule = activityModule;
-  }
+    @inject(ProjectModule.injectSymbol) private readonly projectModule: ProjectModule,
+    @inject(DeploymentModule.injectSymbol) private readonly deploymentModule: DeploymentModule,
+    @inject(logger.loggerInjectSymbol) private readonly logger: logger.Logger,
+    @inject(ActivityModule.injectSymbol) private readonly activityModule: ActivityModule,
+  ) { }
 
   public async runBasicMaintenceTasks() {
     this.assureScreenshotsGenerated();

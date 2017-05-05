@@ -6,7 +6,6 @@ import {
 } from '../deployment';
 import { IFetch } from '../shared/fetch';
 import { fetchInjectSymbol } from '../shared/types';
-
 import {
   NotificationComment,
 } from './types';
@@ -15,7 +14,8 @@ export function getMessageWithScreenshot(
   deployment: MinardDeployment,
   projectUrl: string,
   previewUrl: string,
-  comment?: NotificationComment) {
+  comment?: NotificationComment,
+) {
   const imgStyle = 'height: 100px; border: 1px solid #d8d8d8;';
   return `
     <table style="background-color: white; border: 1px solid #d8d8d8;">
@@ -35,7 +35,11 @@ export function getMessageWithScreenshot(
 }
 
 export function getBasicMessage(
-  deployment: MinardDeployment, projectUrl: string, previewUrl: string, comment?: NotificationComment) {
+  deployment: MinardDeployment,
+  projectUrl: string,
+  previewUrl: string,
+  comment?: NotificationComment,
+) {
   return `
     <table>
       <tr>
@@ -49,7 +53,11 @@ export function getBasicMessage(
 }
 
 export function getDescription(
-  deployment: MinardDeployment, projectUrl: string, previewUrl: string, comment?: NotificationComment) {
+  deployment: MinardDeployment,
+  projectUrl: string,
+  previewUrl: string,
+  comment?: NotificationComment,
+) {
   if (comment) {
     const name = comment.name || comment.email;
     return `<b>${name}</b> added a new comment: <i>${comment.message}</i>`;
@@ -69,11 +77,8 @@ export function getDescription(
 export class HipchatNotify {
 
   public static injectSymbol = Symbol('hipchat-notify');
-  private fetch: IFetch;
 
-  public constructor(@inject(fetchInjectSymbol) fetch: IFetch) {
-    this.fetch = fetch;
-  }
+  public constructor(@inject(fetchInjectSymbol) private fetch: IFetch) { }
 
   private getCard(deployment: MinardDeployment, projectUrl: string, previewUrl: string, comment?: NotificationComment) {
     // we need this hack to show proper screenshot in integration
@@ -117,7 +122,7 @@ export class HipchatNotify {
     previewUrl: string,
     commentUrl: string | undefined,
     comment: NotificationComment | undefined,
-    ): Promise<any> {
+  ): Promise<any> {
 
     const status = deployment.status;
 

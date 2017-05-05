@@ -1,4 +1,3 @@
-
 import { inject, injectable } from 'inversify';
 import * as Knex from 'knex';
 import * as moment from 'moment';
@@ -32,16 +31,21 @@ import {
 } from './types';
 
 export function toDbActivity(activity: MinardActivity) {
-  const deployment = Object.assign({}, activity.deployment, { url: undefined, screenshot: undefined });
+  const deployment = {
+    ...activity.deployment,
+    url: undefined,
+    screenshot: undefined,
+  };
   // Note: It could make sense to use toDbDeployment before storing the
   // related deployment here. However, we did not do it from the start, and
   // changing this would require us to transform existing json structures in the
   // databases.
-  return Object.assign({}, activity, {
+  return {
+    ...activity,
     deployment: JSON.stringify(deployment),
     commit: JSON.stringify(activity.commit),
     timestamp: activity.timestamp.valueOf(),
-  });
+  };
 }
 
 function createDeploymentRelatedActivity(deployment: MinardDeployment) {
@@ -59,23 +63,14 @@ function createDeploymentRelatedActivity(deployment: MinardDeployment) {
 
 @injectable()
 export default class ActivityModule {
-
   public static injectSymbol = Symbol('activity-module');
 
-  private readonly deploymentModule: DeploymentModule;
-  private readonly logger: logger.Logger;
-  private readonly knex: Knex;
-  private readonly eventBus: EventBus;
-
   public constructor(
-    @inject(DeploymentModule.injectSymbol) deploymentModule: DeploymentModule,
-    @inject(logger.loggerInjectSymbol) logger: logger.Logger,
-    @inject(eventBusInjectSymbol) eventBus: EventBus,
-    @inject(charlesKnexInjectSymbol) knex: Knex) {
-    this.deploymentModule = deploymentModule;
-    this.logger = logger;
-    this.eventBus = eventBus;
-    this.knex = knex;
+    @inject(DeploymentModule.injectSymbol) private readonly deploymentModule: DeploymentModule,
+    @inject(logger.loggerInjectSymbol) private readonly logger: logger.Logger,
+    @inject(eventBusInjectSymbol) private readonly eventBus: EventBus,
+    @inject(charlesKnexInjectSymbol) private readonly knex: Knex,
+  ) {
     this.subscribeForFinishedDeployments();
     this.subscribeForComments();
   }
@@ -109,15 +104,16 @@ export default class ActivityModule {
     if (!deployment) {
       throw Error(`Could not get deployment ${event.deploymentId} for comment '${event.id}'`);
     }
-    return Object.assign(createDeploymentRelatedActivity(deployment), {
-      activityType: 'comment' as 'deployment' | 'comment',
+    return {
+      ...createDeploymentRelatedActivity(deployment),
+      activityType: 'comment',
       timestamp: event.createdAt,
       teamId: event.teamId,
       name: event.name,
       email: event.email,
       message: event.message,
       commentId: event.id,
-    });
+    };
   }
 
   private async handleFinishedDeployment(event: Event<DeploymentEvent>) {
@@ -136,27 +132,29 @@ export default class ActivityModule {
       this.logger.warn(`Finished deployment ${deployment.id} did not have finishedAt defined`);
       timestamp = moment();
     }
-    return Object.assign(createDeploymentRelatedActivity(deployment), {
-      activityType: 'deployment' as 'deployment' | 'comment',
+    return {
+      ...createDeploymentRelatedActivity(deployment),
+      activityType: 'deployment',
       timestamp,
       teamId: event.teamId,
-    });
+    };
   }
 
   public async addActivity(activity: MinardActivity): Promise<void> {
     const ids = await this.knex('activity').insert(toDbActivity(activity)).returning('id');
-    this.eventBus.post(createActivityEvent(Object.assign({}, activity, { id: ids[0] })));
+    this.eventBus.post(createActivityEvent({ ...activity, id: ids[0] }));
   }
 
-  private toMinardActivity(activity: any) {
+  private toMinardActivity(activity: any): MinardActivity {
     const _deployment = activity.deployment instanceof Object ? activity.deployment : JSON.parse(activity.deployment);
     const commit = activity.commit instanceof Object ? activity.commit : JSON.parse(activity.commit);
     const deployment = this.deploymentModule.toMinardDeployment(_deployment);
-    return Object.assign({}, activity, {
+    return {
+      ...activity,
       deployment,
       commit,
       timestamp: moment(Number(activity.timestamp)),
-    }) as MinardActivity;
+    };
   }
 
   public async getTeamActivity(teamId: number, until?: moment.Moment, count?: number): Promise<MinardActivity[]> {
@@ -186,5 +184,4 @@ export default class ActivityModule {
     }
     return (await select).map((item: any) => this.toMinardActivity(item));
   }
-
 }

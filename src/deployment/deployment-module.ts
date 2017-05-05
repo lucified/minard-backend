@@ -1,4 +1,3 @@
-
 import * as Boom from 'boom';
 import * as fs from 'fs';
 import { inject, injectable } from 'inversify';
@@ -15,20 +14,18 @@ import {
   EventBus,
   eventBusInjectSymbol,
 } from '../event-bus';
+import { ProjectModule } from '../project';
+import { ScreenshotModule } from '../screenshot';
 import { GitlabClient } from '../shared/gitlab-client';
 import * as logger from '../shared/logger';
-
 import { toGitlabTimestamp } from '../shared/time-conversion';
 import { charlesKnexInjectSymbol } from '../shared/types';
-
 import {
-  ScreenshotModule,
-} from '../screenshot';
-
-import {
-  ProjectModule,
-} from '../project';
-
+  applyDefaults,
+  getGitlabYml,
+  getGitlabYmlNoAutoBuild,
+  getValidationErrors,
+} from './gitlab-yml';
 import {
   BUILD_CREATED_EVENT,
   BUILD_STATUS_EVENT_TYPE,
@@ -45,13 +42,6 @@ import {
   MinardJsonInfo,
   RepositoryObject,
 } from './types';
-
-import {
-  applyDefaults,
-  getGitlabYml,
-  getGitlabYmlNoAutoBuild,
-  getValidationErrors,
-} from './gitlab-yml';
 
 import { promisify } from '../shared/promisify';
 
@@ -86,11 +76,12 @@ export function getDeploymentKeyFromHost(hostname: string) {
 }
 
 export function toDbDeployment(deployment: MinardDeployment) {
-  return Object.assign({}, deployment, {
+  return {
+    ...deployment,
     commit: JSON.stringify(deployment.commit),
     finishedAt: deployment.finishedAt && deployment.finishedAt.valueOf(),
     createdAt: deployment.createdAt && deployment.createdAt.valueOf(),
-  });
+  };
 }
 
 @injectable()
@@ -550,7 +541,7 @@ export default class DeploymentModule {
       }
       const payload: DeploymentEvent = {
         teamId: deployment.teamId,
-        statusUpdate: omitBy(Object.assign({}, realUpdates, { finishedAt: undefined }), isNil),
+        statusUpdate: omitBy({ ...realUpdates, finishedAt: undefined }, isNil),
         deployment,
       };
       this.eventBus.post(createDeploymentEvent(payload));

@@ -1,4 +1,3 @@
-
 import * as Hapi from '../server/hapi';
 import { HapiRegister } from '../server/hapi-register';
 
@@ -12,15 +11,11 @@ import { default as StatusModule, getEcsStatus } from './status-module';
 class StatusHapiPlugin {
 
   public static injectSymbol = Symbol('status-hapi-plugin');
-  private statusModule: StatusModule;
-  private readonly logger: logger.Logger;
 
   constructor(
-    @inject(StatusModule.injectSymbol) statusModule: StatusModule,
-    @inject(logger.loggerInjectSymbol) logger: logger.Logger,
+    @inject(StatusModule.injectSymbol) private statusModule: StatusModule,
+    @inject(logger.loggerInjectSymbol) private readonly logger: logger.Logger,
   ) {
-    this.statusModule = statusModule;
-    this.logger = logger;
     this.register.attributes = {
       name: 'status-hapi-plugin',
       version: '1.0.0',

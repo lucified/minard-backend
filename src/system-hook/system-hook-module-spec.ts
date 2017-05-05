@@ -1,15 +1,13 @@
-
 import { expect } from 'chai';
 import 'reflect-metadata';
 
 import Authentication from '../authentication/authentication-module';
+import { EventBus, LocalEventBus } from '../event-bus';
 import { fetchMock } from '../shared/fetch';
 import { GitlabClient } from '../shared/gitlab-client';
+import Logger from '../shared/logger';
 import SystemHookModule from './system-hook-module';
 import { SYSTEM_HOOK_REGISTRATION_EVENT_TYPE, SystemHookRegistrationEvent } from './types';
-
-import { EventBus, LocalEventBus } from '../event-bus';
-import Logger from '../shared/logger';
 
 const logger = Logger(undefined, true);
 

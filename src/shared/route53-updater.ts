@@ -12,12 +12,12 @@ export interface ChangeInfo {
   Id: string;
 }
 export type Route53UpdaterFunction = (
-    values: {Value: string}[],
-    hostedZoneId: string,
-    name: string,
-    type: string,
-    ttl: number,
-  ) => Promise<{ChangeInfo: ChangeInfo}>;
+  values: {Value: string}[],
+  hostedZoneId: string,
+  name: string,
+  type: string,
+  ttl: number,
+) => Promise<{ChangeInfo: ChangeInfo}>;
 
 // The IP below is the IP for the AWS metadata URL
 const ec2IpUrl = 'http://169.254.169.254/latest/meta-data/local-ipv4';
@@ -30,28 +30,19 @@ export class Route53Updater {
   public readonly apiPrefix: string = '/api/v3';
   public readonly authenticationHeader = 'PRIVATE-TOKEN';
 
-  private logger: Logger;
-  private fetch: IFetch;
-  private retryDelay: number;
-  private syncDelay: number;
-  private maxTimes: number;
   private route53: any;
   private changeResourceRecordSets: any;
   private getChange: any;
   private listResourceRecordSets: any;
 
   public constructor(
-    @inject(fetchInjectSymbol) fetch: IFetch,
-    @inject(loggerInjectSymbol) logger: Logger,
-    retryDelay = 200,
-    syncDelay = 5000,
-    maxTimes = 5,
-    updateRecordSet?: Route53UpdaterFunction) {
-    this.logger = logger;
-    this.fetch = fetch;
-    this.retryDelay = retryDelay;
-    this.syncDelay = syncDelay;
-    this.maxTimes = maxTimes;
+    @inject(fetchInjectSymbol) private fetch: IFetch,
+    @inject(loggerInjectSymbol) private logger: Logger,
+    private retryDelay = 200,
+    private syncDelay = 5000,
+    private maxTimes = 5,
+    updateRecordSet?: Route53UpdaterFunction,
+  ) {
     // For unit testing
     if (updateRecordSet) {
       this.updateRecordSet = updateRecordSet;
@@ -68,7 +59,6 @@ export class Route53Updater {
   }
 
   public async update(baseUrl: string, hostedZoneId: string) {
-
     if (!baseUrl) {
       this.logger.info('[route53Update] Base url undefined, skipping update.');
       return false;
@@ -123,7 +113,8 @@ export class Route53Updater {
     hostedZoneId: string,
     name: string,
     type = 'A',
-    ttl = 5): Promise<any> {
+    ttl = 5,
+  ): Promise<any> {
     const params = {
       'ChangeBatch': {
         'Changes': [{
@@ -157,7 +148,6 @@ export class Route53Updater {
       return true;
     }
     throw new Error('unsupported status ' + changeInfo.Status);
-
   }
 
 }

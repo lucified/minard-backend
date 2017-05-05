@@ -15,8 +15,8 @@ import {
 } from '../event-bus';
 
 import {
+  isCommentActivity,
   MinardActivity,
-  MinardCommentActivity,
   NEW_ACTIVITY,
 } from '../activity';
 
@@ -64,13 +64,12 @@ import {
 type NotificationEvent = DeploymentEvent | MinardActivity;
 
 function getComment(event: NotificationEvent) {
-  if ((event as MinardActivity).activityType === 'comment') {
-    const activityEvent = event as MinardCommentActivity;
+  if (isCommentActivity(event)) {
     return {
-      name: activityEvent.name,
-      email: activityEvent.email,
-      message: activityEvent.message,
-      id: activityEvent.commentId,
+      name: event.name,
+      email: event.email,
+      message: event.message,
+      id: event.commentId,
     };
   }
   return undefined;
@@ -177,11 +176,11 @@ export class NotificationModule {
 
   public async notify(event: Event<NotificationEvent>, config: NotificationConfiguration): Promise<void> {
     if (config.type === 'flowdock') {
-      return this.notifyFlowdock(event, config as FlowdockNotificationConfiguration);
+      return this.notifyFlowdock(event, config);
     } else if (config.type === 'hipchat') {
-      return this.notifyHipchat(event, config as HipChatNotificationConfiguration);
+      return this.notifyHipchat(event, config);
     } else if (config.type === 'slack') {
-      return this.notifySlack(event, config as SlackNotificationConfiguration);
+      return this.notifySlack(event, config);
     }
   }
 

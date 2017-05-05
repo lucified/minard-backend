@@ -1,4 +1,3 @@
-
 import * as Boom from 'boom';
 import { expect } from 'chai';
 import * as moment from 'moment';
@@ -21,12 +20,10 @@ import {
 
 import { ViewEndpoints } from './view-endpoints';
 
-function getMockCommentModule() {
-  const commentModule = {} as CommentModule;
-  commentModule.getCommentCountForDeployment = async (_deploymentId: number) => {
-    return 2;
-  };
-  return commentModule;
+function getMockCommentModule(): CommentModule {
+  return {
+    getCommentCountForDeployment: async (_deploymentId: number) => 2,
+  } as CommentModule;
 }
 
 describe('view-endpoints', () => {
@@ -78,8 +75,8 @@ describe('view-endpoints', () => {
       {} as any,
       {} as any,
       {} as any,
-      {} as any,
-      getMockCommentModule());
+      getMockCommentModule(),
+    );
     return new ViewEndpoints(jsonApiModule, deploymentModule, 'foo-base-url');
   }
 

@@ -11,11 +11,9 @@ export default class ScreenshotHapiPlugin {
 
   public static injectSymbol = Symbol('screenshot-hapi-plugin');
 
-  private screenshotModule: ScreenshotModule;
-
   constructor(
-    @inject(ScreenshotModule.injectSymbol) screenshotModule: ScreenshotModule) {
-    this.screenshotModule = screenshotModule;
+    @inject(ScreenshotModule.injectSymbol) private screenshotModule: ScreenshotModule,
+  ) {
     this.register.attributes = {
       name: 'screenshot-plugin',
       version: '1.0.0',
@@ -57,7 +55,7 @@ export default class ScreenshotHapiPlugin {
       throw Boom.forbidden('Invalid token');
     }
     const path = this.screenshotModule.getScreenshotPath(projectId, deploymentId);
-    return reply.file(path, {confine: false} as any);
+    return reply.file(path, { confine: false } as any);
   }
 
 }

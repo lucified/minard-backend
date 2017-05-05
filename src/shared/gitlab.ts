@@ -25,6 +25,9 @@ export interface Commit {
 }
 
 export type BuildStatus = 'running' | 'success' | 'failed' | 'canceled' | 'pending';
+export function isBuildStatus(status: string): status is BuildStatus {
+  return ['success', 'failed', 'canceled', 'pending', 'running'].indexOf(status) > -1;
+}
 
 export interface Build {
   commit: Commit;
@@ -84,9 +87,9 @@ export interface SystemHook {
 }
 
 export interface Owner {
-    id: number;
-    name: string;
-    created_at: Date;
+  id: number;
+  name: string;
+  created_at: Date;
 }
 
 export interface Access {
@@ -100,56 +103,56 @@ export interface Permissions {
 }
 
 export interface SharedWithGroup {
-    group_id: number;
-    group_name: string;
-    group_access_level: number;
+  group_id: number;
+  group_name: string;
+  group_access_level: number;
 }
 
 export interface Namespace {
-    created_at: Date;
-    description: string;
-    id: number;
-    name: string;
-    owner_id: number;
-    path: string;
-    updated_at: Date;
+  created_at: Date;
+  description: string;
+  id: number;
+  name: string;
+  owner_id: number;
+  path: string;
+  updated_at: Date;
 }
 
 export interface Project {
-    id: number;
-    description?: any;
-    default_branch: string;
-    public: boolean;
-    visibility_level: number;
-    ssh_url_to_repo: string;
-    http_url_to_repo: string;
-    web_url: string;
-    tag_list: string[];
-    owner: Owner;
-    name: string;
-    name_with_namespace: string;
-    path: string;
-    path_with_namespace: string;
-    issues_enabled: boolean;
-    open_issues_count: number;
-    merge_requests_enabled: boolean;
-    builds_enabled: boolean;
-    wiki_enabled: boolean;
-    snippets_enabled: boolean;
-    container_registry_enabled: boolean;
-    created_at: Date;
-    last_activity_at: string;
-    creator_id: number;
-    namespace: Namespace;
-    permissions: Permissions;
-    archived: boolean;
-    avatar_url: string;
-    shared_runners_enabled: boolean;
-    forks_count: number;
-    star_count: number;
-    runners_token: string;
-    public_builds: boolean;
-    shared_with_groups: SharedWithGroup[];
+  id: number;
+  description?: any;
+  default_branch: string;
+  public: boolean;
+  visibility_level: number;
+  ssh_url_to_repo: string;
+  http_url_to_repo: string;
+  web_url: string;
+  tag_list: string[];
+  owner: Owner;
+  name: string;
+  name_with_namespace: string;
+  path: string;
+  path_with_namespace: string;
+  issues_enabled: boolean;
+  open_issues_count: number;
+  merge_requests_enabled: boolean;
+  builds_enabled: boolean;
+  wiki_enabled: boolean;
+  snippets_enabled: boolean;
+  container_registry_enabled: boolean;
+  created_at: Date;
+  last_activity_at: string;
+  creator_id: number;
+  namespace: Namespace;
+  permissions: Permissions;
+  archived: boolean;
+  avatar_url: string;
+  shared_runners_enabled: boolean;
+  forks_count: number;
+  star_count: number;
+  runners_token: string;
+  public_builds: boolean;
+  shared_with_groups: SharedWithGroup[];
 }
 
 export interface Branch {

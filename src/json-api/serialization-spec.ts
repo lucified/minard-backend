@@ -1,4 +1,3 @@
-
 import 'reflect-metadata';
 
 import { values } from 'lodash';
@@ -17,6 +16,7 @@ import {
 import {
   FlowdockNotificationConfiguration,
   HipChatNotificationConfiguration,
+  SlackNotificationConfiguration,
 } from '../notification';
 
 import { serializeApiEntity } from './serialization';
@@ -443,7 +443,7 @@ describe('json-api serialization', () => {
         type: 'flowdock',
       };
 
-      const converted = serializeApiEntity('notification', notification, apiBaseUrl) as JsonApiResponse;
+      const converted: JsonApiResponse = serializeApiEntity('notification', notification, apiBaseUrl);
       const data = converted.data as JsonApiEntity;
       expect(data).to.exist;
 
@@ -467,7 +467,7 @@ describe('json-api serialization', () => {
         type: 'hipchat',
       } as any;
 
-      const converted = serializeApiEntity('notification', notification, apiBaseUrl) as JsonApiResponse;
+      const converted: JsonApiResponse = serializeApiEntity('notification', notification, apiBaseUrl);
       const data = converted.data as JsonApiEntity;
       expect(data).to.exist;
 
@@ -478,6 +478,29 @@ describe('json-api serialization', () => {
       // attributes
       expect(data.attributes['hipchat-room-id']).to.equal(notification.hipchatRoomId);
       expect(data.attributes['hipchat-auth-token']).to.equal(notification.hipchatAuthToken);
+      expect(data.attributes['team-id']).to.equal(notification.teamId);
+      expect(data.attributes.type).to.equal(notification.type);
+    });
+
+    it('should work with a Slack notification', () => {
+      const notification: SlackNotificationConfiguration = {
+        id: 5,
+        projectId: null,
+        teamId: 7,
+        slackWebhookUrl: 'http://fake.slack.url/for/notifications',
+        type: 'slack',
+      };
+
+      const converted: JsonApiResponse = serializeApiEntity('notification', notification, apiBaseUrl);
+      const data = converted.data as JsonApiEntity;
+      expect(data).to.exist;
+
+      // id and type
+      expect(data.id).to.equal(String(notification.id));
+      expect(data.type).to.equal('notifications');
+
+      // attributes
+      expect(data.attributes['slack-webhook-url']).to.equal(notification.slackWebhookUrl);
       expect(data.attributes['team-id']).to.equal(notification.teamId);
       expect(data.attributes.type).to.equal(notification.type);
     });

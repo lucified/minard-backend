@@ -59,7 +59,7 @@ export default class ScreenshotModule {
 
   public async getScreenshotData(projectId: number, deploymentId: number) {
     const path = this.getScreenshotPath(projectId, deploymentId);
-    return promisify(fs.readFile)(path);
+    return promisify<string>(fs.readFile)(path);
   }
 
   public getScreenshotPath(projectId: number, deploymentId: number) {

@@ -89,6 +89,7 @@ import {
   FlowdockNotify,
   HipchatNotify,
   NotificationModule,
+  SlackNotify,
 } from '../notification';
 
 import { SystemHookModule } from '../system-hook';
@@ -130,6 +131,7 @@ export default new ContainerModule((bind, _unbind, _isBound, _rebind) => {
   bind(fetchInjectSymbol).toConstantValue(fetch);
   bind(FlowdockNotify.injectSymbol).to(FlowdockNotify);
   bind(HipchatNotify.injectSymbol).to(HipchatNotify);
+  bind(SlackNotify.injectSymbol).to(SlackNotify);
   bind(MinardServer.injectSymbol).to(MinardServer).inSingletonScope();
   bind(RemoteScreenshotter.injectSymbol).to(RemoteScreenshotter).inSingletonScope();
   bind(Migrations.injectSymbol).to(Migrations);

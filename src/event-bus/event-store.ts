@@ -52,6 +52,7 @@ export default class EventStore {
         await sleep(this.sleepFor);
       }
     }
+    this.logger.error('Unable to persist event %s even after %d retries', event.type, this.numRetries);
     return false;
   }
 
@@ -65,7 +66,7 @@ export default class EventStore {
       await this.eventStore.commit(stream);
       return true;
     } catch (err) {
-      this.logger.error('Unable to post event %s', event.type, err);
+      this.logger.info('Unable to persist event %s', event.type, err);
       this.isConnected = false;
       return false;
     }

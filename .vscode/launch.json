@@ -6,11 +6,11 @@
       "type": "node",
       "request": "launch",
       "program": "${workspaceRoot}/node_modules/mocha/bin/_mocha",
-      "stopOnEntry": false,
       "args": ["-t", "100000000", "dist/*/*-spec.js"],
       "cwd": "${workspaceRoot}",
       "runtimeExecutable": null,
       "env": { "NODE_ENV": "test", "TEST_USE_REDIS": "true", "TEST_ECS": "true"},
+      "protocol": "inspector",
       "sourceMaps": true,
       "outFiles": ["${workspaceRoot}/dist/**/*.js"]
     },

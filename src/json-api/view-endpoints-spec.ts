@@ -18,6 +18,7 @@ import {
   MinardDeployment,
 } from '../deployment';
 
+import TokenGenerator from '../shared/token-generator';
 import { ViewEndpoints } from './view-endpoints';
 
 function getMockCommentModule(): CommentModule {
@@ -25,6 +26,7 @@ function getMockCommentModule(): CommentModule {
     getCommentCountForDeployment: async (_deploymentId: number) => 2,
   } as CommentModule;
 }
+const tokenGenerator = new TokenGenerator('secret');
 
 describe('view-endpoints', () => {
 
@@ -76,7 +78,7 @@ describe('view-endpoints', () => {
       {} as any,
       {} as any,
       getMockCommentModule(),
-      {} as any,
+      tokenGenerator,
     );
     return new ViewEndpoints(jsonApiModule, deploymentModule, 'foo-base-url');
   }
@@ -84,9 +86,9 @@ describe('view-endpoints', () => {
   it('should work for a typical deployment', async () => {
     // Arrange
     const viewEndpoints = arrange();
-
+    const token = tokenGenerator.deploymentToken(projectId, deploymentId);
     // Act
-    const view = await viewEndpoints.getPreview(projectId, deploymentId, sha);
+    const view = await viewEndpoints.getPreview(projectId, deploymentId, token);
 
     // Assert
     expect(view).to.exist;
@@ -98,7 +100,7 @@ describe('view-endpoints', () => {
     expect(view!.commit.attributes.message).to.equal(minardDeployment.commit.message);
   });
 
-  it('should return forbidden when sha is invalid', async () => {
+  it('should return forbidden when token is invalid', async () => {
     // Arrange
     const viewEndpoints = arrange();
 

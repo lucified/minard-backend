@@ -37,6 +37,7 @@ import {
 } from '../project';
 import logger from '../shared/logger';
 import { promisify } from '../shared/promisify';
+import TokenGenerator from '../shared/token-generator';
 import { deploymentEventFilter } from './realtime-hapi-plugin';
 import { RealtimeModule } from './realtime-module';
 import {
@@ -57,7 +58,7 @@ function getMockCommentModule() {
   };
   return commentModule;
 }
-
+const tokenGenerator = new TokenGenerator('secret');
 let persistence: any = { type: 'inmemory' };
 
 if (process.env.TEST_USE_REDIS) {
@@ -247,7 +248,7 @@ describe('realtime-hapi-sseModule', () => {
         {} as any,
         {} as any,
         getMockCommentModule(),
-        {} as any,
+        tokenGenerator,
       );
 
       const eventBus = getEventBus();

@@ -33,6 +33,7 @@ import {
 } from './';
 
 import { toGitlabTimestamp } from '../shared/time-conversion';
+import TokenGenerator from '../shared/token-generator';
 
 function getMockCommentModule() {
   const commentModule = {} as CommentModule;
@@ -41,6 +42,8 @@ function getMockCommentModule() {
   };
   return commentModule;
 }
+
+const tokenGenerator = new TokenGenerator('secret');
 
 describe('json-api-module', () => {
 
@@ -106,7 +109,7 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         {} as any,
-        {} as any,
+        tokenGenerator,
       );
 
       jsonApiModule.toApiDeployment = async (_projectId: number, deployment: MinardDeployment) => {
@@ -177,7 +180,7 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         {} as any,
-        {} as any,
+        tokenGenerator,
       );
 
       // Act
@@ -206,14 +209,17 @@ describe('json-api-module', () => {
         email: 'foo@goomail.com',
         commentId: 4,
       };
-      const commentActivity = {minardActivity, attributes};
+      const commentActivity = {
+        ...minardActivity,
+        ...attributes,
+      };
       const jsonApiModule = new JsonApiModule(
         {} as any,
         {} as any,
         {} as any,
         {} as any,
         {} as any,
-        {} as any,
+        tokenGenerator,
       );
 
       // Act
@@ -254,7 +260,7 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         commentModule,
-        {} as any,
+        tokenGenerator,
       );
 
       // Act
@@ -319,7 +325,7 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         getMockCommentModule(),
-        {} as any,
+        tokenGenerator,
       );
 
       // Act
@@ -384,7 +390,7 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         getMockCommentModule(),
-        {} as any,
+        tokenGenerator,
       );
       jsonApiModule.toApiCommit = async(_projectId: number, commit: MinardCommit, _deployments?: ApiDeployment[]) => {
         expect(commit).to.exist;
@@ -440,7 +446,7 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         getMockCommentModule(),
-        {} as any,
+        tokenGenerator,
       );
 
       // Act

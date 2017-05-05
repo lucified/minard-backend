@@ -78,6 +78,7 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         {} as any,
+        {} as any,
       );
 
       // Act
@@ -101,6 +102,7 @@ describe('json-api-module', () => {
       };
       const jsonApiModule = new JsonApiModule(
         deploymentModule,
+        {} as any,
         {} as any,
         {} as any,
         {} as any,
@@ -175,6 +177,7 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         {} as any,
+        {} as any,
       );
 
       // Act
@@ -203,8 +206,9 @@ describe('json-api-module', () => {
         email: 'foo@goomail.com',
         commentId: 4,
       };
-      const commentActivity = Object.assign({}, minardActivity, attributes);
+      const commentActivity = {minardActivity, attributes};
       const jsonApiModule = new JsonApiModule(
+        {} as any,
         {} as any,
         {} as any,
         {} as any,
@@ -213,7 +217,7 @@ describe('json-api-module', () => {
       );
 
       // Act
-      const activity = await jsonApiModule.toApiActivity(commentActivity);
+      const activity = await jsonApiModule.toApiActivity(commentActivity as any);
       expect(activity.comment).to.exist;
       expect(activity.comment!.name).to.equal(attributes.name);
       expect(activity.comment!.email).to.equal(attributes.email);
@@ -250,6 +254,7 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         commentModule,
+        {} as any,
       );
 
       // Act
@@ -314,6 +319,7 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         getMockCommentModule(),
+        {} as any,
       );
 
       // Act
@@ -344,6 +350,7 @@ describe('json-api-module', () => {
         id: 'foo-commit-id',
       } as {} as MinardCommit,
       latestActivityTimestamp: 'fake-timestamp',
+      token: 'token',
     };
     const minardDeployment = {
       id: 5,
@@ -377,6 +384,7 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         getMockCommentModule(),
+        {} as any,
       );
       jsonApiModule.toApiCommit = async(_projectId: number, commit: MinardCommit, _deployments?: ApiDeployment[]) => {
         expect(commit).to.exist;
@@ -432,6 +440,7 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         getMockCommentModule(),
+        {} as any,
       );
 
       // Act

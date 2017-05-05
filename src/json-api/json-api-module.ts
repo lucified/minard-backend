@@ -47,6 +47,7 @@ import {
   MinardCommit,
 } from '../shared/minard-commit';
 
+import TokenGenerator from '../shared/token-generator';
 import {
   toApiDeploymentId,
 } from './conversions';
@@ -63,7 +64,8 @@ export class JsonApiModule {
     @inject(ActivityModule.injectSymbol) private readonly activityModule: ActivityModule,
     @inject(NotificationModule.injectSymbol) private readonly notificationModule: NotificationModule,
     @inject(CommentModule.injectSymbol) private readonly commentModule: CommentModule,
-  ) { }
+    @inject(TokenGenerator.injectSymbol) private readonly tokenGenerator: TokenGenerator,
+  ) {}
 
   public async getCommit(projectId: number, hash: string): Promise<ApiCommit | null> {
     const commit = await this.projectModule.getCommit(projectId, hash);
@@ -204,6 +206,7 @@ export class JsonApiModule {
       ...activity.deployment,
       id: `${activity.projectId}-${activity.deployment.id}`,
       creator: activity.deployment.creator!,
+      token: this.tokenGenerator.deploymentToken(activity.projectId, activity.deployment.id),
     };
     delete deployment.ref;
     delete deployment.commit;
@@ -273,6 +276,7 @@ export class JsonApiModule {
       creator: deployment.creator!,
       ref: deployment.ref,
       status: deployment.status,
+      token: this.tokenGenerator.deploymentToken(projectId, deployment.id),
       buildStatus: deployment.buildStatus,
       extractionStatus: deployment.extractionStatus,
       screenshotStatus: deployment.screenshotStatus,
@@ -297,7 +301,26 @@ export class JsonApiModule {
       latestCommit,
       latestSuccessfullyDeployedCommit,
       latestActivityTimestamp: branch.latestActivityTimestamp,
+      token: this.tokenGenerator.branchToken(project.id, branch.name),
     };
+  }
+
+  public async getLatestDeploymentIdForBranch(projectId: number, branchName: string) {
+    const branch = await this.projectModule.getBranch(projectId, branchName);
+    if (!branch) {
+      throw new Error(`Unable to find branch ${branchName} for project ${projectId}`);
+    }
+    const deployment = await this.deploymentModule.getLatestSuccessfulBranchDeployment(
+      projectId,
+      branchName,
+      branch.latestCommit.id,
+    );
+    return deployment ? deployment.id : undefined;
+  }
+
+  public async getLatestDeploymentIdForProject(projectId: number) {
+    const deployment = await this.deploymentModule.getLatestSuccessfulProjectDeployment(projectId);
+    return deployment ? deployment.id : undefined;
   }
 
   private async minardDeploymentToApiCommit(projectId: number, minardDeployment: MinardDeployment): Promise<ApiCommit> {
@@ -319,6 +342,7 @@ export class JsonApiModule {
       activeCommitters: project.activeCommitters,
       description: project.description,
       repoUrl: project.repoUrl,
+      token: this.tokenGenerator.projectToken(project.id),
     };
   }
 

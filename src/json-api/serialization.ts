@@ -30,8 +30,18 @@ export const nonIncludedSerialization = {
 };
 
 export const deploymentSerialization =  {
-  attributes: ['status', 'commit', 'url', 'creator',
-  'screenshot', 'buildStatus', 'extractionStatus', 'screenshotStatus', 'commentCount'],
+  attributes: [
+    'status',
+    'commit',
+    'url',
+    'creator',
+    'screenshot',
+    'buildStatus',
+    'extractionStatus',
+    'screenshotStatus',
+    'commentCount',
+    'token',
+  ],
   ref: standardIdRef,
   included: true,
 };
@@ -58,6 +68,7 @@ export const branchSerialization = (apiBaseUrl: string) => ({
     'latestSuccessfullyDeployedCommit',
     'minardJson',
     'latestActivityTimestamp',
+    'token',
   ],
   ref: standardIdRef,
   commits: {
@@ -90,7 +101,9 @@ export const projectSerialization = (apiBaseUrl: string) => {
       'activeCommitters',
       'latestActivityTimestamp',
       'latestSuccessfullyDeployedCommit',
-      'repoUrl'],
+      'repoUrl',
+      'token',
+    ],
     branches: {
       ignoreRelationshipData: true,
       ref: linkRef,
@@ -145,8 +158,7 @@ export function deploymentToJsonApi(deployment: ApiDeployment | ApiDeployment[])
 }
 
 export function projectToJsonApi(project: ApiProject | ApiProject[]) {
-  const serialized = new Serializer('project',
-    projectSerialization('moi')).serialize(project);
+  const serialized = new Serializer('project', projectSerialization('moi')).serialize(project);
   return serialized;
 }
 

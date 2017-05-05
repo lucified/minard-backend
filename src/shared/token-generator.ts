@@ -16,7 +16,19 @@ export default class TokenGenerator {
 
   public deploymentToken(projectId: number, deploymentId: number) {
     const hash = createHmac('sha256', this.secret)
-      .update(`${projectId}-${deploymentId}`)
+      .update(`P${projectId}-D${deploymentId}`)
+      .digest('hex');
+    return hash;
+  }
+  public projectToken(projectId: number) {
+    const hash = createHmac('sha256', this.secret)
+      .update(`P${projectId}`)
+      .digest('hex');
+    return hash;
+  }
+  public branchToken(projectId: number, branchName: string) {
+    const hash = createHmac('sha256', this.secret)
+      .update(`P${projectId}-B${branchName}`)
       .digest('hex');
     return hash;
   }

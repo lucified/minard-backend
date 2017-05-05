@@ -37,15 +37,15 @@ export class ViewEndpoints {
     @inject(externalBaseUrlInjectSymbol) private readonly baseUrl: string,
   ) { }
 
-  public async getPreview(projectId: number, deploymentId: number, sha: string): Promise<PreviewView | null> {
+  public async getPreview(projectId: number, deploymentId: number, token: string): Promise<PreviewView | null> {
      const _deployment = await this.deploymentModule.getDeployment(deploymentId);
      if (!_deployment) {
        return null;
      }
      const deployment = await this.jsonApi.toApiDeployment(projectId, _deployment);
      const commit = await this.jsonApi.toApiCommit(projectId, _deployment.commit, [ deployment ]);
-     if (commit.hash !== sha) {
-       throw Boom.forbidden('Invalid sha');
+     if (deployment.token !== token) {
+       throw Boom.forbidden('Invalid token');
      }
      return {
        project: {

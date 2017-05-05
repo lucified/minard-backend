@@ -50,23 +50,32 @@ export interface MinardDeploymentCreator {
   timestamp: string;
 }
 
-export interface MinardDeployment {
+interface PlainDeployment {
   id: number;
-  commit: MinardCommit;
   commitHash: string;
   ref: string;
   buildStatus: MinardDeploymentStatus;
   extractionStatus: MinardDeploymentStatus;
   screenshotStatus: MinardDeploymentStatus;
   status: MinardDeploymentStatus;
+  projectId: number;
+  projectName: string;
+  teamId: number;
+}
+
+export interface DbDeployment extends PlainDeployment {
+  commit: string;
+  finishedAt?: number | string;
+  createdAt: number | string;
+}
+
+export interface MinardDeployment extends PlainDeployment {
+  commit: MinardCommit;
   url?: string;
   screenshot?: string;
   finishedAt?: moment.Moment;
   createdAt: moment.Moment;
   creator?: MinardDeploymentCreator;
-  projectId: number;
-  projectName: string;
-  teamId: number;
 }
 
 export interface MinardJsonBuildCommand {

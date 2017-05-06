@@ -35,7 +35,7 @@ services:
     - "10022:22"
     environment:
     - DEBUG=false
-    - MINARD_CI_YML_URL=http://charles:8001/ci/projects/%d/%s/%s/yml
+    - MINARD_CI_YML_URL=http://charles:8000/ci/projects/%d/%s/%s/yml
     - DB_ADAPTER=postgresql
     - DB_HOST=postgresql
     - DB_PORT=5432
@@ -157,7 +157,7 @@ services:
     volumes:
         - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      - CI_SERVER_URL=http://charles:8001/ci/
+      - CI_SERVER_URL=http://charles:8000/ci/
       - RUNNER_EXECUTOR=docker
       - DOCKER_TLS_VERIFY=false
       - DOCKER_PRIVILEGED=false
@@ -175,7 +175,6 @@ services:
       - gitlab
     ports:
       - "8000:8000"
-      - "8001:8001"
     networks:
       default:
         aliases:
@@ -193,11 +192,11 @@ services:
       - DB_NAME=gitlabhq_production
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - SYSTEMHOOK_BASEURL=http://charles:8001
+      - SYSTEMHOOK_BASEURL=http://charles:8000
       - EXTERNAL_BASEURL=http://localtest.me:8000
       - MINARD_UI_BASEURL=http://localhost:3000
       - AUTH_COOKIE_DOMAIN=http://localtest.me
-      - SCREENSHOT_URL_PATTERN=http://minard-%s.deployment.charles.internal:8001
+      - SCREENSHOT_URL_PATTERN=http://minard-%s.deployment.charles.internal:8000
       - SCREENSHOTTER_BASEURL=http://screenshotter
       - DEPLOYMENT_URL_PATTERN=http://%s.deployment.localtest.me:8000
       - EXTERNAL_GIT_BASEURL=http://localhost:10080

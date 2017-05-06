@@ -8,5 +8,4 @@ export * from './types';
 export * from './ui-urls';
 export {
   default as DeploymentHapiPlugin,
-  PrivateDeploymentHapiPlugin,
 } from './deployment-hapi-plugin';

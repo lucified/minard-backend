@@ -12,7 +12,11 @@ import {
   fetchInjectSymbol,
   openTeamNameInjectSymbol,
 } from '../shared/types';
-import { authCookieDomainInjectSymbol, jwtOptionsInjectSymbol } from './types';
+import {
+  authCookieDomainInjectSymbol,
+  internalHostSuffixesInjectSymbol,
+  jwtOptionsInjectSymbol,
+} from './types';
 
 import memoizee = require('memoizee');
 import AuthenticationHapiPlugin from './authentication-hapi-plugin';
@@ -29,6 +33,7 @@ class CachedAuthenticationHapiPlugin extends AuthenticationHapiPlugin {
     @inject(adminTeamNameInjectSymbol) adminTeamName: string,
     @inject(openTeamNameInjectSymbol) openTeamName: string,
     @inject(fetchInjectSymbol) fetch: IFetch,
+    @inject(internalHostSuffixesInjectSymbol) internalHostSuffixes: string[],
   ) {
     super(
       gitlab,
@@ -39,6 +44,7 @@ class CachedAuthenticationHapiPlugin extends AuthenticationHapiPlugin {
       adminTeamName,
       openTeamName,
       fetch,
+      internalHostSuffixes,
     );
     this.userHasAccessToProjectAsync = memoizee(
       this.userHasAccessToProjectAsync,

@@ -20,22 +20,14 @@ class StatusHapiPlugin {
       name: 'status-hapi-plugin',
       version: '1.0.0',
     };
-    this.registerPrivate.attributes = {
-      name: 'status-hapi-plugin',
-      version: '1.0.0',
-    };
   }
 
   public register: HapiRegister = (server, _options, next) => {
     server.route(this.getRoutes());
     next();
   }
-  public registerPrivate: HapiRegister = (server, _options, next) => {
-    server.route(this.getRoutes(false));
-    next();
-  }
 
-  private getRoutes(auth = true) {
+  private getRoutes() {
     return [{
       method: 'GET',
       path: '/status/{ecs?}',
@@ -66,12 +58,7 @@ class StatusHapiPlugin {
         bind: this,
         auth: STRATEGY_ROUTELEVEL_ADMIN_HEADER,
       },
-    }].map((route: any) => {
-      if (!auth) {
-        route.config = { ...(route.config || {}), auth: false };
-      }
-      return route;
-    });
+    }];
   }
 
   public getEcsStatus() {

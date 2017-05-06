@@ -1,5 +1,6 @@
 import { Request } from '../server/hapi';
 
+export const internalHostSuffixesInjectSymbol = Symbol('internal-host-suffixes');
 export const authServerBaseUrlInjectSymbol = Symbol('auth-server-base-url');
 export const gitlabRootPasswordInjectSymbol = Symbol('gitlab-root-password');
 export const jwtOptionsInjectSymbol = Symbol('token-verify-options');
@@ -36,3 +37,4 @@ export const STRATEGY_TOPLEVEL_USER_URL = 'jwt-user-url';
 export const STRATEGY_ROUTELEVEL_ADMIN_HEADER = 'jwt-admin-header';
 export const STRATEGY_ROUTELEVEL_USER_HEADER = 'jwt-route-user-header';
 export const STRATEGY_ROUTELEVEL_USER_COOKIE = 'jwt-route-user-cookie';
+export const STRATEGY_INTERNAL_REQUEST = 'internal-request';

@@ -1,6 +1,6 @@
-
 import { inject, injectable } from 'inversify';
 
+import { STRATEGY_INTERNAL_REQUEST } from '../authentication';
 import { HapiRegister } from '../server/hapi-register';
 import ProjectModule from './project-module';
 
@@ -28,8 +28,13 @@ export default class ProjectHapiPlugin {
 
   public register: HapiRegister = (server, _options, next) => {
     server.route({
-      method: 'GET',
+      method: 'POST',
       path: '/project/hook',
+      config: {
+        auth: {
+          strategies: [STRATEGY_INTERNAL_REQUEST],
+        },
+      },
       handler: (request: any, reply: any) => {
         this.projectModule.receiveHook(request.payload);
         return reply('ok');
@@ -39,6 +44,11 @@ export default class ProjectHapiPlugin {
     server.route({
       method: 'POST',
       path: '/project/project-hook',
+      config: {
+        auth: {
+          strategies: [STRATEGY_INTERNAL_REQUEST],
+        },
+      },
       handler: (request: any, reply: any) => {
         this.projectModule.receiveProjectHook(request.payload);
         return reply('ok');

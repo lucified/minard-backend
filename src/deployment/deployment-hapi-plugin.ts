@@ -4,7 +4,7 @@ import * as Joi from 'joi';
 import * as memoizee from 'memoizee';
 import * as path from 'path';
 
-import { STRATEGY_ROUTELEVEL_USER_COOKIE } from '../authentication';
+import { STRATEGY_INTERNAL_REQUEST, STRATEGY_ROUTELEVEL_USER_COOKIE } from '../authentication';
 import * as Hapi from '../server/hapi';
 import { HapiPlugin } from '../server/hapi-register';
 import { minardUiBaseUrlInjectSymbol } from '../server/types';
@@ -25,10 +25,9 @@ class DeploymentHapiPlugin extends HapiPlugin {
     @inject(DeploymentModule.injectSymbol) protected readonly deploymentModule: DeploymentModule,
     @inject(minardUiBaseUrlInjectSymbol) private readonly uiBaseUrl: string,
     @inject(loggerInjectSymbol) private readonly logger: Logger,
-    isPrivate = false,
   ) {
     super({
-      name: `deployment-plugin${isPrivate ? '-private' : ''}`,
+      name: `deployment-plugin}`,
       version: '1.0.0',
     });
     this.checkHash = memoizee(this.checkHash, {
@@ -39,9 +38,9 @@ class DeploymentHapiPlugin extends HapiPlugin {
 
   public register(server: Hapi.Server, _options: Hapi.IServerOptions, next: () => void) {
     server.ext('onRequest', this.onRequest.bind(this));
-
     server.route(this.traceRoute());
     server.route(this.rawDeploymentRoutes());
+    server.route(this.gitlabYmlRoute());
     server.ext('onPreResponse', this.onPreResponse.bind(this));
     next();
   }
@@ -63,12 +62,13 @@ class DeploymentHapiPlugin extends HapiPlugin {
   protected onPreResponse(request: Hapi.Request, reply: Hapi.IReply) {
     // Redirect to login page, if user didn't pass
     const output = (request.response as any).output;
+    const hasForbiddenStatusCode = output && (([401, 403].find(code => code === output.statusCode)) !== undefined);
     if (
       request.info.hostname === deploymentVhost &&
       request.response.isBoom &&
-      output &&
-      [401, 403].find(code => code === output.statusCode) !== undefined &&
-      !request.auth.isAuthenticated
+      hasForbiddenStatusCode &&
+      !request.auth.isAuthenticated &&
+      !request.isInternal
     ) {
       return reply.redirect(`${this.uiBaseUrl}/login/${getEncodedUri(request)}`);
     }
@@ -94,7 +94,7 @@ class DeploymentHapiPlugin extends HapiPlugin {
     };
   }
 
-  protected rawDeploymentRoutes(requiresAuthorization = true): Hapi.IRouteConfiguration[] {
+  protected rawDeploymentRoutes(): Hapi.IRouteConfiguration[] {
     const auth = {
       mode: 'try',
       strategies: [STRATEGY_ROUTELEVEL_USER_COOKIE],
@@ -105,7 +105,7 @@ class DeploymentHapiPlugin extends HapiPlugin {
       handler: this.directoryHandler(),
       vhost: deploymentVhost,
       config: {
-        auth: requiresAuthorization ? auth : false,
+        auth,
         pre: [{
           method: this.parseHostPre.bind(this),
           assign: PREKEY,
@@ -129,7 +129,6 @@ class DeploymentHapiPlugin extends HapiPlugin {
 
   protected parseHostPre(request: Hapi.Request, reply: Hapi.IReply) {
     const key = getDeploymentKeyFromHost(request.app.hostname);
-
     if (!key) {
       return reply(Boom.create(
         403,
@@ -137,14 +136,18 @@ class DeploymentHapiPlugin extends HapiPlugin {
       ));
     }
     return reply(key);
-
   }
 
   protected async authorizePre(request: Hapi.Request, reply: Hapi.IReply) {
     try {
       const projectId: number = request.pre[PREKEY].projectId;
       const deploymentId: number = request.pre[PREKEY].deploymentId;
+      console.log(projectId);
+      console.log(deploymentId);
       if (await request.userHasAccessToDeployment(projectId, deploymentId, request.auth.credentials)) {
+        return reply('ok');
+      }
+      if (request.isInternal) {
         return reply('ok');
       }
     } catch (exception) {
@@ -207,32 +210,6 @@ class DeploymentHapiPlugin extends HapiPlugin {
     return path.join(this.deploymentModule.getDeploymentPath(projectId, deploymentId));
   }
 
-}
-
-export default DeploymentHapiPlugin;
-
-@injectable()
-export class PrivateDeploymentHapiPlugin extends DeploymentHapiPlugin {
-  public static injectSymbol = Symbol('private-deployment-hapi-plugin');
-  constructor(
-    @inject(DeploymentModule.injectSymbol) deploymentModule: DeploymentModule,
-    @inject(minardUiBaseUrlInjectSymbol) uiBaseUrl: string,
-    @inject(loggerInjectSymbol) logger: Logger,
-  ) {
-    super(deploymentModule, uiBaseUrl, logger, true);
-  }
-
-  protected async authorizePre(_request: Hapi.Request, reply: Hapi.IReply) {
-    return reply('ok');
-  }
-
-  public register(server: Hapi.Server, _options: Hapi.IServerOptions, next: () => void) {
-    server.ext('onRequest', this.onRequest.bind(this));
-    server.route(this.gitlabYmlRoute());
-    server.route(this.rawDeploymentRoutes(false));
-    next();
-  }
-
   private gitlabYmlRoute(): Hapi.IRouteConfiguration {
     return {
       method: 'GET',
@@ -241,8 +218,10 @@ export class PrivateDeploymentHapiPlugin extends DeploymentHapiPlugin {
         async: this.getGitlabYmlRequestHandler,
       },
       config: {
+        auth: {
+          strategies: [STRATEGY_INTERNAL_REQUEST],
+        },
         bind: this,
-        auth: false,
         validate: {
           params: {
             projectId: Joi.number().required(),
@@ -259,7 +238,10 @@ export class PrivateDeploymentHapiPlugin extends DeploymentHapiPlugin {
     return reply(this.deploymentModule.getGitlabYml(Number(projectId), ref, sha))
       .header('content-type', 'text/plain');
   }
+
 }
+
+export default DeploymentHapiPlugin;
 
 // From http://stackoverflow.com/questions/31840286/how-to-get-the-full-url-for-a-request-in-hapi
 export function getEncodedUri(request: Hapi.Request) {

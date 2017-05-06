@@ -55,6 +55,7 @@ import {
   authCookieDomainInjectSymbol,
   authServerBaseUrlInjectSymbol,
   gitlabRootPasswordInjectSymbol,
+  internalHostSuffixesInjectSymbol,
   jwtOptionsInjectSymbol,
 } from '../authentication';
 
@@ -164,6 +165,14 @@ const SCREENSHOT_URL_PATTERN = env.SCREENSHOT_URL_PATTERN ||
 
 // Base URL for minard-ui
 const MINARD_UI_BASEURL = env.MINARD_UI_BASEURL || `http://localhost:3000`;
+
+// Host header suffixes that will result in a request
+// being considered as coming from a trusted internal network
+//
+// (This is secure, when the load balancer uses host headers to
+//  route external traffic, preventing external clients from sending
+//  arbitrary host headers)
+const INTERNAL_HOST_SUFFIXES = env.INTERNAL_HOST_SUFFIXES || 'charles,charles.internal';
 
 // Database configuration
 // ----------------------
@@ -340,4 +349,5 @@ export default (kernel: Container) => {
   kernel.bind(jwtOptionsInjectSymbol).toConstantValue(jwtOptions);
   kernel.bind(adminTeamNameInjectSymbol).toConstantValue(ADMIN_TEAM_NAME);
   kernel.bind(openTeamNameInjectSymbol).toConstantValue(OPEN_TEAM_NAME);
+  kernel.bind(internalHostSuffixesInjectSymbol).toConstantValue(INTERNAL_HOST_SUFFIXES.split(','));
 };

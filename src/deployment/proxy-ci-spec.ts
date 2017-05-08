@@ -31,15 +31,16 @@ function registerAuthStrategy(server: Hapi.Server) {
 // https://github.com/hapijs/h2o2/blob/master/test/index.js
 async function provisionProxy(
   upstream = 'http://localhost:80',
-  options: Hapi.IServerConnectionOptions = { port: 8080 }) {
-    const logger = loggerConstructor(undefined, false, true);
-    const bus = new EventBus();
-    const plugin = new CIProxy(upstream, bus, logger);
-    const proxy = Hapi.getServer();
-    proxy.connection(options);
-    registerAuthStrategy(proxy);
-    await proxy.register([h2o2, plugin]);
-    return {proxy, bus, plugin};
+  options: Hapi.IServerConnectionOptions = { port: 8080 },
+) {
+  const logger = loggerConstructor(undefined, false, true);
+  const bus = new EventBus();
+  const plugin = new CIProxy(upstream, bus, logger);
+  const proxy = Hapi.getServer();
+  proxy.connection(options);
+  registerAuthStrategy(proxy);
+  await proxy.register([h2o2, plugin]);
+  return {proxy, bus, plugin};
 }
 
 const provisionUpstream = async (options: Hapi.IServerConnectionOptions = { port: 8090, address: '127.0.0.1' }) => {

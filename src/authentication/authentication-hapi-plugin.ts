@@ -486,9 +486,6 @@ class AuthenticationHapiPlugin extends HapiPlugin {
         if (this.isInternalRequest(request)) {
           return reply.continue({ credentials: {}});
         } else {
-          // First parameter is error. Hapi typings are broken,
-          // they don't allow passing undefined to Error here
-          console.log('getting authentication error for' + request.headers.host);
           return reply('Unauthorized').code(401);
         }
       },

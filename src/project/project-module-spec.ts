@@ -1558,7 +1558,7 @@ describe('project-module', () => {
         {} as any,
         logger,
         '',
-        );
+      );
       projectModule.getAllProjectIds = async () => projectIds;
 
       let callCount = 0;
@@ -1581,7 +1581,7 @@ describe('project-module', () => {
         {} as any,
         logger,
         '',
-        );
+      );
       projectModule.failSleepTime = 10;
       projectModule.getAllProjectIds = async () => projectIds;
 

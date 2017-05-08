@@ -102,6 +102,7 @@ export class JsonApiHapiPlugin {
     };
     this.baseUrl = baseUrl + '/api';
     this.getDeploymentId = this.getDeploymentId.bind(this);
+    this.validatePreviewToken = this.validatePreviewToken.bind(this);
   }
 
   public register: HapiRegister = (server, _options, next) => {

@@ -885,19 +885,20 @@ export class JsonApiHapiPlugin {
   public async getDeploymentId(previewType: PreviewType) {
     return async (request: Hapi.Request, reply: Hapi.IReply) => {
       const { branch, deploymentId: deploymentIdString, projectId: projectIdString } = request.params;
-      let deploymentId: number | undefined;
+
+      let deploymentId;
       const projectId = Number(projectIdString);
 
       if (Number.isNaN(projectId)) {
-        throw Boom.badRequest('Invalid project id');
+        return reply(Boom.badRequest('Invalid project id'));
       }
 
       switch (previewType) {
         case PreviewType.PROJECT:
-          deploymentId = await this.jsonApi.getLatestSuccessfulDeploymentIdForProject(projectId);
+          deploymentId = await this.getLatestSuccessfulDeploymentIdForProject(projectId);
           break;
         case PreviewType.BRANCH:
-          deploymentId = await this.jsonApi.getLatestSuccessfulDeploymentIdForBranch(projectId, branch);
+          deploymentId = await this.getLatestSuccessfulDeploymentIdForBranch(projectId, branch);
           break;
         case PreviewType.DEPLOYMENT:
           deploymentId = Number(deploymentIdString);
@@ -907,7 +908,7 @@ export class JsonApiHapiPlugin {
       }
 
       if (!deploymentId || Number.isNaN(deploymentId)) {
-        throw Boom.notFound(`Unable to find deployment`);
+        return reply(Boom.notFound(`Unable to find deployment`));
       }
 
       return reply({
@@ -930,4 +931,13 @@ export class JsonApiHapiPlugin {
     }
     return reply(Boom.unauthorized());
   }
+
+  // These are public and wrapped mainly to ease mocking in unit testing
+  public getLatestSuccessfulDeploymentIdForBranch(projectId: number, branch: string) {
+    return this.jsonApi.getLatestSuccessfulDeploymentIdForBranch(projectId, branch);
+  }
+  public getLatestSuccessfulDeploymentIdForProject(projectId: number) {
+    return this.jsonApi.getLatestSuccessfulDeploymentIdForProject(projectId);
+  }
+
 }

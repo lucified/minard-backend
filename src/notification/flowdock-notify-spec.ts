@@ -1,4 +1,5 @@
 import { expect } from 'chai';
+import * as fetchMock from 'fetch-mock';
 import * as moment from 'moment';
 import 'reflect-metadata';
 
@@ -13,8 +14,6 @@ import {
 import {
   FlowdockNotify,
 } from './flowdock-notify';
-
-import { fetchMock } from '../shared/fetch';
 
 describe('flowdock-notify', () => {
   const baseDeployment: MinardDeployment = {
@@ -46,7 +45,7 @@ describe('flowdock-notify', () => {
     const flowToken = 'fake-flow-token';
     const projectUrl = 'http://foo-bar.com/projects/5';
     const branchUrl = 'http://foo-bar.com/branches/1-5';
-    const notifier = new FlowdockNotify(fetchMock.fetchMock);
+    const notifier = new FlowdockNotify((fetchMock as any).fetchMock);
 
     const mockUrl = `https://api.flowdock.com/messages`;
     const promise = new Promise<any>((resolve, _reject) => {

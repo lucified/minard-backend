@@ -1,9 +1,9 @@
 import { expect } from 'chai';
+import * as fetchMock from 'fetch-mock';
 import * as moment from 'moment';
 import 'reflect-metadata';
 
 import { MinardDeployment } from '../deployment';
-import { fetchMock } from '../shared/fetch';
 import { SlackNotify } from './slack-notify';
 import { NotificationComment } from './types';
 
@@ -46,7 +46,7 @@ describe('slack-notify', () => {
   const previewUrl = 'http://foo-bar-ui.com/preview/1-5';
 
   function arrange(): { notifier: SlackNotify, promise: Promise<any> } {
-    const notifier = new SlackNotify(fetchMock.fetchMock);
+    const notifier = new SlackNotify((fetchMock as any).fetchMock);
     const promise = new Promise<any>((resolve, _reject) => {
       const response = (_url: string, options: any) => {
         resolve(options);

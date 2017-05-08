@@ -1,9 +1,9 @@
 import { expect } from 'chai';
+import * as fetchMock from 'fetch-mock';
 import 'reflect-metadata';
 
 import Authentication from '../authentication/authentication-module';
 import { EventBus, LocalEventBus } from '../event-bus';
-import { fetchMock } from '../shared/fetch';
 import { GitlabClient } from '../shared/gitlab-client';
 import Logger from '../shared/logger';
 import SystemHookModule from './system-hook-module';
@@ -22,7 +22,7 @@ describe('system-hooks-module', () => {
     }
     return new GitlabClient(
       'http://fake-gitlab.com:1000',
-      fetchMock.fetchMock,
+      (fetchMock as any).fetchMock,
       new MockAuthModule() as Authentication,
       {} as any,
     );

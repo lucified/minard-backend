@@ -13,7 +13,7 @@ import {
   NotificationComment,
 } from './types';
 
-import { fetchMock } from '../shared/fetch';
+import * as fetchMock from 'fetch-mock';
 
 describe('hipchat-notify', () => {
 
@@ -42,7 +42,7 @@ describe('hipchat-notify', () => {
   const previewUrl = 'http://foo-bar-ui.com/preview/1-5';
 
   function arrange(): { notifier: HipchatNotify, promise: Promise<any> } {
-    const notifier = new HipchatNotify(fetchMock.fetchMock);
+    const notifier = new HipchatNotify((fetchMock as any).fetchMock);
     const mockUrl = `https://api.hipchat.com/v2/room/${roomId}/notification?auth_token=${authToken}`;
     const promise = new Promise<any>((resolve, _reject) => {
       const response = (_url: string, options: any) => {

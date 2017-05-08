@@ -3,8 +3,9 @@ import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
 import * as qs from 'querystring';
 
+import { RequestInit, Response } from 'node-fetch';
 import AuthenticationModule from '../authentication/authentication-module';
-import { IFetch, RequestInit, Response } from './fetch';
+import { IFetch } from './fetch';
 import { Group, Project, User, UserGroupAccessLevel } from './gitlab';
 import { Logger, loggerInjectSymbol } from './logger';
 import { fetchInjectSymbol } from './types';

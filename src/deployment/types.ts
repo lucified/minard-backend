@@ -1,5 +1,5 @@
 
-import * as moment from 'moment';
+import { Moment } from 'moment';
 
 import { eventCreator } from '../shared/events';
 import { BuildStatus } from '../shared/gitlab';
@@ -64,17 +64,17 @@ interface PlainDeployment {
 }
 
 export interface DbDeployment extends PlainDeployment {
-  commit: string;
-  finishedAt?: number | string;
-  createdAt: number | string;
+  commit: string | MinardCommit; // type depends on the DB driver
+  finishedAt?: number | string; // type depends on the DB driver
+  createdAt: number | string; // type depends on the DB driver
 }
 
 export interface MinardDeployment extends PlainDeployment {
   commit: MinardCommit;
   url?: string;
   screenshot?: string;
-  finishedAt?: moment.Moment;
-  createdAt: moment.Moment;
+  finishedAt?: Moment;
+  createdAt: Moment;
   creator?: MinardDeploymentCreator;
 }
 

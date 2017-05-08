@@ -27,7 +27,7 @@ import {
   getGitlabYmlNoAutoBuild,
   getValidationErrors,
 } from './gitlab-yml';
-import { DbDeployment } from './index';
+import { DbDeployment } from './types';
 import {
   BUILD_CREATED_EVENT,
   BUILD_STATUS_EVENT_TYPE,
@@ -44,6 +44,7 @@ import {
   MinardJsonInfo,
   RepositoryObject,
 } from './types';
+import { MinardCommit } from "../shared/minard-commit";
 
 const ncp = promisify(require('ncp'));
 const mkpath = promisify(require('mkpath'));
@@ -88,7 +89,7 @@ export function toDbDeployment(deployment: MinardDeployment): DbDeployment {
     projectId,
     projectName,
     teamId,
-    } = deployment;
+  } = deployment;
   return {
     id,
     commit: JSON.stringify(commit),
@@ -311,15 +312,16 @@ export default class DeploymentModule {
    * Convert deployment stored in DB to MinardDeployment
    */
   public toMinardDeployment(dbDeployment: DbDeployment): MinardDeployment {
-    const _commit = dbDeployment.commit as any;
-    const commit = typeof _commit === 'object' && _commit instanceof Object
-      ? dbDeployment.commit : JSON.parse(dbDeployment.commit);
-    const createdAt = toMoment(dbDeployment.createdAt);
-    const finishedAt = dbDeployment.finishedAt ? toMoment(dbDeployment.finishedAt) : undefined;
+    // The type of 'commit' here unfortunataly depends on the database driver.
+    // Sqlite's doesn't parse JSONB, PostgeSQL's does
+    const _commit = dbDeployment.commit;
+    const commit: MinardCommit = typeof _commit === 'string' ? JSON.parse(_commit) : _commit;
     const {
       id,
       commitHash,
       ref,
+      createdAt,
+      finishedAt,
       buildStatus,
       extractionStatus,
       screenshotStatus,
@@ -340,12 +342,12 @@ export default class DeploymentModule {
       projectId,
       projectName,
       teamId,
-      finishedAt,
-      createdAt: toMoment(dbDeployment.createdAt),
+      finishedAt: finishedAt ? toMoment(finishedAt) : undefined,
+      createdAt: toMoment(createdAt),
       creator: {
         email: commit.committer.email,
         name: commit.committer.name,
-        timestamp: toGitlabTimestamp(createdAt),
+        timestamp: toGitlabTimestamp(toMoment(createdAt)),
       },
     };
 
@@ -372,7 +374,7 @@ export default class DeploymentModule {
 
   public async filesAtPath(projectId: number, _shaOrBranchName: string, path: string) {
     const url = `/projects/${projectId}/repository/tree?path=${path}`;
-    const ret = await this.gitlab.fetchJsonAnyStatus(url);
+    const ret = await this.gitlab.fetchJsonAnyStatus<RepositoryObject[]>(url);
     if (ret.status === 404) {
       throw Boom.notFound();
     }
@@ -384,7 +386,7 @@ export default class DeploymentModule {
       this.logger.error(`Unexpected non-array response from Gitlab for ${url}`, ret);
       throw Boom.badImplementation();
     }
-    return (ret.json as RepositoryObject[]).map(item => ({
+    return ret.json.map(item => ({
       type: item.type,
       name: item.name,
     }));
@@ -601,7 +603,7 @@ export default class DeploymentModule {
     const response = await this.gitlab.fetch(url);
     const tempDir = path.join(os.tmpdir(), 'minard');
     await mkpath(tempDir);
-    const readableStream = (response as any).body;
+    const readableStream = response.body;
     const tempFileName = path.join(tempDir, `minard-${projectId}-${deploymentId}.zip`);
     const writeStream = fs.createWriteStream(tempFileName);
 

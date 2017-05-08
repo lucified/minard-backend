@@ -1,5 +1,6 @@
 import * as gravatar from 'gravatar';
 import { inject, injectable } from 'inversify';
+import { RequestInit } from 'node-fetch';
 
 import objectToFormData from './object-to-form-data';
 
@@ -12,7 +13,7 @@ import {
   MinardDeploymentStatus,
 } from '../deployment';
 
-import { IFetch, RequestInit } from '../shared/fetch';
+import { IFetch } from '../shared/fetch';
 import { fetchInjectSymbol } from '../shared/types';
 
 interface ThreadField {

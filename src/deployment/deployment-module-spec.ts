@@ -3,9 +3,11 @@ import 'reflect-metadata';
 
 import * as Boom from 'boom';
 import { expect } from 'chai';
+import * as fetchMock from 'fetch-mock';
 import * as fs from 'fs';
 import * as Knex from 'knex';
 import * as moment from 'moment';
+import { Response } from 'node-fetch';
 import * as os from 'os';
 import * as path from 'path';
 import Authentication from '../authentication/authentication-module';
@@ -20,7 +22,6 @@ import {
 import {
   ScreenshotModule,
 } from '../screenshot';
-import { fetch, fetchMock } from '../shared/fetch';
 import { GitlabClient } from '../shared/gitlab-client';
 import Logger from '../shared/logger';
 import { MinardCommit } from '../shared/minard-commit';
@@ -58,7 +59,7 @@ const getClient = () => {
       return token;
     }
   }
-  return new GitlabClient(host, fetchMock.fetchMock,
+  return new GitlabClient(host, (fetchMock as any).fetchMock,
     new MockAuthModule() as Authentication, {} as any);
 };
 
@@ -475,7 +476,7 @@ describe('deployment-module', () => {
         status: 200,
         statusText: 'ok',
       };
-      const response = new fetch.Response(stream, opts);
+      const response = new Response(stream, opts);
       const gitlabClient = getClient();
       const mockUrl = `${host}${gitlabClient.apiPrefix}/projects/1/builds/2/artifacts`;
       fetchMock.restore().mock(mockUrl, response);

@@ -3,6 +3,7 @@ import { Container } from 'inversify';
 import { sign } from 'jsonwebtoken';
 import * as Knex from 'knex';
 
+import * as fetchMock from 'fetch-mock';
 import {
   AccessToken,
   authCookieDomainInjectSymbol,
@@ -15,7 +16,6 @@ import { eventStoreConfigInjectSymbol } from '../event-bus';
 import { JsonApiHapiPlugin } from '../json-api';
 import { externalBaseUrlInjectSymbol, goodOptionsInjectSymbol } from '../server';
 import { cacheInjectSymbol } from '../shared/cache';
-import { fetchMock } from '../shared/fetch';
 import { GitlabClient } from '../shared/gitlab-client';
 import Logger, { loggerInjectSymbol } from '../shared/logger';
 import { charlesKnexInjectSymbol, fetchInjectSymbol } from '../shared/types';
@@ -29,7 +29,13 @@ const getClient = () => {
       return 'secret-token';
     }
   }
-  return new GitlabClient('gitlab', fetchMock.fetchMock, new MockAuthModule() as AuthenticationModule, logger, false);
+  return new GitlabClient(
+    'gitlab',
+    (fetchMock as any).fetchMock,
+    new MockAuthModule() as AuthenticationModule,
+    logger,
+    false,
+  );
 };
 
 // Access token parameters
@@ -90,7 +96,7 @@ export function getSignedAccessToken(sub: string, teamToken?: string, email?: st
 
 export default (kernel: Container) => {
   developmentConfig(kernel);
-  kernel.rebind(fetchInjectSymbol).toConstantValue(fetchMock.fetchMock);
+  kernel.rebind(fetchInjectSymbol).toConstantValue(fetchMock);
   kernel.rebind(goodOptionsInjectSymbol).toConstantValue({});
   kernel.rebind(GitlabClient.injectSymbol).toConstantValue(getClient());
   const charlesKnex = Knex({

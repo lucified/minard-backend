@@ -11,11 +11,11 @@ import * as Knex from 'knex';
 import { keys } from 'lodash';
 import 'reflect-metadata';
 
+import { default as originalFetch } from 'node-fetch';
 import { generateAndSaveTeamToken, TeamToken } from '../authentication/team-token';
 import { bootstrap } from '../config';
 import { getSignedAccessToken } from '../config/config-test';
 import { JsonApiEntity, JsonApiResponse } from '../json-api';
-import { fetch as originalFetch } from '../shared/fetch';
 import { Group, User } from '../shared/gitlab';
 import { GitlabClient } from '../shared/gitlab-client';
 import { charlesKnexInjectSymbol } from '../shared/types';

@@ -1,7 +1,7 @@
 import { expect } from 'chai';
+import * as fetchMock from 'fetch-mock';
 import 'reflect-metadata';
 
-import { fetchMock } from './fetch';
 import { default as loggerConstructor } from './logger';
 import { ChangeInfo, Route53Updater, Route53UpdaterFunction } from './route53-updater';
 
@@ -19,7 +19,7 @@ function getRoute53UpdaterFunction(callback: () => UpdaterResult): Route53Update
 }
 function getRegistrator(callback: () => UpdaterResult) {
   const func = getRoute53UpdaterFunction(callback);
-  return new Route53Updater(fetchMock.fetchMock, logger, retryDelay, retryDelay, maxRetries, func);
+  return new Route53Updater((fetchMock as any).fetchMock, logger, retryDelay, retryDelay, maxRetries, func);
 }
 
 describe('Route53Updater', () => {

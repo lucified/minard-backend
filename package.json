@@ -55,6 +55,7 @@
     "@types/cache-manager": "^1.2.4",
     "@types/chai": "^3.5.1",
     "@types/chalk": "^0.4.31",
+    "@types/fetch-mock": "^5.8.2",
     "@types/form-data": "0.0.33",
     "@types/fs-extra": "^2.1.0",
     "@types/fs-promise": "^1.0.3",

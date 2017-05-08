@@ -144,3 +144,8 @@ export type ApiEntity =
   ApiComment;
 
 export type ApiEntities = ApiEntity[];
+export enum PreviewType {
+  PROJECT,
+  BRANCH,
+  DEPLOYMENT,
+}

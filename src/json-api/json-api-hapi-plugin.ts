@@ -99,6 +99,8 @@ export class JsonApiHapiPlugin {
       version: '1.0.0',
     };
     this.baseUrl = baseUrl + '/api';
+    this.getDeploymentId = this.getDeploymentId;
+
   }
 
   public register: HapiRegister = (server, _options, next) => {
@@ -130,7 +132,7 @@ export class JsonApiHapiPlugin {
     const preview: Hapi.IRouteConfiguration[] = [
       {
         method: 'GET',
-        path: '/preview/{projectId}-{deploymentOrBranch}/{token}',
+        path: '/preview/deployment/{projectId}-{deploymentId}/{token}',
         handler: {
           async: this.getPreviewHandler,
         },
@@ -139,7 +141,7 @@ export class JsonApiHapiPlugin {
           auth: openAuth,
           pre: [
             {
-              method: this.getDeploymentId.bind(this),
+              method: this.getDeploymentId,
               assign: DEPLOYMENT_PRE_KEY,
             },
             this.authorizeOpenDeployment,
@@ -147,7 +149,7 @@ export class JsonApiHapiPlugin {
           validate: {
             params: {
               projectId: Joi.number().required(),
-              deploymentOrBranch: Joi.required(),
+              deploymentId: Joi.required(),
               token: Joi.string().required(),
             },
           },
@@ -155,7 +157,7 @@ export class JsonApiHapiPlugin {
       },
       {
         method: 'GET',
-        path: '/preview/{projectId}/{token}',
+        path: '/preview/branch/{projectId}-{branch}/{token}',
         handler: {
           async: this.getPreviewHandler,
         },
@@ -164,7 +166,32 @@ export class JsonApiHapiPlugin {
           auth: openAuth,
           pre: [
             {
-              method: this.getDeploymentId.bind(this),
+              method: this.getDeploymentId,
+              assign: DEPLOYMENT_PRE_KEY,
+            },
+            this.authorizeOpenDeployment,
+          ],
+          validate: {
+            params: {
+              projectId: Joi.number().required(),
+              branch: Joi.string().required(),
+              token: Joi.string().required(),
+            },
+          },
+        },
+      },
+      {
+        method: 'GET',
+        path: '/preview/project/{projectId}/{token}',
+        handler: {
+          async: this.getPreviewHandler,
+        },
+        config: {
+          bind: this,
+          auth: openAuth,
+          pre: [
+            {
+              method: this.getDeploymentId,
               assign: DEPLOYMENT_PRE_KEY,
             },
             this.authorizeOpenDeployment,
@@ -525,7 +552,7 @@ export class JsonApiHapiPlugin {
         auth: openAuth,
         pre: [
           {
-            method: this.getDeploymentId.bind(this),
+            method: this.getDeploymentId,
             assign: DEPLOYMENT_PRE_KEY,
           },
           this.authorizeOpenDeployment,
@@ -831,16 +858,12 @@ export class JsonApiHapiPlugin {
     // The deployment id is given in 'deploymentId'
     let deploymentId: number | undefined = Number(request.params.deploymentId);
     if (!deploymentId || Number.isNaN(deploymentId)) {
-      const deploymentOrBranch = request.params.deploymentOrBranch;
-      if (!deploymentOrBranch) {
+      const { branch } = request.params;
+      if (branch) {
+        deploymentId = await this.getJsonApiModule().getLatestDeploymentIdForBranch(projectId, branch);
+      } else {
         // Only project id given
         deploymentId = await this.getJsonApiModule().getLatestDeploymentIdForProject(projectId);
-      } else if (deploymentOrBranch.match(/^\d+$/)) {
-        // Deployment id given in 'deploymentOrBranch'
-        deploymentId = Number(deploymentOrBranch);
-      } else {
-        // Branch name given in 'deploymentOrBranch'
-        deploymentId = await this.getJsonApiModule().getLatestDeploymentIdForBranch(projectId, deploymentOrBranch);
       }
     }
     if (!deploymentId) {

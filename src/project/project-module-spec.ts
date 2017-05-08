@@ -871,7 +871,7 @@ describe('project-module', () => {
         gitlab,
         logger,
         '',
-        );
+      );
       projectModule.failSleepTime = 0;
       projectModule.createGitlabProject = async (
         _teamId: number, _path: string, _description: string, _importUrl: string) => {
@@ -1105,7 +1105,7 @@ describe('project-module', () => {
         client,
         logger,
         '',
-          );
+      );
       projectModule.getProject = async (_projectId: number) => {
         expect(_projectId).to.equal(projectId);
         return {
@@ -1632,7 +1632,7 @@ describe('project-module', () => {
         {} as any,
         logger,
         '',
-        );
+      );
 
       projectModule.getCommit = async (_projectId: number, sha: string) => {
         expect(_projectId).to.equal(gitlabPayload.project_id);

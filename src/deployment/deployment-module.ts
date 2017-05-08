@@ -18,6 +18,7 @@ import { ProjectModule } from '../project';
 import { ScreenshotModule } from '../screenshot';
 import { GitlabClient } from '../shared/gitlab-client';
 import * as logger from '../shared/logger';
+import { MinardCommit } from '../shared/minard-commit';
 import { promisify } from '../shared/promisify';
 import { toGitlabTimestamp } from '../shared/time-conversion';
 import { charlesKnexInjectSymbol } from '../shared/types';
@@ -44,7 +45,6 @@ import {
   MinardJsonInfo,
   RepositoryObject,
 } from './types';
-import { MinardCommit } from "../shared/minard-commit";
 
 const ncp = promisify(require('ncp'));
 const mkpath = promisify(require('mkpath'));

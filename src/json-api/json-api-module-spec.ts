@@ -202,14 +202,14 @@ describe('json-api-module', () => {
 
     it('should work with activity of type comment', async () => {
       // Arrange
-      const attributes = {
+      const attributes: Partial<MinardActivity> = {
         activityType: 'comment',
         name: 'foo',
         message: 'foo msg',
         email: 'foo@goomail.com',
         commentId: 4,
       };
-      const commentActivity = {
+      const commentActivity: MinardActivity = {
         ...minardActivity,
         ...attributes,
       };
@@ -223,7 +223,7 @@ describe('json-api-module', () => {
       );
 
       // Act
-      const activity = await jsonApiModule.toApiActivity(commentActivity as any);
+      const activity = await jsonApiModule.toApiActivity(commentActivity);
       expect(activity.comment).to.exist;
       expect(activity.comment!.name).to.equal(attributes.name);
       expect(activity.comment!.email).to.equal(attributes.email);

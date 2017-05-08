@@ -546,7 +546,7 @@ describe('authorization for api routes', () => {
           'getPreviewHandler',
         );
         // Act
-        await makeRequest(server, '/preview/1-1/12345678', 'GET');
+        await makeRequest(server, '/preview/deployment/1-1/12345678', 'GET');
 
         // Assert
         expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
@@ -560,7 +560,7 @@ describe('authorization for api routes', () => {
           'getPreviewHandler',
         );
         // Act
-        const response = await makeRequest(server, '/preview/1-1/12345678', 'GET');
+        const response = await makeRequest(server, '/preview/deployment/1-1/12345678', 'GET');
 
         expect(response.statusCode).to.eq(401);
         expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
@@ -575,7 +575,7 @@ describe('authorization for api routes', () => {
         );        // Act
         await server.inject({
           method: 'GET',
-          url: 'http://foo.com/preview/1-1/12345678',
+          url: 'http://foo.com/preview/deployment/1-1/12345678',
         });
         // Assert
         expect(authentication.isOpenDeployment).to.have.been.calledOnce;

@@ -232,12 +232,11 @@ export default class StatusModule {
   }
 
   public async getStatus(withEcs = false) {
-    const [gitlab, runners, postgresql, screenshotter, systemHook, charlesVersion] = await Promise.all([
+    const [gitlab, runners, postgresql, screenshotter, charlesVersion] = await Promise.all([
       this.getGitlabStatus(),
       this.getRunnersStatus(),
       this.getPostgreSqlStatus(),
       this.getScreenshotterStatus(),
-      this.getSystemHookStatus(),
       getCharlesVersion(),
     ]);
 
@@ -246,7 +245,6 @@ export default class StatusModule {
         active: true,
         version: charlesVersion || `Unknown (only available in production & staging)`,
       },
-      systemHook,
       gitlab,
       screenshotter,
       runners,

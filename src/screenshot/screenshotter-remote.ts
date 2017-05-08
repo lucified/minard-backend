@@ -63,15 +63,13 @@ export class RemoteScreenshotter implements Screenshotter {
     } catch (error) {
       throw new Error(`Ping request to screenshotter failed`);
     }
-    // Do some additional checks, so that we know that it
-    // is really the screenshotter that is responding
-    //
-    // TODO: add proper health check endpoint for screenshotter
-    // and use that one for this ping function.
+
     if (response.status !== 200) {
       throw new Error(`Unexpected status code ${response.status} for screenshotter`);
     }
 
+    // Do some additional checks, so that we know that it
+    // is really the screenshotter that is responding
     let text;
     try {
       text = await response.text();

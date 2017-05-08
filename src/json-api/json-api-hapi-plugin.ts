@@ -99,7 +99,7 @@ export class JsonApiHapiPlugin {
       version: '1.0.0',
     };
     this.baseUrl = baseUrl + '/api';
-    this.getDeploymentId = this.getDeploymentId;
+    this.getDeploymentId = this.getDeploymentId.bind(this);
 
   }
 
@@ -149,7 +149,7 @@ export class JsonApiHapiPlugin {
           validate: {
             params: {
               projectId: Joi.number().required(),
-              deploymentId: Joi.required(),
+              deploymentId: Joi.number().required(),
               token: Joi.string().required(),
             },
           },

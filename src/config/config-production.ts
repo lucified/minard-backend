@@ -1,4 +1,3 @@
-
 import * as cacheManager from 'cache-manager';
 import * as auth from 'hapi-auth-jwt2';
 import { Container } from 'inversify';
@@ -172,7 +171,8 @@ const MINARD_UI_BASEURL = env.MINARD_UI_BASEURL || `http://localhost:3000`;
 // (This is secure, when the load balancer uses host headers to
 //  route external traffic, preventing external clients from sending
 //  arbitrary host headers)
-const INTERNAL_HOST_SUFFIXES = env.INTERNAL_HOST_SUFFIXES || 'charles,charles.internal';
+const INTERNAL_HOST_SUFFIXES = env.INTERNAL_HOST_SUFFIXES
+  || 'charles,charles.internal,internal.localtest.me';
 
 // Database configuration
 // ----------------------

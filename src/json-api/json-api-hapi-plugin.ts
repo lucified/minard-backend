@@ -674,7 +674,7 @@ export class JsonApiHapiPlugin {
           throw Boom.badRequest('Invalid token data');
       }
 
-      if (token && token !== correctToken) {
+      if (!token || token !== correctToken) {
         throw Boom.forbidden('Invalid token');
       }
 

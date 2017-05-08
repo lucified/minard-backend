@@ -860,10 +860,10 @@ export class JsonApiHapiPlugin {
     if (!deploymentId || Number.isNaN(deploymentId)) {
       const { branch } = request.params;
       if (branch) {
-        deploymentId = await this.getJsonApiModule().getLatestDeploymentIdForBranch(projectId, branch);
+        deploymentId = await this.getJsonApiModule().getLatestSuccessfulDeploymentIdForBranch(projectId, branch);
       } else {
         // Only project id given
-        deploymentId = await this.getJsonApiModule().getLatestDeploymentIdForProject(projectId);
+        deploymentId = await this.getJsonApiModule().getLatestSuccessfulDeploymentIdForProject(projectId);
       }
     }
     if (!deploymentId) {

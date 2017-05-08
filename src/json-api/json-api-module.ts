@@ -305,7 +305,7 @@ export class JsonApiModule {
     };
   }
 
-  public async getLatestDeploymentIdForBranch(projectId: number, branchName: string) {
+  public async getLatestSuccessfulDeploymentIdForBranch(projectId: number, branchName: string) {
     const branch = await this.projectModule.getBranch(projectId, branchName);
     if (!branch) {
       throw new Error(`Unable to find branch ${branchName} for project ${projectId}`);
@@ -318,7 +318,7 @@ export class JsonApiModule {
     return deployment ? deployment.id : undefined;
   }
 
-  public async getLatestDeploymentIdForProject(projectId: number) {
+  public async getLatestSuccessfulDeploymentIdForProject(projectId: number) {
     const deployment = await this.deploymentModule.getLatestSuccessfulProjectDeployment(projectId);
     return deployment ? deployment.id : undefined;
   }

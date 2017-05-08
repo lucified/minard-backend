@@ -3,22 +3,11 @@ import { expect } from 'chai';
 import * as moment from 'moment';
 import 'reflect-metadata';
 
+import { CommentModule } from '../comment';
+import { DeploymentModule, MinardDeployment } from '../deployment';
 import { MINARD_ERROR_CODE } from '../shared/minard-error';
-
-import {
-  JsonApiModule,
-} from './json-api-module';
-
-import {
-  CommentModule,
-} from '../comment';
-
-import {
-  DeploymentModule,
-  MinardDeployment,
-} from '../deployment';
-
 import TokenGenerator from '../shared/token-generator';
+import { JsonApiModule } from './json-api-module';
 import { ViewEndpoints } from './view-endpoints';
 
 function getMockCommentModule(): CommentModule {
@@ -91,13 +80,15 @@ describe('view-endpoints', () => {
     const view = await viewEndpoints.getPreview(projectId, deploymentId, token);
 
     // Assert
-    expect(view).to.exist;
-    expect(view!.branch.name).to.equal(minardDeployment.ref);
-    expect(view!.branch.id).to.equal('9-foo');
-    expect(view!.project.id).to.equal('9');
-    expect(view!.project.name).to.equal(projectName);
-    expect(view!.deployment.attributes.status).to.equal(minardDeployment.status);
-    expect(view!.commit.attributes.message).to.equal(minardDeployment.commit.message);
+    if (!view) {
+      throw new Error('View doesn\'t exist');
+    }
+    expect(view.branch.name).to.equal(minardDeployment.ref);
+    expect(view.branch.id).to.equal('9-foo');
+    expect(view.project.id).to.equal('9');
+    expect(view.project.name).to.equal(projectName);
+    expect(view.deployment.attributes.status).to.equal(minardDeployment.status);
+    expect(view.commit.attributes.message).to.equal(minardDeployment.commit.message);
   });
 
   it('should return forbidden when token is invalid', async () => {

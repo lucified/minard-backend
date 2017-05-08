@@ -356,7 +356,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   }
 
   private async authorizeUser(userName: string, request: Hapi.Request) {
-    const isAuthorized =  await this.isAdmin(userName) || await this.authorize(userName, request);
+    const isAuthorized = await this.isAdmin(userName) || await this.authorize(userName, request);
     return isAuthorized ? AuthorizationStatus.AUTHORIZED : AuthorizationStatus.UNAUTHORIZED;
   }
 
@@ -484,7 +484,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     server.auth.scheme('internal', (_server: Hapi.Server, _options: any) => ({
       authenticate: (request: Hapi.Request, reply: Hapi.IReply) => {
         if (this.isInternalRequest(request)) {
-          return reply.continue({ credentials: {}});
+          return reply.continue({ credentials: {} });
         } else {
           return reply('Unauthorized').code(401);
         }

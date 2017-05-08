@@ -27,7 +27,7 @@ class DeploymentHapiPlugin extends HapiPlugin {
     @inject(loggerInjectSymbol) private readonly logger: Logger,
   ) {
     super({
-      name: `deployment-plugin}`,
+      name: `deployment-plugin`,
       version: '1.0.0',
     });
     this.checkHash = memoizee(this.checkHash, {
@@ -142,12 +142,10 @@ class DeploymentHapiPlugin extends HapiPlugin {
     try {
       const projectId: number = request.pre[PREKEY].projectId;
       const deploymentId: number = request.pre[PREKEY].deploymentId;
-      console.log(projectId);
-      console.log(deploymentId);
-      if (await request.userHasAccessToDeployment(projectId, deploymentId, request.auth.credentials)) {
+      if (request.isInternal) {
         return reply('ok');
       }
-      if (request.isInternal) {
+      if (await request.userHasAccessToDeployment(projectId, deploymentId, request.auth.credentials)) {
         return reply('ok');
       }
     } catch (exception) {

@@ -671,11 +671,11 @@ export class JsonApiHapiPlugin {
           correctToken = this.tokenGenerator.deploymentToken(projectId, deploymentId);
           break;
         default:
-          throw Boom.badRequest('Invalid token data');
+          return reply(Boom.badRequest('Invalid token data'));
       }
 
       if (!token || token !== correctToken) {
-        throw Boom.forbidden('Invalid token');
+        return reply(Boom.forbidden('Invalid token'));
       }
 
       return reply('ok');
@@ -882,7 +882,7 @@ export class JsonApiHapiPlugin {
     return reply(this.getEntity('comment', api => api.getDeploymentComments(Number(deploymentId))));
   }
 
-  public async getDeploymentId(previewType: PreviewType) {
+  public getDeploymentId(previewType: PreviewType) {
     return async (request: Hapi.Request, reply: Hapi.IReply) => {
       const { branch, deploymentId: deploymentIdString, projectId: projectIdString } = request.params;
 
@@ -904,7 +904,7 @@ export class JsonApiHapiPlugin {
           deploymentId = Number(deploymentIdString);
           break;
         default:
-          throw Boom.badRequest('Invalid preview data');
+          return reply(Boom.badRequest('Invalid preview data'));
       }
 
       if (!deploymentId || Number.isNaN(deploymentId)) {

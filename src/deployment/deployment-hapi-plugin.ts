@@ -62,7 +62,7 @@ class DeploymentHapiPlugin extends HapiPlugin {
   protected onPreResponse(request: Hapi.Request, reply: Hapi.IReply) {
     // Redirect to login page, if user didn't pass
     const output = (request.response as any).output;
-    const hasForbiddenStatusCode = output && (([401, 403].find(code => code === output.statusCode)) !== undefined);
+    const hasForbiddenStatusCode = output && (([401, 403].find(code => code === output.statusCode)));
     if (
       request.info.hostname === deploymentVhost &&
       request.response.isBoom &&

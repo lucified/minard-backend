@@ -10,6 +10,7 @@ import { JsonApiHapiPlugin } from '../json-api';
 import { ProjectModule } from '../project';
 import { getTestServer } from '../server/hapi';
 import { makeRequestWithAuthentication, MethodStubber, stubber } from '../shared/test';
+import TokenGenerator from '../shared/token-generator';
 import AuthenticationHapiPlugin from './authentication-hapi-plugin';
 import { generateTeamToken } from './team-token';
 
@@ -26,10 +27,12 @@ async function getServer(
   kernel.rebind(ProjectModule.injectSymbol).to(ProjectModule);
   const authenticationPlugin = stubber(authenticationStubber, AuthenticationHapiPlugin.injectSymbol, kernel);
   const apiPlugin = stubber(apiStubber, JsonApiHapiPlugin.injectSymbol, kernel);
+  const tokenGenerator = kernel.get<TokenGenerator>(TokenGenerator.injectSymbol);
   return {
     server: await getTestServer(true, authenticationPlugin.instance, apiPlugin.instance),
     authentication: authenticationPlugin.instance,
     api: apiPlugin.instance,
+    tokenGenerator,
   };
 }
 
@@ -554,17 +557,18 @@ describe('authorization for api routes', () => {
         expect(api.getActivityHandler).to.not.have.been.called;
       });
     });
-    describe.skip('getPreviewHandler', () => {
+    describe.only('getPreviewHandler', () => {
       describe('specific deployment', () => {
         it('should allow fetching the preview for a deployment in an authorized project', async () => {
           // Arrange
-          const { server, authentication, api } = await arrange(
+          const { server, authentication, api, tokenGenerator } = await arrange(
             'userHasAccessToDeployment',
             true,
             'getPreviewHandler',
           );
+          const token = tokenGenerator.deploymentToken(1, 1);
           // Act
-          await makeRequest(server, '/preview/deployment/1-1/12345678', 'GET');
+          await makeRequest(server, `/preview/deployment/1-1/${token}`, 'GET');
 
           // Assert
           expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
@@ -572,13 +576,14 @@ describe('authorization for api routes', () => {
         });
         it('should not allow fetching the preview for a deployment in an unauthorized project', async () => {
           // Arrange
-          const { server, authentication, api } = await arrange(
+          const { server, authentication, api, tokenGenerator } = await arrange(
             'userHasAccessToDeployment',
             false,
             'getPreviewHandler',
           );
+          const token = tokenGenerator.deploymentToken(1, 1);
           // Act
-          const response = await makeRequest(server, '/preview/deployment/1-1/12345678', 'GET');
+          const response = await makeRequest(server, `/preview/deployment/1-1/${token}`, 'GET');
 
           expect(response.statusCode).to.eq(401);
           expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
@@ -586,14 +591,16 @@ describe('authorization for api routes', () => {
         });
         it('should allow fetching the preview for an open deployment without authentication', async () => {
           // Arrange
-          const { server, authentication, api } = await arrange(
+          const { server, authentication, api, tokenGenerator } = await arrange(
             'isOpenDeployment',
             true,
             'getPreviewHandler',
           );
+          const token = tokenGenerator.deploymentToken(1, 1);
+
           const response = await server.inject({
             method: 'GET',
-            url: 'http://foo.com/preview/deployment/1-1/12345678',
+            url: `http://foo.com/preview/deployment/1-1/${token}`,
           });
           // Assert
           expect(response.statusCode).to.not.equal(401);
@@ -604,15 +611,16 @@ describe('authorization for api routes', () => {
       describe('latest deployment for project', () => {
         it('should allow fetching the preview for a deployment in an authorized project', async () => {
           // Arrange
-          const { server, authentication, api } = await arrange(
+          const { server, authentication, api, tokenGenerator } = await arrange(
             'userHasAccessToDeployment',
             true,
             'getPreviewHandler',
             false,
             2,
           );
+          const token = tokenGenerator.projectToken(1);
           // Act
-          await makeRequest(server, '/preview/project/1/12345678', 'GET');
+          await makeRequest(server, `/preview/project/1/${token}`, 'GET');
 
           // Assert
           expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
@@ -621,15 +629,17 @@ describe('authorization for api routes', () => {
         });
         it('should not allow fetching the preview for a deployment in an unauthorized project', async () => {
           // Arrange
-          const { server, authentication, api } = await arrange(
+          const { server, authentication, api, tokenGenerator } = await arrange(
             'userHasAccessToDeployment',
             false,
             'getPreviewHandler',
             false,
             2,
           );
+          const token = tokenGenerator.projectToken(1);
+
           // Act
-          const response = await makeRequest(server, '/preview/project/1/12345678', 'GET');
+          const response = await makeRequest(server, `/preview/project/1/${token}`, 'GET');
 
           expect(response.statusCode).to.eq(401);
           expect(api.getLatestSuccessfulDeploymentIdForProject).to.have.been.calledOnce;
@@ -638,16 +648,18 @@ describe('authorization for api routes', () => {
         });
         it('should allow fetching the preview for an open deployment without authentication', async () => {
           // Arrange
-          const { server, authentication, api } = await arrange(
+          const { server, authentication, api, tokenGenerator } = await arrange(
             'isOpenDeployment',
             true,
             'getPreviewHandler',
             false,
             2,
           );
+          const token = tokenGenerator.projectToken(1);
+
           await server.inject({
             method: 'GET',
-            url: 'http://foo.com/preview/project/1/12345678',
+            url: `http://foo.com/preview/project/1/${token}`,
           });
           // Assert
           expect(authentication.isOpenDeployment).to.have.been.calledOnce;
@@ -656,15 +668,17 @@ describe('authorization for api routes', () => {
         });
         it('should return 404 when deployment not found', async () => {
           // Arrange
-          const { server } = await arrange(
+          const { server, tokenGenerator } = await arrange(
             'isOpenDeployment',
             true,
             'getPreviewHandler',
             undefined,
           );
+          const token = tokenGenerator.projectToken(1);
+
           const response = await server.inject({
             method: 'GET',
-            url: 'http://foo.com/preview/project/1/12345678',
+            url: `http://foo.com/preview/project/1/${token}`,
           });
           // Assert
           expect(response.statusCode).to.equal(404);
@@ -673,15 +687,16 @@ describe('authorization for api routes', () => {
       describe('latest deployment for branch', () => {
         it('should allow fetching the preview for a deployment in an authorized project', async () => {
           // Arrange
-          const { server, authentication, api } = await arrange(
+          const { server, authentication, api, tokenGenerator } = await arrange(
             'userHasAccessToDeployment',
             true,
             'getPreviewHandler',
             false,
             2,
           );
+          const token = tokenGenerator.branchToken(1, 'foo-bar');
           // Act
-          await makeRequest(server, '/preview/branch/1-foo/12345678', 'GET');
+          await makeRequest(server, `/preview/branch/1-foo-bar/${token}`, 'GET');
 
           // Assert
           expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
@@ -690,15 +705,17 @@ describe('authorization for api routes', () => {
         });
         it('should not allow fetching the preview for a deployment in an unauthorized project', async () => {
           // Arrange
-          const { server, authentication, api } = await arrange(
+          const { server, authentication, api, tokenGenerator } = await arrange(
             'userHasAccessToDeployment',
             false,
             'getPreviewHandler',
             false,
             2,
           );
+          const token = tokenGenerator.branchToken(1, 'foo-bar');
+
           // Act
-          const response = await makeRequest(server, '/preview/branch/1-foo/12345678', 'GET');
+          const response = await makeRequest(server, `/preview/branch/1-foo-bar/${token}`, 'GET');
 
           expect(response.statusCode).to.eq(401);
           expect(api.getLatestSuccessfulDeploymentIdForBranch).to.have.been.calledOnce;
@@ -707,16 +724,18 @@ describe('authorization for api routes', () => {
         });
         it('should allow fetching the preview for an open deployment without authentication', async () => {
           // Arrange
-          const { server, authentication, api } = await arrange(
+          const { server, authentication, api, tokenGenerator } = await arrange(
             'isOpenDeployment',
             true,
             'getPreviewHandler',
             false,
             2,
           );
+          const token = tokenGenerator.branchToken(1, 'foo-bar');
+
           await server.inject({
             method: 'GET',
-            url: 'http://foo.com/preview/branch/1-foo/12345678',
+            url: `http://foo.com/preview/branch/1-foo-bar/${token}`,
           });
           // Assert
           expect(authentication.isOpenDeployment).to.have.been.calledOnce;
@@ -725,15 +744,17 @@ describe('authorization for api routes', () => {
         });
         it('returns 404 when deployment is not found', async () => {
           // Arrange
-          const { server } = await arrange(
+          const { server, tokenGenerator } = await arrange(
             'isOpenDeployment',
             true,
             'getPreviewHandler',
             undefined,
           );
+          const token = tokenGenerator.branchToken(1, 'foo-bar');
+
           const response = await server.inject({
             method: 'GET',
-            url: 'http://foo.com/preview/branch/1-foo/12345678',
+            url: `http://foo.com/preview/branch/1-foo-bar/${token}`,
           });
           // Assert
           expect(response.statusCode).to.equal(404);

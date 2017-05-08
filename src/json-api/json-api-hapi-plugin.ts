@@ -160,7 +160,7 @@ export class JsonApiHapiPlugin {
       },
       {
         method: 'GET',
-        path: '/preview/branch/{projectId}-{branch}/{token}',
+        path: '/preview/branch/{branchId}/{token}',
         handler: {
           async: this.getPreviewHandler,
         },
@@ -177,8 +177,7 @@ export class JsonApiHapiPlugin {
           ],
           validate: {
             params: {
-              projectId: Joi.number().required(),
-              branch: Joi.string().required(),
+              branchId: Joi.string().required(),
               token: Joi.string().required(),
             },
           },
@@ -570,7 +569,7 @@ export class JsonApiHapiPlugin {
         },
       },
     }];
-    const routes =  deployment.concat(
+    const routes = deployment.concat(
       comment,
       notification,
       project,
@@ -656,20 +655,24 @@ export class JsonApiHapiPlugin {
 
   public validatePreviewToken(previewType: PreviewType) {
     return (request: Hapi.Request, reply: Hapi.IReply) => {
-      const { token, branch, deploymentId: deploymentIdString, projectId: projectIdString } = request.params;
+      const { token, branchId, deploymentId: deploymentIdString, projectId: projectIdString } = request.params;
       const deploymentId = Number(deploymentIdString);
-      const projectId = Number(projectIdString);
-      let correctToken: string;
+      let correctToken;
 
       switch (previewType) {
         case PreviewType.PROJECT:
-          correctToken = this.tokenGenerator.projectToken(projectId);
+          correctToken = this.tokenGenerator.projectToken(Number(projectIdString));
           break;
         case PreviewType.BRANCH:
-          correctToken = this.tokenGenerator.branchToken(projectId, branch);
+          const matches = parseApiBranchId(branchId);
+          if (!matches) {
+            return reply(Boom.badRequest('Invalid branch id'));
+          }
+          const { projectId, branchName } = matches;
+          correctToken = this.tokenGenerator.branchToken(projectId, branchName);
           break;
         case PreviewType.DEPLOYMENT:
-          correctToken = this.tokenGenerator.deploymentToken(projectId, deploymentId);
+          correctToken = this.tokenGenerator.deploymentToken(Number(projectIdString), deploymentId);
           break;
         default:
           return reply(Boom.badRequest('Invalid token data'));
@@ -885,10 +888,22 @@ export class JsonApiHapiPlugin {
 
   public getDeploymentId(previewType: PreviewType) {
     return async (request: Hapi.Request, reply: Hapi.IReply) => {
-      const { branch, deploymentId: deploymentIdString, projectId: projectIdString } = request.params;
+      const { branchId, deploymentId: deploymentIdString, projectId: projectIdString } = request.params;
 
       let deploymentId;
-      const projectId = Number(projectIdString);
+      let projectId;
+      let branchName;
+
+      if (branchId) {
+        const matches = parseApiBranchId(branchId);
+        if (!matches) {
+          return reply(Boom.badRequest('Invalid branch id'));
+        }
+        projectId = matches.projectId;
+        branchName = matches.branchName;
+      } else {
+        projectId = Number(projectIdString);
+      }
 
       if (Number.isNaN(projectId)) {
         return reply(Boom.badRequest('Invalid project id'));
@@ -899,7 +914,10 @@ export class JsonApiHapiPlugin {
           deploymentId = await this.getLatestSuccessfulDeploymentIdForProject(projectId);
           break;
         case PreviewType.BRANCH:
-          deploymentId = await this.getLatestSuccessfulDeploymentIdForBranch(projectId, branch);
+          if (!branchName) {
+            return reply(Boom.badRequest('Invalid branch name'));
+          }
+          deploymentId = await this.getLatestSuccessfulDeploymentIdForBranch(projectId, branchName);
           break;
         case PreviewType.DEPLOYMENT:
           deploymentId = Number(deploymentIdString);

@@ -28,13 +28,13 @@ import {
   getGitlabYmlNoAutoBuild,
   getValidationErrors,
 } from './gitlab-yml';
-import { DbDeployment } from './types';
 import {
   BUILD_CREATED_EVENT,
   BUILD_STATUS_EVENT_TYPE,
   BuildCreatedEvent,
   BuildStatusEvent,
   createDeploymentEvent,
+  DbDeployment,
   DEPLOYMENT_EVENT_TYPE,
   DeploymentEvent,
   DeploymentStatusUpdate,

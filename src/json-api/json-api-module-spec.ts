@@ -33,6 +33,7 @@ import {
 } from './';
 
 import { toGitlabTimestamp } from '../shared/time-conversion';
+import TokenGenerator from '../shared/token-generator';
 
 function getMockCommentModule() {
   const commentModule = {} as CommentModule;
@@ -41,6 +42,8 @@ function getMockCommentModule() {
   };
   return commentModule;
 }
+
+const tokenGenerator = new TokenGenerator('secret');
 
 describe('json-api-module', () => {
 
@@ -78,6 +81,7 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         {} as any,
+        {} as any,
       );
 
       // Act
@@ -105,6 +109,7 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         {} as any,
+        tokenGenerator,
       );
 
       jsonApiModule.toApiDeployment = async (_projectId: number, deployment: MinardDeployment) => {
@@ -175,6 +180,7 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         {} as any,
+        tokenGenerator,
       );
 
       // Act
@@ -196,20 +202,24 @@ describe('json-api-module', () => {
 
     it('should work with activity of type comment', async () => {
       // Arrange
-      const attributes = {
+      const attributes: Partial<MinardActivity> = {
         activityType: 'comment',
         name: 'foo',
         message: 'foo msg',
         email: 'foo@goomail.com',
         commentId: 4,
       };
-      const commentActivity = Object.assign({}, minardActivity, attributes);
+      const commentActivity: MinardActivity = {
+        ...minardActivity,
+        ...attributes,
+      };
       const jsonApiModule = new JsonApiModule(
         {} as any,
         {} as any,
         {} as any,
         {} as any,
         {} as any,
+        tokenGenerator,
       );
 
       // Act
@@ -250,6 +260,7 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         commentModule,
+        tokenGenerator,
       );
 
       // Act
@@ -314,6 +325,7 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         getMockCommentModule(),
+        tokenGenerator,
       );
 
       // Act
@@ -344,6 +356,7 @@ describe('json-api-module', () => {
         id: 'foo-commit-id',
       } as {} as MinardCommit,
       latestActivityTimestamp: 'fake-timestamp',
+      token: 'token',
     };
     const minardDeployment = {
       id: 5,
@@ -377,6 +390,7 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         getMockCommentModule(),
+        tokenGenerator,
       );
       jsonApiModule.toApiCommit = async(_projectId: number, commit: MinardCommit, _deployments?: ApiDeployment[]) => {
         expect(commit).to.exist;
@@ -432,6 +446,7 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         getMockCommentModule(),
+        tokenGenerator,
       );
 
       // Act

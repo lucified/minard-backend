@@ -10,10 +10,11 @@ import {
 import * as Hapi from '../server/hapi';
 import { HapiRegister } from '../server/hapi-register';
 import { externalBaseUrlInjectSymbol } from '../server/types';
+import TokenGenerator from '../shared/token-generator';
 import { parseApiBranchId, parseApiDeploymentId } from './conversions';
 import { JsonApiModule } from './json-api-module';
 import { serializeApiEntity } from './serialization';
-import { ApiEntities, ApiEntity } from './types';
+import { ApiEntities, ApiEntity, PreviewType } from './types';
 import { ViewEndpoints } from './view-endpoints';
 
 function applyHeaders(obj: any) {
@@ -75,6 +76,7 @@ const projectNameRegex = /^[\w|\-]+$/;
 
 // https://github.com/Microsoft/TypeScript/issues/5579
 const TEAM_OR_PROJECT_PRE_KEY = 'teamOrProject';
+const DEPLOYMENT_PRE_KEY = 'deployment';
 interface TeamOrProject {
   teamOrProject: {
     teamId?: number;
@@ -92,12 +94,15 @@ export class JsonApiHapiPlugin {
     @inject(JsonApiModule.injectSymbol) private readonly jsonApi: JsonApiModule,
     @inject(externalBaseUrlInjectSymbol) baseUrl: string,
     @inject(ViewEndpoints.injectSymbol) private readonly viewEndpoints: ViewEndpoints,
+    @inject(TokenGenerator.injectSymbol) private readonly tokenGenerator: TokenGenerator,
   ) {
     this.register.attributes = {
       name: 'json-api-plugin',
       version: '1.0.0',
     };
     this.baseUrl = baseUrl + '/api';
+    this.getDeploymentId = this.getDeploymentId.bind(this);
+    this.validatePreviewToken = this.validatePreviewToken.bind(this);
   }
 
   public register: HapiRegister = (server, _options, next) => {
@@ -126,29 +131,85 @@ export class JsonApiHapiPlugin {
       },
     }];
 
-    const preview: Hapi.IRouteConfiguration[] = [{
-      method: 'GET',
-      path: '/preview/{projectId}-{deploymentId}',
-      handler: {
-        async: this.getPreviewHandler,
-      },
-      config: {
-        bind: this,
-        auth: openAuth,
-        pre: [
-          this.authorizeOpenDeployment,
-        ],
-        validate: {
-          params: {
-            projectId: Joi.number().required(),
-            deploymentId: Joi.number().required(),
-          },
-          query: {
-            sha: Joi.string().required(),
+    const preview: Hapi.IRouteConfiguration[] = [
+      {
+        method: 'GET',
+        path: '/preview/deployment/{projectId}-{deploymentId}/{token}',
+        handler: {
+          async: this.getPreviewHandler,
+        },
+        config: {
+          bind: this,
+          auth: openAuth,
+          pre: [
+            this.validatePreviewToken(PreviewType.DEPLOYMENT),
+            {
+              method: this.getDeploymentId(PreviewType.DEPLOYMENT),
+              assign: DEPLOYMENT_PRE_KEY,
+            },
+            this.authorizeOpenDeployment,
+          ],
+          validate: {
+            params: {
+              projectId: Joi.number().required(),
+              deploymentId: Joi.number().required(),
+              token: Joi.string().required(),
+            },
           },
         },
       },
-    }];
+      {
+        method: 'GET',
+        path: '/preview/branch/{projectId}-{branch}/{token}',
+        handler: {
+          async: this.getPreviewHandler,
+        },
+        config: {
+          bind: this,
+          auth: openAuth,
+          pre: [
+            this.validatePreviewToken(PreviewType.BRANCH),
+            {
+              method: this.getDeploymentId(PreviewType.BRANCH),
+              assign: DEPLOYMENT_PRE_KEY,
+            },
+            this.authorizeOpenDeployment,
+          ],
+          validate: {
+            params: {
+              projectId: Joi.number().required(),
+              branch: Joi.string().required(),
+              token: Joi.string().required(),
+            },
+          },
+        },
+      },
+      {
+        method: 'GET',
+        path: '/preview/project/{projectId}/{token}',
+        handler: {
+          async: this.getPreviewHandler,
+        },
+        config: {
+          bind: this,
+          auth: openAuth,
+          pre: [
+            this.validatePreviewToken(PreviewType.PROJECT),
+            {
+              method: this.getDeploymentId(PreviewType.PROJECT),
+              assign: DEPLOYMENT_PRE_KEY,
+            },
+            this.authorizeOpenDeployment,
+          ],
+          validate: {
+            params: {
+              projectId: Joi.number().required(),
+              token: Joi.string().required(),
+            },
+          },
+        },
+      },
+    ];
 
     const project: Hapi.IRouteConfiguration[] = [{
       method: 'GET',
@@ -495,6 +556,10 @@ export class JsonApiHapiPlugin {
         bind: this,
         auth: openAuth,
         pre: [
+          {
+            method: this.getDeploymentId(PreviewType.DEPLOYMENT),
+            assign: DEPLOYMENT_PRE_KEY,
+          },
           this.authorizeOpenDeployment,
         ],
         validate: {
@@ -589,20 +654,48 @@ export class JsonApiHapiPlugin {
     return reply(this.getEntity('deployment', api => api.getDeployment(projectId, deploymentId)));
   }
 
+  public validatePreviewToken(previewType: PreviewType) {
+    return (request: Hapi.Request, reply: Hapi.IReply) => {
+      const { token, branch, deploymentId: deploymentIdString, projectId: projectIdString } = request.params;
+      const deploymentId = Number(deploymentIdString);
+      const projectId = Number(projectIdString);
+      let correctToken: string;
+
+      switch (previewType) {
+        case PreviewType.PROJECT:
+          correctToken = this.tokenGenerator.projectToken(projectId);
+          break;
+        case PreviewType.BRANCH:
+          correctToken = this.tokenGenerator.branchToken(projectId, branch);
+          break;
+        case PreviewType.DEPLOYMENT:
+          correctToken = this.tokenGenerator.deploymentToken(projectId, deploymentId);
+          break;
+        default:
+          return reply(Boom.badRequest('Invalid token data'));
+      }
+
+      if (!token || token !== correctToken) {
+        return reply(Boom.forbidden('Invalid token'));
+      }
+
+      return reply('ok');
+    };
+  }
+
   public async getPreviewHandler(request: Hapi.Request, reply: Hapi.IReply) {
     try {
-      const projectId = Number(request.params.projectId);
-      const deploymentId = Number(request.params.deploymentId);
-      const sha = request.query.sha;
-      const preview = await this.viewEndpoints.getPreview(projectId, deploymentId, sha);
+      const projectId = Number(request.pre[DEPLOYMENT_PRE_KEY].projectId);
+      const deploymentId = Number(request.pre[DEPLOYMENT_PRE_KEY].deploymentId);
+      const preview = await this.viewEndpoints.getPreview(projectId, deploymentId);
       if (preview) {
         return reply(preview);
       }
     } catch (err) {
       return reply(Boom.wrap(err));
     }
-    return reply(Boom.notFound());
 
+    return reply(Boom.notFound());
   }
 
   public async getBranchHandler(request: Hapi.Request, reply: Hapi.IReply) {
@@ -790,10 +883,46 @@ export class JsonApiHapiPlugin {
     return reply(this.getEntity('comment', api => api.getDeploymentComments(Number(deploymentId))));
   }
 
+  public getDeploymentId(previewType: PreviewType) {
+    return async (request: Hapi.Request, reply: Hapi.IReply) => {
+      const { branch, deploymentId: deploymentIdString, projectId: projectIdString } = request.params;
+
+      let deploymentId;
+      const projectId = Number(projectIdString);
+
+      if (Number.isNaN(projectId)) {
+        return reply(Boom.badRequest('Invalid project id'));
+      }
+
+      switch (previewType) {
+        case PreviewType.PROJECT:
+          deploymentId = await this.getLatestSuccessfulDeploymentIdForProject(projectId);
+          break;
+        case PreviewType.BRANCH:
+          deploymentId = await this.getLatestSuccessfulDeploymentIdForBranch(projectId, branch);
+          break;
+        case PreviewType.DEPLOYMENT:
+          deploymentId = Number(deploymentIdString);
+          break;
+        default:
+          return reply(Boom.badRequest('Invalid preview data'));
+      }
+
+      if (!deploymentId || Number.isNaN(deploymentId)) {
+        return reply(Boom.notFound(`Unable to find deployment`));
+      }
+
+      return reply({
+        projectId,
+        deploymentId,
+      });
+    };
+  }
+
   public async authorizeOpenDeployment(request: Hapi.Request, reply: Hapi.IReply) {
     try {
-      const projectId = parseInt(request.params.projectId, 10);
-      const deploymentId = parseInt(request.params.deploymentId, 10);
+      const projectId = Number(request.pre[DEPLOYMENT_PRE_KEY].projectId);
+      const deploymentId = Number(request.pre[DEPLOYMENT_PRE_KEY].deploymentId);
       if (await request.userHasAccessToDeployment(projectId, deploymentId, request.auth.credentials)) {
         return reply('ok');
       }
@@ -802,6 +931,14 @@ export class JsonApiHapiPlugin {
       // Nothing to be done
     }
     return reply(Boom.unauthorized());
+  }
+
+  // These are public and wrapped mainly to ease mocking in unit testing
+  public getLatestSuccessfulDeploymentIdForBranch(projectId: number, branch: string) {
+    return this.jsonApi.getLatestSuccessfulDeploymentIdForBranch(projectId, branch);
+  }
+  public getLatestSuccessfulDeploymentIdForProject(projectId: number) {
+    return this.jsonApi.getLatestSuccessfulDeploymentIdForProject(projectId);
   }
 
 }

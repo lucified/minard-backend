@@ -9,16 +9,12 @@ import { EventBus, LocalEventBus } from '../event-bus';
 import { Commit } from '../shared/gitlab';
 import { GitlabClient } from '../shared/gitlab-client';
 import Logger from '../shared/logger';
+import { MinardCommit } from '../shared/minard-commit';
 import { MINARD_ERROR_CODE } from '../shared/minard-error';
 import { toGitlabTimestamp } from '../shared/time-conversion';
 import SystemHookModule from '../system-hook/system-hook-module';
-
+import { GitlabPushEvent } from './gitlab-push-hook-types';
 import ProjectModule from './project-module';
-
-import {
-  MinardCommit,
-} from '../shared/minard-commit';
-
 import {
   CODE_PUSHED_EVENT_TYPE,
   CodePushedEvent,
@@ -30,10 +26,6 @@ import {
   ProjectDeletedEvent,
   ProjectEditedEvent,
 } from './types';
-
-import {
-  GitlabPushEvent,
-} from './gitlab-push-hook-types';
 
 const fetchMock = require('fetch-mock');
 
@@ -58,7 +50,8 @@ function genericArrangeProjectModule(status: number, body: any, path: string, op
       {} as LocalEventBus,
       gitlabClient,
       logger,
-      '');
+      '',
+    );
     fetchMock.restore();
     fetchMock.mock(
       `${host}${gitlabClient.apiPrefix}${path}`,
@@ -236,7 +229,8 @@ describe('project-module', () => {
         {} as LocalEventBus,
         gitlabClient,
         logger,
-        '');
+        '',
+        );
       fetchMock.restore();
       fetchMock.mock(
         `${host}${gitlabClient.apiPrefix}/projects/3`,
@@ -531,7 +525,8 @@ describe('project-module', () => {
         {} as any,
         {} as any,
         {} as any,
-        '');
+        '',
+        );
       let called = false;
 
       projectModule.fetchBranchCommits = async (
@@ -660,7 +655,8 @@ describe('project-module', () => {
         {} as any,
         {} as any,
         {} as any,
-        '');
+        '',
+        );
       projectModule.fetchBranchCommits = async (
         _projectId: number, _branchName: string, _until: moment.Moment, _count: number) => {
         expect(_projectId).to.equal(projectId);
@@ -782,7 +778,8 @@ describe('project-module', () => {
         {} as LocalEventBus,
         gitlabClient,
         logger,
-        '');
+        '',
+        );
       fetchMock.restore().mock(
         `${host}${gitlabClient.apiPrefix}/projects/${projectId}/repository/contributors`,
         { status, body });
@@ -833,7 +830,8 @@ describe('project-module', () => {
       bus,
       client,
       logger,
-      gitBaseUrl);
+      gitBaseUrl,
+    );
     const mockUrl = `${host}${client.apiPrefix}${url}`;
     fetchMock.restore().mock(
       mockUrl,
@@ -872,7 +870,8 @@ describe('project-module', () => {
         bus,
         gitlab,
         logger,
-        '');
+        '',
+      );
       projectModule.failSleepTime = 0;
       projectModule.createGitlabProject = async (
         _teamId: number, _path: string, _description: string, _importUrl: string) => {
@@ -1105,7 +1104,8 @@ describe('project-module', () => {
         bus,
         client,
         logger,
-        '');
+        '',
+      );
       projectModule.getProject = async (_projectId: number) => {
         expect(_projectId).to.equal(projectId);
         return {
@@ -1335,7 +1335,8 @@ describe('project-module', () => {
       {} as LocalEventBus,
       gitlabClient,
       logger,
-      '');
+      '',
+    );
     fetchMock.restore();
     fetchMock.mock(
       `${host}${gitlabClient.apiPrefix}${path}`,
@@ -1630,7 +1631,8 @@ describe('project-module', () => {
         bus,
         {} as any,
         logger,
-        '');
+        '',
+      );
 
       projectModule.getCommit = async (_projectId: number, sha: string) => {
         expect(_projectId).to.equal(gitlabPayload.project_id);

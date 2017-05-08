@@ -9,7 +9,6 @@ import {
   ApiDeployment,
   ApiEntities,
   ApiEntity,
-  ApiProject,
 } from './types';
 
 export function standardIdRef(_: any, item: any) {
@@ -30,8 +29,18 @@ export const nonIncludedSerialization = {
 };
 
 export const deploymentSerialization =  {
-  attributes: ['status', 'commit', 'url', 'creator',
-  'screenshot', 'buildStatus', 'extractionStatus', 'screenshotStatus', 'commentCount'],
+  attributes: [
+    'status',
+    'commit',
+    'url',
+    'creator',
+    'screenshot',
+    'buildStatus',
+    'extractionStatus',
+    'screenshotStatus',
+    'commentCount',
+    'token',
+  ],
   ref: standardIdRef,
   included: true,
 };
@@ -52,14 +61,13 @@ export const notificationSerialization = {
 export const branchSerialization = (apiBaseUrl: string) => ({
   attributes: [
     'name',
-    'description',
-    'project',
     'commits',
     'project',
     'latestCommit',
     'latestSuccessfullyDeployedCommit',
     'minardJson',
     'latestActivityTimestamp',
+    'token',
   ],
   ref: standardIdRef,
   commits: {
@@ -92,7 +100,9 @@ export const projectSerialization = (apiBaseUrl: string) => {
       'activeCommitters',
       'latestActivityTimestamp',
       'latestSuccessfullyDeployedCommit',
-      'repoUrl'],
+      'repoUrl',
+      'token',
+    ],
     branches: {
       ignoreRelationshipData: true,
       ref: linkRef,
@@ -143,12 +153,6 @@ export function branchToJsonApi(branch: ApiBranch | ApiBranch[]) {
 export function deploymentToJsonApi(deployment: ApiDeployment | ApiDeployment[]) {
   const serialized = new Serializer('deployment',
     deploymentCompoundSerialization).serialize(deployment);
-  return serialized;
-}
-
-export function projectToJsonApi(project: ApiProject | ApiProject[]) {
-  const serialized = new Serializer('project',
-    projectSerialization('moi')).serialize(project);
   return serialized;
 }
 

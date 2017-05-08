@@ -38,9 +38,7 @@ import {
   fetchInjectSymbol,
 } from '../shared/types';
 
-import {
-  fetch,
-} from '../shared/fetch';
+import fetch from 'node-fetch';
 
 import TokenGenerator from '../shared/token-generator';
 

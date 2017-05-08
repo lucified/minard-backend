@@ -1,15 +1,15 @@
 // Script for manually testing flowdock notifications
 // during development
 
+import fetch from 'node-fetch';
 import 'reflect-metadata';
 
 import { MinardDeployment } from '../deployment';
-import { fetch, IFetch } from '../shared/fetch';
 import { FlowdockNotify } from './flowdock-notify';
 
 // const screenshot = fs.readFileSync('mini-camel.jpg') as Buffer;
 
-const flowdockNotify = new FlowdockNotify(fetch as IFetch);
+const flowdockNotify = new FlowdockNotify(fetch);
 
 const flowToken = process.env.FLOWDOCK_FLOW_TOKEN;
 const projectUrl = 'http://www.foo.com';

@@ -149,10 +149,6 @@ describe('json-api-hapi-plugin', () => {
           name,
           description,
         })));
-      // const path = new RegExp(`/groups/${teamId}\\?sudo=`);
-      // fetchMock.mock(path, {
-      //   id: teamId,
-      // });
       const server = await provisionServer();
       const options: IServerInjectOptions = {
         method: 'POST',
@@ -247,7 +243,7 @@ describe('json-api-hapi-plugin', () => {
           };
         },
       } as JsonApiModule;
-      const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any);
+      const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any, {} as any);
       const server = await provisionServer(plugin);
       const options: IServerInjectOptions = {
         method: 'PATCH',
@@ -340,7 +336,7 @@ describe('json-api-hapi-plugin', () => {
           return [{}, {}];
         },
       } as JsonApiModule;
-      const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any);
+      const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any, {} as any);
       const server = await provisionServer(plugin);
       const options: IServerInjectOptions = {
         method: 'GET',

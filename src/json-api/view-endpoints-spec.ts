@@ -1,23 +1,11 @@
-import * as Boom from 'boom';
 import { expect } from 'chai';
 import * as moment from 'moment';
 import 'reflect-metadata';
 
-import { MINARD_ERROR_CODE } from '../shared/minard-error';
-
-import {
-  JsonApiModule,
-} from './json-api-module';
-
-import {
-  CommentModule,
-} from '../comment';
-
-import {
-  DeploymentModule,
-  MinardDeployment,
-} from '../deployment';
-
+import { CommentModule } from '../comment';
+import { DeploymentModule, MinardDeployment } from '../deployment';
+import TokenGenerator from '../shared/token-generator';
+import { JsonApiModule } from './json-api-module';
 import { ViewEndpoints } from './view-endpoints';
 
 function getMockCommentModule(): CommentModule {
@@ -25,6 +13,7 @@ function getMockCommentModule(): CommentModule {
     getCommentCountForDeployment: async (_deploymentId: number) => 2,
   } as CommentModule;
 }
+const tokenGenerator = new TokenGenerator('secret');
 
 describe('view-endpoints', () => {
 
@@ -76,6 +65,7 @@ describe('view-endpoints', () => {
       {} as any,
       {} as any,
       getMockCommentModule(),
+      tokenGenerator,
     );
     return new ViewEndpoints(jsonApiModule, deploymentModule, 'foo-base-url');
   }
@@ -83,33 +73,18 @@ describe('view-endpoints', () => {
   it('should work for a typical deployment', async () => {
     // Arrange
     const viewEndpoints = arrange();
-
     // Act
-    const view = await viewEndpoints.getPreview(projectId, deploymentId, sha);
+    const view = await viewEndpoints.getPreview(projectId, deploymentId);
 
     // Assert
-    expect(view).to.exist;
-    expect(view!.branch.name).to.equal(minardDeployment.ref);
-    expect(view!.branch.id).to.equal('9-foo');
-    expect(view!.project.id).to.equal('9');
-    expect(view!.project.name).to.equal(projectName);
-    expect(view!.deployment.attributes.status).to.equal(minardDeployment.status);
-    expect(view!.commit.attributes.message).to.equal(minardDeployment.commit.message);
-  });
-
-  it('should return forbidden when sha is invalid', async () => {
-    // Arrange
-    const viewEndpoints = arrange();
-
-    let err: any;
-    try {
-      await viewEndpoints.getPreview(projectId, deploymentId, sha + 'foo');
-    } catch (_err) {
-      err = _err;
+    if (!view) {
+      throw new Error('View doesn\'t exist');
     }
-    expect(err).to.exist;
-    expect((err as Boom.BoomError).isBoom).to.be.true;
-    expect((err as Boom.BoomError).output.statusCode).to.equal(MINARD_ERROR_CODE.FORBIDDEN);
+    expect(view.branch.name).to.equal(minardDeployment.ref);
+    expect(view.branch.id).to.equal('9-foo');
+    expect(view.project.id).to.equal('9');
+    expect(view.project.name).to.equal(projectName);
+    expect(view.deployment.attributes.status).to.equal(minardDeployment.status);
+    expect(view.commit.attributes.message).to.equal(minardDeployment.commit.message);
   });
-
 });

@@ -37,6 +37,7 @@ import {
 } from '../project';
 import logger from '../shared/logger';
 import { promisify } from '../shared/promisify';
+import TokenGenerator from '../shared/token-generator';
 import { deploymentEventFilter } from './realtime-hapi-plugin';
 import { RealtimeModule } from './realtime-module';
 import {
@@ -46,7 +47,7 @@ import {
 } from './types';
 
 function getModule(bus: PersistentEventBus, jsonApiModule: JsonApiModule) {
-  const jsonApi = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any);
+  const jsonApi = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any, {} as any);
   return new RealtimeModule(jsonApi, bus, logger(undefined, true));
 }
 
@@ -57,7 +58,7 @@ function getMockCommentModule() {
   };
   return commentModule;
 }
-
+const tokenGenerator = new TokenGenerator('secret');
 let persistence: any = { type: 'inmemory' };
 
 if (process.env.TEST_USE_REDIS) {
@@ -124,6 +125,7 @@ describe('realtime-hapi-sseModule', () => {
                   email: 'foo',
                 }],
                 repoUrl: 'foo',
+                token: 'token',
             }),
           } as JsonApiModule;
           const eventBus = getEventBus();
@@ -246,6 +248,7 @@ describe('realtime-hapi-sseModule', () => {
         {} as any,
         {} as any,
         getMockCommentModule(),
+        tokenGenerator,
       );
 
       const eventBus = getEventBus();

@@ -37,6 +37,7 @@ export interface JsonApiResponse {
 export interface ApiProject extends MinardProjectPlain {
   type: 'project';
   id: number;
+  token: string;
   latestSuccessfullyDeployedCommit?: ApiCommit;
 }
 
@@ -45,6 +46,7 @@ export interface ApiBranch {
   id: string;
   project: number;
   name: string;
+  token: string;
   latestActivityTimestamp: string;
   latestCommit: ApiCommit;
   latestSuccessfullyDeployedCommit?: ApiCommit;
@@ -54,6 +56,7 @@ export interface ApiBranch {
 export interface ApiDeployment {
   id: string;
   ref: string;
+  token: string;
   buildStatus: MinardDeploymentStatus;
   extractionStatus: MinardDeploymentStatus;
   screenshotStatus: MinardDeploymentStatus;
@@ -141,3 +144,8 @@ export type ApiEntity =
   ApiComment;
 
 export type ApiEntities = ApiEntity[];
+export enum PreviewType {
+  PROJECT,
+  BRANCH,
+  DEPLOYMENT,
+}

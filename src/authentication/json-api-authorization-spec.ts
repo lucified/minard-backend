@@ -38,23 +38,40 @@ type AuthorizationMethod =
   'userHasAccessToTeam' |
   'userHasAccessToDeployment' |
   'isOpenDeployment';
+const authorizationMethods = [
+  'userHasAccessToProject',
+  'userHasAccessToTeam',
+  'userHasAccessToDeployment',
+  'isOpenDeployment',
+];
 
 function arrange(
   authorizationMethod: AuthorizationMethod,
   hasAccess: boolean,
   handler: string,
   isAdmin: boolean = false,
+  deploymentId?: number,
 ) {
   return getServer(
-    (p: AuthenticationHapiPlugin) => [
-      sinon.stub(p, authorizationMethod)
-        .returns(Promise.resolve(hasAccess)),
-      sinon.stub(p, 'isAdmin')
-        .returns(Promise.resolve(isAdmin)),
+    (plugin: AuthenticationHapiPlugin) => authorizationMethods
+      .filter(m => !(m === 'userHasAccessToDeployment' && authorizationMethod === 'isOpenDeployment'))
+      .map(
+        m => sinon.stub(plugin, m)
+          .returns(Promise.resolve(m === authorizationMethod ? hasAccess : false)),
+      )
+      .concat(
+        sinon.stub(plugin, 'isAdmin')
+          .returns(Promise.resolve(isAdmin)),
+      ),
+    (p: JsonApiHapiPlugin) => [
+      sinon.stub(p, handler)
+        .yields(200)
+        .returns(Promise.resolve(true)),
+      sinon.stub(p, 'getLatestSuccessfulDeploymentIdForBranch')
+        .returns(Promise.resolve(deploymentId)),
+      sinon.stub(p, 'getLatestSuccessfulDeploymentIdForProject')
+        .returns(Promise.resolve(deploymentId)),
     ],
-    (p: JsonApiHapiPlugin) => sinon.stub(p, handler)
-      .yields(200)
-      .returns(Promise.resolve(true)),
   );
 }
 
@@ -293,7 +310,7 @@ describe('authorization for api routes', () => {
               .yields(200)
               .returns(Promise.resolve(true)),
             sinon.stub(p, 'getComment')
-              .returns(Promise.resolve({deployment: '1-1'})),
+              .returns(Promise.resolve({ deployment: '1-1' })),
           ],
         );
       }
@@ -426,7 +443,7 @@ describe('authorization for api routes', () => {
               .yields(200)
               .returns(Promise.resolve(true)),
             sinon.stub(p, 'getNotificationConfiguration')
-              .returns(Promise.resolve({teamId, projectId})),
+              .returns(Promise.resolve({ teamId, projectId })),
           ],
         );
       }
@@ -537,51 +554,192 @@ describe('authorization for api routes', () => {
         expect(api.getActivityHandler).to.not.have.been.called;
       });
     });
-    describe('getPreviewHandler', () => {
-      it('should allow fetching the preview for a deployment in an authorized project', async () => {
-        // Arrange
-        const { server, authentication, api } = await arrange(
-          'userHasAccessToDeployment',
-          true,
-          'getPreviewHandler',
-        );
-        // Act
-        await makeRequest(server, '/preview/1-1?sha=12345678', 'GET');
+    describe.skip('getPreviewHandler', () => {
+      describe('specific deployment', () => {
+        it('should allow fetching the preview for a deployment in an authorized project', async () => {
+          // Arrange
+          const { server, authentication, api } = await arrange(
+            'userHasAccessToDeployment',
+            true,
+            'getPreviewHandler',
+          );
+          // Act
+          await makeRequest(server, '/preview/deployment/1-1/12345678', 'GET');
 
-        // Assert
-        expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
-        expect(api.getPreviewHandler).to.have.been.calledOnce;
-      });
-      it('should not allow fetching the preview for a deployment in an unauthorized project', async () => {
-        // Arrange
-        const { server, authentication, api } = await arrange(
-          'userHasAccessToDeployment',
-          false,
-          'getPreviewHandler',
-        );
-        // Act
-        const response = await makeRequest(server, '/preview/1-1?sha=12345678', 'GET');
-
-        expect(response.statusCode).to.eq(401);
-        expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
-        expect(api.getPreviewHandler).to.not.have.been.called;
-      });
-      it('should allow fetching the preview for an open deployment without authentication', async () => {
-        // Arrange
-        const { server, authentication, api } = await arrange(
-          'isOpenDeployment',
-          true,
-          'getPreviewHandler',
-        );        // Act
-        await server.inject({
-          method: 'GET',
-          url: 'http://foo.com/preview/1-1?sha=12345678',
+          // Assert
+          expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
+          expect(api.getPreviewHandler).to.have.been.calledOnce;
         });
-        // Assert
-        expect(authentication.isOpenDeployment).to.have.been.calledOnce;
-        expect(api.getPreviewHandler).to.have.been.calledOnce;
-      });
-    });
+        it('should not allow fetching the preview for a deployment in an unauthorized project', async () => {
+          // Arrange
+          const { server, authentication, api } = await arrange(
+            'userHasAccessToDeployment',
+            false,
+            'getPreviewHandler',
+          );
+          // Act
+          const response = await makeRequest(server, '/preview/deployment/1-1/12345678', 'GET');
 
+          expect(response.statusCode).to.eq(401);
+          expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
+          expect(api.getPreviewHandler).to.not.have.been.called;
+        });
+        it('should allow fetching the preview for an open deployment without authentication', async () => {
+          // Arrange
+          const { server, authentication, api } = await arrange(
+            'isOpenDeployment',
+            true,
+            'getPreviewHandler',
+          );
+          const response = await server.inject({
+            method: 'GET',
+            url: 'http://foo.com/preview/deployment/1-1/12345678',
+          });
+          // Assert
+          expect(response.statusCode).to.not.equal(401);
+          expect(authentication.isOpenDeployment).to.have.been.calledOnce;
+          expect(api.getPreviewHandler).to.have.been.calledOnce;
+        });
+      });
+      describe('latest deployment for project', () => {
+        it('should allow fetching the preview for a deployment in an authorized project', async () => {
+          // Arrange
+          const { server, authentication, api } = await arrange(
+            'userHasAccessToDeployment',
+            true,
+            'getPreviewHandler',
+            false,
+            2,
+          );
+          // Act
+          await makeRequest(server, '/preview/project/1/12345678', 'GET');
+
+          // Assert
+          expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
+          expect(api.getLatestSuccessfulDeploymentIdForProject).to.have.been.calledOnce;
+          expect(api.getPreviewHandler).to.have.been.calledOnce;
+        });
+        it('should not allow fetching the preview for a deployment in an unauthorized project', async () => {
+          // Arrange
+          const { server, authentication, api } = await arrange(
+            'userHasAccessToDeployment',
+            false,
+            'getPreviewHandler',
+            false,
+            2,
+          );
+          // Act
+          const response = await makeRequest(server, '/preview/project/1/12345678', 'GET');
+
+          expect(response.statusCode).to.eq(401);
+          expect(api.getLatestSuccessfulDeploymentIdForProject).to.have.been.calledOnce;
+          expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
+          expect(api.getPreviewHandler).to.not.have.been.called;
+        });
+        it('should allow fetching the preview for an open deployment without authentication', async () => {
+          // Arrange
+          const { server, authentication, api } = await arrange(
+            'isOpenDeployment',
+            true,
+            'getPreviewHandler',
+            false,
+            2,
+          );
+          await server.inject({
+            method: 'GET',
+            url: 'http://foo.com/preview/project/1/12345678',
+          });
+          // Assert
+          expect(authentication.isOpenDeployment).to.have.been.calledOnce;
+          expect(api.getLatestSuccessfulDeploymentIdForProject).to.have.been.calledOnce;
+          expect(api.getPreviewHandler).to.have.been.calledOnce;
+        });
+        it('should return 404 when deployment not found', async () => {
+          // Arrange
+          const { server } = await arrange(
+            'isOpenDeployment',
+            true,
+            'getPreviewHandler',
+            undefined,
+          );
+          const response = await server.inject({
+            method: 'GET',
+            url: 'http://foo.com/preview/project/1/12345678',
+          });
+          // Assert
+          expect(response.statusCode).to.equal(404);
+        });
+      });
+      describe('latest deployment for branch', () => {
+        it('should allow fetching the preview for a deployment in an authorized project', async () => {
+          // Arrange
+          const { server, authentication, api } = await arrange(
+            'userHasAccessToDeployment',
+            true,
+            'getPreviewHandler',
+            false,
+            2,
+          );
+          // Act
+          await makeRequest(server, '/preview/branch/1-foo/12345678', 'GET');
+
+          // Assert
+          expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
+          expect(api.getLatestSuccessfulDeploymentIdForBranch).to.have.been.calledOnce;
+          expect(api.getPreviewHandler).to.have.been.calledOnce;
+        });
+        it('should not allow fetching the preview for a deployment in an unauthorized project', async () => {
+          // Arrange
+          const { server, authentication, api } = await arrange(
+            'userHasAccessToDeployment',
+            false,
+            'getPreviewHandler',
+            false,
+            2,
+          );
+          // Act
+          const response = await makeRequest(server, '/preview/branch/1-foo/12345678', 'GET');
+
+          expect(response.statusCode).to.eq(401);
+          expect(api.getLatestSuccessfulDeploymentIdForBranch).to.have.been.calledOnce;
+          expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
+          expect(api.getPreviewHandler).to.not.have.been.called;
+        });
+        it('should allow fetching the preview for an open deployment without authentication', async () => {
+          // Arrange
+          const { server, authentication, api } = await arrange(
+            'isOpenDeployment',
+            true,
+            'getPreviewHandler',
+            false,
+            2,
+          );
+          await server.inject({
+            method: 'GET',
+            url: 'http://foo.com/preview/branch/1-foo/12345678',
+          });
+          // Assert
+          expect(authentication.isOpenDeployment).to.have.been.calledOnce;
+          expect(api.getLatestSuccessfulDeploymentIdForBranch).to.have.been.calledOnce;
+          expect(api.getPreviewHandler).to.have.been.calledOnce;
+        });
+        it('returns 404 when deployment is not found', async () => {
+          // Arrange
+          const { server } = await arrange(
+            'isOpenDeployment',
+            true,
+            'getPreviewHandler',
+            undefined,
+          );
+          const response = await server.inject({
+            method: 'GET',
+            url: 'http://foo.com/preview/branch/1-foo/12345678',
+          });
+          // Assert
+          expect(response.statusCode).to.equal(404);
+        });
+      });
+
+    });
   });
 });

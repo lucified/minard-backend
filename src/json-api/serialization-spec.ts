@@ -95,6 +95,7 @@ const exampleMasterBranch: ApiBranch = {
     },
   },
   latestActivityTimestamp: '2019-18-24T17:55:31.198Z',
+  token: 'token',
 };
 
 const exampleProject = {
@@ -213,6 +214,7 @@ describe('json-api serialization', () => {
         'activeCommitters': [],
         'description': 'dsafjdsahfj',
         'repoUrl': 'http://foo-bar.com/foo/bar.git',
+        'token': 'token',
       };
       const converted = serializeApiEntity('project', project, apiBaseUrl);
       const data = converted.data;

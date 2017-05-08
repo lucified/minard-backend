@@ -7,14 +7,21 @@ import * as queryString from 'querystring';
 import { AuthenticationModule } from '../authentication';
 import { EventBus, eventBusInjectSymbol } from '../event-bus/';
 import { Branch, Commit } from '../shared/gitlab';
+import {
+  Project,
+  ProjectHook,
+} from '../shared/gitlab';
 import { gitBaseUrlInjectSymbol, GitlabClient } from '../shared/gitlab-client';
 import * as logger from '../shared/logger';
+import {
+  MinardCommit,
+  toMinardCommit,
+} from '../shared/minard-commit';
 import { MINARD_ERROR_CODE } from '../shared/minard-error';
 import { sleep } from '../shared/sleep';
 import { toGitlabTimestamp } from '../shared/time-conversion';
 import { SystemHookModule } from '../system-hook';
 import { GitlabPushEvent } from './gitlab-push-hook-types';
-
 import {
   codePushed,
   CodePushedEvent,
@@ -26,31 +33,20 @@ import {
   projectEdited,
 } from './types';
 
-import {
-  MinardCommit,
-  toMinardCommit,
-} from '../shared/minard-commit';
-
-import {
-  Project,
-  ProjectHook,
-} from '../shared/gitlab';
-
 @injectable()
 export default class ProjectModule {
 
   public static injectSymbol = Symbol('project-module');
-
   public failSleepTime = 2000;
 
   constructor(
-    @inject(AuthenticationModule.injectSymbol) private authenticationModule: AuthenticationModule,
-    @inject(SystemHookModule.injectSymbol) private systemHookModule: SystemHookModule,
-    @inject(eventBusInjectSymbol) private eventBus: EventBus,
-    @inject(GitlabClient.injectSymbol) private gitlab: GitlabClient,
+    @inject(AuthenticationModule.injectSymbol) private readonly authenticationModule: AuthenticationModule,
+    @inject(SystemHookModule.injectSymbol) private readonly systemHookModule: SystemHookModule,
+    @inject(eventBusInjectSymbol) private readonly eventBus: EventBus,
+    @inject(GitlabClient.injectSymbol) private readonly gitlab: GitlabClient,
     @inject(logger.loggerInjectSymbol) private readonly logger: logger.Logger,
     @inject(gitBaseUrlInjectSymbol) private readonly gitBaseUrl: string,
-  ) { }
+  ) {}
 
   public async getProjectContributors(projectId: number): Promise<MinardProjectContributor[] | null> {
     try {
@@ -157,13 +153,14 @@ export default class ProjectModule {
   }
 
   public toMinardBranch(projectId: number, branch: Branch): MinardBranch {
-    const latestActivityTimestamp = (branch.commit.created_at
-      || branch.commit.committed_date || branch.commit.authored_date) as string;
+    const latestActivityTimestamp = branch.commit.created_at
+      || branch.commit.committed_date
+      || branch.commit.authored_date;
     return {
       project: projectId,
       name: branch.name,
       latestCommit: toMinardCommit(branch.commit),
-      latestActivityTimestamp,
+      latestActivityTimestamp: latestActivityTimestamp!,
     };
   }
 

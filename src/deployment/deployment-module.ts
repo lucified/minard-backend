@@ -18,6 +18,8 @@ import { ProjectModule } from '../project';
 import { ScreenshotModule } from '../screenshot';
 import { GitlabClient } from '../shared/gitlab-client';
 import * as logger from '../shared/logger';
+import { MinardCommit } from '../shared/minard-commit';
+import { promisify } from '../shared/promisify';
 import { toGitlabTimestamp } from '../shared/time-conversion';
 import { charlesKnexInjectSymbol } from '../shared/types';
 import {
@@ -32,6 +34,7 @@ import {
   BuildCreatedEvent,
   BuildStatusEvent,
   createDeploymentEvent,
+  DbDeployment,
   DEPLOYMENT_EVENT_TYPE,
   DeploymentEvent,
   DeploymentStatusUpdate,
@@ -42,8 +45,6 @@ import {
   MinardJsonInfo,
   RepositoryObject,
 } from './types';
-
-import { promisify } from '../shared/promisify';
 
 const ncp = promisify(require('ncp'));
 const mkpath = promisify(require('mkpath'));
@@ -75,12 +76,34 @@ export function getDeploymentKeyFromHost(hostname: string) {
   };
 }
 
-export function toDbDeployment(deployment: MinardDeployment) {
+export function toDbDeployment(deployment: MinardDeployment): DbDeployment {
+  const {
+    id,
+    commit,
+    commitHash,
+    ref,
+    buildStatus,
+    extractionStatus,
+    screenshotStatus,
+    status,
+    projectId,
+    projectName,
+    teamId,
+  } = deployment;
   return {
-    ...deployment,
-    commit: JSON.stringify(deployment.commit),
+    id,
+    commit: JSON.stringify(commit),
+    commitHash,
+    ref,
+    buildStatus,
+    extractionStatus,
+    screenshotStatus,
+    status,
+    projectId,
+    projectName,
+    teamId,
     finishedAt: deployment.finishedAt && deployment.finishedAt.valueOf(),
-    createdAt: deployment.createdAt && deployment.createdAt.valueOf(),
+    createdAt: deployment.createdAt.valueOf(),
   };
 }
 
@@ -98,9 +121,11 @@ export default class DeploymentModule {
     @inject(deploymentUrlPatternInjectSymbol) private readonly urlPattern: string,
     @inject(ScreenshotModule.injectSymbol) private readonly screenshotModule: ScreenshotModule,
     @inject(ProjectModule.injectSymbol) private readonly projectModule: ProjectModule,
-    @inject(charlesKnexInjectSymbol) private readonly knex: Knex) {
+    @inject(charlesKnexInjectSymbol) private readonly knex: Knex,
+  ) {
     this.prepareQueue = new Queue(1, Infinity);
     this.subscribeToEvents();
+    this.toMinardDeployment = this.toMinardDeployment.bind(this);
   }
 
   private subscribeToEvents() {
@@ -201,7 +226,7 @@ export default class DeploymentModule {
       .from('deployment')
       .where('projectId', projectId)
       .orderBy('id', 'DESC');
-    return (await select).map(this.toMinardDeployment.bind(this));
+    return (await select).map(this.toMinardDeployment);
   }
 
   public async getLatestSuccessfulProjectDeployment(projectId: number): Promise<MinardDeployment | undefined> {
@@ -260,7 +285,7 @@ export default class DeploymentModule {
       .where('projectId', projectId)
       .andWhere('commitHash', sha)
       .orderBy('id', 'DESC');
-    return (await select).map(this.toMinardDeployment.bind(this));
+    return (await select).map(this.toMinardDeployment);
   }
 
   public async getDeploymentsByStatus(status: MinardDeploymentStatus): Promise<MinardDeployment[]> {
@@ -268,7 +293,7 @@ export default class DeploymentModule {
       .from('deployment')
       .where('status', status)
       .orderBy('id', 'DESC');
-    return (await select).map(this.toMinardDeployment.bind(this));
+    return (await select).map(this.toMinardDeployment);
   }
 
   public async getDeployment(deploymentId: number): Promise<MinardDeployment | undefined> {
@@ -283,26 +308,46 @@ export default class DeploymentModule {
     }
     return this.toMinardDeployment(ret);
   }
-
   /*
    * Convert deployment stored in DB to MinardDeployment
    */
-  public toMinardDeployment(dbDeployment: any): MinardDeployment {
-    // We need to support timestamps represented also as a string
-    // because in deployments stored within activity the timestamps are
-    // represented as strings (at least for now)
-    const toMoment = (val: any) => isNaN(val) ? moment(val) : moment(Number(val));
-    const commit = dbDeployment.commit instanceof Object ? dbDeployment.commit : JSON.parse(dbDeployment.commit);
-    const createdAt = toMoment(dbDeployment.createdAt);
-    const deployment: MinardDeployment = {
-      ...dbDeployment,
-      commit,
-      finishedAt: dbDeployment.finishedAt ? toMoment(dbDeployment.finishedAt) : undefined,
+  public toMinardDeployment(dbDeployment: DbDeployment): MinardDeployment {
+    // The type of 'commit' here unfortunataly depends on the database driver.
+    // Sqlite's doesn't parse JSONB, PostgeSQL's does
+    const _commit = dbDeployment.commit;
+    const commit: MinardCommit = typeof _commit === 'string' ? JSON.parse(_commit) : _commit;
+    const {
+      id,
+      commitHash,
+      ref,
       createdAt,
+      finishedAt,
+      buildStatus,
+      extractionStatus,
+      screenshotStatus,
+      status,
+      projectId,
+      projectName,
+      teamId,
+    } = dbDeployment;
+    const deployment: MinardDeployment = {
+      id,
+      commit,
+      commitHash,
+      ref,
+      buildStatus,
+      extractionStatus,
+      screenshotStatus,
+      status,
+      projectId,
+      projectName,
+      teamId,
+      finishedAt: finishedAt ? toMoment(finishedAt) : undefined,
+      createdAt: toMoment(createdAt),
       creator: {
         email: commit.committer.email,
         name: commit.committer.name,
-        timestamp: toGitlabTimestamp(createdAt),
+        timestamp: toGitlabTimestamp(toMoment(createdAt)),
       },
     };
 
@@ -329,7 +374,7 @@ export default class DeploymentModule {
 
   public async filesAtPath(projectId: number, _shaOrBranchName: string, path: string) {
     const url = `/projects/${projectId}/repository/tree?path=${path}`;
-    const ret = await this.gitlab.fetchJsonAnyStatus(url);
+    const ret = await this.gitlab.fetchJsonAnyStatus<RepositoryObject[]>(url);
     if (ret.status === 404) {
       throw Boom.notFound();
     }
@@ -341,7 +386,7 @@ export default class DeploymentModule {
       this.logger.error(`Unexpected non-array response from Gitlab for ${url}`, ret);
       throw Boom.badImplementation();
     }
-    return (<RepositoryObject[]> ret.json).map(item => ({
+    return ret.json.map(item => ({
       type: item.type,
       name: item.name,
     }));
@@ -558,7 +603,7 @@ export default class DeploymentModule {
     const response = await this.gitlab.fetch(url);
     const tempDir = path.join(os.tmpdir(), 'minard');
     await mkpath(tempDir);
-    const readableStream = (<any> response).body;
+    const readableStream = response.body;
     const tempFileName = path.join(tempDir, `minard-${projectId}-${deploymentId}.zip`);
     const writeStream = fs.createWriteStream(tempFileName);
 
@@ -600,7 +645,7 @@ export default class DeploymentModule {
     const extractedTempPath = this.getTempArtifactsPath(projectId, deploymentId);
     const finalPath = this.getDeploymentPath(projectId, deploymentId);
     const publicRoot = minardJson.effective.publicRoot;
-    const sourcePath =  !publicRoot || publicRoot === '.' ? extractedTempPath :
+    const sourcePath = !publicRoot || publicRoot === '.' ? extractedTempPath :
       path.join(extractedTempPath, publicRoot);
     const exists = fs.existsSync(sourcePath);
     if (!exists) {
@@ -625,4 +670,17 @@ export default class DeploymentModule {
     return finalPath;
   }
 
+}
+
+export function toMoment(date: string | number) {
+  const asNumber = Number(date);
+  // tslint:disable-next-line:max-line-length
+  // https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/isNaN#Confusing_special-case_behavior
+  if (!Number.isNaN(asNumber)) {
+    return moment(asNumber);
+  }
+  // We need to support timestamps represented also as a string
+  // because in deployments stored within activity the timestamps are
+  // represented as strings (at least for now)
+  return moment(date);
 }

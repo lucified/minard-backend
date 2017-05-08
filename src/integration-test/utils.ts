@@ -4,7 +4,7 @@ import { spawn } from 'child_process';
 import { merge } from 'lodash';
 import 'reflect-metadata';
 
-import { fetch as originalFetch, RequestInit, Response as OriginalResponse} from '../shared/fetch';
+import originalFetch, {RequestInit, Response as OriginalResponse} from 'node-fetch';
 
 export function sleep(ms = 0) {
   return new Promise(resolve => setTimeout(resolve, ms));

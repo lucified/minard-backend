@@ -2,15 +2,15 @@
 // during development
 
 import * as moment from 'moment';
+import fetch from 'node-fetch';
 import 'reflect-metadata';
 
 import { MinardDeployment } from '../deployment';
-import { fetch, IFetch } from '../shared/fetch';
 import { SlackNotify } from './slack-notify';
 
 // const screenshot = fs.readFileSync('mini-camel.jpg') as Buffer;
 
-const slackNotify = new SlackNotify(fetch as IFetch);
+const slackNotify = new SlackNotify(fetch);
 
 const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
 

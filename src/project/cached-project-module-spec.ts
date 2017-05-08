@@ -23,7 +23,8 @@ describe('cached-project-module', () => {
       {} as any,
       {} as any,
       '',
-      cache);
+      cache,
+    );
   }
 
   describe('getProjectContributors', () => {

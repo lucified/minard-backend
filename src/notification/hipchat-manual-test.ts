@@ -1,15 +1,14 @@
 // Script for manually testing HipChat notifications
 // during development
-
+import fetch from 'node-fetch';
 import 'reflect-metadata';
 
 import { MinardDeployment } from '../deployment';
-import { fetch, IFetch } from '../shared/fetch';
 import { HipchatNotify } from './hipchat-notify';
 
 // const screenshot = fs.readFileSync('mini-camel.jpg') as Buffer;
 
-const hipchatNotify = new HipchatNotify(fetch as IFetch);
+const hipchatNotify = new HipchatNotify(fetch);
 
 const hipchatRoomId = process.env.HIPCHAT_ROOM_ID ? process.env.HIPCHAT_ROOM_ID : 3140019;
 const hipchatAuthToken = process.env.HIPCHAT_AUTH_TOKEN ? process.env.HIPCHAT_AUTH_TOKEN : undefined;

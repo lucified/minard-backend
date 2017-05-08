@@ -1,5 +1,5 @@
 
-import * as moment from 'moment';
+import { Moment } from 'moment';
 
 import { eventCreator } from '../shared/events';
 import { BuildStatus } from '../shared/gitlab';
@@ -50,23 +50,32 @@ export interface MinardDeploymentCreator {
   timestamp: string;
 }
 
-export interface MinardDeployment {
+interface PlainDeployment {
   id: number;
-  commit: MinardCommit;
   commitHash: string;
   ref: string;
   buildStatus: MinardDeploymentStatus;
   extractionStatus: MinardDeploymentStatus;
   screenshotStatus: MinardDeploymentStatus;
   status: MinardDeploymentStatus;
-  url?: string;
-  screenshot?: string;
-  finishedAt?: moment.Moment;
-  createdAt: moment.Moment;
-  creator?: MinardDeploymentCreator;
   projectId: number;
   projectName: string;
   teamId: number;
+}
+
+export interface DbDeployment extends PlainDeployment {
+  commit: string | MinardCommit; // type depends on the DB driver
+  finishedAt?: number | string; // type depends on the DB driver
+  createdAt: number | string; // type depends on the DB driver
+}
+
+export interface MinardDeployment extends PlainDeployment {
+  commit: MinardCommit;
+  url?: string;
+  screenshot?: string;
+  finishedAt?: Moment;
+  createdAt: Moment;
+  creator?: MinardDeploymentCreator;
 }
 
 export interface MinardJsonBuildCommand {

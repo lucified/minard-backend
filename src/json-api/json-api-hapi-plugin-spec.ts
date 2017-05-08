@@ -243,7 +243,7 @@ describe('json-api-hapi-plugin', () => {
           };
         },
       } as JsonApiModule;
-      const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any);
+      const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any, {} as any);
       const server = await provisionServer(plugin);
       const options: IServerInjectOptions = {
         method: 'PATCH',
@@ -336,7 +336,7 @@ describe('json-api-hapi-plugin', () => {
           return [{}, {}];
         },
       } as JsonApiModule;
-      const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any);
+      const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any, {} as any);
       const server = await provisionServer(plugin);
       const options: IServerInjectOptions = {
         method: 'GET',

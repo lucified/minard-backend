@@ -47,7 +47,7 @@ import {
 } from './types';
 
 function getModule(bus: PersistentEventBus, jsonApiModule: JsonApiModule) {
-  const jsonApi = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any);
+  const jsonApi = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any, {} as any);
   return new RealtimeModule(jsonApi, bus, logger(undefined, true));
 }
 

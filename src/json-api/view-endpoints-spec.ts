@@ -1,11 +1,9 @@
-import * as Boom from 'boom';
 import { expect } from 'chai';
 import * as moment from 'moment';
 import 'reflect-metadata';
 
 import { CommentModule } from '../comment';
 import { DeploymentModule, MinardDeployment } from '../deployment';
-import { MINARD_ERROR_CODE } from '../shared/minard-error';
 import TokenGenerator from '../shared/token-generator';
 import { JsonApiModule } from './json-api-module';
 import { ViewEndpoints } from './view-endpoints';
@@ -75,9 +73,8 @@ describe('view-endpoints', () => {
   it('should work for a typical deployment', async () => {
     // Arrange
     const viewEndpoints = arrange();
-    const token = tokenGenerator.deploymentToken(projectId, deploymentId);
     // Act
-    const view = await viewEndpoints.getPreview(projectId, deploymentId, token);
+    const view = await viewEndpoints.getPreview(projectId, deploymentId);
 
     // Assert
     if (!view) {
@@ -90,20 +87,4 @@ describe('view-endpoints', () => {
     expect(view.deployment.attributes.status).to.equal(minardDeployment.status);
     expect(view.commit.attributes.message).to.equal(minardDeployment.commit.message);
   });
-
-  it('should return forbidden when token is invalid', async () => {
-    // Arrange
-    const viewEndpoints = arrange();
-
-    let err: any;
-    try {
-      await viewEndpoints.getPreview(projectId, deploymentId, sha + 'foo');
-    } catch (_err) {
-      err = _err;
-    }
-    expect(err).to.exist;
-    expect((err as Boom.BoomError).isBoom).to.be.true;
-    expect((err as Boom.BoomError).output.statusCode).to.equal(MINARD_ERROR_CODE.FORBIDDEN);
-  });
-
 });

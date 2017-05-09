@@ -43,7 +43,7 @@ describe('slack-notify', () => {
   const slackWebhookUrl = 'https://hooks.slack.com/services/FAKE/SLACK/WEBHOOKURL';
   const projectUrl = 'http://foo-bar.com/projects/5';
   const branchUrl = 'http://foo-bar.com/branches/1-5';
-  const previewUrl = 'http://foo-bar-ui.com/preview/1-5';
+  const previewUrl = 'http://foo-bar-ui.com/preview/deployment/1-5/foobartoken';
 
   function arrange(): { notifier: SlackNotify, promise: Promise<any> } {
     const notifier = new SlackNotify((fetchMock as any).fetchMock);
@@ -86,7 +86,7 @@ describe('slack-notify', () => {
   it('should send correct notification for comment', async () => {
     // Arrange
     const { notifier, promise } = arrange();
-    const commentUrl = 'http://foo-bar-ui.com/preview/1-5/comment/6';
+    const commentUrl = 'http://foo-bar-ui.com/preview/deployment/1-5/foobartoken/comment/6';
     const comment: NotificationComment = {
       email: 'foo@foomail.com',
       name: 'foo woman',

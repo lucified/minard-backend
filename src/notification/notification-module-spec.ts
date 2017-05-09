@@ -2,12 +2,14 @@ import { expect } from 'chai';
 import * as Knex from 'knex';
 import 'reflect-metadata';
 
+import { bootstrap } from '../config';
 import { createDeploymentEvent, MinardDeployment } from '../deployment';
 import { LocalEventBus } from '../event-bus';
 import { getUiBranchUrl, getUiProjectUrl } from '../project';
 import { ScreenshotModule } from '../screenshot';
 import Logger from '../shared/logger';
 import { sleep } from '../shared/sleep';
+import TokenGenerator from '../shared/token-generator';
 import { FlowdockNotify } from './flowdock-notify';
 import { HipchatNotify } from './hipchat-notify';
 import { NotificationModule } from './notification-module';
@@ -43,11 +45,14 @@ describe('notification-module', () => {
     slackNotify: SlackNotify,
   ) {
     const knex = await setupKnex();
+    const kernel = bootstrap('test');
 
     const screenshotModule = {} as ScreenshotModule;
     screenshotModule.getScreenshotData = async(_projectId: number, _deploymentId: number) => {
       return screenshotData;
     };
+
+    const tokenGenerator = kernel.get<TokenGenerator>(TokenGenerator.injectSymbol);
 
     const notificationModule = new NotificationModule(
       bus,
@@ -58,6 +63,7 @@ describe('notification-module', () => {
       screenshotModule,
       hipchatNotify,
       slackNotify,
+      tokenGenerator,
     );
     await notificationModule.addConfiguration({
       type: 'flowdock',

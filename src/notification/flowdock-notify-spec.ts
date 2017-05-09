@@ -33,14 +33,14 @@ describe('flowdock-notify', () => {
     screenshot: 'http://foo-bar.com/screenshot/foo',
   } as any;
 
-  const previewUrl = 'http://foo-bar-ui.com/preview/43';
+  const previewUrl = 'http://foo-bar-ui.com/preview/deployment/43/foobartoken';
 
   async function shouldSendCorrectNotification(
     deployment: MinardDeployment,
     title: string,
     commentUrl?: string,
     comment?: MinardComment,
-    ) {
+  ) {
     // Arrange
     const flowToken = 'fake-flow-token';
     const projectUrl = 'http://foo-bar.com/projects/5';
@@ -115,7 +115,7 @@ describe('flowdock-notify', () => {
 
   it('should send correct notification for comment', async () => {
     const deployment = baseDeployment;
-    const commentUrl = 'http://foo-bar-ui.com/preview/comment/5';
+    const commentUrl = 'http://foo-bar-ui.com/preview/deployment/43/foobartoken/comment/5';
     const comment: MinardComment = {
       name: 'foo commenter',
       message: 'foo comment msg',

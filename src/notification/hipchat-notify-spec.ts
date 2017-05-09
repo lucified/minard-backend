@@ -39,7 +39,7 @@ describe('hipchat-notify', () => {
   const roomId = 66;
   const projectUrl = 'http://foo-bar.com/projects/5';
   const branchUrl = 'http://foo-bar.com/branches/1-5';
-  const previewUrl = 'http://foo-bar-ui.com/preview/1-5';
+  const previewUrl = 'http://foo-bar-ui.com/preview/branch/1-5/foobartoken';
 
   function arrange(): { notifier: HipchatNotify, promise: Promise<any> } {
     const notifier = new HipchatNotify((fetchMock as any).fetchMock);
@@ -79,7 +79,7 @@ describe('hipchat-notify', () => {
 
   it('should send correct notification for comment', async () => {
     // Arrange
-    const commentUrl = 'http://foo-bar-ui.com/preview/1-5/comment/6';
+    const commentUrl = 'http://foo-bar-ui.com/preview/deployment/1-5/comment/6';
 
     const { notifier, promise } = arrange();
     const comment: NotificationComment = {

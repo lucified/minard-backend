@@ -9,6 +9,7 @@ import {
   BuildStatusEvent,
 } from '../deployment';
 
+import { STRATEGY_INTERNAL_REQUEST } from '../authentication';
 import { default as EventBus } from '../event-bus/local-event-bus';
 import * as Hapi from '../server/hapi';
 import loggerConstructor from '../shared/logger';
@@ -16,19 +17,31 @@ import { CIProxy } from './proxy-ci';
 
 const h2o2 = require('h2o2');
 
+function registerAuthStrategy(server: Hapi.Server) {
+  server.auth.scheme('noOp', (_server: Hapi.Server, _options: any) => {
+    return {
+      authenticate: (_request: Hapi.Request, reply: Hapi.IReply) => {
+        return reply.continue({ credentials: { username: 'foo' } });
+      },
+    };
+  });
+  server.auth.strategy(STRATEGY_INTERNAL_REQUEST, 'noOp', false);
+}
+
 // https://github.com/hapijs/h2o2/blob/master/test/index.js
-const provisionProxy = async (
+async function provisionProxy(
   upstream = 'http://localhost:80',
-  options: Hapi.IServerConnectionOptions = { port: 8080 }) => {
+  options: Hapi.IServerConnectionOptions = { port: 8080 },
+) {
   const logger = loggerConstructor(undefined, false, true);
   const bus = new EventBus();
   const plugin = new CIProxy(upstream, bus, logger);
-
   const proxy = Hapi.getServer();
   proxy.connection(options);
+  registerAuthStrategy(proxy);
   await proxy.register([h2o2, plugin]);
   return {proxy, bus, plugin};
-};
+}
 
 const provisionUpstream = async (options: Hapi.IServerConnectionOptions = { port: 8090, address: '127.0.0.1' }) => {
   const server = Hapi.getServer();

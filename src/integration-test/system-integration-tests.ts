@@ -41,7 +41,6 @@ const flowToken = process.env.FLOWDOCK_FLOW_TOKEN;
 const projectFolder = process.env.SYSTEM_TEST_PROJECT || 'blank';
 const openProjectFolder = process.env.SYSTEM_TEST_PROJECT_OPEN || 'blank-open';
 const charles = process.env.CHARLES || 'http://localhost:8000';
-const charlesPrivate = process.env.CHARLES_PRIVATE || 'http://localhost:8001';
 const git_password = process.env.GIT_PASSWORD || '12345678';
 const hipchatRoomId = process.env.HIPCHAT_ROOM_ID || 3140019;
 const hipchatAuthToken = process.env.HIPCHAT_AUTH_TOKEN || undefined;
@@ -134,7 +133,7 @@ describe('system-integration', () => {
     it('status should be ok', async function () {
       logTitle('Checking that status is ok');
       this.timeout(1000 * 60 * 15);
-      const url = `${charlesPrivate}/status`;
+      const url = `${charles}/status`;
       log(`Requesting status from ${prettyUrl(url)}`);
       let statusOk = false;
       const maxTimes = 3;
@@ -552,6 +551,17 @@ describe('system-integration', () => {
       expect(response1.status).to.equal(401);
       const response2 = await originalFetch(url, { redirect: 'manual' });
       expect(response2.status).to.equal(302);
+    });
+
+    it('deployment should have web page that is accessible internally', async function () {
+      logTitle('Checking that deployment has web page that is accessible internally');
+      this.timeout(1000 * 30);
+      await sleep(2000);
+      const url = (deployment.attributes.url + '/index.html')
+        .replace('localtest.me' , 'internal.localtest.me');
+      log(`Fetching deployment from ${prettyUrl(url)}`);
+      const response1 = await openFetch(url);
+      expect(response1.status).to.equal(200);
     });
 
     it('open deployment should have openly accessible web page', async function () {

@@ -3,6 +3,7 @@ import * as http from 'http';
 import { inject, injectable } from 'inversify';
 import * as url from 'url';
 
+import { STRATEGY_INTERNAL_REQUEST } from '../authentication';
 import { EventBus, eventBusInjectSymbol } from '../event-bus';
 import * as Hapi from '../server/hapi';
 import { HapiRegister } from '../server/hapi-register';
@@ -55,7 +56,9 @@ export class CIProxy {
   private _register(server: Hapi.Server, _options: Hapi.IServerOptions, next: () => void) {
     const config = {
       bind: this,
-      auth: false,
+      auth: {
+        strategies: [STRATEGY_INTERNAL_REQUEST],
+      },
       payload: {
         output: 'stream',
         parse: false,

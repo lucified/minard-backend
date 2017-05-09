@@ -22,8 +22,10 @@ import {
   authCookieDomainInjectSymbol,
   AuthorizationStatus,
   Authorizer,
+  internalHostSuffixesInjectSymbol,
   jwtOptionsInjectSymbol,
   RequestCredentials,
+  STRATEGY_INTERNAL_REQUEST,
   STRATEGY_ROUTELEVEL_ADMIN_HEADER,
   STRATEGY_ROUTELEVEL_USER_COOKIE,
   STRATEGY_ROUTELEVEL_USER_HEADER,
@@ -49,6 +51,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     @inject(adminTeamNameInjectSymbol) private readonly adminTeamName: string,
     @inject(openTeamNameInjectSymbol) private readonly openTeamName: string,
     @inject(fetchInjectSymbol) private readonly fetch: IFetch,
+    @inject(internalHostSuffixesInjectSymbol) private readonly internalHostSuffixes: string[],
   ) {
     super({
       name: 'authentication-plugin',
@@ -146,6 +149,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
         },
       };
     });
+    server.auth.strategy(STRATEGY_INTERNAL_REQUEST, 'noOp', false);
     server.auth.strategy(STRATEGY_TOPLEVEL_USER_HEADER, 'noOp', false);
     server.auth.strategy(STRATEGY_TOPLEVEL_USER_URL, 'noOp', false);
     server.auth.strategy(STRATEGY_ROUTELEVEL_USER_HEADER, 'noOp', false);
@@ -181,6 +185,12 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       this.userHasAccessToDeployment.bind(this),
       { apply: false },
     );
+    server.decorate(
+      'request',
+      'isInternal',
+      this.isInternalRequest.bind(this),
+      { apply: true },
+    );
     next();
   }
 
@@ -214,6 +224,12 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       'getProjectTeam',
       this.getProjectTeam.bind(this),
       { apply: false },
+    );
+    server.decorate(
+      'request',
+      'isInternal',
+      this.isInternalRequest.bind(this),
+      { apply: true },
     );
   }
 
@@ -465,8 +481,31 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       urlKey: false,
       validateFunc: this.validateFuncFactory(this.authorizeCustom),
     });
+    server.auth.scheme('internal', (_server: Hapi.Server, _options: any) => ({
+      authenticate: (request: Hapi.Request, reply: Hapi.IReply) => {
+        if (this.isInternalRequest(request)) {
+          return reply.continue({ credentials: {} });
+        } else {
+          return reply('Unauthorized').code(401);
+        }
+      },
+    }));
+    server.auth.strategy(STRATEGY_INTERNAL_REQUEST, 'internal', false);
     const ttl = 365 * 24 * 3600 * 1000; // ~year in ms
     server.state('token', accessTokenCookieSettings(this.authCookieDomain, ttl));
+  }
+
+  private isInternalRequest(request: Hapi.Request) {
+    const { internalHostSuffixes } = this;
+    const host = request.headers.host;
+    if (!host) {
+      return false;
+    }
+    const split = host.split(':');
+    const hostWithoutPort = split[0];
+    const ret = internalHostSuffixes
+      .filter(suffix => hostWithoutPort.endsWith(suffix)).length > 0;
+    return ret;
   }
 
   protected authorize(userName: string, request: Hapi.Request) {

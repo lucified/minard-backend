@@ -4,7 +4,6 @@ import { AuthenticationHapiPlugin } from '../authentication';
 import { CIProxy } from '../deployment';
 import {
   DeploymentHapiPlugin,
-  PrivateDeploymentHapiPlugin ,
 } from '../deployment';
 import { JsonApiHapiPlugin } from '../json-api';
 import { OperationsHapiPlugin } from '../operations';
@@ -38,7 +37,6 @@ export default class MinardServer {
 
   public static injectSymbol = Symbol('minard-server');
   private readonly hapiServer: Hapi.Server;
-  private readonly privateServer: Hapi.Server;
   private readonly publicServer: Hapi.Server;
   private isInitialized = false;
 
@@ -46,7 +44,6 @@ export default class MinardServer {
     @inject(AuthenticationHapiPlugin.injectSymbol) private readonly authenticationPlugin: AuthenticationHapiPlugin,
     @inject(DeploymentHapiPlugin.injectSymbol) private readonly deploymentPlugin: DeploymentHapiPlugin,
     // tslint:disable-next-line:max-line-length
-    @inject(PrivateDeploymentHapiPlugin.injectSymbol) private readonly privateDeploymentPlugin: PrivateDeploymentHapiPlugin,
     @inject(ProjectHapiPlugin.injectSymbol) private readonly projectPlugin: ProjectHapiPlugin,
     @inject(JsonApiHapiPlugin.injectSymbol) private readonly jsonApiPlugin: JsonApiHapiPlugin,
     @inject(CIProxy.injectSymbol) private readonly ciProxy: CIProxy,
@@ -80,16 +77,6 @@ export default class MinardServer {
         },
       },
     });
-    this.privateServer = this.hapiServer.connection({
-      host: this.host,
-      port: this.port + 1,
-      labels: ['private'],
-      routes: {
-        json: {
-          space: 4,
-        },
-      },
-    });
   }
 
   public async start(): Promise<Hapi.Server> {
@@ -104,8 +91,7 @@ export default class MinardServer {
 
     await this.initialize();
     await server.start();
-    this.logger.info('Charles public is up and listening on %s', this.publicServer.info.uri);
-    this.logger.info('Charles private is up and listening on %s', this.privateServer.info.uri);
+    this.logger.info('Charles is up and listening on %s', this.publicServer.info.uri);
     await this.operationsPlugin.operationsModule.cleanupRunningDeployments();
     this.projectPlugin.registerHooks();
     return server;
@@ -114,8 +100,7 @@ export default class MinardServer {
   public async initialize(): Promise<Hapi.Server> {
     if (!this.isInitialized) {
       await this.loadBasePlugins(this.hapiServer);
-      await this.loadPublicPlugins(this.publicServer);
-      await this.loadPrivatePlugins(this.privateServer);
+      await this.loadPlugins(this.publicServer);
       this.isInitialized = true;
     }
     return this.hapiServer;
@@ -190,7 +175,7 @@ export default class MinardServer {
     return undefined;
   }
 
-  private async loadPublicPlugins(server: Hapi.Server) {
+  private async loadPlugins(server: Hapi.Server) {
     await server.register([
       this.authenticationPlugin.register,
       this.statusPlugin.register,
@@ -214,15 +199,8 @@ export default class MinardServer {
           prefix: '/operations',
         },
       },
-    ]);
-  }
-
-  private async loadPrivatePlugins(server: Hapi.Server) {
-    await server.register([
       this.ciProxy.register,
-      this.statusPlugin.registerPrivate,
       this.projectPlugin.register,
-      this.privateDeploymentPlugin.register,
     ]);
   }
 

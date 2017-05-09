@@ -1,30 +1,28 @@
 import { Container } from 'inversify';
 
-import { default as common } from './config-common';
-import { default as development } from './config-development';
-import { default as override } from './config-override';
-import { default as production } from './config-production';
-import { default as test } from './config-test';
-
 import { ENV } from '../shared/types';
-
-interface Configs {
-  [env: string]: ((kernel: Container) => void) | undefined;
-}
-const configs: Configs = {
-  production,
-  development,
-  staging: production,
-  test,
-};
+import { default as common } from './config-common';
+import { default as override } from './config-override';
 
 export function bootstrap(env?: ENV, silent = true) {
   // Load bindings that represent configuration
   const _env: ENV = env || process.env.NODE_ENV || 'development';
-  const config = configs[_env];
-  if (!config) {
-    throw new Error(`Unknown environment '${_env}''`);
+  let config: ((kernel: Container) => void);
+  switch (_env) {
+    case 'production':
+    case 'staging':
+      config = require('./config-production').default;
+      break;
+    case 'development':
+      config = require('./config-development').default;
+      break;
+    case 'test':
+      config = require('./config-test').default;
+      break;
+    default:
+      throw new Error(`Unknown environment '${_env}''`);
   }
+
   const kernel = new Container();
   kernel.load(common);
   config(kernel);

@@ -18,7 +18,6 @@ import {
   CIProxy,
   DeploymentHapiPlugin,
   DeploymentModule,
-  PrivateDeploymentHapiPlugin,
 } from '../deployment';
 
 import {
@@ -113,7 +112,6 @@ export default new ContainerModule((bind, _unbind, _isBound, _rebind) => {
 
   // Bindings for hapi plugins
   bind(DeploymentHapiPlugin.injectSymbol).to(DeploymentHapiPlugin);
-  bind(PrivateDeploymentHapiPlugin.injectSymbol).to(PrivateDeploymentHapiPlugin);
   bind(JsonApiHapiPlugin.injectSymbol).to(JsonApiHapiPlugin).inSingletonScope();
   bind(OperationsHapiPlugin.injectSymbol).to(OperationsHapiPlugin);
   bind(ProjectHapiPlugin.injectSymbol).to(ProjectHapiPlugin).inSingletonScope();

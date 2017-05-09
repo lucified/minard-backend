@@ -1023,6 +1023,14 @@ describe('deployment-module', () => {
       expect(ret.deploymentId).to.equal(3);
     });
 
+    it('should match minard.io hostname with many dots ids', () => {
+      const ret = getDeploymentKeyFromHost('foo-fdl65kasjs-145-3.baz.foo.minard.io');
+      if (ret === null) { throw new Error(); }
+      expect(ret.shortId).to.equal('fdl65kasjs');
+      expect(ret.projectId).to.equal(145);
+      expect(ret.deploymentId).to.equal(3);
+    });
+
     it('should not match non-matching hostnames', () => {
       const ret1 = getDeploymentKeyFromHost('foo-fdl65kasjs-523-2667');
       expect(ret1).to.equal(null);

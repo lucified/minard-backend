@@ -4,15 +4,27 @@
 The preview API provides JSON API [deployment](api-deployment.md) and [commit](api-commit.md)
 resources along [project](api-project.md) and [branch](api-branch.md) information.
 
-## Get preview by deployment id
+## Get preview
 
 ### Request
 
-- Method: `GET`
-- URL: `api/preview/:id`
+This endpoint returns the latest preview (i.e. successful deployment) for the requested entity.
+The token is a secret that is sent along with the entity for which the preview is being requested.
 
-Request must include a query parameter `sha`, which must correspond
-to the commit hash of the related commit.
+#### By deployment id
+
+- Method: `GET`
+- URL: `api/preview/deployment/:id/:token`
+
+#### By branch id
+
+- Method: `GET`
+- URL: `api/preview/branch/:id/:token`
+
+#### By project id
+
+- Method: `GET`
+- URL: `api/preview/project/:id/:token`
 
 ### Response
 

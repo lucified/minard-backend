@@ -13,7 +13,9 @@
 - `GET /branches/{branchId}/relationships/commits`
 - `GET /commits/{projectId}-{hash}`
 - `GET /deployments/{projectId}-{deploymentId}`
-- `GET /preview/{projectId}-{deploymentId}`
+- `GET /preview/deployment/{projectId}-{deploymentId}/{token}`
+- `GET /preview/branch/{projectId}-{branchName}/{token}`
+- `GET /preview/project/{projectId}/{token}`
 - `GET /projects/{projectId}/relationships/notification`
 - `GET /comments/deployment/{projectId}-{deploymentId}`
 

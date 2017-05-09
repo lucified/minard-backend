@@ -2,63 +2,30 @@ import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
 import * as Knex from 'knex';
 
-import {
-  Logger,
-  loggerInjectSymbol,
-} from '../shared/logger';
-import { charlesKnexInjectSymbol } from '../shared/types';
-
-import {
-  Event,
-  EventBus,
-  eventBusInjectSymbol,
-} from '../event-bus';
-
-import {
-  isCommentActivity,
-  MinardActivity,
-  NEW_ACTIVITY,
-} from '../activity';
-
+import { isCommentActivity, MinardActivity, NEW_ACTIVITY } from '../activity';
 import {
   DEPLOYMENT_EVENT_TYPE,
   DeploymentEvent,
   getUiCommentUrl,
-  getUiPreviewUrl,
+  getUiDeploymentPreviewUrl,
   MinardDeployment,
 } from '../deployment';
-
-import {
-  minardUiBaseUrlInjectSymbol,
-} from '../server/types';
-
-import {
-  HipchatNotify,
-} from './hipchat-notify';
-
-import {
-  FlowdockNotify,
-} from './flowdock-notify';
-
-import {
-  SlackNotify,
-} from './slack-notify';
-
+import { Event, EventBus, eventBusInjectSymbol } from '../event-bus';
+import { getUiBranchUrl, getUiProjectUrl } from '../project';
+import { ScreenshotModule } from '../screenshot';
+import { minardUiBaseUrlInjectSymbol } from '../server/types';
+import { Logger, loggerInjectSymbol } from '../shared/logger';
+import TokenGenerator from '../shared/token-generator';
+import { charlesKnexInjectSymbol } from '../shared/types';
+import { FlowdockNotify } from './flowdock-notify';
+import { HipchatNotify } from './hipchat-notify';
+import { SlackNotify } from './slack-notify';
 import {
   FlowdockNotificationConfiguration,
   HipChatNotificationConfiguration,
   NotificationConfiguration,
   SlackNotificationConfiguration,
 } from './types';
-
-import {
-  getUiBranchUrl,
-  getUiProjectUrl,
-} from '../project';
-
-import {
-  ScreenshotModule,
-} from '../screenshot';
 
 // type for events that trigger notifications
 type NotificationEvent = DeploymentEvent | MinardActivity;
@@ -89,6 +56,7 @@ export class NotificationModule {
     @inject(ScreenshotModule.injectSymbol) private readonly screenshotModule: ScreenshotModule,
     @inject(HipchatNotify.injectSymbol) private readonly hipchatNotify: HipchatNotify,
     @inject(SlackNotify.injectSymbol) private readonly slackNotify: SlackNotify,
+    @inject(TokenGenerator.injectSymbol) private readonly tokenGenerator: TokenGenerator,
   ) {
     this.subscribe();
   }
@@ -195,12 +163,13 @@ export class NotificationModule {
   }
 
   public getBasicParams(event: Event<NotificationEvent>) {
-    const { projectId, ref, id, commitHash } = event.payload.deployment;
+    const { projectId, ref, id } = event.payload.deployment;
+    const token = this.tokenGenerator.deploymentToken(projectId, id);
     const projectUrl = getUiProjectUrl(projectId, this.uiBaseUrl);
     const branchUrl = getUiBranchUrl(projectId, ref, this.uiBaseUrl);
-    const previewUrl = getUiPreviewUrl(projectId, id, commitHash, this.uiBaseUrl);
+    const previewUrl = getUiDeploymentPreviewUrl(projectId, id, token, this.uiBaseUrl);
     const comment = getComment(event.payload);
-    const commentUrl = comment && getUiCommentUrl(projectId, id, commitHash, comment.id, this.uiBaseUrl);
+    const commentUrl = comment && getUiCommentUrl(projectId, id, token, comment.id, this.uiBaseUrl);
     const deployment = event.payload.deployment;
     return {
       projectUrl,

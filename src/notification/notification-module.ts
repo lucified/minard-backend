@@ -2,63 +2,29 @@ import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
 import * as Knex from 'knex';
 
-import {
-  Logger,
-  loggerInjectSymbol,
-} from '../shared/logger';
-import { charlesKnexInjectSymbol } from '../shared/types';
-
-import {
-  Event,
-  EventBus,
-  eventBusInjectSymbol,
-} from '../event-bus';
-
-import {
-  isCommentActivity,
-  MinardActivity,
-  NEW_ACTIVITY,
-} from '../activity';
-
+import { isCommentActivity, MinardActivity, NEW_ACTIVITY } from '../activity';
 import {
   DEPLOYMENT_EVENT_TYPE,
   DeploymentEvent,
   getUiCommentUrl,
-  getUiPreviewUrl,
+  getUiDeploymentPreviewUrl,
   MinardDeployment,
 } from '../deployment';
-
-import {
-  minardUiBaseUrlInjectSymbol,
-} from '../server/types';
-
-import {
-  HipchatNotify,
-} from './hipchat-notify';
-
-import {
-  FlowdockNotify,
-} from './flowdock-notify';
-
-import {
-  SlackNotify,
-} from './slack-notify';
-
+import { Event, EventBus, eventBusInjectSymbol } from '../event-bus';
+import { getUiBranchUrl, getUiProjectUrl } from '../project';
+import { ScreenshotModule } from '../screenshot';
+import { minardUiBaseUrlInjectSymbol } from '../server/types';
+import { Logger, loggerInjectSymbol } from '../shared/logger';
+import { charlesKnexInjectSymbol } from '../shared/types';
+import { FlowdockNotify } from './flowdock-notify';
+import { HipchatNotify } from './hipchat-notify';
+import { SlackNotify } from './slack-notify';
 import {
   FlowdockNotificationConfiguration,
   HipChatNotificationConfiguration,
   NotificationConfiguration,
   SlackNotificationConfiguration,
 } from './types';
-
-import {
-  getUiBranchUrl,
-  getUiProjectUrl,
-} from '../project';
-
-import {
-  ScreenshotModule,
-} from '../screenshot';
 
 // type for events that trigger notifications
 type NotificationEvent = DeploymentEvent | MinardActivity;

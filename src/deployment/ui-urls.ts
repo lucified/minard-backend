@@ -1,9 +1,18 @@
-
-export function getUiPreviewUrl(projectId: number, deploymentId: number, sha: string, uiBaseUrl: string) {
-  return `${uiBaseUrl}/preview/${sha}/${projectId}-${deploymentId}`;
+export function getUiDeploymentPreviewUrl(
+  projectId: number,
+  deploymentId: number,
+  token: string,
+  uiBaseUrl: string,
+) {
+  return `${uiBaseUrl}/preview/deployment/${projectId}-${deploymentId}/${token}`;
 }
 
 export function getUiCommentUrl(
-  projectId: number, deploymentId: number, sha: string, commentId: number, uiBaseUrl: string) {
-  return `${uiBaseUrl}/preview/${sha}/${projectId}-${deploymentId}/comment/${commentId}`;
+  projectId: number,
+  deploymentId: number,
+  token: string,
+  commentId: number,
+  uiBaseUrl: string,
+) {
+  return `${uiBaseUrl}/preview/deployment/${projectId}-${deploymentId}/${token}/comment/${commentId}`;
 }

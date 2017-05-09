@@ -557,7 +557,7 @@ describe('authorization for api routes', () => {
         expect(api.getActivityHandler).to.not.have.been.called;
       });
     });
-    describe.only('getPreviewHandler', () => {
+    describe('getPreviewHandler', () => {
       describe('specific deployment', () => {
         it('should allow fetching the preview for a deployment in an authorized project', async () => {
           // Arrange

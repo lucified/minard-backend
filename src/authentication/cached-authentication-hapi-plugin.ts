@@ -10,7 +10,7 @@ import {
   adminTeamNameInjectSymbol,
   charlesKnexInjectSymbol,
   fetchInjectSymbol,
-  openTeamNameInjectSymbol,
+  openTeamNamesInjectSymbol,
 } from '../shared/types';
 import {
   authCookieDomainInjectSymbol,
@@ -31,7 +31,7 @@ class CachedAuthenticationHapiPlugin extends AuthenticationHapiPlugin {
     @inject(charlesKnexInjectSymbol) db: Knex,
     @inject(loggerInjectSymbol) logger: Logger,
     @inject(adminTeamNameInjectSymbol) adminTeamName: string,
-    @inject(openTeamNameInjectSymbol) openTeamName: string,
+    @inject(openTeamNamesInjectSymbol) openTeamNames: string[],
     @inject(fetchInjectSymbol) fetch: IFetch,
     @inject(internalHostSuffixesInjectSymbol) internalHostSuffixes: string[],
   ) {
@@ -42,7 +42,7 @@ class CachedAuthenticationHapiPlugin extends AuthenticationHapiPlugin {
       db,
       logger,
       adminTeamName,
-      openTeamName,
+      openTeamNames,
       fetch,
       internalHostSuffixes,
     );

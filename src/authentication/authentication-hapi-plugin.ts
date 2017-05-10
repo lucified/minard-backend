@@ -14,7 +14,7 @@ import {
   adminTeamNameInjectSymbol,
   charlesKnexInjectSymbol,
   fetchInjectSymbol,
-  openTeamNameInjectSymbol,
+  openTeamNamesInjectSymbol,
 } from '../shared/types';
 import { generateAndSaveTeamToken, getTeamIdWithToken, teamTokenQuery } from './team-token';
 import {
@@ -49,7 +49,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     @inject(charlesKnexInjectSymbol) private readonly db: Knex,
     @inject(loggerInjectSymbol) private readonly logger: Logger,
     @inject(adminTeamNameInjectSymbol) private readonly adminTeamName: string,
-    @inject(openTeamNameInjectSymbol) private readonly openTeamName: string,
+    @inject(openTeamNamesInjectSymbol) private readonly openTeamNames: string[],
     @inject(fetchInjectSymbol) private readonly fetch: IFetch,
     @inject(internalHostSuffixesInjectSymbol) private readonly internalHostSuffixes: string[],
   ) {
@@ -624,7 +624,11 @@ class AuthenticationHapiPlugin extends HapiPlugin {
 
   public async isOpenProject(projectId: number) {
     const team = await this.getProjectTeam(projectId);
-    if (team && this.openTeamName && team.name.toLowerCase() === this.openTeamName.toLowerCase()) {
+    if (
+      team &&
+      this.openTeamNames &&
+      this.openTeamNames.indexOf(team.name.toLowerCase()) > -1
+    ) {
       return true;
     }
     return false;

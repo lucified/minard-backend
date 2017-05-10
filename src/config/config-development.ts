@@ -14,7 +14,7 @@ export default (kernel: Container) => {
     kernel.rebind(adminTeamNameInjectSymbol).toConstantValue(ADMIN_TEAM_NAME);
     const OPEN_TEAM_NAMES =
       (process.env.OPEN_TEAM_NAMES && process.env.OPEN_TEAM_NAMES.toLowerCase().split(',')) ||
-      ['integrationTestOpenTeam'];
+      ['integrationtestopenteam'];
     kernel.rebind(openTeamNamesInjectSymbol).toConstantValue(OPEN_TEAM_NAMES);
   }
 };

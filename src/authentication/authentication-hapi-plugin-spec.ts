@@ -35,7 +35,7 @@ async function getPlugin(authenticationStubber?: MethodStubber<AuthenticationHap
   kernel.rebind(AuthenticationHapiPlugin.injectSymbol).to(AuthenticationHapiPlugin);
   const db = kernel.get<Knex>(charlesKnexInjectSymbol);
   kernel.rebind(charlesKnexInjectSymbol).toConstantValue(db);
-  kernel.rebind(openTeamNamesInjectSymbol).toConstantValue(['foo']);
+  kernel.rebind(openTeamNamesInjectSymbol).toConstantValue(['fooopenteam', 'baropenteam']);
   await initializeTeamTokenTable(db);
   if (authenticationStubber) {
     const { instance } = stubber(authenticationStubber, AuthenticationHapiPlugin.injectSymbol, kernel);
@@ -751,6 +751,26 @@ describe('authentication-hapi-plugin', () => {
       const { plugin } = await getPlugin(
         (p: AuthenticationHapiPlugin, k: Container) => {
           const openTeamName = k.get<string[]>(openTeamNamesInjectSymbol)[0];
+
+          return [
+            sinon.stub(p, p.getProjectTeam.name)
+              .returns(Promise.resolve({ name: openTeamName, id: 1 })),
+          ];
+        },
+      );
+
+      // Act
+      const result = await plugin.isOpenDeployment(1, 1);
+
+      // Assert
+      expect(result).to.be.true;
+    });
+    it('returns true if the project belongs to the second \'open\' team', async () => {
+
+      // Arrange
+      const { plugin } = await getPlugin(
+        (p: AuthenticationHapiPlugin, k: Container) => {
+          const openTeamName = k.get<string[]>(openTeamNamesInjectSymbol)[1];
 
           return [
             sinon.stub(p, p.getProjectTeam.name)

@@ -46,7 +46,7 @@ import {
   charlesDbNameInjectSymbol,
   charlesKnexInjectSymbol,
   gitlabKnexInjectSymbol,
-  openTeamNameInjectSymbol,
+  openTeamNamesInjectSymbol,
   postgresKnexInjectSymbol,
 } from '../shared/types';
 
@@ -311,10 +311,10 @@ const EXIT_DELAY = env.EXIT_DELAY ? parseInt(env.EXIT_DELAY, 10) : 15000;
 
 const ADMIN_TEAM_NAME = env.ADMIN_TEAM_NAME || 'lucify';
 
-// Open deployments team-name
+// The names of teams that should have open (= no auth required) deployments
 // --------------
 
-const OPEN_TEAM_NAME = env.OPEN_TEAM_NAME;
+const OPEN_TEAM_NAMES = env.OPEN_TEAM_NAMES && env.OPEN_TEAM_NAMES.toLowerCase().split(',');
 
 // Inversify kernel bindings
 // -------------------------
@@ -348,6 +348,6 @@ export default (kernel: Container) => {
   kernel.bind(authCookieDomainInjectSymbol).toConstantValue(AUTH_COOKIE_DOMAIN);
   kernel.bind(jwtOptionsInjectSymbol).toConstantValue(jwtOptions);
   kernel.bind(adminTeamNameInjectSymbol).toConstantValue(ADMIN_TEAM_NAME);
-  kernel.bind(openTeamNameInjectSymbol).toConstantValue(OPEN_TEAM_NAME);
+  kernel.bind(openTeamNamesInjectSymbol).toConstantValue(OPEN_TEAM_NAMES);
   kernel.bind(internalHostSuffixesInjectSymbol).toConstantValue(INTERNAL_HOST_SUFFIXES.split(','));
 };

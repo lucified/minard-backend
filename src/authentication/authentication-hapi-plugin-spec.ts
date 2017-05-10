@@ -11,7 +11,7 @@ import { bootstrap } from '../config';
 import { getAccessToken, getSignedAccessToken } from '../config/config-test';
 import { getTestServer } from '../server/hapi';
 import { makeRequestWithAuthentication, MethodStubber, stubber } from '../shared/test';
-import { adminTeamNameInjectSymbol, charlesKnexInjectSymbol, openTeamNameInjectSymbol } from '../shared/types';
+import { adminTeamNameInjectSymbol, charlesKnexInjectSymbol, openTeamNamesInjectSymbol } from '../shared/types';
 import {
   accessTokenCookieSettings,
   default as AuthenticationHapiPlugin,
@@ -35,7 +35,7 @@ async function getPlugin(authenticationStubber?: MethodStubber<AuthenticationHap
   kernel.rebind(AuthenticationHapiPlugin.injectSymbol).to(AuthenticationHapiPlugin);
   const db = kernel.get<Knex>(charlesKnexInjectSymbol);
   kernel.rebind(charlesKnexInjectSymbol).toConstantValue(db);
-  kernel.rebind(openTeamNameInjectSymbol).toConstantValue('foo');
+  kernel.rebind(openTeamNamesInjectSymbol).toConstantValue(['foo']);
   await initializeTeamTokenTable(db);
   if (authenticationStubber) {
     const { instance } = stubber(authenticationStubber, AuthenticationHapiPlugin.injectSymbol, kernel);
@@ -745,19 +745,18 @@ describe('authentication-hapi-plugin', () => {
     });
   });
   describe('isOpenDeployment', () => {
-    const getProjectTeam = (name: string) => ({
-      name,
-      id: 1,
-     });
-
-    it('returns true if the project belongs to the \'open\' team', async () => {
+    it('returns true if the project belongs to an \'open\' team', async () => {
 
       // Arrange
       const { plugin } = await getPlugin(
-        (p: AuthenticationHapiPlugin, k: Container) => [
-          sinon.stub(p, p.getProjectTeam.name)
-            .returns(Promise.resolve(getProjectTeam(k.get<string>(openTeamNameInjectSymbol)))),
-        ],
+        (p: AuthenticationHapiPlugin, k: Container) => {
+          const openTeamName = k.get<string[]>(openTeamNamesInjectSymbol)[0];
+
+          return [
+            sinon.stub(p, p.getProjectTeam.name)
+              .returns(Promise.resolve({ name: openTeamName, id: 1 })),
+          ];
+        },
       );
 
       // Act
@@ -766,14 +765,17 @@ describe('authentication-hapi-plugin', () => {
       // Assert
       expect(result).to.be.true;
     });
-    it('returns false if the project doesn\'t belong to the \'open\' team', async () => {
+    it('returns false if the project doesn\'t belong to an \'open\' team', async () => {
 
       // Arrange
       const { plugin } = await getPlugin(
-        (p: AuthenticationHapiPlugin, k: Container) => [
-          sinon.stub(p, p.getProjectTeam.name)
-            .returns(Promise.resolve(getProjectTeam(k.get<string>(openTeamNameInjectSymbol) + 'foo'))),
-        ],
+        (p: AuthenticationHapiPlugin, k: Container) => {
+          const notOpenTeamName = k.get<string[]>(openTeamNamesInjectSymbol)[0] + 'foo';
+          return [
+            sinon.stub(p, p.getProjectTeam.name)
+              .returns(Promise.resolve({ name: notOpenTeamName, id: 1 })),
+          ];
+        },
       );
 
       // Act

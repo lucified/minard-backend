@@ -789,8 +789,9 @@ describe('authentication-hapi-plugin', () => {
 
       // Arrange
       const { plugin } = await getPlugin(
-        (p: AuthenticationHapiPlugin, k: Container) => {
-          const notOpenTeamName = k.get<string[]>(openTeamNamesInjectSymbol)[0] + 'foo';
+        (p: AuthenticationHapiPlugin, _k: Container) => {
+          const notOpenTeamName = 'notopenteamname';
+
           return [
             sinon.stub(p, p.getProjectTeam.name)
               .returns(Promise.resolve({ name: notOpenTeamName, id: 1 })),

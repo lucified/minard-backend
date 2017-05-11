@@ -25,7 +25,6 @@ declare module 'hapi' {
       projectId: number,
       deploymentId: number,
       credentials?: RequestCredentials,
-      allowAnonymousAccessToOpenDeployments?: boolean,
     ) => Promise<boolean>;
     isOpenDeployment: (projectId: number, deploymentId: number) => Promise<boolean>;
     getProjectTeam: (projectId: number) => Promise<{id: number, name: string}>;

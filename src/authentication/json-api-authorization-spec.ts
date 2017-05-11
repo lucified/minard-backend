@@ -303,7 +303,7 @@ describe('authorization for api routes', () => {
       function arrangeCommentRemoval(hasAccess: boolean, isOpen = false) {
         return getServer(
           p => [
-            sinon.stub(p, isOpen ? 'isOpenDeployment' : 'userHasAccessToDeployment')
+            sinon.stub(p, isOpen ? 'isOpenDeployment' : 'userHasAccessToProject')
               .returns(Promise.resolve(hasAccess)),
             sinon.stub(p, 'isAdmin')
               .returns(Promise.resolve(false)),
@@ -321,11 +321,10 @@ describe('authorization for api routes', () => {
         // Arrange
         const { server, authentication, api } = await arrangeCommentRemoval(true);
         // Act
-        const response = await makeRequest(server, '/comments/1', 'DELETE');
+        await makeRequest(server, '/comments/1', 'DELETE');
         // Assert
-        expect(response).to.exist;
         expect(api.getComment).to.have.been.calledOnce;
-        expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
+        expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
         expect(api.deleteCommentHandler).to.have.been.calledOnce;
       });
       it('should not allow deleting a comment for a deployment in an unauthorized project', async () => {
@@ -335,22 +334,19 @@ describe('authorization for api routes', () => {
         const response = await makeRequest(server, '/comments/1', 'DELETE');
         // Assert
         expect(api.getComment).to.have.been.calledOnce;
-        expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
+        expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
         expect(api.deleteCommentHandler).to.not.have.been.called;
         expect(response.statusCode).to.eq(401);
       });
       it('should not allow deleting a comment for an open deployment without authentication', async () => {
         // Arrange
-        const { server, authentication, api } = await arrangeCommentRemoval(true, true);
+        const { server } = await arrangeCommentRemoval(false, true);
         // Act
         const response = await server.inject({
           method: 'DELETE',
           url: 'http://foo.com/comments/1',
         });
         // Assert
-        expect(api.getComment).to.have.been.calledOnce;
-        expect(authentication.isOpenDeployment).to.not.have.been.called;
-        expect(api.deleteCommentHandler).to.not.have.been.called;
         expect(response.statusCode).to.eq(401);
       });
 

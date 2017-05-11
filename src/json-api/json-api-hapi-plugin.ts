@@ -503,7 +503,7 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
-        auth: openAuth,
+        auth: STRATEGY_ROUTELEVEL_USER_HEADER,
         pre: [
           {
             method: this.authorizeCommentRemoval,
@@ -860,7 +860,7 @@ export class JsonApiHapiPlugin {
         return reply(Boom.badRequest('Invalid deployment id'));
       }
       const { projectId, deploymentId } = parsed;
-      if (await request.userHasAccessToDeployment(projectId, deploymentId, request.auth.credentials, false)) {
+      if (await request.userHasAccessToDeployment(projectId, deploymentId, request.auth.credentials)) {
         return reply(commentId);
       }
     } catch (exception) {

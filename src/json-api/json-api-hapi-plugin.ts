@@ -842,7 +842,7 @@ export class JsonApiHapiPlugin {
         return reply(Boom.badRequest('Invalid deployment id'));
       }
       if (await request.userHasAccessToDeployment(parsed.projectId, deploymentId, request.auth.credentials)) {
-         return reply(parsed.deploymentId);
+        return reply(parsed.deploymentId);
       }
     } catch (exception) {
       // TODO: log exception

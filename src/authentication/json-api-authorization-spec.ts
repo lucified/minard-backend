@@ -233,7 +233,8 @@ describe('authorization for api routes', () => {
           'getDeploymentCommentsHandler',
           false,
           true,
-        );        // Act
+        );
+        // Act
         await server.inject({
           method: 'GET',
           url: 'http://foo.com/comments/deployment/1-1',

@@ -1,8 +1,7 @@
-
 const envVars = process.env;
 const environment = envVars.LUCIFY_ENV === 'production' ? 'production' : 'staging';
 
-const statusUrl = environment === production ?
+const statusUrl = environment === 'production' ?
 'https://charles.minard.io/status' :
 'https://charles.minard.team/status';
 

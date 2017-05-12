@@ -591,10 +591,10 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     credentials?: RequestCredentials,
   ) {
     try {
-    // If it's AUTHORIZED, it was checked on the top level
-    // If it's NOT_CHECKED, we need to check here
-    // Otherwise only allow access to open deployments
-    if (
+      // If it's AUTHORIZED, it was checked on the top level
+      // If it's NOT_CHECKED, we need to check here
+      // Otherwise only allow access to open deployments
+      if (
         (credentials && credentials.authorizationStatus === AuthorizationStatus.AUTHORIZED) ||
         (credentials && credentials.authorizationStatus === AuthorizationStatus.NOT_CHECKED &&
           (await this.userHasAccessToProject(credentials.username!, projectId))) ||

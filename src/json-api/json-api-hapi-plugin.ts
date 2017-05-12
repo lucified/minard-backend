@@ -109,6 +109,8 @@ export class JsonApiHapiPlugin {
 
     server.ext('onPreResponse', onPreResponse.bind(undefined, server));
 
+    // Open auth can only be used if the request contains a project, branch or
+    // team ID, otherwise it will fail.
     const openAuth = {
       mode: 'try',
       strategies: [STRATEGY_TOPLEVEL_USER_HEADER],
@@ -524,7 +526,12 @@ export class JsonApiHapiPlugin {
       },
       config: {
         bind: this,
-        auth: openAuth,
+        // Open auth cannot be used here because the request does not contain
+        // a deployment, branch or team ID.
+        auth: {
+          mode: 'try',
+          strategies: [STRATEGY_ROUTELEVEL_USER_HEADER],
+        },
         pre: [
           {
             method: this.authorizeCommentCreation,

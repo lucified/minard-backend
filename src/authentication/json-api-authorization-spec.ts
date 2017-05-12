@@ -36,36 +36,25 @@ async function getServer(
   };
 }
 
-type AuthorizationMethod =
-  'userHasAccessToProject' |
-  'userHasAccessToTeam' |
-  'userHasAccessToDeployment' |
-  'isOpenDeployment';
-const authorizationMethods = [
-  'userHasAccessToProject',
-  'userHasAccessToTeam',
-  'userHasAccessToDeployment',
-  'isOpenDeployment',
-];
+type AuthorizationMethod = 'userHasAccessToProject' | 'userHasAccessToTeam';
 
 function arrange(
   authorizationMethod: AuthorizationMethod,
   hasAccess: boolean,
   handler: string,
   isAdmin: boolean = false,
+  isOpenDeployment: boolean = false,
   deploymentId?: number,
 ) {
   return getServer(
-    (plugin: AuthenticationHapiPlugin) => authorizationMethods
-      .filter(m => !(m === 'userHasAccessToDeployment' && authorizationMethod === 'isOpenDeployment'))
-      .map(
-        m => sinon.stub(plugin, m)
-          .returns(Promise.resolve(m === authorizationMethod ? hasAccess : false)),
-      )
-      .concat(
-        sinon.stub(plugin, 'isAdmin')
+    (plugin: AuthenticationHapiPlugin) => [
+      sinon.stub(plugin, authorizationMethod)
+        .returns(Promise.resolve(hasAccess)),
+      sinon.stub(plugin, 'isAdmin')
           .returns(Promise.resolve(isAdmin)),
-      ),
+      sinon.stub(plugin, 'isOpenDeployment')
+          .returns(Promise.resolve(isOpenDeployment)),
+    ],
     (p: JsonApiHapiPlugin) => [
       sinon.stub(p, handler)
         .yields(200)
@@ -211,7 +200,7 @@ describe('authorization for api routes', () => {
       it('should allow fetching comments for a deployment in an authorized project', async () => {
         // Arrange
         const { server, authentication, api } = await arrange(
-          'userHasAccessToDeployment',
+          'userHasAccessToProject',
           true,
           'getDeploymentCommentsHandler',
         );
@@ -219,13 +208,13 @@ describe('authorization for api routes', () => {
         await makeRequest(server, '/comments/deployment/1-1', 'GET');
 
         // Assert
-        expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
+        expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
         expect(api.getDeploymentCommentsHandler).to.have.been.calledOnce;
       });
       it('should not allow fetching comments for a deployment in an unauthorized project', async () => {
         // Arrange
         const { server, authentication, api } = await arrange(
-          'userHasAccessToDeployment',
+          'userHasAccessToProject',
           false,
           'getDeploymentCommentsHandler',
         );
@@ -233,12 +222,18 @@ describe('authorization for api routes', () => {
         const response = await makeRequest(server, '/comments/deployment/1-1', 'GET');
 
         expect(response.statusCode).to.eq(401);
-        expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
+        expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
         expect(api.getDeploymentCommentsHandler).to.not.have.been.called;
       });
       it('should allow fetching comments for an open deployment without authentication', async () => {
         // Arrange
-        const { server, authentication, api } = await arrange('isOpenDeployment', true, 'getDeploymentCommentsHandler');
+        const { server, authentication, api } = await arrange(
+          'userHasAccessToProject',
+          false,
+          'getDeploymentCommentsHandler',
+          false,
+          true,
+        );
         // Act
         await server.inject({
           method: 'GET',
@@ -264,7 +259,7 @@ describe('authorization for api routes', () => {
       it('should allow creating a comment for a deployment in an authorized project', async () => {
         // Arrange
         const { server, authentication, api } = await arrange(
-          'userHasAccessToDeployment',
+          'userHasAccessToProject',
           true,
           'postCommentHandler',
         );
@@ -272,22 +267,28 @@ describe('authorization for api routes', () => {
         await makeRequest(server, '/comments', 'POST', payload);
 
         // Assert
-        expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
+        expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
         expect(api.postCommentHandler).to.have.been.calledOnce;
       });
       it('should not allow creating a comment for a deployment in an unauthorized project', async () => {
         // Arrange
-        const { server, authentication, api } = await arrange('userHasAccessToDeployment', false, 'postCommentHandler');
+        const { server, authentication, api } = await arrange('userHasAccessToProject', false, 'postCommentHandler');
         // Act
         const response = await makeRequest(server, '/comments', 'POST', payload);
         // Assert
         expect(response.statusCode).to.eq(401);
-        expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
+        expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
         expect(api.postCommentHandler).to.not.have.been.called;
       });
       it('should allow creating a comment for an open deployment without authentication', async () => {
         // Arrange
-        const { server, authentication, api } = await arrange('isOpenDeployment', true, 'postCommentHandler');
+        const { server, authentication, api } = await arrange(
+          'userHasAccessToProject',
+          false,
+          'postCommentHandler',
+          false,
+          true,
+        );
         // Act
         await server.inject({
           method: 'POST',
@@ -558,7 +559,7 @@ describe('authorization for api routes', () => {
         it('should allow fetching the preview for a deployment in an authorized project', async () => {
           // Arrange
           const { server, authentication, api, tokenGenerator } = await arrange(
-            'userHasAccessToDeployment',
+            'userHasAccessToProject',
             true,
             'getPreviewHandler',
           );
@@ -567,13 +568,13 @@ describe('authorization for api routes', () => {
           await makeRequest(server, `/preview/deployment/1-1/${token}`, 'GET');
 
           // Assert
-          expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
+          expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
           expect(api.getPreviewHandler).to.have.been.calledOnce;
         });
         it('should not allow fetching the preview for a deployment in an unauthorized project', async () => {
           // Arrange
           const { server, authentication, api, tokenGenerator } = await arrange(
-            'userHasAccessToDeployment',
+            'userHasAccessToProject',
             false,
             'getPreviewHandler',
           );
@@ -582,15 +583,17 @@ describe('authorization for api routes', () => {
           const response = await makeRequest(server, `/preview/deployment/1-1/${token}`, 'GET');
 
           expect(response.statusCode).to.eq(401);
-          expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
+          expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
           expect(api.getPreviewHandler).to.not.have.been.called;
         });
         it('should allow fetching the preview for an open deployment without authentication', async () => {
           // Arrange
           const { server, authentication, api, tokenGenerator } = await arrange(
-            'isOpenDeployment',
+            'userHasAccessToProject',
             true,
             'getPreviewHandler',
+            false,
+            true,
           );
           const token = tokenGenerator.deploymentToken(1, 1);
 
@@ -608,9 +611,10 @@ describe('authorization for api routes', () => {
         it('should allow fetching the preview for a deployment in an authorized project', async () => {
           // Arrange
           const { server, authentication, api, tokenGenerator } = await arrange(
-            'userHasAccessToDeployment',
+            'userHasAccessToProject',
             true,
             'getPreviewHandler',
+            false,
             false,
             2,
           );
@@ -619,16 +623,17 @@ describe('authorization for api routes', () => {
           await makeRequest(server, `/preview/project/1/${token}`, 'GET');
 
           // Assert
-          expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
+          expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
           expect(api.getLatestSuccessfulDeploymentIdForProject).to.have.been.calledOnce;
           expect(api.getPreviewHandler).to.have.been.calledOnce;
         });
         it('should not allow fetching the preview for a deployment in an unauthorized project', async () => {
           // Arrange
           const { server, authentication, api, tokenGenerator } = await arrange(
-            'userHasAccessToDeployment',
+            'userHasAccessToProject',
             false,
             'getPreviewHandler',
+            false,
             false,
             2,
           );
@@ -639,16 +644,17 @@ describe('authorization for api routes', () => {
 
           expect(response.statusCode).to.eq(401);
           expect(api.getLatestSuccessfulDeploymentIdForProject).to.have.been.calledOnce;
-          expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
+          expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
           expect(api.getPreviewHandler).to.not.have.been.called;
         });
         it('should allow fetching the preview for an open deployment without authentication', async () => {
           // Arrange
           const { server, authentication, api, tokenGenerator } = await arrange(
-            'isOpenDeployment',
+            'userHasAccessToProject',
             true,
             'getPreviewHandler',
             false,
+            true,
             2,
           );
           const token = tokenGenerator.projectToken(1);
@@ -665,9 +671,11 @@ describe('authorization for api routes', () => {
         it('should return 404 when deployment not found', async () => {
           // Arrange
           const { server, tokenGenerator } = await arrange(
-            'isOpenDeployment',
+            'userHasAccessToProject',
             true,
             'getPreviewHandler',
+            false,
+            false,
             undefined,
           );
           const token = tokenGenerator.projectToken(1);
@@ -684,9 +692,10 @@ describe('authorization for api routes', () => {
         it('should allow fetching the preview for a deployment in an authorized project', async () => {
           // Arrange
           const { server, authentication, api, tokenGenerator } = await arrange(
-            'userHasAccessToDeployment',
+            'userHasAccessToProject',
             true,
             'getPreviewHandler',
+            false,
             false,
             2,
           );
@@ -695,16 +704,17 @@ describe('authorization for api routes', () => {
           await makeRequest(server, `/preview/branch/1-foo-bar/${token}`, 'GET');
 
           // Assert
-          expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
+          expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
           expect(api.getLatestSuccessfulDeploymentIdForBranch).to.have.been.calledOnce;
           expect(api.getPreviewHandler).to.have.been.calledOnce;
         });
         it('should not allow fetching the preview for a deployment in an unauthorized project', async () => {
           // Arrange
           const { server, authentication, api, tokenGenerator } = await arrange(
-            'userHasAccessToDeployment',
+            'userHasAccessToProject',
             false,
             'getPreviewHandler',
+            false,
             false,
             2,
           );
@@ -715,16 +725,17 @@ describe('authorization for api routes', () => {
 
           expect(response.statusCode).to.eq(401);
           expect(api.getLatestSuccessfulDeploymentIdForBranch).to.have.been.calledOnce;
-          expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
+          expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
           expect(api.getPreviewHandler).to.not.have.been.called;
         });
         it('should allow fetching the preview for an open deployment without authentication', async () => {
           // Arrange
           const { server, authentication, api, tokenGenerator } = await arrange(
-            'isOpenDeployment',
+            'userHasAccessToProject',
             true,
             'getPreviewHandler',
             false,
+            true,
             2,
           );
           const token = tokenGenerator.branchToken(1, 'foo-bar');
@@ -741,9 +752,11 @@ describe('authorization for api routes', () => {
         it('returns 404 when deployment is not found', async () => {
           // Arrange
           const { server, tokenGenerator } = await arrange(
-            'isOpenDeployment',
+            'userHasAccessToProject',
             true,
             'getPreviewHandler',
+            false,
+            false,
             undefined,
           );
           const token = tokenGenerator.branchToken(1, 'foo-bar');

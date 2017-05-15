@@ -4,7 +4,7 @@
     "quotemark": [true, "single", "avoid-escape", "jsx-double"],
     "no-var-requires": false,
     "object-literal-sort-keys": false,
-    "no-console": [],
+    "no-console": [false],
     "member-ordering": [false],
     "arrow-parens": false,
     "array-type": [true, "array"],
@@ -15,7 +15,8 @@
     "space-before-function-paren": false,
     "no-angle-bracket-type-assertion": false,
     "no-empty-interface": false,
-    "no-unused-expression": false
+    "no-unused-expression": false,
+    "no-object-literal-type-assertion": [false]
   },
   "rulesDirectory": []
 }

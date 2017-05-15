@@ -184,7 +184,7 @@ export default class ProjectModule {
     return projects.map(item => item.id);
   }
 
-   public async getProjectsUsingPath(path: string): Promise<MinardProject[] | null> {
+  public async getProjectsUsingPath(path: string): Promise<MinardProject[] | null> {
     try {
       const projects = await this.gitlab.fetchJson<Project[]>(path);
       if (!projects) {

@@ -13,6 +13,7 @@ import * as Hapi from '../server/hapi';
 import { HapiPlugin } from '../server/hapi-register';
 import { PersistedEvent } from '../shared/events';
 import * as logger from '../shared/logger';
+import TokenGenerator from '../shared/token-generator';
 import { ObservableWrapper } from './observable-wrapper';
 import { RealtimeModule } from './realtime-module';
 
@@ -27,12 +28,14 @@ export class RealtimeHapiPlugin extends HapiPlugin {
 
   constructor(
     @inject(RealtimeModule.injectSymbol) private readonly realtimeModule: RealtimeModule,
+    @inject(TokenGenerator.injectSymbol) private readonly tokenGenerator: TokenGenerator,
     @inject(logger.loggerInjectSymbol) private readonly logger: logger.Logger,
   ) {
     super({
       name: 'realtime-plugin',
       version: '1.0.0',
     });
+    this.validateDeploymentToken = this.validateDeploymentToken.bind(this);
   }
 
   public register(server: Hapi.Server, _options: Hapi.IServerOptions, next: () => void) {
@@ -54,12 +57,15 @@ export class RealtimeHapiPlugin extends HapiPlugin {
       },
     }, {
       method: 'GET',
-      path: '/events/deployment/{projectId}-{deploymentId}',
+      path: '/events/deployment/{projectId}-{deploymentId}/{token}',
       handler: {
         async: this.deploymentHandler,
       },
       config: {
         bind: this,
+        pre: [
+          this.validateDeploymentToken,
+        ],
         auth: {
           mode: 'try',
           strategies: [STRATEGY_TOPLEVEL_USER_URL],
@@ -114,6 +120,17 @@ export class RealtimeHapiPlugin extends HapiPlugin {
       this.logger.warn('Problems handling a SSE request', err);
       return reply(Boom.wrap(err));
     }
+  }
+
+  public validateDeploymentToken(request: Hapi.Request, reply: Hapi.IReply) {
+    const { token, deploymentId, projectId } = request.params;
+    const correctToken = this.tokenGenerator.deploymentToken(Number(projectId), Number(deploymentId));
+
+    if (!token || token !== correctToken) {
+      return reply(Boom.forbidden('Invalid token'));
+    }
+
+    return reply('ok');
   }
 
   private async deploymentHandler(request: Hapi.Request, reply: Hapi.IReply) {

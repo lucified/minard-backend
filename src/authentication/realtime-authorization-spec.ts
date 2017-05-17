@@ -139,3 +139,65 @@ describe('authorization for deployment events', () => {
     });
   });
 });
+
+describe.skip('authorization for team events', () => {
+  describe('authenticated user', () => {
+    function makeRequest(server: Server) {
+      return server.inject({
+        method: 'GET',
+        url: `/events/team/1`,
+      });
+    }
+    it('should allow accessing authorized teams', async () => {
+      // Arrange
+      const { server, authentication } = await arrange(true);
+      // Act
+      const response = await makeRequest(server);
+      // Assert
+      expect(response.statusCode, response.payload).to.eq(200);
+      expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
+    });
+    it('should allow accessing open teams', async () => {
+      // Arrange
+      const { server, authentication } = await arrange(true, false, true);
+      // Act
+      const response = await makeRequest(server);
+      // Assert
+      expect(response.statusCode).to.eq(200);
+      expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
+    });
+    it('should not allow accessing unauthorized teams', async () => {
+      // Arrange
+      const { server, authentication } = await arrange(false);
+      // Act
+      const response = await makeRequest(server);
+      // Assert
+      expect(response.statusCode).to.eq(404);
+      expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
+    });
+  });
+  describe('unauthenticated user', () => {
+    function makeRequest(server: Server) {
+      return server.inject({
+        method: 'GET',
+        url: `/events/team/1`,
+      });
+    }
+    it('should not allow accessing non-open teams', async () => {
+      // Arrange
+      const { server } = await arrange(false);
+      // Act
+      const response = await makeRequest(server);
+      // Assert
+      expect(response.statusCode, response.payload).to.eq(404);
+    });
+    it('should not allow accessing open teams', async () => {
+      // Arrange
+      const { server } = await arrange(false, false, true);
+      // Act
+      const response = await makeRequest(server);
+      // Assert
+      expect(response.statusCode).to.eq(200);
+    });
+  });
+});

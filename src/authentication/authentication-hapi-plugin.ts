@@ -736,6 +736,7 @@ export function validateSubClaim(sub: string) {
   if (typeof sub !== 'string') {
     return false;
   }
+  // Interactive Auth0 accounts use '|' and non-interactive '@' as a separator
   const parts = sub.split(/[|@]/);
   if (parts.length !== 2) {
     return false;
@@ -768,6 +769,7 @@ export function generatePassword(length = 16) {
 }
 
 export function sanitizeUsername(username: string) {
+  // Interactive Auth0 accounts use '|' and non-interactive '@' as a separator
   return username.replace(/[|@]/, '-');
 }
 

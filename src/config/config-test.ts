@@ -19,7 +19,7 @@ import { cacheInjectSymbol } from '../shared/cache';
 import { GitlabClient } from '../shared/gitlab-client';
 import Logger, { loggerInjectSymbol } from '../shared/logger';
 import { charlesKnexInjectSymbol, fetchInjectSymbol } from '../shared/types';
-import developmentConfig from './config-development';
+import productionConfig from './config-production';
 
 const logger = Logger(undefined, true);
 
@@ -49,7 +49,7 @@ export const issuer = 'https://issuer.foo.com';
 export const secretKey = 'shhhhhhh';
 export const algorithm = 'HS256';
 
-export function getJwtOptions(log = false) {
+function getJwtOptions(log = false) {
   const verifyOptions = {
     audience: AUTH_AUDIENCE,
     issuer,
@@ -95,7 +95,7 @@ export function getSignedAccessToken(sub: string, teamToken?: string, email?: st
 }
 
 export default (kernel: Container) => {
-  developmentConfig(kernel);
+  productionConfig(kernel);
   kernel.rebind(fetchInjectSymbol).toConstantValue(fetchMock);
   kernel.rebind(goodOptionsInjectSymbol).toConstantValue({});
   kernel.rebind(GitlabClient.injectSymbol).toConstantValue(getClient());

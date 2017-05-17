@@ -13,12 +13,14 @@ import * as Hapi from '../server/hapi';
 import { HapiPlugin } from '../server/hapi-register';
 import { PersistedEvent } from '../shared/events';
 import * as logger from '../shared/logger';
+import TokenGenerator from '../shared/token-generator';
 import { ObservableWrapper } from './observable-wrapper';
 import { RealtimeModule } from './realtime-module';
 
 export const PING_INTERVAL = 20000;
 
 type Predicate = (event: PersistedEvent<any>) => boolean;
+const PREKEY = 'pre';
 
 @injectable()
 export class RealtimeHapiPlugin extends HapiPlugin {
@@ -27,12 +29,15 @@ export class RealtimeHapiPlugin extends HapiPlugin {
 
   constructor(
     @inject(RealtimeModule.injectSymbol) private readonly realtimeModule: RealtimeModule,
+    @inject(TokenGenerator.injectSymbol) private readonly tokenGenerator: TokenGenerator,
     @inject(logger.loggerInjectSymbol) private readonly logger: logger.Logger,
   ) {
     super({
       name: 'realtime-plugin',
       version: '1.0.0',
     });
+    this.validateDeploymentToken = this.validateDeploymentToken.bind(this);
+    this.authorizeDeployment = this.authorizeDeployment.bind(this);
   }
 
   public register(server: Hapi.Server, _options: Hapi.IServerOptions, next: () => void) {
@@ -54,12 +59,19 @@ export class RealtimeHapiPlugin extends HapiPlugin {
       },
     }, {
       method: 'GET',
-      path: '/events/deployment/{projectId}-{deploymentId}',
+      path: '/events/deployment/{projectId}-{deploymentId}/{token}',
       handler: {
         async: this.deploymentHandler,
       },
       config: {
         bind: this,
+        pre: [
+          this.validateDeploymentToken,
+          {
+            method: this.authorizeDeployment,
+            assign: PREKEY,
+          },
+        ],
         auth: {
           mode: 'try',
           strategies: [STRATEGY_TOPLEVEL_USER_URL],
@@ -68,6 +80,7 @@ export class RealtimeHapiPlugin extends HapiPlugin {
           params: {
             projectId: Joi.number().required(),
             deploymentId: Joi.number().required(),
+            token: Joi.string().required(),
           },
         },
       },
@@ -116,26 +129,59 @@ export class RealtimeHapiPlugin extends HapiPlugin {
     }
   }
 
-  private async deploymentHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  public validateDeploymentToken(request: Hapi.Request, reply: Hapi.IReply) {
     try {
-      const projectId = parseInt(request.params.projectId, 10);
-      const deploymentId = parseInt(request.params.deploymentId, 10);
-      let teamId: number | undefined;
+      const { token, deploymentId: _deploymentId, projectId: _projectId } = request.params;
+      const deploymentId = Number(_deploymentId);
+      const projectId = Number(_projectId);
+      const correctToken = this.tokenGenerator.deploymentToken(projectId, deploymentId);
+
+      if (!token || token !== correctToken) {
+        return reply(Boom.forbidden('Invalid token'));
+      }
+
+      return reply('ok');
+
+    } catch (error) {
+      // Nothing to be done here
+    }
+    return reply(Boom.forbidden('Invalid token'));
+
+  }
+
+  public async authorizeDeployment(request: Hapi.Request, reply: Hapi.IReply) {
+    try {
+      const { deploymentId: _deploymentId, projectId: _projectId } = request.params;
+      const deploymentId = Number(_deploymentId);
+      const projectId = Number(_projectId);
       if (await request.userHasAccessToDeployment(projectId, deploymentId, request.auth.credentials)) {
-        teamId = (await request.getProjectTeam(projectId)).id;
+        const teamId = (await request.getProjectTeam(projectId)).id;
+        return reply({
+          projectId,
+          deploymentId,
+          teamId,
+        });
       }
-      if (teamId) {
-        const predicate = deploymentEventFilter(teamId, projectId, deploymentId);
-        const stream = await this.getStream(teamId, predicate, getLastEventId(request));
-        return this.streamReply(stream, request, reply);
-      }
-    } catch (err) {
-      this.logger.warn('Problems handling a SSE request', err);
-      return reply(Boom.wrap(err));
+    } catch (error) {
+      this.logger.warn('Problems authorizing a realtime request', error);
     }
     return reply(Boom.notFound());
   }
 
+  public async deploymentHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    try {
+      const { teamId: _teamId, deploymentId: _deploymentId, projectId: _projectId } = request.pre[PREKEY];
+      const deploymentId = Number(_deploymentId);
+      const projectId = Number(_projectId);
+      const teamId = Number(_teamId);
+      const predicate = deploymentEventFilter(teamId, projectId, deploymentId);
+      const stream = await this.getStream(teamId, predicate, getLastEventId(request));
+      return this.streamReply(stream, request, reply);
+    } catch (err) {
+      this.logger.warn('Problems handling a realtime request', err);
+      return reply(Boom.wrap(err));
+    }
+  }
 }
 
 export function pingEventCreator(): PersistedEvent<any> {

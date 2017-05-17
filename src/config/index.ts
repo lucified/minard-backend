@@ -11,10 +11,8 @@ export function bootstrap(env?: ENV, silent = true) {
   switch (_env) {
     case 'production':
     case 'staging':
-      config = require('./config-production').default;
-      break;
     case 'development':
-      config = require('./config-development').default;
+      config = require('./config-production').default;
       break;
     case 'test':
       config = require('./config-test').default;

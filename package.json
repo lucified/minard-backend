@@ -95,6 +95,7 @@
     "clean-test": "rm -rf dist && npm run-script transpile && mocha ./dist/**/*-spec.js",
     "test": "TS_NODE_FAST=true NODE_ENV=test mocha --opts mocha.opts",
     "system-test": "TS_NODE_FAST=true NODE_ENV=development mocha --opts mocha-integration.opts",
+    "system-test-legacy": "TS_NODE_FAST=true NODE_ENV=${NODE_ENV:-development} mocha --bail --require ts-node/register src/integration-test/system-integration-tests-legacy.ts",
     "dot-test": "mocha --opts mocha.opts --reporter dot",
     "dev": "npm run transpile && node-dev --inspect=0.0.0.0:${DEBUG_PORT:-9229} --nolazy dist/app.js",
     "write-version": "echo $COMMIT > commit-sha",

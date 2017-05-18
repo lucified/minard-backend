@@ -37,7 +37,7 @@ interface Auth0 {
 }
 ```
 
-An example file can be found from `src/integration-test/configuration.{environment}.ts`.
+An example file can be found from `src/integration-test/configuration.example.ts`.
 
 The integration tests assume that a predefined set of "users" have been created in Auth0 and linked with
 corresponding user accounts and groups in GitLab.  To be able to get up and running from scratch remains a TODO.
@@ -58,7 +58,8 @@ to the integration test configuration file described above.
 
 Create three new groups, 'integration-test', 'integration-test-open' and 'integration-test-admin'.
 Add a user to each of these and set the username to `{clientId}-clients` where clientId
-is the id of the corresponding Auth0 client.
+is the id of the corresponding Auth0 client. Set the user's password to some generated value and
+copy it to the configuration file.
 
 ## Charles's configuration
 

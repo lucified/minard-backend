@@ -15,3 +15,5 @@ temp
 npm-debug.log
 src/config/config-local-override.ts
 src/integration-test/gitlab-api-tests.ts
+src/integration-test/configuration.*.ts
+!src/integration-test/configuration.example.ts

@@ -7,8 +7,6 @@ export interface Auth0 {
 }
 
 export interface Config {
-  projectFolder: string;
-  skipDeleteProject: boolean;
   charles: string;
   notifications: {
     flowdock?: {

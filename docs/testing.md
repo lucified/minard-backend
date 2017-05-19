@@ -59,7 +59,8 @@ to the integration test configuration file described above.
 Create three new groups, 'integration-test', 'integration-test-open' and 'integration-test-admin'.
 Add a user to each of these and set the username to `{clientId}-clients` where clientId
 is the id of the corresponding Auth0 client. Set the user's password to some generated value and
-copy it to the configuration file.
+copy it to the `gitPassword` field of the corresponding team in the `auth0` block
+of the configuration file.
 
 ## Charles's configuration
 
@@ -72,7 +73,7 @@ ADMIN_TEAM_NAME=integration-test-admin
 
 # Running the tests
 
-If running against a local backend start it with
+If running against a local backend, start it with
 ```shell
 ./compose-all
 ```

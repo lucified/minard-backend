@@ -164,6 +164,9 @@ export function getConfiguration(env?: ENV, silent = false): Config {
     case 'development':
       config = require('./configuration.development').default;
       break;
+    case 'production':
+      config = require('./configuration.production').default;
+      break;
     default:
       throw new Error(`Unsupported environment '${_env}''`);
   }

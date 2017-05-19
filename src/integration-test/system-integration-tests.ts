@@ -4,6 +4,7 @@
    this.timeout(...) does not work with arrow functions.
    The second rule needs to be disabled since EventSource is a class
    and using disable-line doesn't work */
+import { Observable } from '@reactivex/rxjs';
 import { expect } from 'chai';
 
 import { JsonApiEntity } from '../json-api/types';
@@ -15,7 +16,6 @@ import {
   getConfiguration,
   log,
   runCommand,
-  sleep,
 } from './utils';
 
 const config = getConfiguration(process.env.NODE_ENV);
@@ -33,7 +33,7 @@ describe('system-integration', () => {
     describe(`user belonging to '${teamType}' team`, () => {
 
       const auth0Config = config.auth0[teamType];
-      let oldProjects: any;
+      let oldProjects: JsonApiEntity[] | undefined;
       let deployment: JsonApiEntity | undefined;
 
       describe('authentication and projects', () => {
@@ -54,14 +54,15 @@ describe('system-integration', () => {
         it('should be able to get own team\'s projects', async function () {
           this.timeout(1000 * 30);
           oldProjects = await client.getProjects();
-          expect(oldProjects.data).to.exist;
+          expect(oldProjects).to.exist;
         });
 
         it('should be able to delete existing integration test projects', async function () {
           this.timeout(1000 * 30);
-          for (const project of oldProjects.data) {
+          for (const project of oldProjects!) {
             if (project && project.id) {
-              await client.deleteProject(Number(project.id));
+              const response = await client.deleteProject(Number(project.id));
+              expect(response.status).to.eq(200);
             }
           }
         });
@@ -69,10 +70,10 @@ describe('system-integration', () => {
         it('should be able to create a project', async function () {
           this.timeout(1000 * 3000);
           const project = await client.createProject(projectName);
-          expect(project.data.id).to.exist;
-          const repoUrl = project.data.attributes['repo-url'];
+          expect(project.id).to.exist;
+          const repoUrl = project.attributes['repo-url'];
           expect(repoUrl).to.exist;
-          const projectId = parseInt(project.data.id, 10);
+          const projectId = parseInt(project.id, 10);
           expect(projectId).to.exist;
         });
 
@@ -97,28 +98,25 @@ describe('system-integration', () => {
           await runCommand('git', '-C', repoFolder, 'remote', 'add', 'minard', repoUrl);
           await runCommand('git', '-C', repoFolder, 'push', 'minard', 'master');
 
-          while (!deployment) {
-            try {
-              deployment = (await client.getBranches()).included.find((item: any) => item.type === 'deployments');
-            } catch (error) {
-              log('Waiting for the deployment to be created...');
-              await sleep(200);
-            }
-          }
-          while (deployment.attributes.status !== 'success') {
-            deployment = await client.getDeployment(deployment.id);
-            expect(deployment.attributes.status).to.exist;
-            if (['running', 'pending', 'success'].indexOf(deployment.attributes.status) === -1) {
-              expect.fail(`Deployment has unexpected status ${deployment.attributes.status}`);
-            }
-            if (deployment.attributes.status !== 'success') {
-              log('Building...');
-              await sleep(2000);
-            }
-          }
-          expect(deployment.attributes['build-status']).to.eq('success');
-          expect(deployment.attributes['extraction-status']).to.eq('success');
-          expect(deployment.attributes['screenshot-status']).to.eq('success');
+          const eventStream = await client.teamEvents('DEPLOYMENT_UPDATED');
+
+          const ping = Observable.timer(1000, 1000);
+          deployment = await Observable.merge(eventStream, ping)
+            .do(event => {
+              if (typeof event === 'number') {
+                log('Building...');
+              }
+            })
+            .filter(event => typeof event === 'object')
+            .map(event => JSON.parse((event as SSE).data).deployment)
+            .filter(d => d.attributes.status === 'success')
+            .take(1)
+            .toPromise();
+
+          expect(deployment!.attributes['build-status']).to.eq('success');
+          expect(deployment!.attributes['extraction-status']).to.eq('success');
+          // expect(deployment!.attributes['screenshot-status']).to.eq('success');
+
         });
 
         it('should be able to fetch the raw deployment webpage', async function () {
@@ -128,15 +126,15 @@ describe('system-integration', () => {
           expect(response.status).to.eq(200);
         });
 
-        it('should be able to fetch deployment\'s screenshot', async function () {
+        it.skip('should be able to fetch deployment\'s screenshot', async function () {
           this.timeout(1000 * 60);
-          const response = await client.fetch(deployment!.attributes.screenshot);
+          const response = await client.fetch(deployment!.attributes.screenshot!);
           expect(response.status).to.eq(200);
         });
 
         it('should be able to fetch project\'s activity', async function () {
           this.timeout(1000 * 10);
-          const activities = (await client.getProjectActivity()).data;
+          const activities = await client.getProjectActivity();
           expect(activities).to.exist;
           expect(activities).to.have.length(1);
           expect(activities[0].attributes['activity-type']).to.equal('deployment');
@@ -162,7 +160,7 @@ describe('system-integration', () => {
                 ...attributes,
               };
               const response = await client.configureNotification(_attributes);
-              notificationIds.push(response.id);
+              notificationIds.push(Number(response.id));
             }
           }
         });
@@ -180,7 +178,7 @@ describe('system-integration', () => {
                 ...attributes,
               };
               const response = await client.configureNotification(_attributes);
-              notificationIds.push(response.id);
+              notificationIds.push(Number(response.id));
             }
           }
         });
@@ -198,9 +196,8 @@ describe('system-integration', () => {
           expect(comment.id).to.exist;
         });
 
-        it.skip('should be able to fetch comments for deployment', async function () {
+        it('should be able to fetch comments for deployment', async function () {
           this.timeout(1000 * 10 * 6);
-          await sleep(20000);
           const comments = await client.getComments(deployment!.id);
           expect(comments.length).to.equal(1);
           expect(comments[0].attributes.message).to.equal(comment!.attributes.message);
@@ -208,7 +205,8 @@ describe('system-integration', () => {
 
         it('should be able to delete comment for deployment', async function () {
           this.timeout(1000 * 10);
-          await client.deleteComment(comment!.id);
+          const response = await client.deleteComment(comment!.id);
+          expect(response.status).to.eq(200);
         });
       });
 
@@ -216,8 +214,8 @@ describe('system-integration', () => {
         it('should be able to delete created configurations', async function () {
           this.timeout(1000 * 10);
           for (const id of notificationIds) {
-            await client.deleteNotificationConfiguration(id);
-            log('Deleted');
+            const response = await client.deleteNotificationConfiguration(id);
+            expect(response.status).to.eq(200);
           }
         });
       });
@@ -272,7 +270,9 @@ describe('system-integration', () => {
           it('should be able to get realtime events', async function () {
             for (let k = 0; k < numEvents; k++) {
               // Arrange
-              const eventStream = await client.deploymentEvents(eventType, deployment!.id, 'token');
+              const projectId = client.lastProject!.id;
+
+              const eventStream = await client.deploymentEvents(eventType, `${projectId}-${deployment!.id}`, 'token');
               const eventPromise = eventStream.take(1).toPromise();
               const newDescription = 'fooo fooofoofoo bababa';
 

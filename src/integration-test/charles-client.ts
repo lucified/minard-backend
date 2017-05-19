@@ -3,6 +3,7 @@ import { merge } from 'lodash';
 import fetch, { RequestInit } from 'node-fetch';
 import { JsonApiEntity } from '../json-api/types';
 import { NotificationConfiguration } from '../notification/types';
+import { SSE } from './types';
 import { getResponseJson, sleep } from './utils';
 
 const EventSource = require('eventsource');
@@ -76,7 +77,7 @@ export default class CharlesClient {
   }
   public async createProject(name: string, teamId?: number, templateProjectId?: number) {
     const request = await this.createProjectRequest(name, teamId, templateProjectId);
-    const response = await this.fetchJsonWithRetry(`/api/projects`, request, 20);
+    const response = await this.fetchJsonWithRetry(`/api/projects`, request, 201, 20);
     this.lastProject = {
       id: Number(response.data.id),
       url: response.data.attributes['repo-url'],
@@ -84,9 +85,9 @@ export default class CharlesClient {
     return response;
   }
   public async editProject(
-    attributes: { name: string } | {description: string} | {name: string; description: string},
+    attributes: { name: string } | { description: string } | { name: string; description: string },
     projectId?: number,
-  ) {
+  ): Promise<JsonApiEntity> {
     const _projectId = projectId || (this.lastProject && this.lastProject.id);
     if (!_projectId) {
       throw new Error('No projectId available');
@@ -101,7 +102,7 @@ export default class CharlesClient {
     const response = await this.fetchJsonWithRetry(`/api/projects/${_projectId}`, {
       method: 'PATCH',
       body: JSON.stringify(editProjectPayload),
-    }, 20);
+    }, 200);
     return response.data;
   }
 
@@ -132,8 +133,44 @@ export default class CharlesClient {
     return this.fetchJsonWithRetry(
       `/api/projects/${_projectId}/relationships/branches`,
       { method: 'GET' },
+      200,
       20,
     );
+  }
+
+  /**
+   * COMMENTS
+   */
+
+  public async addComment(deployment: string, message: string, name: string, email: string): Promise<JsonApiEntity> {
+    const addCommentPayload = {
+      data: {
+        type: 'comments',
+        attributes: {
+          email,
+          message,
+          name,
+          deployment,
+        },
+      },
+    };
+    const response = await this.fetchJson(
+      `/api/comments`,
+      { method: 'POST', body: JSON.stringify(addCommentPayload) },
+      201,
+    );
+    return response.data;
+  }
+
+  public async getComments(deploymentId: string): Promise<JsonApiEntity[]> {
+    const response = await this.fetchJsonWithRetry(`/api/comments/deployment/${deploymentId}`, undefined, 200, 15, 400);
+    return response.data;
+  }
+
+  public deleteComment(id: string) {
+    return this.fetchJson(`/api/comments/${id}`, {
+      method: 'DELETE',
+    });
   }
 
   /**
@@ -156,6 +193,7 @@ export default class CharlesClient {
     const response = await this.fetchJson(
       `/api/notifications`,
       { method: 'POST', body: JSON.stringify(createNotificationPayload) },
+      201,
     );
     return response.data;
   }
@@ -169,9 +207,10 @@ export default class CharlesClient {
    * REALTIME
    */
 
-  public async teamEvents(eventType: string, teamId?: number) {
+  public async teamEvents(eventType: string, lastEventId?: string, teamId?: number) {
     const _teamId = teamId || await this.getTeamId();
-    const eventSource = new EventSource(`${this.url}/events/${_teamId}?token=${this.accessToken}`);
+    const eventSourceInitDict = lastEventId ? { headers: { 'Last-Event-ID': lastEventId } } : {};
+    const eventSource = new EventSource(`${this.url}/events/${_teamId}?token=${this.accessToken}`, eventSourceInitDict);
     const stream = Observable.fromEventPattern(
       (h: any) => {
         eventSource.addEventListener(eventType, h);
@@ -180,18 +219,24 @@ export default class CharlesClient {
         eventSource.removeListener(eventType, h);
       },
     );
-    return stream.do(e => {
-      console.log(e);
-    });
+    return stream.map(event => event as SSE);
   }
 
-  public deploymentEvents(eventType: string, projectId: number, deploymentId: number, token: string) {
-    // tslint:disable-next-line:max-line-length
-    const eventSource = new EventSource(`${this.url}/events/deployment/${projectId}-${deploymentId}/${token}?token=${this.accessToken}`);
+  public deploymentEvents(
+    eventType: string,
+    deploymentId: string,
+    token: string,
+    lastEventId?: string,
+  ) {
+    const eventSourceInitDict = lastEventId ? { headers: { 'Last-Event-ID': lastEventId } } : {};
+    const eventSource = new EventSource(
+      `${this.url}/events/deployment/${deploymentId}/${token}?token=${this.accessToken}`,
+      eventSourceInitDict,
+    );
     return Observable.fromEventPattern(
       (h: any) => eventSource.addEventListener(eventType, h),
       (h: any) => eventSource.removeListener(eventType, h),
-    );
+    ).map(event => event as SSE);
   }
 
   /**
@@ -224,9 +269,9 @@ export default class CharlesClient {
    * LOWLEVEL
    */
 
-  private async fetchJson(path: string, options?: RequestInit) {
+  private async fetchJson(path: string, options?: RequestInit, requiredStatus = 200) {
     const response = await fetch(`${this.url}${path}`, this.getRequest(options));
-    return getResponseJson(response);
+    return getResponseJson(response, requiredStatus);
   }
 
   public async fetch(url: string, options?: RequestInit) {
@@ -236,17 +281,24 @@ export default class CharlesClient {
   public async fetchJsonWithRetry(
     path: string,
     options?: RequestInit,
+    requiredStatus = 200,
     num = 15,
     sleepFor = 200,
   ) {
+    const errors: string[] = [];
     for (let i = 0; i < num; i++) {
       try {
-        return await this.fetchJson(path, options);
+        return await this.fetchJson(path, options, requiredStatus);
       } catch (err) {
+        errors.push(err);
         await sleep(sleepFor);
       }
     }
-    throw Error(`Fetch failed ${num} times for ${this.url}${path}`);
+    const msgParts = [
+      `Fetch failed ${num} times for ${this.url}${path}`,
+      `${this.url}${path}`,
+    ].concat(errors);
+    throw new Error(msgParts.join(`\n\n`));
   }
 
   public getRequest(options?: RequestInit): RequestInit {

@@ -30,3 +30,8 @@ export interface Config {
     [key: string]: Auth0 & { gitPassword: string };
   };
 }
+export interface SSE {
+  type: string;
+  lastEventId: string;
+  data: any;
+}

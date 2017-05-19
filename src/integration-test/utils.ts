@@ -106,7 +106,7 @@ export function prettyUrl(url: string) {
   return chalk.blue.underline(url);
 }
 
-export async function getResponseJson(response: OriginalResponse, url?: string) {
+export async function getResponseJson(response: OriginalResponse, requiredStatus = 200) {
   const responseBody = await response.text();
   let json: any;
   try {
@@ -114,8 +114,21 @@ export async function getResponseJson(response: OriginalResponse, url?: string) 
   } catch (error) {
     // No need to handle here
   }
-  if (!json || response.status >= 400) {
-    throw Boom.create(response.status, responseBody, { content: json || responseBody, url });
+  if (response.status !== requiredStatus) {
+    const msgParts = [
+      `Got ${response.status} instead of ${requiredStatus}`,
+      response.url,
+      responseBody,
+    ];
+    throw new Error(msgParts.join(`\n\n`));
+  }
+  if (!json) {
+    const msgParts = [
+      `Unable to parse json`,
+      `${response.url} => ${response.status}`,
+      responseBody,
+    ];
+    throw new Error(msgParts.join(`\n\n`));
   }
   return json;
 }
@@ -136,7 +149,7 @@ export async function getAccessToken(config: Auth0) {
     },
     body: JSON.stringify(body),
   });
-  const json = await getResponseJson(response, url);
+  const json = await getResponseJson(response);
   return json.access_token as string;
 }
 

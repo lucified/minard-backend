@@ -1,4 +1,3 @@
-
 export interface Auth0 {
   domain: string;
   clientId: string;

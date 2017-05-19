@@ -84,6 +84,7 @@ describe('system-integration', () => {
           expect(response.attributes.description).to.equal(newDescription);
         });
       });
+
       describe('deployments', () => {
 
         it('should be able to create a successful deployment by pushing code', async function () {
@@ -222,6 +223,7 @@ describe('system-integration', () => {
       });
 
       describe('realtime', () => {
+
         describe('team scoped events', () => {
           const eventResponses: SSE[] = [];
           const numEvents = 2;
@@ -262,6 +264,7 @@ describe('system-integration', () => {
             expect(event.id).to.eq(client.lastProject!.id);
           });
         });
+
         describe.skip('deployment scoped events', () => {
           const eventResponses: SSE[] = [];
           const numEvents = 2;

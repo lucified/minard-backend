@@ -1,6 +1,7 @@
 import { Observable } from '@reactivex/rxjs';
 import { merge } from 'lodash';
 import fetch, { RequestInit } from 'node-fetch';
+
 import { JsonApiEntity } from '../json-api/types';
 import { NotificationConfiguration } from '../notification/types';
 import { SSE } from './types';
@@ -75,6 +76,7 @@ export default class CharlesClient {
       body: JSON.stringify(createProjectPayload),
     };
   }
+
   public async createProject(name: string, teamId?: number, templateProjectId?: number) {
     const request = await this.createProjectRequest(name, teamId, templateProjectId);
     const response = await this.fetchJsonWithRetry(`/api/projects`, request, 201, 20);
@@ -84,6 +86,7 @@ export default class CharlesClient {
     };
     return response;
   }
+
   public async editProject(
     attributes: { name: string } | { description: string } | { name: string; description: string },
     projectId?: number,

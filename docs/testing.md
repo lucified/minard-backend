@@ -63,8 +63,12 @@ copy it to the configuration file.
 
 ## Charles's configuration
 
-Make sure that the `OPEN_TEAM_NAMES` environment variable includes 'integration-test-open' and that
-the `ADMIN_TEAM_NAME` environment variable is set 'integration-test-admin'.
+Make sure the following environment variables have been set when starting charles:
+
+```shell
+OPEN_TEAM_NAMES=integration-test-open
+ADMIN_TEAM_NAME=integration-test-admin
+```
 
 # Running the tests
 

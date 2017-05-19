@@ -106,7 +106,7 @@ export function prettyUrl(url: string) {
   return chalk.blue.underline(url);
 }
 
-export async function getResponseJson(response: OriginalResponse, requiredStatus = 200) {
+export async function getResponseJson<T>(response: OriginalResponse, requiredStatus = 200): Promise<T> {
   const responseBody = await response.text();
   let json: any;
   try {
@@ -149,7 +149,7 @@ export async function getAccessToken(config: Auth0) {
     },
     body: JSON.stringify(body),
   });
-  const json = await getResponseJson(response);
+  const json = await getResponseJson<{ access_token: string }>(response);
   return json.access_token as string;
 }
 

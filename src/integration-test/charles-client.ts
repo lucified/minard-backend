@@ -9,6 +9,15 @@ import { getResponseJson, sleep } from './utils';
 
 const EventSource = require('eventsource');
 
+interface ResponseSingular {
+  data: JsonApiEntity;
+  included?: JsonApiEntity[];
+}
+interface ResponseMulti {
+  data: JsonApiEntity[];
+  included?: JsonApiEntity[];
+}
+
 export default class CharlesClient {
 
   private teamId: number | undefined;
@@ -23,6 +32,7 @@ export default class CharlesClient {
     private readonly accessToken: string,
   ) {
     this.fetchOptions = {
+      method: 'GET',
       redirect: 'manual',
       headers: {
         authorization: `Bearer ${accessToken}`,
@@ -35,14 +45,15 @@ export default class CharlesClient {
    * TEAM
    */
 
-  public async getProjects(teamId?: number) {
+  public async getProjects(teamId?: number): Promise<JsonApiEntity[]> {
     const _teamId = teamId || await this.getTeamId();
-    return this.fetchJson(`/api/teams/${_teamId}/relationships/projects`);
+    const response = await this.fetchJson<ResponseMulti>(`/api/teams/${_teamId}/relationships/projects`);
+    return response.data;
   }
 
   public async getTeamId() {
     if (!this.teamId) {
-      this.teamId = (await this.fetchJson('/team')).id;
+      this.teamId = (await this.fetchJson<{ id: number }>('/team')).id;
     }
     return this.teamId!;
   }
@@ -77,14 +88,14 @@ export default class CharlesClient {
     };
   }
 
-  public async createProject(name: string, teamId?: number, templateProjectId?: number) {
+  public async createProject(name: string, teamId?: number, templateProjectId?: number): Promise<JsonApiEntity> {
     const request = await this.createProjectRequest(name, teamId, templateProjectId);
-    const response = await this.fetchJsonWithRetry(`/api/projects`, request, 201, 20);
+    const response = await this.fetchJsonWithRetry<ResponseSingular>(`/api/projects`, request, 201, 20);
     this.lastProject = {
       id: Number(response.data.id),
       url: response.data.attributes['repo-url'],
     };
-    return response;
+    return response.data;
   }
 
   public async editProject(
@@ -102,7 +113,7 @@ export default class CharlesClient {
         attributes,
       },
     };
-    const response = await this.fetchJsonWithRetry(`/api/projects/${_projectId}`, {
+    const response = await this.fetchJsonWithRetry<ResponseSingular>(`/api/projects/${_projectId}`, {
       method: 'PATCH',
       body: JSON.stringify(editProjectPayload),
     }, 200);
@@ -110,30 +121,31 @@ export default class CharlesClient {
   }
 
   public deleteProject(projectId: number) {
-    return this.fetchJson(`/api/projects/${projectId}`, {
+    return this.fetch(`${this.url}/api/projects/${projectId}`, {
       method: 'DELETE',
     });
   }
 
-  public getProjectActivity(projectId?: number) {
+  public async getProjectActivity(projectId?: number): Promise<JsonApiEntity[]> {
     const _projectId = projectId || (this.lastProject && this.lastProject.id);
     if (!_projectId) {
       throw new Error('No projectId available');
     }
-    return this.fetchJsonWithRetry(`/api/activity?filter=project[${_projectId}]`);
+    const response = await this.fetchJsonWithRetry<ResponseMulti>(`/api/activity?filter=project[${_projectId}]`);
+    return response.data;
   }
 
-  public async getDeployment(deploymentId: string) {
-    const response = await this.fetchJson(`/api/deployments/${deploymentId}`);
-    return response.data as JsonApiEntity;
+  public async getDeployment(deploymentId: string): Promise<JsonApiEntity> {
+    const response = await this.fetchJson<ResponseSingular>(`/api/deployments/${deploymentId}`);
+    return response.data;
   }
 
-  public getBranches(projectId?: number) {
+  public getBranches(projectId?: number): Promise<ResponseMulti> {
     const _projectId = projectId || (this.lastProject && this.lastProject.id);
     if (!_projectId) {
       throw new Error('No projectId available');
     }
-    return this.fetchJsonWithRetry(
+    return this.fetchJsonWithRetry<ResponseMulti>(
       `/api/projects/${_projectId}/relationships/branches`,
       { method: 'GET' },
       200,
@@ -157,7 +169,7 @@ export default class CharlesClient {
         },
       },
     };
-    const response = await this.fetchJson(
+    const response = await this.fetchJson<ResponseSingular>(
       `/api/comments`,
       { method: 'POST', body: JSON.stringify(addCommentPayload) },
       201,
@@ -166,12 +178,13 @@ export default class CharlesClient {
   }
 
   public async getComments(deploymentId: string): Promise<JsonApiEntity[]> {
-    const response = await this.fetchJsonWithRetry(`/api/comments/deployment/${deploymentId}`, undefined, 200, 15, 400);
+    const path = `/api/comments/deployment/${deploymentId}`;
+    const response = await this.fetchJsonWithRetry<ResponseMulti>(path, undefined, 200, 15, 400);
     return response.data;
   }
 
   public deleteComment(id: string) {
-    return this.fetchJson(`/api/comments/${id}`, {
+    return this.fetch(`${this.url}/api/comments/${id}`, {
       method: 'DELETE',
     });
   }
@@ -180,7 +193,7 @@ export default class CharlesClient {
    * NOTIFICATION
    */
 
-  public async configureNotification(attributes: NotificationConfiguration) {
+  public async configureNotification(attributes: NotificationConfiguration): Promise<JsonApiEntity> {
     if (attributes.teamId === null) {
       delete attributes.teamId;
     }
@@ -193,7 +206,7 @@ export default class CharlesClient {
         attributes,
       },
     };
-    const response = await this.fetchJson(
+    const response = await this.fetchJson<ResponseSingular>(
       `/api/notifications`,
       { method: 'POST', body: JSON.stringify(createNotificationPayload) },
       201,
@@ -201,7 +214,7 @@ export default class CharlesClient {
     return response.data;
   }
   public deleteNotificationConfiguration(id: number) {
-    return this.fetchJson(`/api/notifications/${id}`, {
+    return this.fetch(`${this.url}/api/notifications/${id}`, {
       method: 'DELETE',
     });
   }
@@ -272,16 +285,43 @@ export default class CharlesClient {
    * LOWLEVEL
    */
 
-  private async fetchJson(path: string, options?: RequestInit, requiredStatus = 200) {
-    const response = await fetch(`${this.url}${path}`, this.getRequest(options));
-    return getResponseJson(response, requiredStatus);
+  private async fetchJson<T>(path: string, options?: RequestInit, requiredStatus = 200) {
+    const response = await this.fetch(`${this.url}${path}`, options);
+    return getResponseJson<T>(response, requiredStatus);
   }
 
-  public async fetch(url: string, options?: RequestInit) {
+  public fetch(url: string, options?: RequestInit) {
     return fetch(url, this.getRequest(options));
   }
 
-  public async fetchJsonWithRetry(
+  public async fetchWithRetry(
+    url: string,
+    expectedStatus = 200,
+    options?: RequestInit,
+    num = 15,
+    sleepFor = 200,
+  ) {
+    const errors: string[] = [];
+    for (let i = 0; i < num; i++) {
+      try {
+        console.log(options);
+        const response = await this.fetch(url, options);
+        if (response.status === expectedStatus) {
+          return response;
+        }
+      } catch (err) {
+        console.log(err.message);
+        errors.push(err.message);
+      }
+      await sleep(sleepFor);
+    }
+    const msgParts = [
+      `Fetch failed ${num} times for ${url}`,
+    ].concat(errors);
+    throw new Error(msgParts.join(`\n\n`));
+  }
+
+  public async fetchJsonWithRetry<T>(
     path: string,
     options?: RequestInit,
     requiredStatus = 200,
@@ -291,7 +331,7 @@ export default class CharlesClient {
     const errors: string[] = [];
     for (let i = 0; i < num; i++) {
       try {
-        return await this.fetchJson(path, options, requiredStatus);
+        return await this.fetchJson<T>(path, options, requiredStatus);
       } catch (err) {
         errors.push(err);
         await sleep(sleepFor);
@@ -299,13 +339,12 @@ export default class CharlesClient {
     }
     const msgParts = [
       `Fetch failed ${num} times for ${this.url}${path}`,
-      `${this.url}${path}`,
     ].concat(errors);
     throw new Error(msgParts.join(`\n\n`));
   }
 
   public getRequest(options?: RequestInit): RequestInit {
-    return merge(this.fetchOptions, options || {});
+    return merge({}, this.fetchOptions, options || {});
   }
 
 }

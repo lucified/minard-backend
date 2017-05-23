@@ -350,6 +350,10 @@ export class JsonApiModule {
     return this.notificationModule.getProjectConfigurations(projectId);
   }
 
+  public async getTeamNotificationConfigurations(teamId: number) {
+    return this.notificationModule.getTeamConfigurations(teamId);
+  }
+
   public async createNotificationConfiguration(config: NotificationConfiguration) {
     return this.notificationModule.addConfiguration(config);
   }

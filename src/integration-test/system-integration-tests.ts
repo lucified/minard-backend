@@ -114,7 +114,7 @@ describe('system-integration', () => {
 
           expect(deployment!.attributes['build-status']).to.eq('success');
           expect(deployment!.attributes['extraction-status']).to.eq('success');
-          // expect(deployment!.attributes['screenshot-status']).to.eq('success');
+          expect(deployment!.attributes['screenshot-status']).to.eq('success');
 
         });
 
@@ -125,7 +125,7 @@ describe('system-integration', () => {
           expect(response.status).to.eq(200);
         });
 
-        it.skip('should be able to fetch deployment\'s screenshot', async function () {
+        it('should be able to fetch deployment\'s screenshot', async function () {
           this.timeout(1000 * 60);
           const response = await client.fetch(deployment!.attributes.screenshot!);
           expect(response.status).to.eq(200);

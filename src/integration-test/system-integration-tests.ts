@@ -8,9 +8,8 @@ import { Observable } from '@reactivex/rxjs';
 import { expect } from 'chai';
 
 import { JsonApiEntity } from '../json-api/types';
-import { NotificationType } from '../notification/types';
 import CharlesClient from './charles-client';
-import { SSE } from './types';
+import { NotificationConfiguration, NotificationType, SSE } from './types';
 import {
   getAccessToken,
   getConfiguration,
@@ -32,7 +31,7 @@ describe('system-integration', () => {
     describe(`user belonging to '${teamType}' team`, () => {
 
       const auth0Config = config.auth0[teamType];
-      let oldProjects: JsonApiEntity[] | undefined;
+      let oldProjects: JsonApiEntity[] | undefined;
       let deployment: JsonApiEntity | undefined;
 
       describe('authentication and projects', () => {
@@ -72,8 +71,6 @@ describe('system-integration', () => {
           expect(project.id).to.exist;
           const repoUrl = project.attributes['repo-url'];
           expect(repoUrl).to.exist;
-          const projectId = parseInt(project.id, 10);
-          expect(projectId).to.exist;
         });
 
         it('should be able to edit a project', async function () {
@@ -147,37 +144,58 @@ describe('system-integration', () => {
 
       describe('configuring notifications', () => {
 
+        async function testNotificationConfiguration(
+          configuration: NotificationConfiguration,
+          projectId: null | number = null,
+          teamId: null | number = null,
+        ) {
+          const responseJson = await client.configureNotification({
+            teamId,
+            projectId,
+            ...configuration,
+          });
+          const id = Number(responseJson.id);
+          expect(Number.isNaN(id)).to.be.false;
+          const attributes = responseJson.attributes;
+          if (teamId) {
+            expect(Number(attributes['team-id'])).to.eq(teamId);
+          }
+          if (projectId) {
+            expect(Number(attributes['project-id'])).to.eq(projectId);
+          }
+          switch (configuration.type) {
+            case 'flowdock':
+              expect(attributes['flow-token']).to.eq(configuration.flowToken);
+              break;
+            case 'hipchat':
+              expect(attributes['hipchat-room-id']).to.eq(configuration.hipchatRoomId);
+              expect(attributes['hipchat-auth-token']).to.eq(configuration.hipchatAuthToken);
+              break;
+            case 'slack':
+              expect(attributes['slack-webhook-url']).to.eq(configuration.slackWebhookUrl);
+              break;
+          }
+          return id;
+        }
+
         it('should be able to configure team scoped notifications', async function () {
           this.timeout(1000 * 20);
           const teamId = await client.getTeamId();
           for (const notificationType of Object.keys(config.notifications)) {
-            const attributes = config.notifications[notificationType as NotificationType];
-            if (attributes) {
-              const _attributes = {
-                teamId,
-                projectId: null,
-                ...attributes,
-              };
-              const response = await client.configureNotification(_attributes);
-              notificationIds.push(Number(response.id));
+            const notificationConfiguration = config.notifications[notificationType as NotificationType];
+            if (notificationConfiguration) {
+              notificationIds.push(await testNotificationConfiguration(notificationConfiguration, null, teamId));
             }
           }
         });
 
         it('should be able to configure project scoped notifications', async function () {
           this.timeout(1000 * 20);
-          const teamId = null;
           const projectId = client.lastProject!.id;
           for (const notificationType of Object.keys(config.notifications)) {
-            const attributes = config.notifications[notificationType as NotificationType];
-            if (attributes) {
-              const _attributes = {
-                teamId,
-                projectId,
-                ...attributes,
-              };
-              const response = await client.configureNotification(_attributes);
-              notificationIds.push(Number(response.id));
+            const notificationConfiguration = config.notifications[notificationType as NotificationType];
+            if (notificationConfiguration) {
+              notificationIds.push(await testNotificationConfiguration(notificationConfiguration, projectId, null));
             }
           }
         });

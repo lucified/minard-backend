@@ -15,6 +15,19 @@
       "outFiles": ["${workspaceRoot}/dist/**/*.js"]
     },
     {
+      "name": "Run integration tests",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceRoot}/node_modules/mocha/bin/_mocha",
+      "args": ["-t", "100000000", "--bail", "dist/integration-test/system-integration-tests.js"],
+      "cwd": "${workspaceRoot}",
+      "runtimeExecutable": null,
+      "env": { "NODE_ENV": "development" },
+      "protocol": "inspector",
+      "sourceMaps": true,
+      "outFiles": ["${workspaceRoot}/dist/**/*.js"]
+    },
+    {
       "name": "Attach",
       "type": "node",
       "request": "attach",

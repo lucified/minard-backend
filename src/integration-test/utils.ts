@@ -2,9 +2,10 @@ import * as Boom from 'boom';
 import * as chalk from 'chalk';
 import { spawn } from 'child_process';
 import { merge } from 'lodash';
-import 'reflect-metadata';
 
-import originalFetch, {RequestInit, Response as OriginalResponse} from 'node-fetch';
+import originalFetch, { RequestInit, Response as OriginalResponse } from 'node-fetch';
+import { ENV } from '../shared/types';
+import { Auth0, Config } from './types';
 
 export function sleep(ms = 0) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -103,4 +104,74 @@ export function logTitle(text: string) {
 
 export function prettyUrl(url: string) {
   return chalk.blue.underline(url);
+}
+
+export async function getResponseJson<T>(response: OriginalResponse, requiredStatus = 200): Promise<T> {
+  const responseBody = await response.text();
+  let json: any;
+  try {
+    json = JSON.parse(responseBody);
+  } catch (error) {
+    // No need to handle here
+  }
+  if (response.status !== requiredStatus) {
+    const msgParts = [
+      `Got ${response.status} instead of ${requiredStatus}`,
+      response.url,
+      responseBody,
+    ];
+    throw new Error(msgParts.join(`\n\n`));
+  }
+  if (!json) {
+    const msgParts = [
+      `Unable to parse json`,
+      `${response.url} => ${response.status}`,
+      responseBody,
+    ];
+    throw new Error(msgParts.join(`\n\n`));
+  }
+  return json;
+}
+
+export async function getAccessToken(config: Auth0) {
+  const { domain, audience, clientId, clientSecret } = config;
+  const body = {
+    audience,
+    client_id: clientId,
+    client_secret: clientSecret,
+    grant_type: 'client_credentials',
+  };
+  const url = `${domain}/oauth/token`;
+  const response = await originalFetch(url, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+  const json = await getResponseJson<{ access_token: string }>(response);
+  return json.access_token as string;
+}
+
+export function getConfiguration(env?: ENV, silent = false): Config {
+  // Load bindings that represent configuration
+  const _env: ENV = env || process.env.NODE_ENV || 'development';
+  let config: any;
+  switch (_env) {
+    case 'staging':
+      config = require('./configuration.staging').default;
+      break;
+    case 'development':
+      config = require('./configuration.development').default;
+      break;
+    case 'production':
+      config = require('./configuration.production').default;
+      break;
+    default:
+      throw new Error(`Unsupported environment '${_env}''`);
+  }
+  if (!silent) {
+    console.log(`Loaded configuration for environment '${_env}'`);
+  }
+  return config;
 }

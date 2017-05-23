@@ -1,42 +1,85 @@
+# Prerequisites
 
-# Tests
+The integration tests require a configuration file, `src/integration-test/configuration.{environment}.ts` for each environment
+you want to run the tests against. The
+environment can be 'development' (default), 'staging' or 'production' and it is determined by the `NODE_ENV` environment variable.
 
-## Unit tests
-
-The backend has more than 250 unit tests. Run them with
-```shell
-npm test
+The configuration file should conform to:
+```typescript
+interface Config {
+  charles: string;
+  notifications: {
+    flowdock?: {
+      type: 'flowdock';
+      flowToken: string;
+    },
+    hipchat?: {
+      type: 'hipchat';
+      hipchatRoomId: number;
+      hipchatAuthToken: string;
+    },
+    slack?: {
+      type: 'slack';
+      slackWebhookUrl: string;
+    },
+  };
+  auth0: {
+    regular: Auth0 & { gitPassword: string };
+    open: Auth0 & { gitPassword: string };
+    admin: Auth0 & { gitPassword: string };
+  };
+}
+interface Auth0 {
+  domain: string;
+  clientId: string;
+  clientSecret: string;
+  audience: string;
+}
 ```
 
-All unit tests are named with the pattern `foo-spec.ts`. The test
-files are located in the same directory as the code to be tested.
+An example file can be found from `src/integration-test/configuration.example.ts`.
 
-## System integration tests
+The integration tests assume that a predefined set of "users" have been created in Auth0 and linked with
+corresponding user accounts and groups in GitLab.  To be able to get up and running from scratch remains a TODO.
 
-### Prerequisities
+## Auth0 configuration
 
-System integration tests require that there is a team with id `2`,
-which should be reserved only for running integration tests.
+We currenty have three kinds of teams: *regular*, *open* and *admin*.
+A new non interactive client needs to be created for each of these.
 
-Use the GitLab UI at `http://localhost:10080` to create the team. You can override
-the id by running system integration tests using the `TEAM_ID` environment variable.
+In the clients' advanced configuration, the *JsonWebToken Signature Algorithm*
+should be set to 'RS256' and *OIDC conformant* should be checked. In the APIs
+section, make sure that the clients are authorized to access charles.
 
-### Running tests
+Copy the `clientId` and `clientSecret` together with the `domain` (Auth0 API endpoint) and the `audience` (charles)
+to the integration test configuration file described above.
 
-Start the backend locally
+## GitLab configuration
+
+Create three new groups, 'integration-test', 'integration-test-open' and 'integration-test-admin'.
+Add a user to each of these and set the username to `clients-{clientId}` where clientId
+is the id of the corresponding Auth0 client. Set the user's password to some generated value and
+copy it to the `gitPassword` field of the corresponding team in the `auth0` block
+of the configuration file.
+
+## Charles's configuration
+
+Make sure the following environment variables have been set when starting charles:
+
 ```shell
-INTEGRATION_TEST=true ./compose-all
+OPEN_TEAM_NAMES=integration-test-open
+ADMIN_TEAM_NAME=integration-test-admin
 ```
 
-Run system integration tests
+# Running the tests
+
+If running against a local backend, start it with
 ```shell
-npm run-script system-test
+./compose-all
 ```
 
-You can run system integration tests against a custom backend with
+Run system integration tests with
 ```shell
-CHARLES=$CHARLES_BASEURL_QA MINARD_GIT_SERVER=$GIT_SERVER_QA npm run-script system-test
+NODE_ENV={env} npm run-script system-test
 ```
-
-For this to work, you need to have `CHARLES_BASEURL_QA` and `MINARD_GIT_SERVER` environment
-variables set. `MINARD_GIT_SERVER` is the base url for the server hosting the Minard git repos.
+where `env` is 'development', 'staging' or 'production'.

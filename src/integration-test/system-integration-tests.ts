@@ -21,8 +21,7 @@ import {
 const config = getConfiguration(process.env.NODE_ENV);
 
 type TeamType = 'admin' | 'regular' | 'open';
-// const teamTypes: TeamType[] = ['admin', 'regular', 'open'];
-const teamTypes: TeamType[] = ['regular'];
+const teamTypes: TeamType[] = ['admin', 'regular', 'open'];
 
 describe('system-integration', () => {
   for (const teamType of teamTypes) {

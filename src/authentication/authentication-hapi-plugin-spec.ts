@@ -24,7 +24,7 @@ import { AuthorizationStatus, RequestCredentials } from './types';
 const defaultTeamTokenString = generateTeamToken();
 expect(defaultTeamTokenString.length).to.equal(teamTokenLength);
 const defaultEmail = 'foo@bar.com';
-const defaultSub = 'idp|12345678';
+const defaultSub = 'auth0|12345678';
 
 const validAccessToken = getSignedAccessToken(defaultSub, defaultTeamTokenString, defaultEmail);
 const invalidAccessToken = `${validAccessToken}a`;

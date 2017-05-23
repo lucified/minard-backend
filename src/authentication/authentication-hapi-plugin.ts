@@ -236,9 +236,14 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   public async getTeamHandler(request: Hapi.Request, reply: Hapi.IReply) {
     try {
       const credentials = request.auth.credentials as AccessToken;
-      const username = sanitizeUsername(credentials.sub);
+      const username = sanitizeSubClaim(credentials.sub);
       const teams = await this._getUserGroups(username);
-      const team = teams[0]; // NOTE: we only support a single team for now
+      if (teams.length > 1) {
+        // NOTE: we only support a single team for now
+        // This is a configuration error.
+        throw Boom.badImplementation('User can only belong to a single team.');
+      }
+      const team = teams[0];
       this.setAuthCookie(request, reply);
       const teamTokenResult = await teamTokenQuery(this.db, { teamId: team.id });
       const teamToken =
@@ -262,7 +267,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   public async getTeamTokenHandler(request: Hapi.Request, reply: Hapi.IReply) {
     try {
       const credentials = request.auth.credentials as AccessToken;
-      const userName = sanitizeUsername(credentials.sub);
+      const userName = sanitizeSubClaim(credentials.sub);
       const isAdmin = await this.isAdmin(userName);
       const userTeams = await this._getUserGroups(userName);
       const teamIdOrName = request.params[teamIdOrNameKey];
@@ -336,7 +341,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       const user = await this._createUser(
         email,
         password,
-        sanitizeUsername(credentials.sub),
+        sanitizeSubClaim(credentials.sub),
         email,
         id,
         idp,
@@ -377,11 +382,9 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     ) => {
       let authorizationStatus: AuthorizationStatus = AuthorizationStatus.UNAUTHORIZED;
       try {
-        if (assertValidSubClaim(payload.sub)) {
-          const userName = sanitizeUsername(payload.sub);
-          payload.username = userName;
-          authorizationStatus = await authorizer(userName, request);
-        }
+        const userName = sanitizeSubClaim(payload.sub);
+        payload.username = userName;
+        authorizationStatus = await authorizer(userName, request);
       } catch (error) {
         // TODO: logging, this can happen very often
         this.logger.warn('Authorization exception: %s', error.message);
@@ -733,15 +736,30 @@ export function parseSub(sub: string) {
 }
 
 export function validateSubClaim(sub: string) {
+  try {
+    sanitizeSubClaim(sub);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+export function sanitizeSubClaim(sub: string) {
   if (typeof sub !== 'string') {
-    return false;
+    throw new Error('Username is not a string');
   }
-  // Interactive Auth0 accounts use '|' and non-interactive '@' as a separator
+  // Interactive, i.e. normal, Auth0 accounts are of the form 'auth0|xxxyyyzzz'
+  // Non-interactive, e.g. ones used by the integration test, are of the form 'xxxyyyzzz@clients'
   const parts = sub.split(/[|@]/);
-  if (parts.length !== 2) {
-    return false;
+  if (parts.length === 2) {
+    if (parts[0] === 'auth0') {
+      return `auth0-${parts[1]}`;
+    }
+    if (parts[1] === 'clients') {
+      return `clients-${parts[0]}`;
+    }
   }
-  return true;
+  throw new Error(`Unrecognized username format: ${sub}`);
 }
 
 export function assertValidSubClaim(sub: string) {
@@ -766,11 +784,6 @@ export async function getAuth0UserInfo(auth0Domain: string, accessToken: string,
 
 export function generatePassword(length = 16) {
   return randomstring.generate({ length, charset: 'alphanumeric', readable: true }) as string;
-}
-
-export function sanitizeUsername(username: string) {
-  // Interactive Auth0 accounts use '|' and non-interactive '@' as a separator
-  return username.replace(/[|@]/, '-');
 }
 
 function findTeamByName(teamName: string) {

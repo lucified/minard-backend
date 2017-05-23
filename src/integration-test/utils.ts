@@ -1,3 +1,4 @@
+import { Observable } from '@reactivex/rxjs';
 import * as Boom from 'boom';
 import * as chalk from 'chalk';
 import { spawn } from 'child_process';
@@ -174,4 +175,16 @@ export function getConfiguration(env?: ENV, silent = false): Config {
     console.log(`Loaded configuration for environment '${_env}'`);
   }
   return config;
+}
+
+export function withPing<T extends object>(stream: Observable<T>, interval = 1000, msg = 'Waiting...') {
+  const ping = Observable.timer(interval, interval);
+  return Observable.merge(stream, ping)
+    .do(event => {
+      if (typeof event === 'number') {
+        log(msg);
+      }
+    })
+    .filter(event => typeof event === 'object')
+    .map(event => event as T);
 }

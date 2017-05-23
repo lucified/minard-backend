@@ -4,7 +4,6 @@
    this.timeout(...) does not work with arrow functions.
    The second rule needs to be disabled since EventSource is a class
    and using disable-line doesn't work */
-import { Observable } from '@reactivex/rxjs';
 import { expect } from 'chai';
 
 import { JsonApiEntity } from '../json-api/types';
@@ -15,6 +14,7 @@ import {
   getConfiguration,
   log,
   runCommand,
+  withPing,
 } from './utils';
 
 const config = getConfiguration(process.env.NODE_ENV);
@@ -95,16 +95,8 @@ describe('system-integration', () => {
           await runCommand('git', '-C', repoFolder, 'push', 'minard', 'master');
 
           const eventStream = await client.teamEvents('DEPLOYMENT_UPDATED');
-
-          const ping = Observable.timer(1000, 1000);
-          deployment = await Observable.merge(eventStream, ping)
-            .do(event => {
-              if (typeof event === 'number') {
-                log('Building...');
-              }
-            })
-            .filter(event => typeof event === 'object')
-            .map(event => JSON.parse((event as SSE).data).deployment)
+          deployment = await withPing(eventStream, 1000, 'Building...')
+            .map(event => JSON.parse(event.data).deployment)
             .filter(d => d.attributes.status === 'success')
             .take(1)
             .toPromise();
@@ -112,7 +104,6 @@ describe('system-integration', () => {
           expect(deployment!.attributes['build-status']).to.eq('success');
           expect(deployment!.attributes['extraction-status']).to.eq('success');
           expect(deployment!.attributes['screenshot-status']).to.eq('success');
-
         });
 
         it('should be able to fetch the raw deployment webpage', async function () {
@@ -244,9 +235,10 @@ describe('system-integration', () => {
           const numEvents = 2;
           const eventType = 'PROJECT_EDITED';
           it('should be able to get realtime events', async function () {
+            this.timeout(1000 * 20);
             for (let k = 0; k < numEvents; k++) {
               // Arrange
-              const eventStream = await client.teamEvents(eventType);
+              const eventStream = withPing(await client.teamEvents(eventType), 1000, 'Waiting for realtime...');
               const eventPromise = eventStream.take(1).toPromise();
               const newDescription = 'fooo fooofoofoo bababa';
 
@@ -280,46 +272,54 @@ describe('system-integration', () => {
           });
         });
 
-        describe.skip('deployment scoped events', () => {
+        describe('deployment scoped events', () => {
           const eventResponses: SSE[] = [];
           const numEvents = 2;
           const eventType = 'COMMENT_ADDED';
           it('should be able to get realtime events', async function () {
+            this.timeout(1000 * 20);
             for (let k = 0; k < numEvents; k++) {
               // Arrange
-              const projectId = client.lastProject!.id;
-
-              const eventStream = await client.deploymentEvents(eventType, `${projectId}-${deployment!.id}`, 'token');
+              const eventStream = withPing(await client.deploymentEvents(
+                eventType,
+                deployment!.id,
+                deployment!.attributes.token,
+              ), 1000, 'Waiting for realtime...');
               const eventPromise = eventStream.take(1).toPromise();
-              const newDescription = 'fooo fooofoofoo bababa';
+              const message = 'integration test message';
+              const email = 'user@integration.com';
+              const name = 'Charles Minard';
 
               // Act
-              const editPromise = client.editProject({ description: newDescription });
-              const [editResponse, sseResponse] = await Promise.all([editPromise, eventPromise]);
+              await client.addComment(deployment!.id, message, name, email);
+              const sseResponse = await eventPromise;
 
               // Assert
+
               expect(sseResponse.type).to.equal(eventType);
               expect(sseResponse.lastEventId).to.exist;
               const event = JSON.parse(sseResponse.data);
               expect(event).to.exist;
-              expect(event.id).to.eq(client.lastProject!.id);
-              expect(event.description).to.eq(newDescription);
-
-              expect(editResponse.id).to.exist;
-              expect(editResponse.attributes.description).to.equal(newDescription);
+              expect(event.attributes.deployment).to.eq(deployment!.id);
+              expect(event.attributes.message).to.eq(message);
               eventResponses[k] = sseResponse;
             }
           });
 
           it('should be able to request events retrospectively', async function () {
-            const eventStream = await client.teamEvents(eventType, eventResponses[0].lastEventId);
-            const sseResponse = await eventStream.take(1).toPromise();
+            this.timeout(1000 * 20);
+
+            const eventPromise = await withPing(client.deploymentEvents(
+              eventType,
+              deployment!.id,
+              deployment!.attributes.token,
+              eventResponses[0].lastEventId,
+            )).take(1).toPromise();
+
+            const sseResponse = await eventPromise;
 
             expect(sseResponse.type).to.equal(eventType);
             expect(sseResponse.lastEventId).to.eq(eventResponses[1].lastEventId);
-            const event = JSON.parse(sseResponse.data);
-            expect(event).to.exist;
-            expect(event.id).to.eq(client.lastProject!.id);
           });
         });
       });

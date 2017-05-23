@@ -275,7 +275,7 @@ export default class CharlesClient {
       throw Error('Could not match server url from repo url'); // make typescript happy
     }
     const gitserver = matches[0];
-    const credentials = `${encodeURIComponent(clientId + '-clients')}:${encodeURIComponent(password)}`;
+    const credentials = `${encodeURIComponent('clients-' + clientId)}:${encodeURIComponent(password)}`;
     const gitServerWithCredentials = gitserver
       .replace('//', `//${credentials}@`);
     return repoUrl.replace(gitserver, gitServerWithCredentials);

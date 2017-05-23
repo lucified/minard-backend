@@ -304,13 +304,11 @@ export default class CharlesClient {
     const errors: string[] = [];
     for (let i = 0; i < num; i++) {
       try {
-        console.log(options);
         const response = await this.fetch(url, options);
         if (response.status === expectedStatus) {
           return response;
         }
       } catch (err) {
-        console.log(err.message);
         errors.push(err.message);
       }
       await sleep(sleepFor);

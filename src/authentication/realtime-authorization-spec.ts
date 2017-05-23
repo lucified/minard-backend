@@ -14,7 +14,7 @@ import TokenGenerator from '../shared/token-generator';
 import AuthenticationHapiPlugin from './authentication-hapi-plugin';
 import { generateTeamToken } from './team-token';
 
-const validAccessToken = getSignedAccessToken('idp|12345678', generateTeamToken(), 'foo@bar.com');
+const validAccessToken = getSignedAccessToken('auth0|12345678', generateTeamToken(), 'foo@bar.com');
 async function getServer(
   authenticationStubber: MethodStubber<AuthenticationHapiPlugin>,
 ) {

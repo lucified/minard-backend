@@ -10,7 +10,6 @@ import {
   jwtOptionsInjectSymbol,
   teamTokenClaimKey,
 } from '../authentication';
-import { sanitizeUsername } from '../authentication/authentication-hapi-plugin';
 import AuthenticationModule from '../authentication/authentication-module';
 import { eventStoreConfigInjectSymbol } from '../event-bus';
 import { JsonApiHapiPlugin } from '../json-api';
@@ -82,7 +81,6 @@ export function getAccessToken(sub: string, teamToken?: string, email?: string):
     exp: Math.round(Date.now() / 1000) + 3600,
     iat: Math.round(Date.now() / 1000) - 3600,
     email: email || 'foo@bar.com',
-    username: sanitizeUsername(sub),
   };
   if (teamToken) {
     payload = { ...payload, [teamTokenClaimKey]: teamToken };

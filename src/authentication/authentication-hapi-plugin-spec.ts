@@ -16,6 +16,7 @@ import {
   accessTokenCookieSettings,
   default as AuthenticationHapiPlugin,
   generatePassword,
+  sanitizeSubClaim,
 } from './authentication-hapi-plugin';
 import { generateAndSaveTeamToken, generateTeamToken, teamTokenLength } from './team-token';
 import { initializeTeamTokenTable } from './team-token-spec';
@@ -24,7 +25,7 @@ import { AuthorizationStatus, RequestCredentials } from './types';
 const defaultTeamTokenString = generateTeamToken();
 expect(defaultTeamTokenString.length).to.equal(teamTokenLength);
 const defaultEmail = 'foo@bar.com';
-const defaultSub = 'idp|12345678';
+const defaultSub = 'auth0|12345678';
 
 const validAccessToken = getSignedAccessToken(defaultSub, defaultTeamTokenString, defaultEmail);
 const invalidAccessToken = `${validAccessToken}a`;
@@ -803,6 +804,45 @@ describe('authentication-hapi-plugin', () => {
       return resultPromise
         .then(_ => expect.fail(), error => expect(error.isBoom).to.be.true);
     });
+  });
+  describe('sanitizeSubClaim', () => {
+    it('sanitizes regular sub claims', async () => {
+
+      // Arrange
+      const sub = 'auth0|foo';
+
+      // Act
+      const sanitized = sanitizeSubClaim(sub);
+
+      // Assert
+      expect(sanitized).to.eq('auth0-foo');
+    });
+    it('sanitizes non-interactive sub claims', async () => {
+
+      // Arrange
+      const sub = 'foo@clients';
+
+      // Act
+      const sanitized = sanitizeSubClaim(sub);
+
+      // Assert
+      expect(sanitized).to.eq('clients-foo');
+    });
+    it('throws is not correct format', async () => {
+
+      // Arrange
+      const case1 = () => sanitizeSubClaim('foo');
+      const case2 = () => sanitizeSubClaim('1foo');
+      const case3 = () => sanitizeSubClaim('auth0foo|43dfdfg');
+      const case4 = () => sanitizeSubClaim('clients@234234');
+
+      // Assert
+      expect(case1).to.throw;
+      expect(case2).to.throw;
+      expect(case3).to.throw;
+      expect(case4).to.throw;
+    });
+
   });
 });
 

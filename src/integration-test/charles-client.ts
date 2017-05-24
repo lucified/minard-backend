@@ -113,10 +113,11 @@ export default class CharlesClient {
         attributes,
       },
     };
-    const response = await this.fetchJsonWithRetry<ResponseSingular>(`/api/projects/${_projectId}`, {
-      method: 'PATCH',
-      body: JSON.stringify(editProjectPayload),
-    }, 200);
+    const response = await this.fetchJsonWithRetry<ResponseSingular>(
+      `/api/projects/${_projectId}`,
+      { method: 'PATCH', body: JSON.stringify(editProjectPayload) },
+      200,
+    );
     return response.data;
   }
 

@@ -280,11 +280,11 @@ describe('system-integration', () => {
             this.timeout(1000 * 20);
             for (let k = 0; k < numEvents; k++) {
               // Arrange
-              const eventStream = withPing(await client.deploymentEvents(
-                eventType,
-                deployment!.id,
-                deployment!.attributes.token,
-              ), 1000, 'Waiting for realtime...');
+              const eventStream = withPing(
+                client.deploymentEvents(eventType, deployment!.id, deployment!.attributes.token),
+                1000,
+                'Waiting for realtime...',
+              );
               const eventPromise = eventStream.take(1).toPromise();
               const message = 'integration test message';
               const email = 'user@integration.com';
@@ -309,14 +309,12 @@ describe('system-integration', () => {
           it('should be able to request events retrospectively', async function () {
             this.timeout(1000 * 20);
 
-            const eventPromise = await withPing(client.deploymentEvents(
+            const sseResponse = await withPing(client.deploymentEvents(
               eventType,
               deployment!.id,
               deployment!.attributes.token,
               eventResponses[0].lastEventId,
             )).take(1).toPromise();
-
-            const sseResponse = await eventPromise;
 
             expect(sseResponse.type).to.equal(eventType);
             expect(sseResponse.lastEventId).to.eq(eventResponses[1].lastEventId);

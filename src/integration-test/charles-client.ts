@@ -253,7 +253,7 @@ export default class CharlesClient {
         eventSource.addEventListener(eventType, h);
       },
       (h: any) => {
-        eventSource.removeListener(eventType, h);
+        eventSource.removeEventListener(eventType, h);
         eventSource.close();
         eventSource = null;
       },

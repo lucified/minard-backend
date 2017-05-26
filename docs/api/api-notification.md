@@ -19,6 +19,65 @@ Name|Type|Description
 `hipchat-room-id`|string|Hipchat room id (only for `hipchat`)
 `slack-webhook-url`|string|Slack webhook URL (only for `slack`)
 
+## Get team-scoped notification configurations
+
+### Request
+
+- Method: `GET`
+- URL: `/api/teams/:teamId/relationships/notification`
+
+### Response
+
+Returns an array of JSON API objects, for example
+
+```json
+[
+  {
+    "data": {
+      "id": 5,
+      "type": "notifications",
+      "attributes": {
+        "type": "hipchat",
+        "teamId": ":teamId",
+        "hipchatAuthToken": "[YOUR_HIP_CHAT_AUTH_TOKEN]",
+        "hipchatRoomId": "[YOUR_HIP_CHAT_ROOM_ID]"
+      }
+    }
+  }
+]
+```
+
+The notification type related attributes are described below in *Add notification configuration*.
+
+## Get project-scoped notification configurations
+
+### Request
+
+- Method: `GET`
+- URL: `/api/projects/:projectId/relationships/notification`
+
+### Response
+
+Returns an array of JSON API objects, for example
+
+```json
+[
+  {
+    "data": {
+      "id": 4,
+      "type": "notifications",
+      "attributes": {
+        "type": "flowdock",
+        "projectId": ":projectId",
+        "flowToken": "[FLOW_TOKEN]"
+      }
+    }
+  }
+]
+```
+
+The notification type related attributes are described below.
+
 ## Add notification configuration
 
 ### Request

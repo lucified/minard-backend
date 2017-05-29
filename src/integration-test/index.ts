@@ -1,0 +1,54 @@
+/* tslint:disable:only-arrow-functions variable-name */
+
+/* The first rule needs to be disabled as mocha's
+   this.timeout(...) does not work with arrow functions.
+   The second rule needs to be disabled since EventSource is a class
+   and using disable-line doesn't work */
+import { expect } from 'chai';
+
+import CharlesClient from './charles-client';
+import interTeamTests from './tests-inter-team';
+import intraTeamTests from './tests-intra-team';
+import { CharlesClients, TeamType } from './types';
+import { getAccessToken, getConfiguration } from './utils';
+
+const config = getConfiguration(process.env.NODE_ENV);
+
+function hasAllClients(clients: Partial<CharlesClients>): clients is CharlesClients {
+  return !!(clients && clients.admin && clients.open && clients.regular);
+}
+
+describe('system-integration', () => {
+  const clients: Partial<CharlesClients> = {};
+  const teamTypes: TeamType[] = ['admin', 'regular', 'open'];
+
+  for (const teamType of teamTypes) {
+
+    describe(`user belonging to '${teamType}' team`, () => {
+
+      const auth0Config = config.auth0[teamType];
+
+      describe('authentication', () => {
+        it('should be able to sign in with Auth0', async function () {
+          this.timeout(1000 * 30);
+          const accessToken = await getAccessToken(auth0Config);
+          expect(accessToken).to.exist;
+          clients[teamType] = new CharlesClient(config.charles, accessToken);
+        });
+      });
+      const client = clients[teamType];
+      if (client) {
+        intraTeamTests(
+          client,
+          auth0Config.clientId,
+          auth0Config.gitPassword,
+          config.notifications,
+        );
+      }
+
+    });
+  }
+  if (hasAllClients(clients)) {
+    interTeamTests(clients);
+  }
+});

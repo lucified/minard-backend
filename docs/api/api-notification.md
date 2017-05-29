@@ -28,23 +28,26 @@ Name|Type|Description
 
 ### Response
 
-Returns an array of JSON API objects, for example
+Returns a JSON API response object, where the `data` key is an array of JSON API entities, for example
 
 ```json
-[
-  {
-    "data": {
-      "id": 5,
-      "type": "notifications",
-      "attributes": {
-        "type": "hipchat",
-        "teamId": ":teamId",
-        "hipchatAuthToken": "[YOUR_HIP_CHAT_AUTH_TOKEN]",
-        "hipchatRoomId": "[YOUR_HIP_CHAT_ROOM_ID]"
+{
+  "data":
+  [
+    {
+      "data": {
+        "id": 5,
+        "type": "notifications",
+        "attributes": {
+          "type": "hipchat",
+          "teamId": ":teamId",
+          "hipchatAuthToken": "[YOUR_HIP_CHAT_AUTH_TOKEN]",
+          "hipchatRoomId": "[YOUR_HIP_CHAT_ROOM_ID]"
+        }
       }
     }
-  }
-]
+  ]
+}
 ```
 
 The notification type related attributes are described below in *Add notification configuration*.
@@ -58,23 +61,27 @@ The notification type related attributes are described below in *Add notificatio
 
 ### Response
 
-Returns an array of JSON API objects, for example
+Returns a JSON API response object, where the `data` key is an array of JSON API entities, for example
 
 ```json
-[
-  {
-    "data": {
-      "id": 4,
-      "type": "notifications",
-      "attributes": {
-        "type": "flowdock",
-        "projectId": ":projectId",
-        "flowToken": "[FLOW_TOKEN]"
+{
+  "data":
+  [
+    {
+      "data": {
+        "id": 4,
+        "type": "notifications",
+        "attributes": {
+          "type": "flowdock",
+          "projectId": ":projectId",
+          "flowToken": "[FLOW_TOKEN]"
+        }
       }
     }
-  }
-]
+  ]
+}
 ```
+
 
 The notification type related attributes are described below.
 

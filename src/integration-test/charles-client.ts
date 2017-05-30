@@ -20,15 +20,22 @@ interface ResponseMulti {
 
 export default class CharlesClient {
 
-  private teamId: number | undefined;
+  public teamId: number | undefined;
+  public lastDeployment: {
+    id: string;
+    url: string;
+    screenshot: string;
+    token: string;
+  } | undefined;
   public lastProject: {
     id: number;
-    url: string;
+    repoUrl: string;
+    token: string;
   } | undefined;
   private readonly fetchOptions: RequestInit;
 
   constructor(
-    private readonly url: string,
+    public readonly url: string,
     private readonly accessToken: string,
   ) {
     this.fetchOptions = {
@@ -88,12 +95,22 @@ export default class CharlesClient {
     };
   }
 
+  public async getProject(projectId?: number): Promise<JsonApiEntity> {
+    const _projectId = projectId || (this.lastProject && this.lastProject.id);
+    if (!_projectId) {
+      throw new Error('No projectId available');
+    }
+    const response = await this.fetchJson<ResponseSingular>(`/api/projects/${_projectId}`);
+    return response.data;
+  }
+
   public async createProject(name: string, teamId?: number, templateProjectId?: number): Promise<JsonApiEntity> {
     const request = await this.createProjectRequest(name, teamId, templateProjectId);
     const response = await this.fetchJsonWithRetry<ResponseSingular>(`/api/projects`, request, 201, 20);
     this.lastProject = {
       id: Number(response.data.id),
-      url: response.data.attributes['repo-url'],
+      repoUrl: response.data.attributes['repo-url'],
+      token: response.data.attributes.token,
     };
     return response.data;
   }
@@ -281,7 +298,7 @@ export default class CharlesClient {
   public getRepoUrlWithCredentials(clientId: string, password: string, plainUrl?: string) {
     let repoUrl: string | undefined;
     if (this.lastProject) {
-      repoUrl = this.lastProject.url;
+      repoUrl = this.lastProject.repoUrl;
     }
     if (plainUrl) {
       repoUrl = plainUrl;
@@ -298,6 +315,24 @@ export default class CharlesClient {
     const gitServerWithCredentials = gitserver
       .replace('//', `//${credentials}@`);
     return repoUrl.replace(gitserver, gitServerWithCredentials);
+  }
+
+  public toDto() {
+    return {
+      url: this.url,
+      accessToken: this.accessToken,
+      lastProject: this.lastProject,
+      lastDeployment: this.lastDeployment,
+      teamId: this.teamId,
+    };
+  }
+
+  public static load(dto: any) {
+    const instance = new CharlesClient(dto.url, dto.accessToken);
+    instance.lastProject = dto.lastProject;
+    instance.lastDeployment = dto.lastDeployment;
+    instance.teamId = dto.teamId;
+    return instance;
   }
 
   /**

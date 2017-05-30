@@ -313,6 +313,8 @@ export default (
       });
     });
 
+    // TODO: for unknown reasons these fail pretty much randomly, depending on the machine and luck.
+    // If the team-scoped events are skipped, then these suddenly pass.
     describe.skip('deployment scoped events', () => {
       const eventResponses: SSE[] = [];
       const numEvents = 2;

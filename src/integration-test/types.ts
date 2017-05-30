@@ -1,3 +1,4 @@
+import { JsonApiEntity } from '../json-api/types';
 import CharlesClient from './charles-client';
 
 export interface Auth0 {
@@ -49,4 +50,11 @@ export interface CharlesClients {
   admin: CharlesClient;
   open: CharlesClient;
   regular: CharlesClient;
+}
+
+export type AccessCode = '0' | '1' | 'x' | 'z';
+export interface Route {
+  description: string;
+  request: (me: CharlesClient, other: CharlesClient) => Promise<JsonApiEntity> | Promise<JsonApiEntity[]>;
+  accessMatrix: AccessCode[][];
 }

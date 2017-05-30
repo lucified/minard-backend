@@ -3,83 +3,46 @@ import * as Boom from 'boom';
 import * as chalk from 'chalk';
 import { spawn } from 'child_process';
 import * as fs from 'fs';
-import { merge } from 'lodash';
 import * as path from 'path';
 
-import originalFetch, { RequestInit, Response as OriginalResponse } from 'node-fetch';
+import fetch, { Response } from 'node-fetch';
 import { ENV } from '../shared/types';
-import CharlesClient from './charles-client';
-import { Auth0, CharlesClients, Config, TeamType } from './types';
+import CharlesClient, { ResponseMulti, ResponseSingle } from './charles-client';
+import { Auth0, CharlesClients, CharlesResponse, Config, TeamType } from './types';
 
-// const rimraf = require('rimraf');
 const mkpath = require('mkpath');
 
 export function sleep(ms = 0) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export interface Response extends OriginalResponse {
-  tryJson: <T>(onlyOnSuccess?: boolean) => T;
-}
-
-export type Fetch = (url: string, options?: RequestInit) => Promise<Response>;
-
-export function fetchFactory(accessToken: string, retryCount = 0, sleepFor = 2000) {
-
-  const innerFetch = async (url: string, options?: RequestInit) => {
-    const _options: RequestInit = merge({
-      redirect: 'manual',
-      headers: {
-        authorization: `Bearer ${accessToken}`,
-        cookie: `token=${accessToken}`,
-      },
-    }, options || {});
-    // These are here intentionally for debugging purposes
-    // console.log('--> HTTP %s %s', (_options && _options.method) || 'GET', url);
-    // console.dir(_options, { colors: true });
-    return wrapResponse(await originalFetch(url, _options));
-  };
-  let out = innerFetch;
-  if (retryCount > 0) {
-    out = async (url: string, options?: RequestInit) => {
-      for (let i = 0; i < retryCount; i++) {
-        try {
-          return await innerFetch(url, options);
-        } catch (err) {
-          log(`WARN: Fetch failed for url ${url}. Error message is '${err.message}'`);
-          await sleep(sleepFor);
-        }
-      }
-      throw Error(`Fetch failed ${retryCount} times for url ${url}`);
-    };
-  }
-  return out;
-}
-
-function wrapResponse(response: OriginalResponse): Response {
+export function wrapResponse<T>(response: Response): CharlesResponse<T> {
   const _response = response as any;
-  _response.tryJson = async <T>(onlyOnSuccess = true) => {
-    if (!onlyOnSuccess || (response.status >= 200 && response.status < 300)) {
-      try {
-        return (await response.json()) as T;
-      } catch (error) {
-        try {
-          throw Boom.create(response.status, await response.text());
-        } catch (error) {
-          throw Boom.create(response.status);
-        }
-      }
-    }
-    try {
-      throw Boom.create(response.status, await response.text());
-    } catch (error) {
-      throw Boom.create(response.status);
-    }
-  };
+  _response.toJson = getResponseJson<T>(response);
   // These are here intentionally for debugging purposes
   // console.log('<-- HTTP %s', response.status);
   // console.dir(response.headers, { colors: true });
   return _response;
+}
+
+export function getEntity(
+  client: Promise<CharlesClient>,
+  apiCall: (client: CharlesClient) => Promise<CharlesResponse<ResponseSingle>>,
+) {
+  return client
+        .then(apiCall)
+        .then(x => x.toJson())
+        .then(x => x.data);
+}
+
+export function getEntities(
+  client: Promise<CharlesClient>,
+  apiCall: (client: CharlesClient) => Promise<CharlesResponse<ResponseMulti>>,
+) {
+  return client
+        .then(apiCall)
+        .then(x => x.toJson())
+        .then(x => x.data);
 }
 
 export async function runCommand(command: string, ...args: string[]): Promise<boolean> {
@@ -113,31 +76,36 @@ export function prettyUrl(url: string) {
   return chalk.blue.underline(url);
 }
 
-export async function getResponseJson<T>(response: OriginalResponse, requiredStatus = 200): Promise<T> {
-  const responseBody = await response.text();
-  let json: any;
-  try {
-    json = JSON.parse(responseBody);
-  } catch (error) {
-    // No need to handle here
-  }
+export function assertResponseStatus(response: Response, requiredStatus = 200) {
   if (response.status !== requiredStatus) {
     const msgParts = [
       `Got ${response.status} instead of ${requiredStatus}`,
       response.url,
-      responseBody,
     ];
-    throw Boom.create(response.status, msgParts.join(`\n\n`));
+    const status = response.status >= 400 ? response.status : 500;
+    throw Boom.create(status, msgParts.join(`\n\n`), { originalStatus: response.status });
   }
-  if (!json) {
-    const msgParts = [
-      `Unable to parse json`,
-      `${response.url} => ${response.status}`,
-      responseBody,
-    ];
-    throw Boom.create(response.status, msgParts.join(`\n\n`));
-  }
-  return json;
+}
+export function getResponseJson<T>(response: Response) {
+  let parsed: any;
+  return async (): Promise<T> => {
+    if (!parsed) {
+      const responseBody = await response.text();
+      try {
+        parsed = JSON.parse(responseBody);
+      } catch (error) {
+        // No need to handle here
+        const msgParts = [
+          `Unable to parse json: ${error.message}`,
+          `${response.url} => ${response.status}`,
+          responseBody,
+        ];
+        const status = response.status >= 400 ? response.status : 500;
+        throw Boom.create(status, msgParts.join(`\n\n`));
+      }
+    }
+    return parsed;
+  };
 }
 
 export async function getAccessToken(config: Auth0) {
@@ -149,14 +117,14 @@ export async function getAccessToken(config: Auth0) {
     grant_type: 'client_credentials',
   };
   const url = `${domain}/oauth/token`;
-  const response = await originalFetch(url, {
+  const response = await fetch(url, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
     },
     body: JSON.stringify(body),
   });
-  const json = await getResponseJson<{ access_token: string }>(response);
+  const json = await getResponseJson<{ access_token: string }>(response)();
   return json.access_token as string;
 }
 

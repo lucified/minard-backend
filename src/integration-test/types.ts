@@ -1,4 +1,4 @@
-import { JsonApiEntity } from '../json-api/types';
+import { Response } from 'node-fetch';
 import CharlesClient from './charles-client';
 
 export interface Auth0 {
@@ -52,9 +52,25 @@ export interface CharlesClients {
   regular: CharlesClient;
 }
 
-export type AccessCode = '0' | '1' | 'x' | 'z';
+export interface CharlesResponse<T> extends Response {
+  toJson: () => Promise<T>;
+}
+
+export type AccessCode = '0' | '1' | 'x' | 'z' | 'r';
 export interface Route {
   description: string;
-  request: (me: CharlesClient, other: CharlesClient) => Promise<JsonApiEntity> | Promise<JsonApiEntity[]>;
+  request: (me: CharlesClient, other: CharlesClient) => Promise<Response>;
   accessMatrix: AccessCode[][];
+}
+
+export interface LatestDeployment {
+  id: string;
+  url: string;
+  screenshot: string;
+  token: string;
+}
+export interface LatestProject {
+  id: number;
+  repoUrl: string;
+  token: string;
 }

@@ -21,6 +21,32 @@ const routes: Route[] = [
     },
     accessMatrix: getMatrix('0', '0'),
   },
+  {
+    description: 'view deployment',
+    request: (me: CharlesClient, other: CharlesClient) => {
+      expect(me.lastDeployment).to.exist;
+      expect(other.lastDeployment).to.exist;
+      return me.fetchAndAssertStatus(other.lastDeployment!.url + '/index.html');
+    },
+    accessMatrix: [
+      ['r', 'r', 'r', '1'],
+      ['0', '1', '0', '1'],
+      ['x', '1', '1', '1'],
+    ],
+  },
+  {
+    description: 'view screenshot',
+    request: (me: CharlesClient, other: CharlesClient) => {
+      expect(me.lastDeployment).to.exist;
+      expect(other.lastDeployment).to.exist;
+      return me.fetchAndAssertStatus(other.lastDeployment!.screenshot);
+    },
+    accessMatrix: [
+      ['x', 'x', '1', '1'],
+      ['x', '1', '1', '1'],
+      ['x', '1', '1', '1'],
+    ],
+  },
 ];
 
 function getMatrix(

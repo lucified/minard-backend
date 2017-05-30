@@ -24,7 +24,7 @@ function hasAllClients(clients: Partial<CharlesClients>): clients is CharlesClie
 
 describe('system-integration', () => {
   const teamTypes: TeamType[] = ['admin', 'regular', 'open'];
-  describe('intra-team', () => {
+  describe.skip('intra-team', () => {
     const clients: Partial<CharlesClients> = {};
     for (const teamType of teamTypes) {
 

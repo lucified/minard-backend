@@ -6,17 +6,19 @@ import { CharlesClients } from './types';
 
 const I = [0, 1, 2];
 const J = [0, 1, 2, 3];
-const descriptions =  {
+const descriptions = {
   '1': 'able to access',
   '0': 'unauthenticated',
   'z': 'unauthorized',
   'x': 'unable to access a missing entity',
+  'r': 'redirected',
 };
 const codes = {
   '1': 200, // doesn't matter really
   '0': 401,
   'z': 403,
   'x': 404,
+  'r': 302,
 };
 const userTypes = ['anonymous', 'normal', 'admin'];
 const projectTypes = ['zero', 'own', 'other\'s', 'open'];
@@ -40,14 +42,16 @@ export default (
       const anonymous = new CharlesClient(_clients.regular.url, '');
       anonymous.teamId = 9999999;
       anonymous.lastProject = {
-        id: 9999999,
-        repoUrl: 'http',
-        token: '9999999',
+        id: 999999999,
+        repoUrl: _clients.regular.lastProject!.repoUrl,
+        token: _clients.regular.lastProject!.token,
       };
+      const anonymousUrl = _clients.regular.lastDeployment!.url
+        .replace(/^(https?:\/\/)\w+-\w+-\w+-\w+/, '$1master-abc-123-123');
       anonymous.lastDeployment = {
         id: '9999999',
-        url: 'http',
-        screenshot: 'http',
+        url: anonymousUrl,
+        screenshot: _clients.regular.lastDeployment!.screenshot + '_',
         token: '9999999',
       };
       clients = [
@@ -65,6 +69,8 @@ export default (
             for (const j of J) {
               describe(`requesting entity of type ${projectTypes[j]}`, () => {
                 const access = route.accessMatrix[i][j];
+                const expected = codes[access];
+
                 it(`should be ${descriptions[access]}`, async function () {
                   this.timeout(10000);
                   const me = clients[i];
@@ -75,21 +81,24 @@ export default (
                   if (j === 2) { // other's
                     other = i === 1 ? clients[2] : clients[1];
                   }
-                  let _error: any;
-                  let response: any;
-                  try {
-                    response = await route.request(me, other);
-                  } catch (error) {
-                    _error = error;
-                  }
+
                   if (access === '1') {
-                    expect(_error).to.not.exist;
+                    const response = await route.request(me, other);
+                    expect(response.status).to.be.gte(200);
+                    expect(response.status).to.be.lt(300);
                   } else {
-                    expect(_error).to.exist;
-                    const expected = codes[access];
-                    const got = _error.output.statusCode;
-                    if (got !== expected) {
-                      console.log(`[WARN] Expected response code ${expected}, but got ${got}`);
+                    try {
+                      const response = await route.request(me, other);
+                      expect.fail(undefined, null, `Got ${response.status} from ${response.url}`);
+                    } catch (_error) {
+                      if (!_error.isBoom) {
+                        throw _error;
+                      }
+                      const error = _error;
+                      const got = error.data.originalStatus;
+                      if (got !== expected) {
+                        console.log(`[WARN] Expected response code ${expected}, but got ${got}.`);
+                      }
                     }
                   }
                 });

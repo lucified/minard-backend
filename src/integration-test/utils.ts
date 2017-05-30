@@ -2,11 +2,17 @@ import { Observable } from '@reactivex/rxjs';
 import * as Boom from 'boom';
 import * as chalk from 'chalk';
 import { spawn } from 'child_process';
+import * as fs from 'fs';
 import { merge } from 'lodash';
+import * as path from 'path';
 
 import originalFetch, { RequestInit, Response as OriginalResponse } from 'node-fetch';
 import { ENV } from '../shared/types';
-import { Auth0, Config } from './types';
+import CharlesClient from './charles-client';
+import { Auth0, CharlesClients, Config, TeamType } from './types';
+
+// const rimraf = require('rimraf');
+const mkpath = require('mkpath');
 
 export function sleep(ms = 0) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -121,7 +127,7 @@ export async function getResponseJson<T>(response: OriginalResponse, requiredSta
       response.url,
       responseBody,
     ];
-    throw new Error(msgParts.join(`\n\n`));
+    throw Boom.create(response.status, msgParts.join(`\n\n`));
   }
   if (!json) {
     const msgParts = [
@@ -129,7 +135,7 @@ export async function getResponseJson<T>(response: OriginalResponse, requiredSta
       `${response.url} => ${response.status}`,
       responseBody,
     ];
-    throw new Error(msgParts.join(`\n\n`));
+    throw Boom.create(response.status, msgParts.join(`\n\n`));
   }
   return json;
 }
@@ -187,4 +193,25 @@ export function withPing<T extends object>(stream: Observable<T>, interval = 100
     })
     .filter(event => typeof event === 'object')
     .map(event => event as T);
+}
+
+export function saveToCache(cacheDir: string, cacheFileName: string) {
+  return (clients: Partial<CharlesClients>) => {
+    try {
+      mkpath.sync(cacheDir);
+    } catch (error) {
+      // nothing
+    }
+    const cacheFile = path.join(cacheDir, cacheFileName);
+    const clientDtos = Object.keys(clients)
+      .reduce((p: any, tt: TeamType) => ({ ...p, [tt]: clients[tt]!.toDto() }), {});
+    fs.writeFileSync(cacheFile, JSON.stringify(clientDtos, undefined, 2));
+  };
+}
+
+export function loadFromCache(cacheDir: string, cacheFileName: string): Partial<CharlesClients> {
+  const cacheFile = path.join(cacheDir, cacheFileName);
+  const clientDtos = JSON.parse(fs.readFileSync(cacheFile).toString());
+  return Object.keys(clientDtos)
+    .reduce((p: any, tt: TeamType) => ({ ...p, [tt]: CharlesClient.load(clientDtos[tt]) }), {});
 }

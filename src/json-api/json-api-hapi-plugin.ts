@@ -427,6 +427,20 @@ export class JsonApiHapiPlugin {
         },
       },
     }, {
+      method: 'GET',
+      path: '/teams/{teamId}/relationships/notification',
+      handler: {
+        async: this.getTeamNotificationConfigurationsHandler,
+      },
+      config: {
+        bind: this,
+        validate: {
+          params: {
+            teamId: Joi.number().required(),
+          },
+        },
+      },
+    }, {
       method: 'DELETE',
       path: '/notifications/{id}',
       handler: {
@@ -765,6 +779,11 @@ export class JsonApiHapiPlugin {
   public async getProjectNotificationConfigurationsHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const projectId = Number(request.params.projectId);
     return reply(this.getEntity('notification', api => api.getProjectNotificationConfigurations(projectId)));
+  }
+
+  public async getTeamNotificationConfigurationsHandler(request: Hapi.Request, reply: Hapi.IReply) {
+    const teamId = Number(request.params.teamId);
+    return reply(this.getEntity('notification', api => api.getTeamNotificationConfigurations(teamId)));
   }
 
   public async tryGetNotificationConfiguration(request: Hapi.Request, reply: Hapi.IReply) {

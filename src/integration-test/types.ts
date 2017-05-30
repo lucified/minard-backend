@@ -18,33 +18,21 @@ export interface Config {
     [key: string]: Auth0 & { gitPassword: string };
   };
 }
-
-export type NotificationType = 'flowdock' | 'hipchat' | 'slack';
-
-export interface HipChatNotificationConfiguration extends BaseNotificationConfiguration {
+interface HipChatNotificationConfiguration {
   type: 'hipchat';
   hipchatRoomId: number;
   hipchatAuthToken: string;
 }
 
-export interface FlowdockNotificationConfiguration extends BaseNotificationConfiguration {
+interface FlowdockNotificationConfiguration {
   type: 'flowdock';
   flowToken: string;
 }
 
-export interface SlackNotificationConfiguration extends BaseNotificationConfiguration {
+interface SlackNotificationConfiguration {
   type: 'slack';
   slackWebhookUrl: string;
 }
-
-export interface BaseNotificationConfiguration {
-  type: NotificationType;
-}
-
-export type NotificationConfiguration =
-  HipChatNotificationConfiguration |
-  FlowdockNotificationConfiguration |
-  SlackNotificationConfiguration;
 
 export interface SSE {
   type: string;

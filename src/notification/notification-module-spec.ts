@@ -263,7 +263,7 @@ describe('notification-module', () => {
     await shouldNotTriggerNotification(projectId, { screenshotStatus: 'running' });
   });
 
-  it('should be able to add, get and delete configurations', async () => {
+  it('should be able to add, get and delete project scoped configurations', async () => {
     const _projectId = 9;
     // Arrange
     const notificationModule = await arrange({} as any, new LocalEventBus(), {} as any, {} as any);
@@ -293,6 +293,38 @@ describe('notification-module', () => {
     expect(existingForProject[0].slackWebhookUrl).to.equal(config.slackWebhookUrl);
     expect(deleted).to.equal(undefined);
     expect(deletedForProject).to.have.length(0);
+  });
+
+  it('should be able to add, get and delete team scoped configurations', async () => {
+    const _teamId = 9;
+    // Arrange
+    const notificationModule = await arrange({} as any, new LocalEventBus(), {} as any, {} as any);
+    const config = {
+      type: 'slack' as 'slack',
+      projectId: null,
+      flowToken: null,
+      hipchatAuthToken: null,
+      hipchatRoomId: null,
+      slackWebhookUrl: 'http://mock.slack.url/sdadsad',
+      teamId: _teamId,
+    };
+
+    // Act
+    const id = await notificationModule.addConfiguration(config);
+    const existing = await notificationModule.getConfiguration(id);
+    const existingForTeam = await notificationModule.getTeamConfigurations(_teamId);
+    await notificationModule.deleteConfiguration(id);
+    const deleted = await notificationModule.getConfiguration(id);
+    const deletedForTeam = await notificationModule.getTeamConfigurations(_teamId);
+
+    // Assert
+    expect(existing).to.deep.equal({ ...config, id });
+    expect(existing!.slackWebhookUrl).to.equal(config.slackWebhookUrl);
+    expect(existingForTeam).to.have.length(1);
+    expect(existingForTeam[0]).to.deep.equal({ ...config, id });
+    expect(existingForTeam[0].slackWebhookUrl).to.equal(config.slackWebhookUrl);
+    expect(deleted).to.equal(undefined);
+    expect(deletedForTeam).to.have.length(0);
   });
 
 });

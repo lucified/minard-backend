@@ -8,8 +8,9 @@ import { Observable } from '@reactivex/rxjs';
 import { expect } from 'chai';
 
 import { JsonApiEntity } from '../json-api/types';
+import { NotificationConfiguration, NotificationType } from '../notification/types';
 import CharlesClient from './charles-client';
-import { NotificationConfiguration, NotificationType, SSE } from './types';
+import { SSE } from './types';
 import {
   getAccessToken,
   getConfiguration,
@@ -25,16 +26,16 @@ const teamTypes: TeamType[] = ['admin', 'regular', 'open'];
 describe('system-integration', () => {
   for (const teamType of teamTypes) {
     const projectName = 'regular-project';
-    const notificationIds: number[] = [];
+    const notificationConfigurations: {[id: string]: NotificationConfiguration} = {};
     let client: CharlesClient;
 
     describe(`user belonging to '${teamType}' team`, () => {
 
       const auth0Config = config.auth0[teamType];
-      let oldProjects: JsonApiEntity[] | undefined;
+      let project: JsonApiEntity | undefined;
       let deployment: JsonApiEntity | undefined;
 
-      describe('authentication and projects', () => {
+      describe('authentication', () => {
 
         it('should be able to sign in with Auth0', async function () {
           this.timeout(1000 * 30);
@@ -48,29 +49,52 @@ describe('system-integration', () => {
           const teamId = await client.getTeamId();
           expect(teamId).to.exist;
         });
-
-        it('should be able to get own team\'s projects', async function () {
-          this.timeout(1000 * 30);
-          oldProjects = await client.getProjects();
-          expect(oldProjects).to.exist;
-        });
+      });
+      describe('cleanup', () => {
 
         it('should be able to delete existing integration test projects', async function () {
           this.timeout(1000 * 30);
-          for (const project of oldProjects!) {
-            if (project && project.id) {
-              const response = await client.deleteProject(Number(project.id));
+          const oldProjects = await client.getProjects();
+          for (const oldProject of oldProjects!) {
+            if (oldProject && oldProject.id) {
+              const response = await client.deleteProject(Number(oldProject.id));
               expect(response.status).to.eq(200);
             }
           }
         });
+        it('should be able to delete existing notification configurations', async function () {
+          // Arrange
+          this.timeout(1000 * 20);
+          const teamId = await client.getTeamId();
+
+          // Act
+          const teamConfigurations = await client.getTeamNotificationConfigurations(teamId);
+
+          // Assert
+          const receivedIds = teamConfigurations.map(entity => Number(entity.id));
+          for (const id of receivedIds) {
+            const response = await client.deleteNotificationConfiguration(id);
+            expect(response.status).to.eq(200);
+          }
+        });
+
+      });
+
+      describe('projects', () => {
 
         it('should be able to create a project', async function () {
           this.timeout(1000 * 3000);
-          const project = await client.createProject(projectName);
+          project = await client.createProject(projectName);
           expect(project.id).to.exist;
           const repoUrl = project.attributes['repo-url'];
           expect(repoUrl).to.exist;
+        });
+
+        it('should be able to get created projects', async function () {
+          this.timeout(1000 * 30);
+          const projects = await client.getProjects();
+          expect(projects.length).to.eq(1);
+          expect(projects[0].id).to.eq(project!.id);
         });
 
         it('should be able to edit a project', async function () {
@@ -144,24 +168,20 @@ describe('system-integration', () => {
 
       describe('configuring notifications', () => {
 
-        async function testNotificationConfiguration(
+        function testNotificationConfiguration(
           configuration: NotificationConfiguration,
-          projectId: null | number = null,
-          teamId: null | number = null,
+          responseJson: any,
         ) {
-          const responseJson = await client.configureNotification({
-            teamId,
-            projectId,
-            ...configuration,
-          });
           const id = Number(responseJson.id);
           expect(Number.isNaN(id)).to.be.false;
           const attributes = responseJson.attributes;
-          if (teamId) {
-            expect(Number(attributes['team-id'])).to.eq(teamId);
+          // Ensure that one or the other is defined
+          expect(!!(configuration.projectId || configuration.teamId)).to.be.true;
+          if (configuration.teamId) {
+            expect(Number(attributes['team-id'])).to.eq(configuration.teamId);
           }
-          if (projectId) {
-            expect(Number(attributes['project-id'])).to.eq(projectId);
+          if (configuration.projectId) {
+            expect(Number(attributes['project-id'])).to.eq(configuration.projectId);
           }
           switch (configuration.type) {
             case 'flowdock':
@@ -178,25 +198,47 @@ describe('system-integration', () => {
           return id;
         }
 
-        it('should be able to configure team scoped notifications', async function () {
+        it('should be able to configure notifications', async function () {
           this.timeout(1000 * 20);
+          const projectId = client.lastProject!.id;
           const teamId = await client.getTeamId();
           for (const notificationType of Object.keys(config.notifications)) {
             const notificationConfiguration = config.notifications[notificationType as NotificationType];
             if (notificationConfiguration) {
-              notificationIds.push(await testNotificationConfiguration(notificationConfiguration, null, teamId));
+              const scopes = [{
+                teamId: null,
+                projectId,
+                ...notificationConfiguration,
+              }, {
+                teamId,
+                projectId: null,
+                ...notificationConfiguration,
+              }];
+              for (const scopedConfiguration of scopes) {
+                const responseJson = await client.configureNotification(scopedConfiguration);
+                const id = testNotificationConfiguration(scopedConfiguration, responseJson);
+                notificationConfigurations[String(id)] = { id, ...scopedConfiguration };
+              }
             }
           }
         });
 
-        it('should be able to configure project scoped notifications', async function () {
+        it('should be able to list configured notifications', async function () {
+          // Arrange
           this.timeout(1000 * 20);
+          const teamId = await client.getTeamId();
           const projectId = client.lastProject!.id;
-          for (const notificationType of Object.keys(config.notifications)) {
-            const notificationConfiguration = config.notifications[notificationType as NotificationType];
-            if (notificationConfiguration) {
-              notificationIds.push(await testNotificationConfiguration(notificationConfiguration, projectId, null));
-            }
+
+          // Act
+          const teamConfigurations = await client.getTeamNotificationConfigurations(teamId);
+          const projectConfigurations = await client.getProjectNotificationConfigurations(projectId);
+
+          // Assert
+          const receivedConfigurations = teamConfigurations.concat(projectConfigurations);
+          expect(receivedConfigurations.length).to.eq(Object.keys(notificationConfigurations).length);
+          for (const responseJson of receivedConfigurations) {
+            const id = responseJson.id;
+            testNotificationConfiguration(notificationConfigurations[id], responseJson);
           }
         });
       });
@@ -230,8 +272,8 @@ describe('system-integration', () => {
       describe('removing notification configuration', () => {
         it('should be able to delete created configurations', async function () {
           this.timeout(1000 * 10);
-          for (const id of notificationIds) {
-            const response = await client.deleteNotificationConfiguration(id);
+          for (const id of Object.keys(notificationConfigurations)) {
+            const response = await client.deleteNotificationConfiguration(Number(id));
             expect(response.status).to.eq(200);
           }
         });

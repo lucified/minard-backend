@@ -193,6 +193,20 @@ export default class CharlesClient {
    * NOTIFICATION
    */
 
+  public async getTeamNotificationConfigurations(teamId: number): Promise<JsonApiEntity[]> {
+    const response = await this.fetchJson<ResponseMulti>(
+      `/api/teams/${teamId}/relationships/notification`,
+    );
+    return response.data;
+  }
+
+  public async getProjectNotificationConfigurations(projectId: number): Promise<JsonApiEntity[]> {
+    const response = await this.fetchJson<ResponseMulti>(
+      `/api/projects/${projectId}/relationships/notification`,
+    );
+    return response.data;
+  }
+
   public async configureNotification(attributes: NotificationConfiguration): Promise<JsonApiEntity> {
     if (attributes.teamId === null) {
       delete attributes.teamId;

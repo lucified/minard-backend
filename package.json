@@ -77,7 +77,7 @@
     "@types/yamljs": "^0.2.30",
     "chai": "^3.5.0",
     "ecs-updater": "^0.3.4",
-    "eventsource": "^0.2.1",
+    "eventsource": "^1.0.1",
     "fetch-mock": "^5.10.0",
     "jsonwebtoken": "^7.3.0",
     "lucify-notifier": "^0.1.14",

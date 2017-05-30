@@ -113,10 +113,11 @@ export default class CharlesClient {
         attributes,
       },
     };
-    const response = await this.fetchJsonWithRetry<ResponseSingular>(`/api/projects/${_projectId}`, {
-      method: 'PATCH',
-      body: JSON.stringify(editProjectPayload),
-    }, 200);
+    const response = await this.fetchJsonWithRetry<ResponseSingular>(
+      `/api/projects/${_projectId}`,
+      { method: 'PATCH', body: JSON.stringify(editProjectPayload) },
+      200,
+    );
     return response.data;
   }
 
@@ -239,17 +240,8 @@ export default class CharlesClient {
 
   public async teamEvents(eventType: string, lastEventId?: string, teamId?: number) {
     const _teamId = teamId || await this.getTeamId();
-    const eventSourceInitDict = lastEventId ? { headers: { 'Last-Event-ID': lastEventId } } : {};
-    const eventSource = new EventSource(`${this.url}/events/${_teamId}?token=${this.accessToken}`, eventSourceInitDict);
-    const stream = Observable.fromEventPattern(
-      (h: any) => {
-        eventSource.addEventListener(eventType, h);
-      },
-      (h: any) => {
-        eventSource.removeListener(eventType, h);
-      },
-    );
-    return stream.map(event => event as SSE);
+    const url = `${this.url}/events/${_teamId}?token=${this.accessToken}`;
+    return this.realtimeEvents(url, eventType, lastEventId);
   }
 
   public deploymentEvents(
@@ -258,14 +250,27 @@ export default class CharlesClient {
     token: string,
     lastEventId?: string,
   ) {
+    const url = `${this.url}/events/deployment/${deploymentId}/${token}?token=${this.accessToken}`;
+    return this.realtimeEvents(url, eventType, lastEventId);
+  }
+
+  private realtimeEvents(
+    url: string,
+    eventType: string,
+    lastEventId?: string,
+  ) {
     const eventSourceInitDict = lastEventId ? { headers: { 'Last-Event-ID': lastEventId } } : {};
-    const eventSource = new EventSource(
-      `${this.url}/events/deployment/${deploymentId}/${token}?token=${this.accessToken}`,
-      eventSourceInitDict,
-    );
+    let eventSource = new EventSource(url, eventSourceInitDict);
+
     return Observable.fromEventPattern(
-      (h: any) => eventSource.addEventListener(eventType, h),
-      (h: any) => eventSource.removeListener(eventType, h),
+      (h: any) => {
+        eventSource.addEventListener(eventType, h);
+      },
+      (h: any) => {
+        eventSource.removeEventListener(eventType, h);
+        eventSource.close();
+        eventSource = null;
+      },
     ).map(event => event as SSE);
   }
 

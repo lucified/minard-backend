@@ -843,7 +843,7 @@ describe('system-integration', () => {
     const eventType = 'PROJECT_EDITED';
     const eventPromise = Observable.fromEventPattern(
       (h: any) => eventSource.addEventListener(eventType, h),
-      (h: any) => eventSource.removeListener(eventType, h),
+      (h: any) => eventSource.removeEventListener(eventType, h),
     ).take(1).map(event => <SSE> event).toPromise();
 
     const [editResponse, sseResponse] = await Promise.all([editRequest, eventPromise]);
@@ -870,7 +870,7 @@ describe('system-integration', () => {
     );
     const sseResponse = await Observable.fromEventPattern(
       (h: any) => eventSource.addEventListener(eventType, h),
-      (h: any) => eventSource.removeListener(eventType, h),
+      (h: any) => eventSource.removeEventListener(eventType, h),
     ).take(1).map(event => <SSE> event).toPromise();
 
     expect(sseResponse.type).to.equal(eventType);

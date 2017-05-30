@@ -17,20 +17,19 @@ import {
 } from './utils';
 
 export default (
-  client: CharlesClient,
+  client: () => Promise<CharlesClient>,
   gitUser: string,
   gitPassword: string,
   notificationConfigurations?: NotificationConfigurations,
   projectName = 'regular-project',
 ) => {
   const createdNotificationConfigurations: { [id: string]: NotificationConfiguration } = {};
-  let project: JsonApiEntity | undefined;
   let deployment: JsonApiEntity | undefined;
 
-  describe('authentication', () => {
+  describe('team-id', () => {
     it('should be able to get the team id', async function () {
       this.timeout(1000 * 30);
-      const teamId = await client.getTeamId();
+      const teamId = await (await client()).getTeamId();
       expect(teamId).to.exist;
     });
   });
@@ -39,10 +38,10 @@ export default (
 
     it('should be able to delete existing integration test projects', async function () {
       this.timeout(1000 * 30);
-      const oldProjects = await client.getProjects();
+      const oldProjects = await (await client()).getProjects();
       for (const oldProject of oldProjects!) {
         if (oldProject && oldProject.id) {
-          const response = await client.deleteProject(Number(oldProject.id));
+          const response = await (await client()).deleteProject(Number(oldProject.id));
           expect(response.status).to.eq(200);
         }
       }
@@ -50,15 +49,15 @@ export default (
     it('should be able to delete existing notification configurations', async function () {
       // Arrange
       this.timeout(1000 * 20);
-      const teamId = await client.getTeamId();
+      const teamId = await (await client()).getTeamId();
 
       // Act
-      const teamConfigurations = await client.getTeamNotificationConfigurations(teamId);
+      const teamConfigurations = await (await client()).getTeamNotificationConfigurations(teamId);
 
       // Assert
       const receivedIds = teamConfigurations.map(entity => Number(entity.id));
       for (const id of receivedIds) {
-        const response = await client.deleteNotificationConfiguration(id);
+        const response = await (await client()).deleteNotificationConfiguration(id);
         expect(response.status).to.eq(200);
       }
     });
@@ -69,7 +68,7 @@ export default (
 
     it('should be able to create a project', async function () {
       this.timeout(1000 * 3000);
-      project = await client.createProject(projectName);
+      const project = await (await client()).createProject(projectName);
       expect(project.id).to.exist;
       const repoUrl = project.attributes['repo-url'];
       expect(repoUrl).to.exist;
@@ -77,15 +76,16 @@ export default (
 
     it('should be able to get created projects', async function () {
       this.timeout(1000 * 30);
-      const projects = await client.getProjects();
+      const _client = await client();
+      const projects = await _client.getProjects();
       expect(projects.length).to.eq(1);
-      expect(projects[0].id).to.eq(project!.id);
+      expect(projects[0].id).to.eq(_client.lastProject!.id);
     });
 
     it('should be able to edit a project', async function () {
       this.timeout(1000 * 30);
       const newDescription = 'fooo fooofoofoo';
-      const response = await client.editProject({ description: newDescription });
+      const response = await (await client()).editProject({ description: newDescription });
       expect(response.id).to.exist;
       expect(response.attributes.description).to.equal(newDescription);
     });
@@ -96,14 +96,14 @@ export default (
     it('should be able to create a successful deployment by pushing code', async function () {
       this.timeout(1000 * 60 * 5);
       log('Pushing code');
-
+      const _client = await client();
       const repoFolder = `src/integration-test/blank`;
-      const repoUrl = client.getRepoUrlWithCredentials(gitUser, gitPassword);
+      const repoUrl = _client.getRepoUrlWithCredentials(gitUser, gitPassword);
       await runCommand('src/integration-test/setup-repo');
       await runCommand('git', '-C', repoFolder, 'remote', 'add', 'minard', repoUrl);
       await runCommand('git', '-C', repoFolder, 'push', 'minard', 'master');
 
-      const eventStream = await client.teamEvents('DEPLOYMENT_UPDATED');
+      const eventStream = await _client.teamEvents('DEPLOYMENT_UPDATED');
       deployment = await withPing(eventStream, 1000, 'Building...')
         .map(event => JSON.parse(event.data).deployment)
         .filter(d => d.attributes.status === 'success')
@@ -113,29 +113,30 @@ export default (
       expect(deployment!.attributes['build-status']).to.eq('success');
       expect(deployment!.attributes['extraction-status']).to.eq('success');
       expect(deployment!.attributes['screenshot-status']).to.eq('success');
+      _client.lastDeployment = deployment!.attributes;
     });
 
     it('should be able to fetch the raw deployment webpage', async function () {
       this.timeout(1000 * 30);
       const url = deployment!.attributes.url + '/index.html';
-      const response = await client.fetch(url);
+      const response = await (await client()).fetch(url);
       expect(response.status).to.eq(200);
     });
 
     it('should be able to fetch deployment\'s screenshot', async function () {
       this.timeout(1000 * 60);
-      const response = await client.fetch(deployment!.attributes.screenshot!);
+      const response = await (await client()).fetch(deployment!.attributes.screenshot!);
       expect(response.status).to.eq(200);
     });
 
     it('should be able to fetch project\'s activity', async function () {
       this.timeout(1000 * 10);
-      const activities = await client.getProjectActivity();
+      const activities = await (await client()).getProjectActivity();
       expect(activities).to.exist;
       expect(activities).to.have.length(1);
       expect(activities[0].attributes['activity-type']).to.equal('deployment');
       expect(activities[0].attributes.deployment.status).to.equal('success');
-      expect(Number(activities[0].attributes.project.id)).to.equal(client.lastProject!.id);
+      expect(Number(activities[0].attributes.project.id)).to.equal((await client()).lastProject!.id);
       expect(activities[0].attributes.project.name).to.equal(projectName);
       expect(activities[0].attributes.commit).to.exist;
       expect(activities[0].attributes.branch.name).to.equal('master');
@@ -177,8 +178,8 @@ export default (
     it('should be able to configure notifications', async function () {
       if (notificationConfigurations) {
         this.timeout(1000 * 20);
-        const projectId = client.lastProject!.id;
-        const teamId = await client.getTeamId();
+        const projectId = (await client()).lastProject!.id;
+        const teamId = await (await client()).getTeamId();
         for (const notificationType of Object.keys(notificationConfigurations)) {
           const notificationConfiguration = notificationConfigurations[notificationType as NotificationType];
           if (notificationConfiguration) {
@@ -192,7 +193,7 @@ export default (
               ...notificationConfiguration,
             }];
             for (const scopedConfiguration of scopes) {
-              const responseJson = await client.configureNotification(scopedConfiguration);
+              const responseJson = await (await client()).configureNotification(scopedConfiguration);
               const id = testNotificationConfiguration(scopedConfiguration, responseJson);
               createdNotificationConfigurations[String(id)] = { id, ...scopedConfiguration };
             }
@@ -204,12 +205,12 @@ export default (
     it('should be able to list configured notifications', async function () {
       // Arrange
       this.timeout(1000 * 20);
-      const teamId = await client.getTeamId();
-      const projectId = client.lastProject!.id;
+      const teamId = await (await client()).getTeamId();
+      const projectId = (await client()).lastProject!.id;
 
       // Act
-      const teamConfigurations = await client.getTeamNotificationConfigurations(teamId);
-      const projectConfigurations = await client.getProjectNotificationConfigurations(projectId);
+      const teamConfigurations = await (await client()).getTeamNotificationConfigurations(teamId);
+      const projectConfigurations = await (await client()).getProjectNotificationConfigurations(projectId);
 
       // Assert
       const receivedConfigurations = teamConfigurations.concat(projectConfigurations);
@@ -228,21 +229,21 @@ export default (
       const message = 'integration test message';
       const email = 'user@integration.com';
       const name = 'Charles Minard';
-      comment = await client.addComment(deployment!.id, message, name, email);
+      comment = await (await client()).addComment(deployment!.id, message, name, email);
       expect(comment.attributes.message).to.equal(message);
       expect(comment.id).to.exist;
     });
 
     it('should be able to fetch comments for deployment', async function () {
       this.timeout(1000 * 10 * 6);
-      const comments = await client.getComments(deployment!.id);
+      const comments = await (await client()).getComments(deployment!.id);
       expect(comments.length).to.equal(1);
       expect(comments[0].attributes.message).to.equal(comment!.attributes.message);
     });
 
     it('should be able to delete comment for deployment', async function () {
       this.timeout(1000 * 10);
-      const response = await client.deleteComment(comment!.id);
+      const response = await (await client()).deleteComment(comment!.id);
       expect(response.status).to.eq(200);
     });
   });
@@ -251,7 +252,7 @@ export default (
     it('should be able to delete created configurations', async function () {
       this.timeout(1000 * 10);
       for (const id of Object.keys(createdNotificationConfigurations)) {
-        const response = await client.deleteNotificationConfiguration(Number(id));
+        const response = await (await client()).deleteNotificationConfiguration(Number(id));
         expect(response.status).to.eq(200);
       }
     });
@@ -267,12 +268,12 @@ export default (
         this.timeout(1000 * 20);
         for (let k = 0; k < numEvents; k++) {
           // Arrange
-          const eventStream = withPing(await client.teamEvents(eventType), 1000, 'Waiting for realtime...');
+          const eventStream = withPing(await (await client()).teamEvents(eventType), 1000, 'Waiting for realtime...');
           const eventPromise = eventStream.take(1).toPromise();
           const newDescription = 'fooo fooofoofoo bababa';
 
           // Act
-          const editPromise = client.editProject({ description: newDescription });
+          const editPromise = (await client()).editProject({ description: newDescription });
           const [editResponse, sseResponse] = await Promise.all([editPromise, eventPromise]);
 
           // Assert
@@ -280,7 +281,7 @@ export default (
           expect(sseResponse.lastEventId).to.exist;
           const event = JSON.parse(sseResponse.data);
           expect(event).to.exist;
-          expect(event.id).to.eq(client.lastProject!.id);
+          expect(event.id).to.eq((await client()).lastProject!.id);
           expect(event.description).to.eq(newDescription);
 
           expect(editResponse.id).to.exist;
@@ -290,14 +291,14 @@ export default (
       });
 
       it('should be able to request events retrospectively', async function () {
-        const eventStream = await client.teamEvents(eventType, eventResponses[0].lastEventId);
+        const eventStream = await (await client()).teamEvents(eventType, eventResponses[0].lastEventId);
         const sseResponse = await eventStream.take(1).toPromise();
 
         expect(sseResponse.type).to.equal(eventType);
         expect(sseResponse.lastEventId).to.eq(eventResponses[1].lastEventId);
         const event = JSON.parse(sseResponse.data);
         expect(event).to.exist;
-        expect(event.id).to.eq(client.lastProject!.id);
+        expect(event.id).to.eq((await client()).lastProject!.id);
       });
     });
 
@@ -310,7 +311,7 @@ export default (
         for (let k = 0; k < numEvents; k++) {
           // Arrange
           const eventStream = withPing(
-            client.deploymentEvents(eventType, deployment!.id, deployment!.attributes.token),
+            (await client()).deploymentEvents(eventType, deployment!.id, deployment!.attributes.token),
             1000,
             'Waiting for realtime...',
           );
@@ -320,7 +321,7 @@ export default (
           const name = 'Charles Minard';
 
           // Act
-          await client.addComment(deployment!.id, message, name, email);
+          await (await client()).addComment(deployment!.id, message, name, email);
           const sseResponse = await eventPromise;
 
           // Assert
@@ -338,7 +339,7 @@ export default (
       it('should be able to request events retrospectively', async function () {
         this.timeout(1000 * 20);
 
-        const sseResponse = await withPing(client.deploymentEvents(
+        const sseResponse = await withPing((await client()).deploymentEvents(
           eventType,
           deployment!.id,
           deployment!.attributes.token,

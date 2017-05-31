@@ -1,12 +1,11 @@
 import { Observable } from '@reactivex/rxjs';
-import * as Boom from 'boom';
 import { merge } from 'lodash';
 import fetch, { RequestInit } from 'node-fetch';
 
 import { JsonApiEntity } from '../json-api/types';
 import { NotificationConfiguration } from '../notification/types';
 import { LatestDeployment, LatestProject, SSE } from './types';
-import { assertResponseStatus, sleep, wrapResponse } from './utils';
+import { assertResponseStatus, wrapResponse } from './utils';
 
 const EventSource = require('eventsource');
 
@@ -24,11 +23,12 @@ export default class CharlesClient {
   public teamId: number | undefined;
   public lastDeployment: LatestDeployment | undefined;
   public lastProject: LatestProject | undefined;
-  private readonly fetchOptions: RequestInit;
+  public readonly fetchOptions: RequestInit;
 
   constructor(
     public readonly url: string,
     private readonly accessToken: string,
+    public readonly throwOnUnsuccessful = false,
   ) {
     this.fetchOptions = {
       method: 'GET',
@@ -46,13 +46,13 @@ export default class CharlesClient {
 
   public async getProjects(teamId?: number) {
     const _teamId = teamId || await this.getTeamId();
-    const response = await this.fetchAndAssertStatus<ResponseMulti>(`/api/teams/${_teamId}/relationships/projects`);
+    const response = await this.fetch<ResponseMulti>(`/api/teams/${_teamId}/relationships/projects`);
     return response;
   }
 
   public async getTeamId() {
     if (!this.teamId) {
-      this.teamId = (await (await this.fetchAndAssertStatus<{ id: number }>('/team')).toJson()).id;
+      this.teamId = (await (await this.fetch<{ id: number }>('/team')).toJson()).id;
     }
     return this.teamId!;
   }
@@ -66,13 +66,13 @@ export default class CharlesClient {
     if (!_projectId) {
       throw new Error('No projectId available');
     }
-    const response = await this.fetchAndAssertStatus<ResponseSingle>(`/api/projects/${_projectId}`);
+    const response = await this.fetch<ResponseSingle>(`/api/projects/${_projectId}`);
     return response;
   }
 
   public async createProject(name: string, teamId?: number, templateProjectId?: number) {
     const request = await this.createProjectRequest(name, teamId, templateProjectId);
-    const response = await this.fetchAndAssertStatusWithRetry<ResponseSingle>(`/api/projects`, request, 201, 20, 400);
+    const response = await this.fetch<ResponseSingle>(`/api/projects`, request, 201);
     const json = await response.toJson();
     this.lastProject = {
       id: Number(json.data.id),
@@ -97,7 +97,7 @@ export default class CharlesClient {
         attributes,
       },
     };
-    const response = await this.fetchAndAssertStatus<ResponseSingle>(
+    const response = await this.fetch<ResponseSingle>(
       `/api/projects/${_projectId}`,
       { method: 'PATCH', body: JSON.stringify(editProjectPayload) },
       200,
@@ -107,7 +107,7 @@ export default class CharlesClient {
 
   public deleteProject(projectId: number) {
     const path = `/api/projects/${projectId}`;
-    return this.fetchAndAssertStatus<{}>(path, { method: 'DELETE' });
+    return this.fetch<{}>(path, { method: 'DELETE' });
   }
 
   public async getProjectActivity(projectId?: number) {
@@ -115,12 +115,12 @@ export default class CharlesClient {
     if (!_projectId) {
       throw new Error('No projectId available');
     }
-    const response = await this.fetchAndAssertStatus<ResponseMulti>(`/api/activity?filter=project[${_projectId}]`);
+    const response = await this.fetch<ResponseMulti>(`/api/activity?filter=project[${_projectId}]`);
     return response;
   }
 
   public async getDeployment(deploymentId: string) {
-    const response = await this.fetchAndAssertStatus<ResponseSingle>(`/api/deployments/${deploymentId}`);
+    const response = await this.fetch<ResponseSingle>(`/api/deployments/${deploymentId}`);
     return response;
   }
 
@@ -129,7 +129,7 @@ export default class CharlesClient {
     if (!_projectId) {
       throw new Error('No projectId available');
     }
-    return this.fetchAndAssertStatus<ResponseMulti>(
+    return this.fetch<ResponseMulti>(
       `/api/projects/${_projectId}/relationships/branches`,
       { method: 'GET' },
       200,
@@ -152,7 +152,7 @@ export default class CharlesClient {
         },
       },
     };
-    const response = await this.fetchAndAssertStatus<ResponseSingle>(
+    const response = await this.fetch<ResponseSingle>(
       `/api/comments`,
       { method: 'POST', body: JSON.stringify(addCommentPayload) },
       201,
@@ -162,13 +162,13 @@ export default class CharlesClient {
 
   public async getComments(deploymentId: string) {
     const path = `/api/comments/deployment/${deploymentId}`;
-    const response = await this.fetchAndAssertStatus<ResponseMulti>(path);
+    const response = await this.fetch<ResponseMulti>(path);
     return response;
   }
 
   public deleteComment(id: string) {
     const path = `/api/comments/${id}`;
-    return this.fetchAndAssertStatus<{}>(path, { method: 'DELETE' });
+    return this.fetch<{}>(path, { method: 'DELETE' });
   }
 
   /**
@@ -176,14 +176,14 @@ export default class CharlesClient {
    */
 
   public async getTeamNotificationConfigurations(teamId: number) {
-    const response = await this.fetchAndAssertStatus<ResponseMulti>(
+    const response = await this.fetch<ResponseMulti>(
       `/api/teams/${teamId}/relationships/notification`,
     );
     return response;
   }
 
   public async getProjectNotificationConfigurations(projectId: number) {
-    const response = await this.fetchAndAssertStatus<ResponseMulti>(
+    const response = await this.fetch<ResponseMulti>(
       `/api/projects/${projectId}/relationships/notification`,
     );
     return response;
@@ -202,7 +202,7 @@ export default class CharlesClient {
         attributes,
       },
     };
-    const response = await this.fetchAndAssertStatus<ResponseSingle>(
+    const response = await this.fetch<ResponseSingle>(
       `/api/notifications`,
       { method: 'POST', body: JSON.stringify(createNotificationPayload) },
       201,
@@ -211,7 +211,7 @@ export default class CharlesClient {
   }
   public deleteNotificationConfiguration(id: number) {
     const path = `/api/notifications/${id}`;
-    return this.fetchAndAssertStatus<{}>(path, { method: 'DELETE' });
+    return this.fetch<{}>(path, { method: 'DELETE' });
   }
 
   /**
@@ -328,63 +328,18 @@ export default class CharlesClient {
    * LOWLEVEL
    */
 
-  public async fetchAndAssertStatus<T>(path: string, options?: RequestInit, requiredStatus = 200) {
+  public async fetch<T>(path: string, options?: RequestInit, requiredStatus = 200) {
     const url = path.match(/^http/) ? path : `${this.url}${path}`;
-    const response = wrapResponse<T>(await this.fetch(url, options));
-    assertResponseStatus(response, requiredStatus);
+    const response = wrapResponse<T>(await this.rawFetch(url, options));
+    if (this.throwOnUnsuccessful) {
+      assertResponseStatus(response, requiredStatus);
+    }
     return response;
   }
 
-  public fetch(path: string, options?: RequestInit) {
+  private rawFetch(path: string, options?: RequestInit) {
     const url = path.match(/^http/) ? path : `${this.url}${path}`;
     return fetch(url, this.getRequest(options));
-  }
-
-  // public async fetchWithRetry(
-  //   url: string,
-  //   expectedStatus = 200,
-  //   options?: RequestInit,
-  //   num = 15,
-  //   sleepFor = 200,
-  // ) {
-  //   const errors: string[] = [];
-  //   for (let i = 0; i < num; i++) {
-  //     try {
-  //       const response = await this.fetch(url, options);
-  //       if (response.status === expectedStatus) {
-  //         return response;
-  //       }
-  //     } catch (err) {
-  //       errors.push(err.message);
-  //     }
-  //     await sleep(sleepFor);
-  //   }
-  //   const msgParts = [
-  //     `Fetch failed ${num} times for ${url}`,
-  //   ].concat(errors);
-  //   throw new Error(msgParts.join(`\n\n`));
-  // }
-
-  public async fetchAndAssertStatusWithRetry<T>(
-    path: string,
-    options?: RequestInit,
-    requiredStatus = 200,
-    num = 15,
-    sleepFor = 200,
-  ) {
-    const errors: string[] = [];
-    for (let i = 0; i < num; i++) {
-      try {
-        return await this.fetchAndAssertStatus<T>(path, options, requiredStatus);
-      } catch (err) {
-        errors.push(err);
-        await sleep(sleepFor);
-      }
-    }
-    const msgParts = [
-      `Fetch failed ${num} times for ${this.url}${path}`,
-    ].concat(errors);
-    throw Boom.create(500, msgParts.join(`\n\n`));
   }
 
   public getRequest(options?: RequestInit): RequestInit {

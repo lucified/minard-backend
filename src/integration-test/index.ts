@@ -13,6 +13,7 @@ import intraTeamTests from './tests-intra-team';
 import { CharlesClients, TeamType } from './types';
 import {
   getAccessToken,
+  getAnonymousClient,
   getConfiguration,
   isDebug,
   loadFromCache,
@@ -71,6 +72,11 @@ describe('system-integration', () => {
         }
       }
     });
-    interTeamTests(() => Promise.resolve(clients));
+    interTeamTests(() => Promise.resolve(
+      {
+      ...clients,
+      anonymous: getAnonymousClient(clients.regular!),
+      },
+    ));
   });
 });

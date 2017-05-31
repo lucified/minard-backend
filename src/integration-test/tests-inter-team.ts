@@ -1,98 +1,47 @@
 /* tslint:disable:only-arrow-functions variable-name */
 import { expect } from 'chai';
-import CharlesClient from './charles-client';
-import routes from './routes';
-import { CharlesClients } from './types';
-import { getAnonymousClient } from './utils';
+import routes, { codes } from './routes';
+import { CharlesClients, TeamType } from './types';
 
-const I = [0, 1, 2];
-const J = [0, 1, 2, 3];
-const descriptions = {
-  '1': 'able to access',
-  '0': 'unauthenticated',
-  'z': 'unauthorized',
-  'x': 'unable to access a missing entity',
-  'r': 'redirected',
-};
-const codes = {
-  '1': 200, // doesn't matter really
-  '0': 401,
-  'z': 403,
-  'x': 404,
-  'r': 302,
-};
-const userTypes = ['anonymous', 'normal', 'admin'];
-const projectTypes = ['zero', 'own', 'other\'s', 'open'];
+const teamTypes: TeamType[] = [
+  'anonymous',
+  'regular',
+  'admin',
+  'open',
+];
 
 export default (
   clientsFactory: () => Promise<CharlesClients>,
   _projectName = 'regular-project',
 ) => {
-  describe('clients', () => {
-    it('has all', async () => {
-      const clients = await clientsFactory();
-      expect(clients.admin).to.exist;
-      expect(clients.regular).to.exist;
-      expect(clients.open).to.exist;
-    });
+  let clients: CharlesClients;
+  before(async () => {
+    clients = await clientsFactory();
   });
-  describe('authorizations', () => {
-    let clients: CharlesClient[];
-    before(async () => {
-      const { regular, admin, open } = await clientsFactory();
-      clients = [
-        getAnonymousClient(regular),
-        regular,
-        admin,
-        open,
-      ];
-    });
-
-    for (const route of routes) {
-      describe(route.description, () => {
-        for (const i of I) {
-          describe(`user of type ${userTypes[i]}`, () => {
-            for (const j of J) {
-              describe(`requesting entity of type ${projectTypes[j]}`, () => {
-                const access = route.accessMatrix[i][j];
-                const expected = codes[access];
-
-                it(`should be ${descriptions[access]}`, async function () {
-                  this.timeout(10000);
-                  const me = clients[i];
-                  let other = clients[j];
-                  if (j === 1) { // own
-                    other = me;
-                  }
-                  if (j === 2) { // other's
-                    other = i === 1 ? clients[2] : clients[1];
-                  }
-
-                  if (access === '1') {
-                    const response = await route.request(me, other);
-                    expect(response.status).to.be.gte(200);
-                    expect(response.status).to.be.lt(300);
-                  } else {
-                    try {
-                      const response = await route.request(me, other);
-                      expect.fail(undefined, null, `Got ${response.status} from ${response.url}`);
-                    } catch (_error) {
-                      if (!_error.isBoom) {
-                        throw _error;
-                      }
-                      const error = _error;
-                      const got = error.data.originalStatus;
-                      if (got !== expected) {
-                        console.log(`[WARN] Expected response code ${expected}, but got ${got}.`);
-                      }
-                    }
-                  }
-                });
+  for (const route of routes) {
+    expect(route.accessMatrix.length).to.eq(teamTypes.length);
+    expect(route.accessMatrix.map(x => x.length).reduce((sum, c) => sum + c, 0))
+      .to.eq(teamTypes.length ** 2);
+    describe(route.description, () => {
+      for (let i = 0; i < teamTypes.length; i++) {
+        describe(`user belonging to the ${teamTypes[i]} team`, () => {
+          for (let j = 0; j < teamTypes.length; j++) {
+            const belongsTo = i === j ? 'itself' : `to the ${teamTypes[j]} team`;
+            const entity = j === 0 ? 'which doesn\'t exist' : `belonging to ${belongsTo}`;
+            describe(`requests an entity ${entity}`, () => {
+              const access = route.accessMatrix[i][j];
+              const expectedCode = codes[access];
+              it(`the response code should be ${expectedCode}`, async function () {
+                this.timeout(10000);
+                const requestor = clients[teamTypes[i]];
+                const owner = clients[teamTypes[j]];
+                const response = await route.request(requestor, owner);
+                expect(response.status).to.eq(expectedCode);
               });
-            }
-          });
-        }
-      });
-    }
-  });
+            });
+          }
+        });
+      }
+    });
+  }
 };

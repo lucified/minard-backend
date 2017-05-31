@@ -1,4 +1,5 @@
 import { Response } from 'node-fetch';
+import { JsonApiEntity } from '../json-api/types';
 import CharlesClient from './charles-client';
 
 export interface Auth0 {
@@ -54,6 +55,8 @@ export interface CharlesClients {
 
 export interface CharlesResponse<T> extends Response {
   toJson: () => Promise<T>;
+  getEntity: () => Promise<JsonApiEntity>;
+  getEntities: () => Promise<JsonApiEntity[]>;
 }
 
 export type AccessCode = '0' | '1' | 'x' | 'z' | 'r';

@@ -3,6 +3,7 @@ import { expect } from 'chai';
 import CharlesClient from './charles-client';
 import routes from './routes';
 import { CharlesClients } from './types';
+import { getAnonymousClient } from './utils';
 
 const I = [0, 1, 2];
 const J = [0, 1, 2, 3];
@@ -38,27 +39,12 @@ export default (
   describe('authorizations', () => {
     let clients: CharlesClient[];
     before(async () => {
-      const _clients = await clientsFactory();
-      const anonymous = new CharlesClient(_clients.regular.url, '');
-      anonymous.teamId = 9999999;
-      anonymous.lastProject = {
-        id: 999999999,
-        repoUrl: _clients.regular.lastProject!.repoUrl,
-        token: _clients.regular.lastProject!.token,
-      };
-      const anonymousUrl = _clients.regular.lastDeployment!.url
-        .replace(/^(https?:\/\/)\w+-\w+-\w+-\w+/, '$1master-abc-123-123');
-      anonymous.lastDeployment = {
-        id: '9999999',
-        url: anonymousUrl,
-        screenshot: _clients.regular.lastDeployment!.screenshot + '_',
-        token: '9999999',
-      };
+      const { regular, admin, open } = await clientsFactory();
       clients = [
-        anonymous, // the anonymous client
-        _clients.regular,
-        _clients.admin,
-        _clients.open,
+        getAnonymousClient(regular),
+        regular,
+        admin,
+        open,
       ];
     });
 

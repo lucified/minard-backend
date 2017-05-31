@@ -2,9 +2,11 @@ import { Observable } from '@reactivex/rxjs';
 import * as Boom from 'boom';
 import * as chalk from 'chalk';
 import { spawn } from 'child_process';
+import * as _debug from 'debug';
 import * as fs from 'fs';
 import * as path from 'path';
 
+const debug = _debug('system-integration-tests');
 import fetch, { Response } from 'node-fetch';
 import { ENV } from '../shared/types';
 import CharlesClient, { ResponseMulti, ResponseSingle } from './charles-client';
@@ -19,73 +21,19 @@ export function sleep(ms = 0) {
 export function wrapResponse<T>(response: Response): CharlesResponse<T> {
   const _response = response as any;
   _response.toJson = getResponseJson<T>(response);
-  // These are here intentionally for debugging purposes
-  // console.log('<-- HTTP %s', response.status);
-  // console.dir(response.headers, { colors: true });
+  _response.getEntity = getEntity(_response);
+  _response.getEntities = getEntities(_response);
   return _response;
 }
 
-export function getEntity(
-  client: Promise<CharlesClient>,
-  apiCall: (client: CharlesClient) => Promise<CharlesResponse<ResponseSingle>>,
-) {
-  return client
-        .then(apiCall)
-        .then(x => x.toJson())
-        .then(x => x.data);
+function getEntity(response: CharlesResponse<ResponseSingle>) {
+  return () => response.toJson().then(x => x.data);
 }
 
-export function getEntities(
-  client: Promise<CharlesClient>,
-  apiCall: (client: CharlesClient) => Promise<CharlesResponse<ResponseMulti>>,
-) {
-  return client
-        .then(apiCall)
-        .then(x => x.toJson())
-        .then(x => x.data);
+function getEntities(response: CharlesResponse<ResponseMulti>) {
+  return () => response.toJson().then(x => x.data);
 }
 
-export async function runCommand(command: string, ...args: string[]): Promise<boolean> {
-  const stdio: any = 'inherit';
-  return await new Promise<boolean>((resolve, reject) => {
-    const child = spawn(command, args, { stdio });
-    child.on('close', (code: any) => {
-      if (code !== 0) {
-        console.log(`process exited with code ${code}`);
-        reject(code);
-        return;
-      }
-      resolve(true);
-    });
-    child.on('error', (err: any) => {
-      console.log(`process exited with code ${err}`);
-      reject(err);
-    });
-  });
-}
-
-export function log(text: string) {
-  console.log(`    ${chalk.cyan(text)}`);
-}
-
-export function logTitle(text: string) {
-  console.log(`   ${chalk.magenta(text)}`);
-}
-
-export function prettyUrl(url: string) {
-  return chalk.blue.underline(url);
-}
-
-export function assertResponseStatus(response: Response, requiredStatus = 200) {
-  if (response.status !== requiredStatus) {
-    const msgParts = [
-      `Got ${response.status} instead of ${requiredStatus}`,
-      response.url,
-    ];
-    const status = response.status >= 400 ? response.status : 500;
-    throw Boom.create(status, msgParts.join(`\n\n`), { originalStatus: response.status });
-  }
-}
 export function getResponseJson<T>(response: Response) {
   let parsed: any;
   return async (): Promise<T> => {
@@ -106,6 +54,48 @@ export function getResponseJson<T>(response: Response) {
     }
     return parsed;
   };
+}
+
+export async function runCommand(command: string, ...args: string[]): Promise<boolean> {
+  return await new Promise<boolean>((resolve, reject) => {
+    const stdio = isDebug() ? 'inherit' : 'pipe';
+    const child = spawn(command, args, { stdio });
+    child.on('close', (code: any) => {
+      if (code !== 0) {
+        debug(`process exited with code ${code}`);
+        reject(code);
+        return;
+      }
+      resolve(true);
+    });
+    child.on('error', (err: any) => {
+      debug(`process exited with code ${err}`);
+      reject(err);
+    });
+  });
+}
+
+export function log(text: string) {
+  debug(`    ${chalk.cyan(text)}`);
+}
+
+export function logTitle(text: string) {
+  debug(`   ${chalk.magenta(text)}`);
+}
+
+export function prettyUrl(url: string) {
+  return chalk.blue.underline(url);
+}
+
+export function assertResponseStatus(response: Response, requiredStatus = 200) {
+  if (response.status !== requiredStatus) {
+    const msgParts = [
+      `Got ${response.status} instead of ${requiredStatus}`,
+      response.url,
+    ];
+    const status = response.status >= 400 ? response.status : 500;
+    throw Boom.create(status, msgParts.join(`\n\n`), { originalStatus: response.status });
+  }
 }
 
 export async function getAccessToken(config: Auth0) {
@@ -182,4 +172,27 @@ export function loadFromCache(cacheDir: string, cacheFileName: string): Partial<
   const clientDtos = JSON.parse(fs.readFileSync(cacheFile).toString());
   return Object.keys(clientDtos)
     .reduce((p: any, tt: TeamType) => ({ ...p, [tt]: CharlesClient.load(clientDtos[tt]) }), {});
+}
+
+export function getAnonymousClient(client: CharlesClient) {
+  const anonymous = new CharlesClient(client.url, '');
+  anonymous.teamId = 9999999;
+  anonymous.lastProject = {
+    id: 999999999,
+    repoUrl: client.lastProject!.repoUrl,
+    token: client.lastProject!.token,
+  };
+  const anonymousUrl = client.lastDeployment!.url
+    .replace(/^(https?:\/\/)\w+-\w+-\w+-\w+/, '$1master-abc-123-123');
+  anonymous.lastDeployment = {
+    id: '9999999',
+    url: anonymousUrl,
+    screenshot: client.lastDeployment!.screenshot + '_',
+    token: '9999999',
+  };
+  return anonymous;
+}
+
+export function isDebug() {
+ return process.env.DEBUG === 'system-integration-tests';
 }

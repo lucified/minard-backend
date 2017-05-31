@@ -11,7 +11,13 @@ import CharlesClient from './charles-client';
 import interTeamTests from './tests-inter-team';
 import intraTeamTests from './tests-intra-team';
 import { CharlesClients, TeamType } from './types';
-import { getAccessToken, getConfiguration, loadFromCache, saveToCache } from './utils';
+import {
+  getAccessToken,
+  getConfiguration,
+  isDebug,
+  loadFromCache,
+  saveToCache,
+} from './utils';
 
 const cacheDir = path.join(__dirname, '.cache');
 const cacheFileName = 'integration-tests-cache.json';
@@ -24,13 +30,17 @@ function hasAllClients(clients: Partial<CharlesClients>): clients is CharlesClie
 
 describe('system-integration', () => {
   const teamTypes: TeamType[] = ['admin', 'regular', 'open'];
-  describe.skip('intra-team', () => {
-    const clients: Partial<CharlesClients> = {};
+  let clients: Partial<CharlesClients> = {};
+  describe('intra-team', () => {
     for (const teamType of teamTypes) {
 
       describe(`user belonging to '${teamType}' team`, () => {
 
-        after(() => _saveToCache(clients));
+        after(() => {
+          if (isDebug()) {
+            _saveToCache(clients);
+          }
+        });
 
         const auth0Config = config.auth0[teamType];
 
@@ -53,13 +63,13 @@ describe('system-integration', () => {
   });
 
   describe('inter-team', () => {
-    let clients: CharlesClients;
     before(() => {
-      const _clients = loadFromCache(cacheDir, cacheFileName);
-      if (!hasAllClients(_clients)) {
-        throw new Error(`Invalid cache`);
+      if (isDebug()) {
+        clients = loadFromCache(cacheDir, cacheFileName);
+        if (!hasAllClients(clients)) {
+          throw new Error(`Invalid cache`);
+        }
       }
-      clients = _clients;
     });
     interTeamTests(() => Promise.resolve(clients));
   });

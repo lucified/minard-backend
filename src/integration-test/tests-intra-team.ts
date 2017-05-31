@@ -68,8 +68,11 @@ export default (
   describe('projects', () => {
 
     it('should be able to create a project', async function () {
-      const client = await clientFactory();
       this.timeout(1000 * 3000);
+      // This fails with 400 Bad Request until the existing integration test projects
+      // have been 'properly' deleted. Apparently it can take some time.
+      this.retries(50);
+      const client = await clientFactory();
       const project = await client.createProject(projectName).then(x => x.getEntity());
       expect(project.id).to.exist;
       const repoUrl = project.attributes['repo-url'];

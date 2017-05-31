@@ -46,11 +46,12 @@ export interface SSE {
   data: any;
 }
 
-export type TeamType = 'admin' | 'regular' | 'open';
+export type TeamType = 'anonymous' | 'admin' | 'regular' | 'open';
 export interface CharlesClients {
   admin: CharlesClient;
   open: CharlesClient;
   regular: CharlesClient;
+  anonymous: CharlesClient;
 }
 
 export interface CharlesResponse<T> extends Response {

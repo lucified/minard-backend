@@ -80,7 +80,7 @@
     "eventsource": "^1.0.1",
     "fetch-mock": "^5.10.0",
     "jsonwebtoken": "^7.3.0",
-    "lucify-notifier": "^0.1.14",
+    "lucify-notifier": "^0.1.16",
     "mocha": "^3.2.0",
     "mocha-typescript": "^1.0.23",
     "rimraf": "^2.6.1",

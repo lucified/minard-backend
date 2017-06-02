@@ -59,6 +59,10 @@ export default class CharlesClient {
 
   /**
    * PROJECT
+   *
+   * All of the project-related functions either perform actions on the project
+   * for the supplied project ID or then on the last project that was created by
+   * CharlesClient.
    */
 
   public async getProject(projectId?: number) {
@@ -70,6 +74,9 @@ export default class CharlesClient {
     return response;
   }
 
+  /**
+   * Calling this sets this.lastProject.
+   */
   public async createProject(name: string, teamId?: number, templateProjectId?: number) {
     const request = await this.createProjectRequest(name, teamId, templateProjectId);
     const response = await this.fetch<ResponseSingle>(`/api/projects`, request, 201);

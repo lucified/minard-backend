@@ -1,4 +1,3 @@
-/* tslint:disable:only-arrow-functions variable-name */
 import { expect } from 'chai';
 import routes, { codes } from './routes';
 import { CharlesClients, TeamType } from './types';

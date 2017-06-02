@@ -1,9 +1,3 @@
-/* tslint:disable:only-arrow-functions variable-name */
-
-/* The first rule needs to be disabled as mocha's
-   this.timeout(...) does not work with arrow functions.
-   The second rule needs to be disabled since EventSource is a class
-   and using disable-line doesn't work */
 import { expect } from 'chai';
 import * as path from 'path';
 

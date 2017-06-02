@@ -1,9 +1,3 @@
-/* tslint:disable:only-arrow-functions variable-name */
-
-/* The first rule needs to be disabled as mocha's
-   this.timeout(...) does not work with arrow functions.
-   The second rule needs to be disabled since EventSource is a class
-   and using disable-line doesn't work */
 import { expect } from 'chai';
 import * as debug from 'debug';
 
@@ -317,7 +311,7 @@ export default (
         }
       });
 
-      it('should be able to request events retrospectively', async function () {
+      it('should be able to request events retrospectively', async function () { // tslint:disable-line
         const client = await clientFactory();
         const eventStream = await client.teamEvents(eventType, eventResponses[0].lastEventId);
         const sseResponse = await eventStream.take(1).toPromise();

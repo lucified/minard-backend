@@ -4,14 +4,14 @@ import * as chalk from 'chalk';
 import { spawn } from 'child_process';
 import * as _debug from 'debug';
 import * as fs from 'fs';
+import fetch, { Response } from 'node-fetch';
 import * as path from 'path';
 
-const debug = _debug('system-integration-tests');
-import fetch, { Response } from 'node-fetch';
 import { ENV } from '../shared/types';
 import CharlesClient, { ResponseMulti, ResponseSingle } from './charles-client';
 import { Auth0, CharlesClients, CharlesResponse, Config, TeamType } from './types';
 
+const debug = _debug('system-integration-tests');
 const mkpath = require('mkpath');
 
 export function sleep(ms = 0) {

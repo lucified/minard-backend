@@ -46,8 +46,7 @@ export default class CharlesClient {
 
   public async getProjects(teamId?: number) {
     const _teamId = teamId || await this.getTeamId();
-    const response = await this.fetch<ResponseMulti>(`/api/teams/${_teamId}/relationships/projects`);
-    return response;
+    return this.fetch<ResponseMulti>(`/api/teams/${_teamId}/relationships/projects`);
   }
 
   public async getTeamId() {
@@ -65,13 +64,12 @@ export default class CharlesClient {
    * CharlesClient.
    */
 
-  public async getProject(projectId?: number) {
+  public getProject(projectId?: number) {
     const _projectId = projectId || (this.lastProject && this.lastProject.id);
     if (!_projectId) {
       throw new Error('No projectId available');
     }
-    const response = await this.fetch<ResponseSingle>(`/api/projects/${_projectId}`);
-    return response;
+    return this.fetch<ResponseSingle>(`/api/projects/${_projectId}`);
   }
 
   /**
@@ -89,7 +87,7 @@ export default class CharlesClient {
     return response;
   }
 
-  public async editProject(
+  public editProject(
     attributes: { name: string } | { description: string } | { name: string; description: string },
     projectId?: number,
   ) {
@@ -104,31 +102,27 @@ export default class CharlesClient {
         attributes,
       },
     };
-    const response = await this.fetch<ResponseSingle>(
+    return this.fetch<ResponseSingle>(
       `/api/projects/${_projectId}`,
       { method: 'PATCH', body: JSON.stringify(editProjectPayload) },
       200,
     );
-    return response;
   }
 
   public deleteProject(projectId: number) {
-    const path = `/api/projects/${projectId}`;
-    return this.fetch<{}>(path, { method: 'DELETE' });
+    return this.fetch<{}>(`/api/projects/${projectId}`, { method: 'DELETE' });
   }
 
-  public async getProjectActivity(projectId?: number) {
+  public getProjectActivity(projectId?: number) {
     const _projectId = projectId || (this.lastProject && this.lastProject.id);
     if (!_projectId) {
       throw new Error('No projectId available');
     }
-    const response = await this.fetch<ResponseMulti>(`/api/activity?filter=project[${_projectId}]`);
-    return response;
+    return this.fetch<ResponseMulti>(`/api/activity?filter=project[${_projectId}]`);
   }
 
-  public async getDeployment(deploymentId: string) {
-    const response = await this.fetch<ResponseSingle>(`/api/deployments/${deploymentId}`);
-    return response;
+  public getDeployment(deploymentId: string) {
+    return this.fetch<ResponseSingle>(`/api/deployments/${deploymentId}`);
   }
 
   public getBranches(projectId?: number) {
@@ -147,7 +141,7 @@ export default class CharlesClient {
    * COMMENTS
    */
 
-  public async addComment(deployment: string, message: string, name: string, email: string) {
+  public addComment(deployment: string, message: string, name: string, email: string) {
     const addCommentPayload = {
       data: {
         type: 'comments',
@@ -159,44 +153,38 @@ export default class CharlesClient {
         },
       },
     };
-    const response = await this.fetch<ResponseSingle>(
+    return this.fetch<ResponseSingle>(
       `/api/comments`,
       { method: 'POST', body: JSON.stringify(addCommentPayload) },
       201,
     );
-    return response;
   }
 
-  public async getComments(deploymentId: string) {
-    const path = `/api/comments/deployment/${deploymentId}`;
-    const response = await this.fetch<ResponseMulti>(path);
-    return response;
+  public getComments(deploymentId: string) {
+    return this.fetch<ResponseMulti>(`/api/comments/deployment/${deploymentId}`);
   }
 
   public deleteComment(id: string) {
-    const path = `/api/comments/${id}`;
-    return this.fetch<{}>(path, { method: 'DELETE' });
+    return this.fetch<{}>(`/api/comments/${id}`, { method: 'DELETE' });
   }
 
   /**
    * NOTIFICATION
    */
 
-  public async getTeamNotificationConfigurations(teamId: number) {
-    const response = await this.fetch<ResponseMulti>(
+  public getTeamNotificationConfigurations(teamId: number) {
+    return this.fetch<ResponseMulti>(
       `/api/teams/${teamId}/relationships/notification`,
     );
-    return response;
   }
 
-  public async getProjectNotificationConfigurations(projectId: number) {
-    const response = await this.fetch<ResponseMulti>(
+  public getProjectNotificationConfigurations(projectId: number) {
+    return this.fetch<ResponseMulti>(
       `/api/projects/${projectId}/relationships/notification`,
     );
-    return response;
   }
 
-  public async configureNotification(attributes: NotificationConfiguration) {
+  public configureNotification(attributes: NotificationConfiguration) {
     if (attributes.teamId === null) {
       delete attributes.teamId;
     }
@@ -209,16 +197,14 @@ export default class CharlesClient {
         attributes,
       },
     };
-    const response = await this.fetch<ResponseSingle>(
+    return this.fetch<ResponseSingle>(
       `/api/notifications`,
       { method: 'POST', body: JSON.stringify(createNotificationPayload) },
       201,
     );
-    return response;
   }
   public deleteNotificationConfiguration(id: number) {
-    const path = `/api/notifications/${id}`;
-    return this.fetch<{}>(path, { method: 'DELETE' });
+    return this.fetch<{}>(`/api/notifications/${id}`, { method: 'DELETE' });
   }
 
   /**

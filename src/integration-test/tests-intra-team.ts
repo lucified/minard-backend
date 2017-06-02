@@ -264,6 +264,14 @@ export default (
       const response = await client.deleteComment(comment!.id);
       expect(response.status).to.eq(200);
     });
+
+    it('should no longer return deleted comments when fetching comments for deployment', async function () {
+      const client = await clientFactory();
+      this.timeout(1000 * 10 * 6);
+      const comments = await client.getComments(client.lastDeployment!.id)
+        .then(x => x.getEntities());
+      expect(comments.length).to.equal(0);
+    });
   });
 
   describe('removing notification configuration', () => {

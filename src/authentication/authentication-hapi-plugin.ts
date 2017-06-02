@@ -248,7 +248,13 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       const teamTokenResult = await teamTokenQuery(this.db, { teamId: team.id });
       const teamToken =
         (teamTokenResult && teamTokenResult.length) ? teamTokenResult[0].token : undefined;
-      return reply({ ...team, 'invitation-token': teamToken });
+      return reply({
+        id: team.id,
+        name: team.id,
+        description: team.description,
+        avatar_url: team.avatar_url,
+        'invitation-token': teamToken,
+      });
     } catch (error) {
       this.logger.error(`Can't fetch user or team`, error);
       return reply(Boom.wrap(error, 404));

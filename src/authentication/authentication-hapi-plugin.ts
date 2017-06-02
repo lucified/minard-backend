@@ -250,7 +250,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
         (teamTokenResult && teamTokenResult.length) ? teamTokenResult[0].token : undefined;
       return reply({
         id: team.id,
-        name: team.id,
+        name: team.name,
         description: team.description,
         avatar_url: team.avatar_url,
         'invitation-token': teamToken,

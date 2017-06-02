@@ -21,8 +21,8 @@ export default (
     it('should be able to get the team id', async function () {
       const client = await clientFactory();
       this.timeout(1000 * 30);
-      const teamId = client.getTeamId();
-      expect(teamId).to.exist;
+      const teamId = await client.getTeamId();
+      expect(typeof teamId === 'number').to.be.true;
     });
   });
 
@@ -105,7 +105,7 @@ export default (
 
       const eventStream = await client.teamEvents('DEPLOYMENT_UPDATED');
       const deployment = await withPing(eventStream, 1000, 'Building...')
-        .map(event => JSON.parse(event.data).deployment)
+        .map(event => JSON.parse(event.data).deployment as JsonApiEntity)
         .filter(d => d.attributes.status === 'success')
         .take(1)
         .toPromise();
@@ -185,28 +185,30 @@ export default (
 
     it('should be able to configure notifications', async function () {
       const client = await clientFactory();
-      if (notificationConfigurations) {
-        this.timeout(1000 * 20);
-        const projectId = client.lastProject!.id;
-        const teamId = await client.getTeamId();
-        for (const notificationType of Object.keys(notificationConfigurations)) {
-          const notificationConfiguration = notificationConfigurations[notificationType as NotificationType];
-          if (notificationConfiguration) {
-            const scopes = [{
-              teamId: null,
-              projectId,
-              ...notificationConfiguration,
-            }, {
-              teamId,
-              projectId: null,
-              ...notificationConfiguration,
-            }];
-            for (const scopedConfiguration of scopes) {
-              const responseJson = await client.configureNotification(scopedConfiguration)
-                .then(x => x.getEntity());
-              const id = testNotificationConfiguration(scopedConfiguration, responseJson);
-              createdNotificationConfigurations[String(id)] = { id, ...scopedConfiguration };
-            }
+      if (!notificationConfigurations) {
+        this.skip();
+        return;
+      }
+      this.timeout(1000 * 20);
+      const projectId = client.lastProject!.id;
+      const teamId = await client.getTeamId();
+      for (const notificationType of Object.keys(notificationConfigurations)) {
+        const notificationConfiguration = notificationConfigurations[notificationType as NotificationType];
+        if (notificationConfiguration) {
+          const scopes = [{
+            teamId: null,
+            projectId,
+            ...notificationConfiguration,
+          }, {
+            teamId,
+            projectId: null,
+            ...notificationConfiguration,
+          }];
+          for (const scopedConfiguration of scopes) {
+            const responseJson = await client.configureNotification(scopedConfiguration)
+              .then(x => x.getEntity());
+            const id = testNotificationConfiguration(scopedConfiguration, responseJson);
+            createdNotificationConfigurations[String(id)] = { id, ...scopedConfiguration };
           }
         }
       }

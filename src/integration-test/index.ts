@@ -66,11 +66,9 @@ describe('system-integration', () => {
         }
       }
     });
-    interTeamTests(() => Promise.resolve(
-      {
+    interTeamTests(() => Promise.resolve({
       ...clients,
       anonymous: getAnonymousClient(clients.regular!),
-      },
-    ));
+    }));
   });
 });

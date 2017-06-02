@@ -32,7 +32,7 @@ export default (
       const client = await clientFactory();
       this.timeout(1000 * 30);
       const oldProjects = await client.getProjects().then(x => x.getEntities());
-      for (const oldProject of oldProjects!) {
+      for (const oldProject of oldProjects) {
         if (oldProject && oldProject.id) {
           const response = await client.deleteProject(Number(oldProject.id));
           expect(response.status).to.eq(200);

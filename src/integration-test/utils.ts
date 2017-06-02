@@ -4,12 +4,13 @@ import * as chalk from 'chalk';
 import { spawn } from 'child_process';
 import * as _debug from 'debug';
 import * as fs from 'fs';
+import { mapValues } from 'lodash';
 import fetch, { Response } from 'node-fetch';
 import * as path from 'path';
 
 import { ENV } from '../shared/types';
 import CharlesClient, { ResponseMulti, ResponseSingle } from './charles-client';
-import { Auth0, CharlesClients, CharlesResponse, Config, TeamType } from './types';
+import { Auth0, CharlesClients, CharlesResponse, Config } from './types';
 
 const debug = _debug('system-integration-tests');
 const mkpath = require('mkpath');
@@ -161,8 +162,7 @@ export function saveToCache(cacheDir: string, cacheFileName: string) {
       // nothing
     }
     const cacheFile = path.join(cacheDir, cacheFileName);
-    const clientDtos = Object.keys(clients)
-      .reduce((p: any, tt: TeamType) => ({ ...p, [tt]: clients[tt]!.toDto() }), {});
+    const clientDtos = mapValues(clients, client => client!.toDto());
     fs.writeFileSync(cacheFile, JSON.stringify(clientDtos, undefined, 2));
   };
 }
@@ -170,8 +170,7 @@ export function saveToCache(cacheDir: string, cacheFileName: string) {
 export function loadFromCache(cacheDir: string, cacheFileName: string): Partial<CharlesClients> {
   const cacheFile = path.join(cacheDir, cacheFileName);
   const clientDtos = JSON.parse(fs.readFileSync(cacheFile).toString());
-  return Object.keys(clientDtos)
-    .reduce((p: any, tt: TeamType) => ({ ...p, [tt]: CharlesClient.load(clientDtos[tt]) }), {});
+  return mapValues(clientDtos, dto => CharlesClient.load(dto));
 }
 
 export function getAnonymousClient(client: CharlesClient) {

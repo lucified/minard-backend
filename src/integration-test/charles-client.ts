@@ -20,9 +20,9 @@ export interface ResponseMulti {
 
 export default class CharlesClient {
 
-  public teamId: number | undefined;
-  public lastDeployment: LatestDeployment | undefined;
-  public lastProject: LatestProject | undefined;
+  public teamId?: number;
+  public lastDeployment?: LatestDeployment;
+  public lastProject?: LatestProject;
   public readonly fetchOptions: RequestInit;
 
   constructor(

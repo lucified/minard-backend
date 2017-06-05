@@ -4,7 +4,7 @@ WORKDIR /code
 
 COPY package.json /code/package.json
 
-RUN npm install && npm ls
+RUN npm install
 
 ENV NODE_ENV production
 

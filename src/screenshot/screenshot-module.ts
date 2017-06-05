@@ -85,7 +85,7 @@ export default class ScreenshotModule {
     const dest = this.getRemoteDest(projectId, deploymentId);
     const options: PageresOptions = {
       filename: stripExtension(this.getScreenshotFilename(projectId, deploymentId)),
-      delay: 5,
+      delay: 10,
       format: 'jpg',
     };
     try {

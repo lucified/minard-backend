@@ -75,7 +75,7 @@ export class GitlabClient {
 
     const token = await this.getToken();
     // Make a shallow copy
-    const _options = Object.assign({}, options || {});
+    const _options = options ? { ...options } : {};
 
     const headers = _options.headers as any;
 
@@ -84,6 +84,7 @@ export class GitlabClient {
       return _options;
     }
 
+    // tslint:disable-next-line:prefer-object-spread
     _options.headers = Object.assign({ [key]: token }, _options.headers || {});
     return _options;
   }

@@ -6,12 +6,8 @@ function objectToFormData(obj: any, form?: FormData, _namespace?: string) {
   let formKey: string;
   for (const property in obj) {
     if (obj.hasOwnProperty(property)) {
+      formKey = _namespace ? _namespace + '[' + property + ']' : property;
 
-      if (_namespace) {
-        formKey = _namespace + '[' + property + ']';
-      } else {
-        formKey = property;
-      }
       if (typeof obj[property] === 'object' && !(obj[property].constructor === 'File')) {
         objectToFormData(obj[property], fd, formKey);
       } else {

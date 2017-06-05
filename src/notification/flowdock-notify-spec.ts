@@ -85,7 +85,10 @@ describe('flowdock-notify', () => {
   });
 
   it('should send correct notification for succesful deployment with no screenshot', async () => {
-    const deployment = Object.assign({}, baseDeployment, { screenshot: undefined });
+    const deployment: MinardDeployment = {
+      ...baseDeployment,
+      screenshot: undefined,
+    };
     const body = await shouldSendCorrectNotification(deployment,
       'Created preview for foo-project-name/foo-branch');
     expect(body.thread.status.color).to.equal('green');
@@ -93,21 +96,33 @@ describe('flowdock-notify', () => {
   });
 
   it('should send correct notification for running deployment', async () => {
-    const deployment = Object.assign({}, baseDeployment, { screenshot: undefined, status: 'running' });
+    const deployment: MinardDeployment = {
+      ...baseDeployment,
+      screenshot: undefined,
+      status: 'running',
+    };
     const body = await shouldSendCorrectNotification(deployment,
       'Generating preview for foo-project-name/foo-branch');
     expect(body.thread.status.color).to.equal('yellow');
   });
 
   it('should send correct notification for pending deployment', async () => {
-    const deployment = Object.assign({}, baseDeployment, { screenshot: undefined, status: 'pending' });
+    const deployment: MinardDeployment = {
+      ...baseDeployment,
+      screenshot: undefined,
+      status: 'pending',
+    };
     const body = await shouldSendCorrectNotification(deployment,
       'Generating preview for foo-project-name/foo-branch');
     expect(body.thread.status.color).to.equal('yellow');
   });
 
   it('should send correct notification for failed deployment', async () => {
-    const deployment = Object.assign({}, baseDeployment, { screenshot: undefined, status: 'failed' });
+    const deployment: MinardDeployment = {
+      ...baseDeployment,
+      screenshot: undefined,
+      status: 'failed',
+    };
     const body = await shouldSendCorrectNotification(deployment,
       'Error creating preview for foo-project-name/foo-branch');
     expect(body.thread.status.color).to.equal('red');

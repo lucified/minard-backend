@@ -247,10 +247,16 @@ describe('authentication-hapi-plugin', () => {
     it('should be able to fetch caller\'s team', async () => {
       // Arrange
       const callerTeamId = 1;
+      const callerTeamName = 'teamname';
+      const callerTeamDescription = 'team description';
       const { server, plugin } = await getServer(
         (p: AuthenticationHapiPlugin) => [
           sinon.stub(p, '_getUserGroups')
-            .returns(Promise.resolve([{ id: callerTeamId, name: 'foo' }])),
+            .returns(Promise.resolve([{
+              id: callerTeamId,
+              name: callerTeamName,
+              description: callerTeamDescription,
+            }])),
         ],
       );
 
@@ -262,6 +268,8 @@ describe('authentication-hapi-plugin', () => {
       expect(plugin._getUserGroups).to.have.been.calledOnce;
       const team = JSON.parse(response.payload);
       expect(team.id).to.eq(callerTeamId);
+      expect(team.name).to.eq(callerTeamName);
+      expect(team.description).to.eq(callerTeamDescription);
     });
 
     it('should return the team\'s teamToken', async () => {
@@ -304,6 +312,33 @@ describe('authentication-hapi-plugin', () => {
       expect(plugin._getUserGroups).to.have.been.calledOnce;
       const team = JSON.parse(response.payload);
       expect(team['invitation-token']).to.be.undefined;
+    });
+
+    it('should not leak information from GitLab', async () => {
+      // Arrange
+      const callerTeamId = 1;
+      const { server, plugin } = await getServer(
+        (p: AuthenticationHapiPlugin) => [
+          sinon.stub(p, '_getUserGroups')
+            .returns(Promise.resolve([{
+              id: callerTeamId,
+              name: 'foo',
+              web_url: 'http://test.com',
+              visibility_level: 0,
+            }])),
+        ],
+      );
+
+      // Act
+      const response = await makeRequest(server, `/team`);
+
+      // Assert
+      expect(response.statusCode).to.eq(200);
+      expect(plugin._getUserGroups).to.have.been.calledOnce;
+      const team = JSON.parse(response.payload);
+      expect(team.id).to.eq(callerTeamId);
+      expect(team.web_url).to.not.exist;
+      expect(team.visibility_level).to.not.exist;
     });
   });
 

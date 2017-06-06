@@ -1,6 +1,6 @@
+import { promisify } from 'util';
 import { Event, PersistedEvent } from '../shared/events';
 import { Logger } from '../shared/logger';
-import { promisify } from '../shared/promisify';
 import { sleep } from '../shared/sleep';
 
 const eventStoreConstructor = require('eventstore');
@@ -123,9 +123,13 @@ export default class EventStore {
 }
 
 function promisifyEventStore(eventStore: any) {
-  eventStore.init = promisify(eventStore.init, eventStore);
-  eventStore.getLastEventAsStream = promisify(eventStore.getLastEventAsStream, eventStore);
-  eventStore.getEventStream = promisify(eventStore.getEventStream, eventStore);
-  eventStore.commit = promisify(eventStore.commit, eventStore);
+  const init = eventStore.init.bind(eventStore);
+  const getLastEventAsStream = eventStore.getLastEventAsStream.bind(eventStore);
+  const getEventStream = eventStore.getEventStream.bind(eventStore);
+  const commit = eventStore.commit.bind(eventStore);
+  eventStore.init = promisify(init);
+  eventStore.getLastEventAsStream = promisify(getLastEventAsStream);
+  eventStore.getEventStream = promisify(getEventStream);
+  eventStore.commit = promisify(commit);
   return eventStore;
 }

@@ -9,6 +9,7 @@ import * as path from 'path';
 import * as querystring from 'querystring';
 import { sprintf } from 'sprintf-js';
 
+import { promisify } from 'util';
 import {
   Event,
   EventBus,
@@ -19,7 +20,6 @@ import { ScreenshotModule } from '../screenshot';
 import { GitlabClient } from '../shared/gitlab-client';
 import * as logger from '../shared/logger';
 import { MinardCommit } from '../shared/minard-commit';
-import { promisify } from '../shared/promisify';
 import { toGitlabTimestamp } from '../shared/time-conversion';
 import { charlesKnexInjectSymbol } from '../shared/types';
 import {
@@ -46,12 +46,12 @@ import {
   RepositoryObject,
 } from './types';
 
-const ncp = promisify(require('ncp'));
-const mkpath = promisify(require('mkpath'));
+const ncp = promisify<void, string, string>(require('ncp'));
+const mkpath = promisify<void, string>(require('mkpath'));
 const Queue = require('promise-queue'); // tslint:disable-line
 
 // this lib based on https://github.com/thejoshwolfe/yauzl
-const extract = promisify(require('extract-zip'));
+const extract = promisify<void, string, object>(require('extract-zip'));
 
 export const deploymentFolderInjectSymbol = Symbol('deployment-folder');
 const _keyRegExp = '\\S+-([a-z0-9]+)-(\\d+)-(\\d+)';

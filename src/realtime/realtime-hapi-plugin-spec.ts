@@ -4,6 +4,7 @@ import * as moment from 'moment';
 import * as Redis from 'redis';
 import 'reflect-metadata';
 
+import { promisify } from 'util';
 import {
   CommentModule,
 } from '../comment';
@@ -36,7 +37,6 @@ import {
   projectEdited,
 } from '../project';
 import logger from '../shared/logger';
-import { promisify } from '../shared/promisify';
 import TokenGenerator from '../shared/token-generator';
 import { deploymentEventFilter } from './realtime-hapi-plugin';
 import { RealtimeModule } from './realtime-module';
@@ -81,8 +81,12 @@ async function clearDb() {
   if (persistence.type === 'redis') {
     // we need to clear the db manually, otherwise nothing will work
     const client = Redis.createClient(persistence);
-    await promisify(client.flushdb, client)();
-    await promisify(client.quit, client)();
+    const flushdb = client.flushdb.bind(client) as any;
+    const quit = client.quit.bind(client) as any;
+    const flushdbAsync = promisify(flushdb);
+    const quitAsync = promisify(quit);
+    await flushdbAsync();
+    await quitAsync();
   }
 }
 

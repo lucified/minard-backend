@@ -21,10 +21,6 @@ import {
 } from '../deployment';
 
 import {
-  Route53Updater,
-} from '../shared/route53-updater';
-
-import {
   eventBusInjectSymbol,
   PersistentEventBus,
 } from '../event-bus';
@@ -132,6 +128,5 @@ export default new ContainerModule((bind, _unbind, _isBound, _rebind) => {
   bind(RemoteScreenshotter.injectSymbol).to(RemoteScreenshotter).inSingletonScope();
   bind(Migrations.injectSymbol).to(Migrations);
   bind(screenshotterInjectSymbol).to(RemoteScreenshotter);
-  bind(Route53Updater.injectSymbol).to(Route53Updater);
   bind(TokenGenerator.injectSymbol).to(TokenGenerator);
 });

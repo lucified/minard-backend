@@ -100,7 +100,10 @@ export default class OperationsModule {
       this.logger.error(`Project ${projectId} not found in getMissingDeploymentActivity.`);
       throw Boom.badGateway();
     }
-    const mappedExisting = existing.map(item => ({
+    if (existing === null) {
+      throw Boom.badGateway();
+    }
+    const mappedExisting = (existing as any).map((item: any) => ({
       projectId: item.projectId,
       deploymentId: item.deployment.id,
     }));

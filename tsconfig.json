@@ -8,7 +8,11 @@
     "sourceMap": true,
     "noImplicitAny": true,
     "noImplicitThis": false,
-    "target": "es6",
+    "target": "es2017",
+    "lib": [
+      "dom",
+      "es2017"
+    ],
     "module": "commonjs",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,

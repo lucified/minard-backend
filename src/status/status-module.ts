@@ -1,17 +1,20 @@
 import { ECS } from 'aws-sdk';
-import { exists, readFile } from 'fs-promise';
+import { exists as _exists, readFile as _readFile } from 'fs';
 import { inject, injectable } from 'inversify';
 import { pick } from 'lodash';
 import * as moment from 'moment';
+import * as util from 'util';
 
 import { AuthenticationModule } from '../authentication';
 import { Event, EventBus, eventBusInjectSymbol } from '../event-bus';
 import { Screenshotter, screenshotterInjectSymbol } from '../screenshot/types';
 import { IFetch } from '../shared/fetch';
 import { GitlabClient } from '../shared/gitlab-client';
-import { promisify } from '../shared/promisify';
 import { fetchInjectSymbol } from '../shared/types';
 import { SYSTEM_HOOK_REGISTRATION_EVENT_TYPE, SystemHookRegistrationEvent } from '../system-hook';
+
+const exists = util.promisify<boolean, string>(_exists);
+const readFile = util.promisify(_readFile);
 
 const ecs = new ECS({
   region: process.env.AWS_DEFAULT_REGION || 'eu-west-1',
@@ -19,9 +22,6 @@ const ecs = new ECS({
     timeout: 300,
   },
 });
-const describeServices = promisify<any>(ecs.describeServices, ecs);
-type describeTaskDefinitionFunc = (params: any) => Promise<{ taskDefinition: RegisteredTaskDefinition }>;
-const describeTaskDefinition: describeTaskDefinitionFunc = promisify<any>(ecs.describeTaskDefinition, ecs);
 
 export const deploymentFolderInjectSymbol = Symbol('deployment-folder');
 
@@ -67,18 +67,6 @@ interface DetailedRunnerStatus extends Status {
   contacted_at: Date;
   token: string;
   projects: any[];
-}
-
-interface Container { image: string; environment: string; name: string; }
-interface TaskDefinition {
-  family: string;
-  volumes?: any;
-  containerDefinitions: Container[];
-}
-interface RegisteredTaskDefinition extends TaskDefinition {
-  taskDefinitionArn: string;
-  revision: number;
-  status: string;
 }
 
 @injectable()
@@ -279,7 +267,7 @@ export default class StatusModule {
 export async function getCharlesVersion(): Promise<string | undefined> {
   const filename = 'commit-sha';
   const fileExists = await exists(filename);
-  return fileExists ? (await readFile('commit-sha', { encoding: 'utf-8' })).trim() : undefined;
+  return fileExists ? (await readFile('commit-sha')).toString().trim() : undefined;
 }
 
 export async function getEcsStatus(_env?: string) {
@@ -290,17 +278,18 @@ export async function getEcsStatus(_env?: string) {
     throw new Error('ECS status can be fetched only in staging and production');
   }
   const services = ['charles', 'gitlab', 'runner', 'screenshotter'];
-  const servicesResponse = await describeServices({
+  const servicesResponse = await ecs.describeServices({
     services: services.map(service => `minard-${service}-${env}`),
     cluster: 'minard',
-  });
-  const serviceData = await Promise.all(servicesResponse.services.map(async (service: any, i: number) => {
+  }).promise();
+  const serviceData = await Promise.all(servicesResponse.services!.map(async (service: any, i: number) => {
 
-    const taskDefinition = (await describeTaskDefinition({ taskDefinition: service.taskDefinition })).taskDefinition;
-    const container = taskDefinition.containerDefinitions.find(_container => _container.name === services[i]);
+    const taskDefinition = await ecs.describeTaskDefinition({ taskDefinition: service.taskDefinition }).promise()
+      .then(x => x.taskDefinition);
+    const container = taskDefinition!.containerDefinitions!.find(_container => _container.name === services[i]);
     let image = 'unknown';
     if (container) {
-      const _image = container.image.split('/').pop();
+      const _image = container.image!.split('/').pop();
       if (_image) {
         image = _image;
       }

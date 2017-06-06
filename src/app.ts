@@ -6,21 +6,16 @@ import { bootstrap } from './config';
 import Migrations from './migrations';
 import { MinardServer } from './server';
 import { Logger } from './shared/logger';
-import { Route53Updater } from './shared/route53-updater';
 
 const kernel = bootstrap(undefined, false);
 const migrations = kernel.get<Migrations>(Migrations.injectSymbol);
-const route53updater = kernel.get<Route53Updater>(Route53Updater.injectSymbol);
 const minardServer = kernel.get<MinardServer>(MinardServer.injectSymbol);
-const localBaseUrl = process.env.ROUTE53_BASEURL_LOCAL;
-const route53Zone = process.env.ROUTE53_ZONE_LOCAL;
 
 async function start() {
   try {
     await migrations.prepareDatabase();
     await minardServer.start();
     trapSignals(minardServer, minardServer.logger);
-    await route53updater.update(localBaseUrl, route53Zone);
   } catch (err) {
     minardServer.logger.error('Error starting charles', err);
   }

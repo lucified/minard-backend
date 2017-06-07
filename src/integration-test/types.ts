@@ -45,13 +45,11 @@ export interface SSE {
   lastEventId: string;
   data: any;
 }
-
-export type TeamType = 'anonymous' | 'admin' | 'regular' | 'open';
 export interface CharlesClients {
-  admin: CharlesClient;
-  open: CharlesClient;
   regular: CharlesClient;
-  anonymous: CharlesClient;
+  admin: CharlesClient;
+  unauthenticated: CharlesClient;
+  open: CharlesClient;
 }
 
 export interface CharlesResponse<T> extends Response {
@@ -61,10 +59,24 @@ export interface CharlesResponse<T> extends Response {
 }
 
 export type AccessCode = '0' | '1' | 'x' | 'z' | 'r';
+
+export interface EntityResponse {
+  own: AccessCode;
+  closed: AccessCode;
+  open: AccessCode;
+  missing: AccessCode;
+}
+export type EntityType = keyof EntityResponse;
+export interface AccessMatrix {
+  regular: EntityResponse;
+  admin: EntityResponse;
+  unauthenticated: EntityResponse;
+}
+export type UserType = keyof AccessMatrix;
 export interface Route {
   description: string;
   request: (me: CharlesClient, other: CharlesClient) => Promise<Response>;
-  accessMatrix: AccessCode[][];
+  accessMatrix: AccessMatrix;
 }
 
 export interface LatestDeployment {

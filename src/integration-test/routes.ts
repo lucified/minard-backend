@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import CharlesClient from './charles-client';
-import { AccessCode, Route } from './types';
+import { AccessCode, AccessMatrix, Route } from './types';
 
 const routes: Route[] = [
   {
@@ -28,12 +28,11 @@ const routes: Route[] = [
       expect(other.lastDeployment).to.exist;
       return me.fetch(other.lastDeployment!.url + '/index.html');
     },
-    accessMatrix: [
-      ['r', 'r', 'r', '1'],
-      ['0', '1', '0', '1'],
-      ['x', '1', '1', '1'],
-      ['0', '0', '0', '1'],
-    ],
+    accessMatrix: {
+      regular:         { own: '1', closed: '0', open: '1', missing: 'x' },
+      admin:           { own: '1', closed: '1', open: '1', missing: 'x' },
+      unauthenticated: { own: 'r', closed: 'r', open: '1', missing: 'r' },
+    },
   },
   {
     description: 'view screenshot',
@@ -42,26 +41,25 @@ const routes: Route[] = [
       expect(other.lastDeployment).to.exist;
       return me.fetch(other.lastDeployment!.screenshot);
     },
-    accessMatrix: [
-      ['x', 'x', '1', '1'],
-      ['x', '1', '1', '1'],
-      ['x', '1', '1', '1'],
-      ['x', '1', '1', '1'],
-    ],
+    accessMatrix: {
+      regular:         { own: '1', closed: '1', open: '1', missing: 'x' },
+      admin:           { own: '1', closed: '1', open: '1', missing: 'x' },
+      unauthenticated: { own: 'x', closed: '1', open: '1', missing: 'x' },
+    },
   },
 ];
 
 function getMatrix(
-  anonymousOpen: AccessCode,
+  unauthenticatedOpen: AccessCode,
   regularOpen: AccessCode,
-): AccessCode[][] {
-  return [
-    ['0', '0', '0', anonymousOpen],
-    ['0', '1', '0', regularOpen],
-    ['x', '1', '1', '1'],
-    ['0', '0', '0', '1'],
-  ];
+): AccessMatrix {
+  return {
+    regular:         { own: '1', closed: '0', open: regularOpen,         missing: 'x' },
+    admin:           { own: '1', closed: '1', open: '1',                 missing: 'x' },
+    unauthenticated: { own: '0', closed: '0', open: unauthenticatedOpen, missing: 'x' },
+  };
 }
+
 export const codes = {
   '1': 200,
   '0': 401,

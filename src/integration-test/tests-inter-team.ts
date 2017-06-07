@@ -1,13 +1,6 @@
 import { expect } from 'chai';
 import routes, { codes } from './routes';
-import { CharlesClients, TeamType } from './types';
-
-const teamTypes: TeamType[] = [
-  'anonymous',
-  'regular',
-  'admin',
-  'open',
-];
+import { CharlesClients, EntityType, UserType } from './types';
 
 export default (
   clientsFactory: () => Promise<CharlesClients>,
@@ -18,23 +11,22 @@ export default (
     clients = await clientsFactory();
   });
   for (const route of routes) {
-    expect(route.accessMatrix.length).to.eq(teamTypes.length);
-    expect(route.accessMatrix.map(x => x.length).reduce((sum, c) => sum + c, 0))
-      .to.eq(teamTypes.length ** 2);
     describe(route.description, () => {
-      for (let i = 0; i < teamTypes.length; i++) {
-        describe(`user belonging to the ${teamTypes[i]} team`, () => {
-          for (let j = 0; j < teamTypes.length; j++) {
-            const belongsTo = i === j ? 'itself' : `to the ${teamTypes[j]} team`;
-            const entity = j === 0 ? 'which doesn\'t exist' : `belonging to ${belongsTo}`;
-            describe(`requests an entity ${entity}`, () => {
-              const access = route.accessMatrix[i][j];
-              const expectedCode = codes[access];
-              it(`the response code should be ${expectedCode}`, async function () {
+      const userTypes = Object.keys(route.accessMatrix) as UserType[];
+      for (const userType of userTypes) {
+        describe(`user of type ${userType}`, () => {
+          const entityResponse = route.accessMatrix[userType];
+          const entityTypes = Object.keys(entityResponse) as EntityType[];
+          for (const entityType of entityTypes) {
+            describe(`requests an entity of type ${entityType}`, () => {
+              const expectedCode = codes[entityResponse[entityType]];
+              it(`the response code should be ${expectedCode}`, async function() {
                 this.timeout(10000);
-                const requestor = clients[teamTypes[i]];
-                const owner = clients[teamTypes[j]];
-                const response = await route.request(requestor, owner);
+                const requestor = clients[userType];
+                const response = await route.request(
+                  requestor,
+                  getOwnerClient(userType, entityType, clients),
+                );
                 expect(response.status).to.eq(expectedCode);
               });
             });
@@ -44,3 +36,20 @@ export default (
     });
   }
 };
+
+function getOwnerClient(
+  userType: UserType,
+  entityType: EntityType,
+  clients: CharlesClients,
+) {
+  switch (entityType) {
+    case 'own':
+      return clients[userType];
+    case 'closed':
+      return userType === 'admin' ? clients.regular : clients.admin;
+    case 'open':
+      return clients.open;
+    case 'missing':
+      return clients.unauthenticated;
+  }
+}

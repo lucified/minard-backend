@@ -104,7 +104,7 @@ export default (kernel: Container) => {
   });
   kernel.rebind(charlesKnexInjectSymbol).toConstantValue(charlesKnex);
   kernel.rebind(loggerInjectSymbol).toConstantValue(logger);
-  kernel.rebind(jwtOptionsInjectSymbol).toConstantValue(getJwtOptions());
+  kernel.bind(jwtOptionsInjectSymbol).toConstantValue(getJwtOptions());
   kernel.rebind(authCookieDomainInjectSymbol).toConstantValue(AUTH_COOKIE_DOMAIN);
   kernel.rebind(externalBaseUrlInjectSymbol).toConstantValue(EXTERNAL_BASEURL);
 

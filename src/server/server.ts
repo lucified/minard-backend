@@ -1,10 +1,11 @@
 import { inject, injectable, optional } from 'inversify';
 
 import { AuthenticationHapiPlugin } from '../authentication';
-import { CIProxy } from '../deployment';
 import {
   DeploymentHapiPlugin,
 } from '../deployment';
+import { CIProxy } from '../deployment';
+import { GitProxy } from '../gitproxy/gitproxy-hapi-plugin';
 import { JsonApiHapiPlugin } from '../json-api';
 import { OperationsHapiPlugin } from '../operations';
 import { ProjectHapiPlugin } from '../project';
@@ -47,6 +48,7 @@ export default class MinardServer {
     @inject(ProjectHapiPlugin.injectSymbol) private readonly projectPlugin: ProjectHapiPlugin,
     @inject(JsonApiHapiPlugin.injectSymbol) private readonly jsonApiPlugin: JsonApiHapiPlugin,
     @inject(CIProxy.injectSymbol) private readonly ciProxy: CIProxy,
+    @inject(GitProxy.injectSymbol) private readonly gitProxy: GitProxy,
     @inject(hostInjectSymbol) private readonly host: string,
     @inject(portInjectSymbol) private readonly port: number,
     @inject(minardUiBaseUrlInjectSymbol) private readonly minardUiBaseUrl: string,
@@ -201,6 +203,7 @@ export default class MinardServer {
       },
       this.ciProxy.register,
       this.projectPlugin.register,
+      this.gitProxy.register,
     ]);
   }
 

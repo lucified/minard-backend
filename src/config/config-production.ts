@@ -1,16 +1,16 @@
 import * as cacheManager from 'cache-manager';
-import * as auth from 'hapi-auth-jwt2';
 import { Container } from 'inversify';
-import * as jwksRsa from 'jwks-rsa';
 import * as Knex from 'knex';
+import { parse as parseUrl } from 'url';
 import * as winston from 'winston';
 
 import {
+  auth0AudienceInjectSymbol,
+  auth0ClientIdInjectSymbol,
+  auth0DomainInjectSymbol,
   authCookieDomainInjectSymbol,
-  authServerBaseUrlInjectSymbol,
   gitlabRootPasswordInjectSymbol,
   internalHostSuffixesInjectSymbol,
-  jwtOptionsInjectSymbol,
 } from '../authentication';
 import {
   deploymentFolderInjectSymbol,
@@ -35,9 +35,9 @@ import {
 import {
   cacheInjectSymbol,
 } from '../shared/cache';
-import { gitBaseUrlInjectSymbol, gitlabHostInjectSymbol } from '../shared/gitlab-client';
-import { loggerInjectSymbol } from '../shared/logger';
+import { gitBaseUrlInjectSymbol, gitlabHostInjectSymbol, gitVhostInjectSymbol } from '../shared/gitlab-client';
 import Logger from '../shared/logger';
+import { loggerInjectSymbol } from '../shared/logger';
 import {
   tokenSecretInjectSymbol,
 } from '../shared/token-generator';
@@ -90,11 +90,13 @@ const goodOptions = {
           {
             error: '*',
             response: '*',
+            request: '*',
           },
         ],
       },
       {
         module: 'good-console',
+        args: [{format: 'DD.MM HH:mm:ss', utc: false, color: true}],
       },
       'stdout',
     ],
@@ -141,6 +143,9 @@ const EXTERNAL_BASEURL = env.EXTERNAL_BASEURL || `http://localhost:${PORT}`;
 
 // External baseUrl for git clone urls
 const EXTERNAL_GIT_BASEURL = env.EXTERNAL_GIT_BASEURL || `http://localhost:${GITLAB_PORT}`;
+
+// External baseUrl for git clone urls
+const GIT_VHOST = env.GIT_VHOST || parseUrl(EXTERNAL_GIT_BASEURL).hostname;
 
 const deploymentDomain = `deployment.localtest.me`;
 
@@ -256,31 +261,10 @@ const cache = cacheManager.caching({
 // --------------
 
 const GITLAB_ROOT_PASSWORD = env.GITLAB_ROOT_PASSWORD || '12345678';
-const AUTH_SERVER_BASE_URL = env.AUTH_SERVER_BASE_URL || 'https://lucify-dev.eu.auth0.com';
-const AUTH_AUDIENCE = env.AUTH_AUDIENCE || EXTERNAL_BASEURL;
-const AUTH_COOKIE_DOMAIN = env.AUTH_COOKIE_DOMAIN || AUTH_AUDIENCE;
-
-const jwtOptions: auth.JWTStrategyOptions = {
-  // Get the complete decoded token, because we need info from the header (the kid)
-  complete: true,
-
-  // Dynamically provide a signing key based on the kid in the header
-  // and the singing keys provided by the JWKS endpoint.
-  key: jwksRsa.hapiJwt2Key({
-    cache: true,
-    rateLimit: true,
-    jwksRequestsPerMinute: 2,
-    jwksUri: `${AUTH_SERVER_BASE_URL}/.well-known/jwks.json`,
-  }),
-
-  // Validate the audience, issuer, algorithm and expiration.
-  verifyOptions: {
-    audience: AUTH_AUDIENCE,
-    issuer: `${AUTH_SERVER_BASE_URL}/`,
-    algorithms: ['RS256'],
-    ignoreExpiration: false,
-  },
-};
+const AUTH0_DOMAIN = env.AUTH0_DOMAIN || 'https://lucify-dev.eu.auth0.com';
+const AUTH0_CLIENT_ID = env.AUTH0_CLIENT_ID || 'ZaeiNyV7S7MpI69cKNHr8wXe5Bdr8tvW';
+const AUTH0_AUDIENCE = env.AUTH0_AUDIENCE || EXTERNAL_BASEURL;
+const AUTH_COOKIE_DOMAIN = env.AUTH_COOKIE_DOMAIN || AUTH0_AUDIENCE;
 
 // Url token secret
 // ----------------
@@ -317,6 +301,7 @@ export default (kernel: Container) => {
   kernel.bind(hostInjectSymbol).toConstantValue(HOST);
   kernel.bind(portInjectSymbol).toConstantValue(PORT);
   kernel.bind(gitlabHostInjectSymbol).toConstantValue(`http://${GITLAB_HOST}:${GITLAB_PORT}`);
+  kernel.bind(gitVhostInjectSymbol).toConstantValue(GIT_VHOST);
   kernel.bind(systemHookBaseUrlSymbol).toConstantValue(SYSTEMHOOK_BASEURL);
   kernel.bind(deploymentFolderInjectSymbol).toConstantValue(DEPLOYMENT_FOLDER);
   kernel.bind(gitlabKnexInjectSymbol).toConstantValue(gitlabKnex);
@@ -335,9 +320,10 @@ export default (kernel: Container) => {
   kernel.bind(sentryDsnInjectSymbol).toConstantValue(SENTRY_DSN);
   kernel.bind(exitDelayInjectSymbol).toConstantValue(EXIT_DELAY);
   kernel.bind(tokenSecretInjectSymbol).toConstantValue(TOKEN_SECRET);
-  kernel.bind(authServerBaseUrlInjectSymbol).toConstantValue(AUTH_SERVER_BASE_URL);
+  kernel.bind(auth0DomainInjectSymbol).toConstantValue(AUTH0_DOMAIN);
+  kernel.bind(auth0ClientIdInjectSymbol).toConstantValue(AUTH0_CLIENT_ID);
+  kernel.bind(auth0AudienceInjectSymbol).toConstantValue(AUTH0_AUDIENCE);
   kernel.bind(authCookieDomainInjectSymbol).toConstantValue(AUTH_COOKIE_DOMAIN);
-  kernel.bind(jwtOptionsInjectSymbol).toConstantValue(jwtOptions);
   kernel.bind(adminTeamNameInjectSymbol).toConstantValue(ADMIN_TEAM_NAME);
   kernel.bind(openTeamNamesInjectSymbol).toConstantValue(OPEN_TEAM_NAMES);
   kernel.bind(internalHostSuffixesInjectSymbol).toConstantValue(INTERNAL_HOST_SUFFIXES.split(','));

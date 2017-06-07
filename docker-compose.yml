@@ -199,7 +199,7 @@ services:
       - SCREENSHOT_URL_PATTERN=http://minard-%s.deployment.charles.internal:8000
       - SCREENSHOTTER_BASEURL=http://screenshotter
       - DEPLOYMENT_URL_PATTERN=http://%s.deployment.localtest.me:8000
-      - EXTERNAL_GIT_BASEURL=http://localhost:10080
+      - EXTERNAL_GIT_BASEURL=http://git.localtest.me:8000
       - GITLAB_ROOT_PASSWORD=12345678
       - SENTRY_DSN=$SENTRY_DSN
       - ADMIN_TEAM_NAME=integrationtestadminteam

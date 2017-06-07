@@ -70,6 +70,8 @@ import {
 import { SystemHookModule } from '../system-hook';
 import { UserModule } from '../user';
 
+import { GitProxy } from '../gitproxy/gitproxy-hapi-plugin';
+
 export default new ContainerModule((bind, _unbind, _isBound, _rebind) => {
 
   // Bindings for modules
@@ -101,6 +103,7 @@ export default new ContainerModule((bind, _unbind, _isBound, _rebind) => {
   // Other bindings
   bind(eventBusInjectSymbol).to(PersistentEventBus).inSingletonScope();
   bind(CIProxy.injectSymbol).to(CIProxy);
+  bind(GitProxy.injectSymbol).to(GitProxy);
   bind(GitlabClient.injectSymbol).to(GitlabClient).inSingletonScope();
   bind(fetchInjectSymbol).toConstantValue(fetch);
   bind(FlowdockNotify.injectSymbol).to(FlowdockNotify);

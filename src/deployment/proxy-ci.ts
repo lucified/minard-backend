@@ -84,7 +84,7 @@ export class CIProxy {
       method: 'POST',
       path: this.routeNamespace + '{entities}/register.json',
       handler: {
-        proxy: { ...this.proxyOptions, onResponse: this.postReplyHandler } as any,
+        proxy: {...this.proxyOptions, onResponse: this.postReplyHandler as any}, // Hapi type defs are incorrect
       },
       config,
     });

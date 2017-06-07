@@ -1,6 +1,7 @@
 import * as Boom from 'boom';
 import * as auth from 'hapi-auth-jwt2';
-import { inject, injectable } from 'inversify';
+import { inject, injectable, optional } from 'inversify';
+import * as jwksRsa from 'jwks-rsa';
 import * as Knex from 'knex';
 
 import { parseApiBranchId } from '../json-api/conversions';
@@ -16,15 +17,20 @@ import {
   fetchInjectSymbol,
   openTeamNamesInjectSymbol,
 } from '../shared/types';
+import { GitAuthScheme } from './git-auth-scheme';
 import { generateAndSaveTeamToken, getTeamIdWithToken, teamTokenQuery } from './team-token';
 import {
   AccessToken,
+  auth0AudienceInjectSymbol,
+  auth0ClientIdInjectSymbol,
+  auth0DomainInjectSymbol,
   authCookieDomainInjectSymbol,
   AuthorizationStatus,
   Authorizer,
   internalHostSuffixesInjectSymbol,
   jwtOptionsInjectSymbol,
   RequestCredentials,
+  STRATEGY_GIT,
   STRATEGY_INTERNAL_REQUEST,
   STRATEGY_ROUTELEVEL_ADMIN_HEADER,
   STRATEGY_ROUTELEVEL_USER_COOKIE,
@@ -39,19 +45,22 @@ const teamIdOrNameKey = 'teamIdOrName';
 
 @injectable()
 class AuthenticationHapiPlugin extends HapiPlugin {
-
+  private readonly gitAuthScheme: GitAuthScheme;
   public static injectSymbol = Symbol('authentication-hapi-plugin');
 
   constructor(
     @inject(GitlabClient.injectSymbol) private readonly gitlab: GitlabClient,
-    @inject(jwtOptionsInjectSymbol) private readonly hapiOptions: auth.JWTStrategyOptions,
     @inject(authCookieDomainInjectSymbol) private readonly authCookieDomain: string,
+    @inject(auth0ClientIdInjectSymbol) auth0ClientId: string,
+    @inject(auth0DomainInjectSymbol) private readonly auth0Domain: string,
+    @inject(auth0AudienceInjectSymbol) private readonly auth0Audience: string,
     @inject(charlesKnexInjectSymbol) private readonly db: Knex,
     @inject(loggerInjectSymbol) private readonly logger: Logger,
     @inject(adminTeamNameInjectSymbol) private readonly adminTeamName: string,
     @inject(openTeamNamesInjectSymbol) private readonly openTeamNames: string[],
     @inject(fetchInjectSymbol) private readonly fetch: IFetch,
     @inject(internalHostSuffixesInjectSymbol) private readonly internalHostSuffixes: string[],
+    @inject(jwtOptionsInjectSymbol) @optional() private readonly defaultJWTOptions?: auth.JWTStrategyOptions,
   ) {
     super({
       name: 'authentication-plugin',
@@ -63,6 +72,13 @@ class AuthenticationHapiPlugin extends HapiPlugin {
         version: '1.0.0',
       },
     });
+    // jwksRsa.
+    this.gitAuthScheme = new GitAuthScheme(
+      auth0ClientId,
+      auth0Domain,
+      auth0Audience,
+      logger,
+    );
     this.authorizeAdmin = this.authorizeAdmin.bind(this);
     this.authorizeUser = this.authorizeUser.bind(this);
     this.authorizeCustom = this.authorizeCustom.bind(this);
@@ -418,14 +434,12 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   private async tryGetEmailFromAuth0(accessToken: string) {
     // We assume that if the issuer is defined, it's the Auth0 baseUrl
     let email: string | undefined;
-    if (this.hapiOptions.verifyOptions && this.hapiOptions.verifyOptions.issuer) {
-      const userInfo = await getAuth0UserInfo(this.hapiOptions.verifyOptions.issuer, accessToken, this.fetch);
-      if (looselyValidateEmail(userInfo.email)) {
-        email = userInfo.email;
-        // the email can actually be in the name field depending on the identity provider
-      } else if (looselyValidateEmail(userInfo.name)) {
-        email = userInfo.name;
-      }
+    const userInfo = await getAuth0UserInfo(this.auth0Domain, accessToken, this.fetch);
+    if (looselyValidateEmail(userInfo.email)) {
+      email = userInfo.email;
+      // the email can actually be in the name field depending on the identity provider
+    } else if (looselyValidateEmail(userInfo.name)) {
+      email = userInfo.name;
     }
     return email;
   }
@@ -455,36 +469,37 @@ class AuthenticationHapiPlugin extends HapiPlugin {
 
   protected async registerAuth(server: Hapi.Server) {
     await server.register(auth);
+    const defaultJWTOptions = this.defaultJWTOptions || this.getDefaultJWTOptions();
     server.auth.strategy(STRATEGY_TOPLEVEL_USER_HEADER, 'jwt', true, {
-      ...this.hapiOptions,
+      ...defaultJWTOptions,
       headerKey: 'authorization',
       cookieKey: false,
       urlKey: false,
       validateFunc: this.validateFuncFactory(this.authorizeUser),
     });
     server.auth.strategy(STRATEGY_TOPLEVEL_USER_URL, 'jwt', false, {
-      ...this.hapiOptions,
+      ...defaultJWTOptions,
       headerKey: false,
       cookieKey: false,
       urlKey: 'token',
       validateFunc: this.validateFuncFactory(this.authorizeUser),
     });
     server.auth.strategy(STRATEGY_ROUTELEVEL_ADMIN_HEADER, 'jwt', false, {
-      ...this.hapiOptions,
+      ...defaultJWTOptions,
       headerKey: 'authorization',
       cookieKey: false,
       urlKey: false,
       validateFunc: this.validateFuncFactory(this.authorizeAdmin),
     });
     server.auth.strategy(STRATEGY_ROUTELEVEL_USER_HEADER, 'jwt', false, {
-      ...this.hapiOptions,
+      ...defaultJWTOptions,
       headerKey: 'authorization',
       cookieKey: false,
       urlKey: false,
       validateFunc: this.validateFuncFactory(this.authorizeCustom),
     });
     server.auth.strategy(STRATEGY_ROUTELEVEL_USER_COOKIE, 'jwt', false, {
-      ...this.hapiOptions,
+      ...defaultJWTOptions,
       headerKey: false,
       cookieKey: 'token',
       urlKey: false,
@@ -495,11 +510,13 @@ class AuthenticationHapiPlugin extends HapiPlugin {
         if (this.isInternalRequest(request)) {
           return reply.continue({ credentials: {} });
         } else {
-          return reply('Unauthorized').code(401);
+          return reply(Boom.unauthorized());
         }
       },
     }));
     server.auth.strategy(STRATEGY_INTERNAL_REQUEST, 'internal', false);
+    server.auth.scheme('git', this.gitAuthScheme.getScheme());
+    server.auth.strategy(STRATEGY_GIT, 'git', false);
     const ttl = 365 * 24 * 3600 * 1000; // ~year in ms
     server.state('token', accessTokenCookieSettings(this.authCookieDomain, ttl));
   }
@@ -725,6 +742,30 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     confirm = false,
   ) {
     return this.gitlab.createUser(email, password, username, name, externUid, provider, confirm);
+  }
+
+  private getDefaultJWTOptions(): auth.JWTStrategyOptions {
+    return {
+      // Get the complete decoded token, because we need info from the header (the kid)
+      complete: true,
+
+      // Dynamically provide a signing key based on the kid in the header
+      // and the singing keys provided by the JWKS endpoint.
+      key: jwksRsa.hapiJwt2Key({
+        cache: true,
+        rateLimit: true,
+        jwksRequestsPerMinute: 2,
+        jwksUri: `${this.auth0Domain}/.well-known/jwks.json`,
+      }),
+
+      // Validate the audience, issuer, algorithm and expiration.
+      verifyOptions: {
+        audience: this.auth0Audience,
+        issuer: `${this.auth0Domain}/`,
+        algorithms: ['RS256'],
+        ignoreExpiration: false,
+      },
+    };
   }
 }
 

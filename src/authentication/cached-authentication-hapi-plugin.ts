@@ -1,6 +1,6 @@
 import * as Boom from 'boom';
 import * as auth from 'hapi-auth-jwt2';
-import { inject, injectable } from 'inversify';
+import { inject, injectable, optional } from 'inversify';
 import * as Knex from 'knex';
 import memoizee = require('memoizee');
 
@@ -15,6 +15,9 @@ import {
 } from '../shared/types';
 import AuthenticationHapiPlugin from './authentication-hapi-plugin';
 import {
+  auth0AudienceInjectSymbol,
+  auth0ClientIdInjectSymbol,
+  auth0DomainInjectSymbol,
   authCookieDomainInjectSymbol,
   internalHostSuffixesInjectSymbol,
   jwtOptionsInjectSymbol,
@@ -25,25 +28,31 @@ class CachedAuthenticationHapiPlugin extends AuthenticationHapiPlugin {
 
   constructor(
     @inject(GitlabClient.injectSymbol) gitlab: GitlabClient,
-    @inject(jwtOptionsInjectSymbol) hapiOptions: auth.JWTStrategyOptions,
     @inject(authCookieDomainInjectSymbol) authCookieDomain: string,
+    @inject(auth0ClientIdInjectSymbol) auth0ClientId: string,
+    @inject(auth0DomainInjectSymbol) auth0Domain: string,
+    @inject(auth0AudienceInjectSymbol) auth0Audience: string,
     @inject(charlesKnexInjectSymbol) db: Knex,
     @inject(loggerInjectSymbol) logger: Logger,
     @inject(adminTeamNameInjectSymbol) adminTeamName: string,
     @inject(openTeamNamesInjectSymbol) openTeamNames: string[],
     @inject(fetchInjectSymbol) fetch: IFetch,
     @inject(internalHostSuffixesInjectSymbol) internalHostSuffixes: string[],
+    @inject(jwtOptionsInjectSymbol) @optional() defaultJWTOptions?: auth.JWTStrategyOptions,
   ) {
     super(
       gitlab,
-      hapiOptions,
       authCookieDomain,
+      auth0ClientId,
+      auth0Domain,
+      auth0Audience,
       db,
       logger,
       adminTeamName,
       openTeamNames,
       fetch,
       internalHostSuffixes,
+      defaultJWTOptions,
     );
     this.userHasAccessToProjectAsync = memoizee(
       this.userHasAccessToProjectAsync,

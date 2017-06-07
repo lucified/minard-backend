@@ -14,6 +14,7 @@ const perfy = require('perfy');
 const randomstring = require('randomstring');
 
 export const gitBaseUrlInjectSymbol = Symbol('git-base-url');
+export const gitVhostInjectSymbol = Symbol('git-vhost');
 export const gitlabHostInjectSymbol = Symbol('gitlab-host');
 
 const urljoin = require('url-join');

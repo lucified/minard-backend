@@ -53,7 +53,7 @@ describe('system-integration', () => {
         intraTeamTests(
           () => Promise.resolve(clients[clientType]!),
           auth0Config.clientId,
-          auth0Config.gitPassword,
+          auth0Config.clientSecret,
           config.notifications,
         );
       });

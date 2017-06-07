@@ -27,21 +27,18 @@ const configuration: Config = {
       domain,
       clientId: 'foo',
       clientSecret: 'foo',
-      gitPassword: 'foo',
     },
     open: {
       audience,
       domain,
       clientId: 'foo',
       clientSecret: 'foo',
-      gitPassword: 'foo',
     },
     admin: {
       audience,
       domain,
       clientId: 'foo',
       clientSecret: 'foo',
-      gitPassword: 'foo',
     },
   },
 };

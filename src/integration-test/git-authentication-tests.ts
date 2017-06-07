@@ -33,6 +33,7 @@ describe('git-authentication', () => {
       'ZaeiNyV7S7MpI69cKNHr8wXe5Bdr8tvW',
       domain,
       audience,
+      _ => '12345678',
     );
   });
 

@@ -22,6 +22,7 @@ export interface AccessToken {
   'https://minard.io/team_token'?: string;
   username?: string;
   teams?: number[];
+  gitlabPassword?: string;
 }
 
 export const enum AuthorizationStatus {

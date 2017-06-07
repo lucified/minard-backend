@@ -58,7 +58,7 @@ const getClient = () => {
       return token;
     }
   }
-  return new GitlabClient(host, (fetchMock as any).fetchMock,
+  return new GitlabClient(host, 'secret', (fetchMock as any).fetchMock,
     new MockAuthModule() as Authentication, {} as any);
 };
 

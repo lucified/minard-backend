@@ -35,9 +35,13 @@ import {
 import {
   cacheInjectSymbol,
 } from '../shared/cache';
-import { gitBaseUrlInjectSymbol, gitlabHostInjectSymbol, gitVhostInjectSymbol } from '../shared/gitlab-client';
-import Logger from '../shared/logger';
-import { loggerInjectSymbol } from '../shared/logger';
+import {
+  gitBaseUrlInjectSymbol,
+  gitlabHostInjectSymbol,
+  gitlabPasswordSecretInjectSymbol,
+  gitVhostInjectSymbol,
+} from '../shared/gitlab-client';
+import Logger, { loggerInjectSymbol } from '../shared/logger';
 import {
   tokenSecretInjectSymbol,
 } from '../shared/token-generator';
@@ -146,6 +150,9 @@ const EXTERNAL_GIT_BASEURL = env.EXTERNAL_GIT_BASEURL || `http://localhost:${GIT
 
 // External baseUrl for git clone urls
 const GIT_VHOST = env.GIT_VHOST || parseUrl(EXTERNAL_GIT_BASEURL).hostname;
+
+// A secret for generating gitlab passwords
+const GITLAB_PASSWORD_SECRET = env.GITLAB_PASSWORD_SECRET || 'abcdefg';
 
 const deploymentDomain = `deployment.localtest.me`;
 
@@ -302,6 +309,7 @@ export default (kernel: Container) => {
   kernel.bind(portInjectSymbol).toConstantValue(PORT);
   kernel.bind(gitlabHostInjectSymbol).toConstantValue(`http://${GITLAB_HOST}:${GITLAB_PORT}`);
   kernel.bind(gitVhostInjectSymbol).toConstantValue(GIT_VHOST);
+  kernel.bind(gitlabPasswordSecretInjectSymbol).toConstantValue(GITLAB_PASSWORD_SECRET);
   kernel.bind(systemHookBaseUrlSymbol).toConstantValue(SYSTEMHOOK_BASEURL);
   kernel.bind(deploymentFolderInjectSymbol).toConstantValue(DEPLOYMENT_FOLDER);
   kernel.bind(gitlabKnexInjectSymbol).toConstantValue(gitlabKnex);

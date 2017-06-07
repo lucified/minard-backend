@@ -25,6 +25,7 @@ export class GitAuthScheme {
     auth0ClientId: string,
     private readonly auth0Domain: string,
     private readonly auth0Audience: string,
+    private readonly passwordFactory: (username: string) => string,
     private readonly logger?: logger.Logger,
   ) {
     const webAuth = new auth0.WebAuth({
@@ -34,9 +35,7 @@ export class GitAuthScheme {
       audience: auth0Audience,
     });
     this.webAuth = webAuth;
-    this.userLogin = util.promisify(
-      webAuth.client.login.bind(webAuth.client),
-    );
+    this.userLogin = util.promisify(webAuth.client.login.bind(webAuth.client));
     const keyClient = jwksRsa({
       cache: true,
       rateLimit: true,
@@ -73,6 +72,7 @@ export class GitAuthScheme {
         try {
           const { username, password } = this.parseBasicAuth(request);
           const { accessToken } = await this.login(username, password);
+          console.log(accessToken);
           const signingKey = await this.getSigningKey(this.decode(accessToken));
           const credentials = this.verify(accessToken, signingKey);
           return reply.continue({ credentials });
@@ -124,18 +124,16 @@ export class GitAuthScheme {
   }
 
   public verify(accessToken: string, signingKey: string): AccessToken {
-    const payload = verify(
-      accessToken,
-      signingKey,
-      {
-        audience: this.auth0Audience,
-        issuer: `${this.auth0Domain}/`,
-        algorithms: ['RS256'],
-        ignoreExpiration: false,
-      },
-    ) as AccessToken;
+    const payload = verify(accessToken, signingKey, {
+      audience: this.auth0Audience,
+      issuer: `${this.auth0Domain}/`,
+      algorithms: ['RS256'],
+      ignoreExpiration: false,
+    }) as AccessToken;
     const userName = sanitizeSubClaim(payload.sub);
     payload.username = userName;
+    payload.gitlabPassword = this.passwordFactory(userName);
+    console.log(payload);
     return payload;
   }
 
@@ -172,42 +170,4 @@ export class GitAuthScheme {
     }
     return { username, password };
   }
-
-  // public onReplyHandler(
-  //   err: any,
-  //   response: http.IncomingMessage,  // note that this is incorrect in the hapi type def
-  //   request: Hapi.Request,
-  //   reply: Hapi.IReply,
-  // ) {
-
-  //   if (err) {
-  //     return reply(err);
-  //   }
-  //   const req = `\n> ${request.method.toUpperCase()} ${request.url.href}`;
-  //   const headers = Object.entries(request.headers)
-  //     .reduce((acc, [key, value]: [string, string]) => acc + `> ${key}: ${value}\n`, '');
-  //   request.log('proxy', [req, headers].join(`\n`));
-  //   // const body = await this.collectStream(response);
-  //   // console.log(body);
-  //   return reply(response);
-  // }
-
-  // public collectStream(s: events.EventEmitter): Promise<string> {
-  //   if (!s || !s.on) {
-  //     throw new Error('s is not an EventEmitter');
-  //   }
-  //   const body: Buffer[] = [];
-  //   return new Promise((resolve, reject) => {
-  //     s
-  //       .on('error', (err: any) => {
-  //         reject(err);
-  //       })
-  //       .on('data', (chunk: Buffer) => {
-  //         body.push(chunk);
-  //       })
-  //       .on('end', () => {
-  //         resolve(Buffer.concat(body).toString());
-  //       });
-  //   });
-  // }
 }

@@ -38,7 +38,7 @@ const getClient = () => {
       return 'secret-token';
     }
   }
-  return new GitlabClient(host, fetchMock.fetchMock,
+  return new GitlabClient(host, 'secret', fetchMock.fetchMock,
     new MockAuthModule() as AuthenticationModule, logger);
 };
 
@@ -858,6 +858,7 @@ describe('project-module', () => {
 
     function arrangeProjectModule(bus: LocalEventBus = new LocalEventBus()) {
       const gitlab = new GitlabClient(
+        '',
         '',
         {} as any,
         {} as any,

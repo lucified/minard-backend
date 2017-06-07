@@ -72,11 +72,11 @@ class AuthenticationHapiPlugin extends HapiPlugin {
         version: '1.0.0',
       },
     });
-    // jwksRsa.
     this.gitAuthScheme = new GitAuthScheme(
       auth0ClientId,
       auth0Domain,
       auth0Audience,
+      this.gitlab.getUserPassword.bind(this.gitlab),
       logger,
     );
     this.authorizeAdmin = this.authorizeAdmin.bind(this);
@@ -358,12 +358,13 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       }
       const teamId = await getTeamIdWithToken(teamToken, this.db);
       const team = await this._getGroup(teamId);
-      const password = generatePassword();
       const { id, idp } = parseSub(credentials.sub);
+      const username = sanitizeSubClaim(credentials.sub);
+      const password = this.gitlab.getUserPassword(username);
       const user = await this._createUser(
         email,
         password,
-        sanitizeSubClaim(credentials.sub),
+        username,
         email,
         id,
         idp,

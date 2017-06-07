@@ -22,6 +22,7 @@ describe('system-hooks-module', () => {
     }
     return new GitlabClient(
       'http://fake-gitlab.com:1000',
+      'secret',
       (fetchMock as any).fetchMock,
       new MockAuthModule() as Authentication,
       {} as any,

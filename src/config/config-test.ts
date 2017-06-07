@@ -30,6 +30,7 @@ const getClient = () => {
   }
   return new GitlabClient(
     'gitlab',
+    'secret',
     (fetchMock as any).fetchMock,
     new MockAuthModule() as AuthenticationModule,
     logger,

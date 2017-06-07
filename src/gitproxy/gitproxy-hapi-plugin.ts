@@ -4,7 +4,10 @@ import { inject, injectable } from 'inversify';
 import { STRATEGY_GIT } from '../authentication/types';
 import * as Hapi from '../server/hapi';
 import { HapiPlugin } from '../server/hapi-register';
-import { gitlabHostInjectSymbol, gitVhostInjectSymbol } from '../shared/gitlab-client';
+import {
+  gitlabHostInjectSymbol,
+  gitVhostInjectSymbol,
+} from '../shared/gitlab-client';
 import * as logger from '../shared/logger';
 
 @injectable()
@@ -63,53 +66,20 @@ export class GitProxy extends HapiPlugin {
     const uri = `${this.gitlabHost}${path}`;
     try {
       const { headers } = request;
-      const basic = new Buffer(`${request.auth.credentials.username}:12345678`).toString('base64');
+      const { username, gitlabPassword } = request.auth.credentials;
+      const basic = new Buffer(`${username}:${gitlabPassword}`).toString(
+        'base64',
+      );
       return callback(undefined, uri, {
         ...headers,
         authorization: `Basic ${basic}`,
       });
     } catch (_error) {
       this.logger.debug(`Invalid Git request: ${_error.message}`);
-      const error = _error.isBoom ? _error : Boom.create(_error.statusCode || 401, _error.description);
+      const error = _error.isBoom
+        ? _error
+        : Boom.create(_error.statusCode || 401, _error.description);
       return callback(error, uri, {});
     }
   }
-
-  // public onReplyHandler(
-  //   err: any,
-  //   response: http.IncomingMessage,  // note that this is incorrect in the hapi type def
-  //   request: Hapi.Request,
-  //   reply: Hapi.IReply,
-  // ) {
-
-  //   if (err) {
-  //     return reply(err);
-  //   }
-  //   const req = `\n> ${request.method.toUpperCase()} ${request.url.href}`;
-  //   const headers = Object.entries(request.headers)
-  //     .reduce((acc, [key, value]: [string, string]) => acc + `> ${key}: ${value}\n`, '');
-  //   request.log('proxy', [req, headers].join(`\n`));
-  //   // const body = await this.collectStream(response);
-  //   // console.log(body);
-  //   return reply(response);
-  // }
-
-  // public collectStream(s: events.EventEmitter): Promise<string> {
-  //   if (!s || !s.on) {
-  //     throw new Error('s is not an EventEmitter');
-  //   }
-  //   const body: Buffer[] = [];
-  //   return new Promise((resolve, reject) => {
-  //     s
-  //       .on('error', (err: any) => {
-  //         reject(err);
-  //       })
-  //       .on('data', (chunk: Buffer) => {
-  //         body.push(chunk);
-  //       })
-  //       .on('end', () => {
-  //         resolve(Buffer.concat(body).toString());
-  //       });
-  //   });
-  // }
 }

@@ -7,11 +7,12 @@ import OperationsModule from './operations-module';
 
 @injectable()
 export default class OperationsHapiPlugin {
-
   public static injectSymbol = Symbol('operations-hapi-plugin');
 
   constructor(
-    @inject(OperationsModule.injectSymbol) public operationsModule: OperationsModule,
+    @inject(
+      OperationsModule.injectSymbol,
+    ) public operationsModule: OperationsModule,
   ) {
     this.register.attributes = {
       name: 'operations-plugin',
@@ -48,10 +49,22 @@ export default class OperationsHapiPlugin {
       },
       config,
     });
+    server.route({
+      method: 'GET',
+      path: '/regenerate-gitlab-passwords',
+      handler: {
+        async: this.regenerateGitlabPasswords,
+      },
+      config,
+    });
+
     next();
   }
 
-  public async checkScreenshotsHandler(_request: Hapi.Request, reply: Hapi.IReply) {
+  public async checkScreenshotsHandler(
+    _request: Hapi.Request,
+    reply: Hapi.IReply,
+  ) {
     this.operationsModule.assureScreenshotsGenerated();
     return reply({
       status: 200,
@@ -59,7 +72,10 @@ export default class OperationsHapiPlugin {
     });
   }
 
-  public async checkDeploymentActivityHandler(_request: Hapi.Request, reply: Hapi.IReply) {
+  public async checkDeploymentActivityHandler(
+    _request: Hapi.Request,
+    reply: Hapi.IReply,
+  ) {
     this.operationsModule.assureDeploymentActivity();
     return reply({
       status: 200,
@@ -67,7 +83,10 @@ export default class OperationsHapiPlugin {
     });
   }
 
-  public async cleanupRunningDeployments(_request: Hapi.Request, reply: Hapi.IReply) {
+  public async cleanupRunningDeployments(
+    _request: Hapi.Request,
+    reply: Hapi.IReply,
+  ) {
     this.operationsModule.cleanupRunningDeployments();
     return reply({
       status: 200,
@@ -75,4 +94,15 @@ export default class OperationsHapiPlugin {
     });
   }
 
+  public async regenerateGitlabPasswords(
+    _request: Hapi.Request,
+    reply: Hapi.IReply,
+  ) {
+    const result = await this.operationsModule.regenerateGitlabPasswords();
+    return reply({
+      status: 200,
+      message: 'regenerated',
+      updates: result,
+    });
+  }
 }

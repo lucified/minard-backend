@@ -133,7 +133,6 @@ export class GitAuthScheme {
     const userName = sanitizeSubClaim(payload.sub);
     payload.username = userName;
     payload.gitlabPassword = this.passwordFactory(userName);
-    console.log(payload);
     return payload;
   }
 

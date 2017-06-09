@@ -76,7 +76,7 @@ export default (
       this.timeout(1000 * 30);
       const projects = await client.getProjects().then(x => x.getEntities());
       expect(projects.length).to.eq(1);
-      expect(Number(projects[0].id)).to.eq(client.lastProject!.id);
+      expect(Number(projects[0].id)).to.eq(client.lastCreatedProject!.id);
     });
 
     it('should be able to edit a project', async function () {
@@ -142,7 +142,7 @@ export default (
       expect(activities).to.have.length(1);
       expect(activities[0].attributes['activity-type']).to.equal('deployment');
       expect(activities[0].attributes.deployment.status).to.equal('success');
-      expect(Number(activities[0].attributes.project.id)).to.equal(await client.lastProject!.id);
+      expect(Number(activities[0].attributes.project.id)).to.equal(await client.lastCreatedProject!.id);
       expect(activities[0].attributes.project.name).to.equal(projectName);
       expect(activities[0].attributes.commit).to.exist;
       expect(activities[0].attributes.branch.name).to.equal('master');
@@ -187,7 +187,7 @@ export default (
         return;
       }
       this.timeout(1000 * 20);
-      const projectId = client.lastProject!.id;
+      const projectId = client.lastCreatedProject!.id;
       const teamId = await client.getTeamId();
       for (const notificationType of Object.keys(notificationConfigurations)) {
         const notificationConfiguration = notificationConfigurations[notificationType as NotificationType];
@@ -216,7 +216,7 @@ export default (
       // Arrange
       this.timeout(1000 * 20);
       const teamId = await client.getTeamId();
-      const projectId = client.lastProject!.id;
+      const projectId = client.lastCreatedProject!.id;
 
       // Act
       const teamConfigurations = await client.getTeamNotificationConfigurations(teamId)
@@ -308,7 +308,7 @@ export default (
           expect(sseResponse.lastEventId).to.exist;
           const event = JSON.parse(sseResponse.data);
           expect(event).to.exist;
-          expect(event.id).to.eq(client.lastProject!.id);
+          expect(event.id).to.eq(client.lastCreatedProject!.id);
           expect(event.description).to.eq(newDescription);
 
           expect(editResponse.id).to.exist;
@@ -326,7 +326,7 @@ export default (
         expect(sseResponse.lastEventId).to.eq(eventResponses[1].lastEventId);
         const event = JSON.parse(sseResponse.data);
         expect(event).to.exist;
-        expect(event.id).to.eq(await client.lastProject!.id);
+        expect(event.id).to.eq(await client.lastCreatedProject!.id);
       });
     });
 

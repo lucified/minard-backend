@@ -22,7 +22,7 @@ export default class CharlesClient {
 
   public teamId?: number;
   public lastDeployment?: LatestDeployment;
-  public lastProject?: LatestProject;
+  public lastCreatedProject?: LatestProject;
   public readonly fetchOptions: RequestInit;
 
   constructor(
@@ -65,7 +65,7 @@ export default class CharlesClient {
    */
 
   public getProject(projectId?: number) {
-    const _projectId = projectId || (this.lastProject && this.lastProject.id);
+    const _projectId = projectId || (this.lastCreatedProject && this.lastCreatedProject.id);
     if (!_projectId) {
       throw new Error('No projectId available');
     }
@@ -79,7 +79,7 @@ export default class CharlesClient {
     const request = await this.createProjectRequest(name, teamId, templateProjectId);
     const response = await this.fetch<ResponseSingle>(`/api/projects`, request, 201);
     const json = await response.toJson();
-    this.lastProject = {
+    this.lastCreatedProject = {
       id: Number(json.data.id),
       repoUrl: json.data.attributes['repo-url'],
       token: json.data.attributes.token,
@@ -91,7 +91,7 @@ export default class CharlesClient {
     attributes: { name: string } | { description: string } | { name: string; description: string },
     projectId?: number,
   ) {
-    const _projectId = projectId || (this.lastProject && this.lastProject.id);
+    const _projectId = projectId || (this.lastCreatedProject && this.lastCreatedProject.id);
     if (!_projectId) {
       throw new Error('No projectId available');
     }
@@ -114,7 +114,7 @@ export default class CharlesClient {
   }
 
   public getProjectActivity(projectId?: number) {
-    const _projectId = projectId || (this.lastProject && this.lastProject.id);
+    const _projectId = projectId || (this.lastCreatedProject && this.lastCreatedProject.id);
     if (!_projectId) {
       throw new Error('No projectId available');
     }
@@ -126,7 +126,7 @@ export default class CharlesClient {
   }
 
   public getBranches(projectId?: number) {
-    const _projectId = projectId || (this.lastProject && this.lastProject.id);
+    const _projectId = projectId || (this.lastCreatedProject && this.lastCreatedProject.id);
     if (!_projectId) {
       throw new Error('No projectId available');
     }
@@ -279,8 +279,8 @@ export default class CharlesClient {
 
   public getRepoUrlWithCredentials(clientId: string, password: string, plainUrl?: string) {
     let repoUrl: string | undefined;
-    if (this.lastProject) {
-      repoUrl = this.lastProject.repoUrl;
+    if (this.lastCreatedProject) {
+      repoUrl = this.lastCreatedProject.repoUrl;
     }
     if (plainUrl) {
       repoUrl = plainUrl;
@@ -303,7 +303,7 @@ export default class CharlesClient {
     return {
       url: this.url,
       accessToken: this.accessToken,
-      lastProject: this.lastProject,
+      lastProject: this.lastCreatedProject,
       lastDeployment: this.lastDeployment,
       teamId: this.teamId,
     };
@@ -311,7 +311,7 @@ export default class CharlesClient {
 
   public static load(dto: any) {
     const instance = new CharlesClient(dto.url, dto.accessToken);
-    instance.lastProject = dto.lastProject;
+    instance.lastCreatedProject = dto.lastProject;
     instance.lastDeployment = dto.lastDeployment;
     instance.teamId = dto.teamId;
     return instance;
@@ -330,8 +330,7 @@ export default class CharlesClient {
     return response;
   }
 
-  private rawFetch(path: string, options?: RequestInit) {
-    const url = path.match(/^http/) ? path : `${this.url}${path}`;
+  private rawFetch(url: string, options?: RequestInit) {
     return fetch(url, this.getRequest(options));
   }
 

@@ -176,10 +176,10 @@ export function loadFromCache(cacheDir: string, cacheFileName: string): Partial<
 export function getAnonymousClient(client: CharlesClient) {
   const anonymous = new CharlesClient(client.url, '');
   anonymous.teamId = 9999999;
-  anonymous.lastProject = {
+  anonymous.lastCreatedProject = {
     id: 999999999,
-    repoUrl: client.lastProject!.repoUrl,
-    token: client.lastProject!.token,
+    repoUrl: client.lastCreatedProject!.repoUrl,
+    token: client.lastCreatedProject!.token,
   };
   const anonymousUrl = client.lastDeployment!.url
     .replace(/^(https?:\/\/)\w+-\w+-\w+-\w+/, '$1master-abc-123-123');

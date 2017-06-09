@@ -19,9 +19,9 @@ const routes: Route[] = [
   {
     description: 'getProject',
     request: (me: CharlesClient, other: CharlesClient) => {
-      expect(me.lastProject).to.exist;
-      expect(other.lastProject).to.exist;
-      return me.getProject(other.lastProject!.id);
+      expect(me.lastCreatedProject).to.exist;
+      expect(other.lastCreatedProject).to.exist;
+      return me.getProject(other.lastCreatedProject!.id);
     },
     accessMatrix: {
       regular:         { own: '1', closed: 'x', open: 'x', missing: 'x' },

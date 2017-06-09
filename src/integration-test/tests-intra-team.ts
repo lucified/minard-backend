@@ -22,12 +22,11 @@ export default (
       const client = await clientFactory();
       this.timeout(1000 * 30);
       const teamId = await client.getTeamId();
-      expect(typeof teamId === 'number').to.be.true;
+      expect(teamId).to.be.a('number');
     });
   });
 
   describe('cleanup', () => {
-
     it('should be able to delete existing integration test projects', async function () {
       const client = await clientFactory();
       this.timeout(1000 * 30);
@@ -39,6 +38,7 @@ export default (
         }
       }
     });
+
     it('should be able to delete existing notification configurations', async function () {
       const client = await clientFactory();
       // Arrange
@@ -56,11 +56,9 @@ export default (
         expect(response.status).to.eq(200);
       }
     });
-
   });
 
   describe('projects', () => {
-
     it('should be able to create a project', async function () {
       this.timeout(1000 * 3000);
       // This fails with 400 Bad Request until the existing integration test projects
@@ -152,7 +150,6 @@ export default (
   });
 
   describe('configuring notifications', () => {
-
     function testNotificationConfiguration(
       configuration: NotificationConfiguration,
       response: JsonApiEntity,
@@ -288,7 +285,6 @@ export default (
   });
 
   describe('realtime', () => {
-
     describe('team scoped events', () => {
       const eventResponses: SSE[] = [];
       const numEvents = 2;
@@ -390,5 +386,4 @@ export default (
       });
     });
   });
-
 };

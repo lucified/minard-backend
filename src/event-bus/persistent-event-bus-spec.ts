@@ -3,12 +3,11 @@ import { expect } from 'chai';
 import * as moment from 'moment';
 import * as Redis from 'redis';
 import 'reflect-metadata';
+import { promisify } from 'util';
 
 import { eventCreator, isPersistedEvent, PersistedEvent } from '../shared/events';
 import { default as logger } from '../shared/logger';
 import { PersistentEventBus as EventBus } from './persistent-event-bus';
-
-import { promisify } from '../shared/promisify';
 
 // Events boilerplate includes payload types, string identifiers and smart constructors
 interface Payload {
@@ -54,10 +53,12 @@ async function clearDb() {
   if (persistence.type === 'redis') {
     // we need to clear the db manually, otherwise nothing will work
     const client = Redis.createClient(persistence);
-    const flushdb = promisify(client.flushdb, client);
-    const quit = promisify(client.flushdb, client);
-    await flushdb();
-    await quit();
+    const flushdb = client.flushdb.bind(client) as any;
+    const quit = client.quit.bind(client) as any;
+    const flushdbAsync = promisify(flushdb);
+    const quitAsync = promisify(quit);
+    await flushdbAsync();
+    await quitAsync();
   }
 }
 

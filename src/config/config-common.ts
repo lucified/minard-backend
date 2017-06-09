@@ -1,4 +1,5 @@
 import { ContainerModule } from 'inversify';
+import fetch from 'node-fetch';
 
 // Imports below should be in alphabetical order, based
 // on the last part of the import path.
@@ -9,86 +10,63 @@ import {
   AuthenticationModule,
   CachedAuthenticationHapiPlugin,
 } from '../authentication';
-
 import {
   CommentModule,
 } from '../comment';
-
 import {
   CIProxy,
   DeploymentHapiPlugin,
   DeploymentModule,
 } from '../deployment';
-
-import {
-  Route53Updater,
-} from '../shared/route53-updater';
-
 import {
   eventBusInjectSymbol,
   PersistentEventBus,
 } from '../event-bus';
-
-import {
-  GitlabClient,
-} from '../shared/gitlab-client';
-
-import {
-  fetchInjectSymbol,
-} from '../shared/types';
-
-import fetch from 'node-fetch';
-
-import TokenGenerator from '../shared/token-generator';
-
 import {
   JsonApiHapiPlugin,
   JsonApiModule,
   ViewEndpoints,
 } from '../json-api';
-
 import Migrations from '../migrations';
-
-import {
-  OperationsHapiPlugin,
-  OperationsModule,
-} from '../operations';
-
-import {
-  CachedProjectModule,
-  ProjectHapiPlugin,
-  ProjectModule,
-} from '../project';
-
-import {
-  ScreenshotHapiPlugin,
-  ScreenshotModule,
-  screenshotterInjectSymbol,
-} from '../screenshot';
-
-import {
-  RemoteScreenshotter,
-} from '../screenshot/screenshotter-remote';
-
-import {
-  RealtimeHapiPlugin,
-  RealtimeModule,
-} from '../realtime';
-
-import { MinardServer } from '../server';
-
-import {
-  StatusHapiPlugin,
-  StatusModule,
-} from '../status';
-
 import {
   FlowdockNotify,
   HipchatNotify,
   NotificationModule,
   SlackNotify,
 } from '../notification';
-
+import {
+  OperationsHapiPlugin,
+  OperationsModule,
+} from '../operations';
+import {
+  CachedProjectModule,
+  ProjectHapiPlugin,
+  ProjectModule,
+} from '../project';
+import {
+  RealtimeHapiPlugin,
+  RealtimeModule,
+} from '../realtime';
+import {
+  ScreenshotHapiPlugin,
+  ScreenshotModule,
+  screenshotterInjectSymbol,
+} from '../screenshot';
+import {
+  RemoteScreenshotter,
+} from '../screenshot/screenshotter-remote';
+import { MinardServer } from '../server';
+import {
+  GitlabClient,
+} from '../shared/gitlab-client';
+import TokenGenerator from '../shared/token-generator';
+import {
+  fetchInjectSymbol,
+} from '../shared/types';
+import {
+  StatusHapiPlugin,
+  StatusModule,
+} from '../status';
 import { SystemHookModule } from '../system-hook';
 import { UserModule } from '../user';
 
@@ -132,6 +110,5 @@ export default new ContainerModule((bind, _unbind, _isBound, _rebind) => {
   bind(RemoteScreenshotter.injectSymbol).to(RemoteScreenshotter).inSingletonScope();
   bind(Migrations.injectSymbol).to(Migrations);
   bind(screenshotterInjectSymbol).to(RemoteScreenshotter);
-  bind(Route53Updater.injectSymbol).to(Route53Updater);
   bind(TokenGenerator.injectSymbol).to(TokenGenerator);
 });

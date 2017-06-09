@@ -4,7 +4,7 @@ import { HapiRegister } from '../server/hapi-register';
 import { inject, injectable } from 'inversify';
 
 import { STRATEGY_ROUTELEVEL_ADMIN_HEADER } from '../authentication';
-import * as logger from '../shared/logger';
+import { Logger, loggerInjectSymbol } from '../shared/logger';
 import { default as StatusModule, getEcsStatus } from './status-module';
 
 @injectable()
@@ -14,7 +14,7 @@ class StatusHapiPlugin {
 
   constructor(
     @inject(StatusModule.injectSymbol) private statusModule: StatusModule,
-    @inject(logger.loggerInjectSymbol) private readonly logger: logger.Logger,
+    @inject(loggerInjectSymbol) private readonly logger: Logger,
   ) {
     this.register.attributes = {
       name: 'status-hapi-plugin',

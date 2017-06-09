@@ -6,10 +6,24 @@ import * as Knex from 'knex';
 import * as winston from 'winston';
 
 import {
+  authCookieDomainInjectSymbol,
+  authServerBaseUrlInjectSymbol,
+  gitlabRootPasswordInjectSymbol,
+  internalHostSuffixesInjectSymbol,
+  jwtOptionsInjectSymbol,
+} from '../authentication';
+import {
   deploymentFolderInjectSymbol,
   deploymentUrlPatternInjectSymbol,
 } from '../deployment';
-
+import {
+  eventStoreConfigInjectSymbol,
+} from '../event-bus';
+import {
+  screenshotFolderInjectSymbol,
+  screenshotterBaseurlInjectSymbol,
+  screenshotUrlPattern,
+} from '../screenshot';
 import {
   exitDelayInjectSymbol,
   externalBaseUrlInjectSymbol,
@@ -18,29 +32,15 @@ import {
   minardUiBaseUrlInjectSymbol,
   portInjectSymbol,
 } from '../server';
-
-import { gitBaseUrlInjectSymbol, gitlabHostInjectSymbol } from '../shared/gitlab-client';
-import { loggerInjectSymbol } from '../shared/logger';
-import { sentryDsnInjectSymbol } from '../shared/types';
-import { systemHookBaseUrlSymbol } from '../system-hook/system-hook-module';
-
-import {
-  screenshotFolderInjectSymbol,
-  screenshotterBaseurlInjectSymbol,
-  screenshotUrlPattern,
-} from '../screenshot';
-
-import Logger from '../shared/logger';
-import { FilterStream } from './utils';
-
-import {
-  eventStoreConfigInjectSymbol,
-} from '../event-bus';
-
 import {
   cacheInjectSymbol,
 } from '../shared/cache';
-
+import { gitBaseUrlInjectSymbol, gitlabHostInjectSymbol } from '../shared/gitlab-client';
+import { loggerInjectSymbol } from '../shared/logger';
+import Logger from '../shared/logger';
+import {
+  tokenSecretInjectSymbol,
+} from '../shared/token-generator';
 import {
   adminTeamNameInjectSymbol,
   charlesDbNameInjectSymbol,
@@ -49,18 +49,9 @@ import {
   openTeamNamesInjectSymbol,
   postgresKnexInjectSymbol,
 } from '../shared/types';
-
-import {
-  authCookieDomainInjectSymbol,
-  authServerBaseUrlInjectSymbol,
-  gitlabRootPasswordInjectSymbol,
-  internalHostSuffixesInjectSymbol,
-  jwtOptionsInjectSymbol,
-} from '../authentication';
-
-import {
-  tokenSecretInjectSymbol,
-} from '../shared/token-generator';
+import { sentryDsnInjectSymbol } from '../shared/types';
+import { systemHookBaseUrlSymbol } from '../system-hook/system-hook-module';
+import { FilterStream } from './utils';
 
 const redisStore = require('cache-manager-redis');
 

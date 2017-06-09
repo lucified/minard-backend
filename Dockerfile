@@ -1,4 +1,4 @@
-FROM node:7.5-alpine
+FROM node:8-alpine
 
 WORKDIR /code
 
@@ -14,6 +14,7 @@ RUN npm config set strict-ssl false
 RUN npm install -g node-dev node-gyp
 
 COPY package.json /code/package.json
+COPY package-lock.json /code/package-lock.json
 RUN npm install
 
 COPY . /code

@@ -1,6 +1,5 @@
-import 'reflect-metadata';
-
 import { expect } from 'chai';
+import 'reflect-metadata';
 import Logger from '../shared/logger';
 import TokenGenerator from '../shared/token-generator';
 

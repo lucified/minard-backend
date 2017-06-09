@@ -1,7 +1,5 @@
-
-import 'reflect-metadata';
-
 import { expect } from 'chai';
+import 'reflect-metadata';
 
 import {
   DeploymentHapiPlugin,

@@ -3,6 +3,11 @@ import { values } from 'lodash';
 import 'reflect-metadata';
 
 import {
+  FlowdockNotificationConfiguration,
+  HipChatNotificationConfiguration,
+  SlackNotificationConfiguration,
+} from '../notification';
+import {
   ApiActivity,
   ApiBranch,
   ApiComment,
@@ -12,13 +17,6 @@ import {
   JsonApiEntity,
   JsonApiResponse,
 } from './';
-
-import {
-  FlowdockNotificationConfiguration,
-  HipChatNotificationConfiguration,
-  SlackNotificationConfiguration,
-} from '../notification';
-
 import { serializeApiEntity } from './serialization';
 
 const apiBaseUrl = 'http://localhost:8000/api';

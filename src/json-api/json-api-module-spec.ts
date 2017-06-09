@@ -1,31 +1,24 @@
-
-import 'reflect-metadata';
-
 import { expect } from 'chai';
 import * as moment from 'moment';
-
-import {
-  DeploymentModule,
-  MinardDeployment,
-} from '../deployment';
-
-import {
-  MinardCommit,
-} from '../shared/minard-commit';
-
-import {
-  MinardProject,
-  ProjectModule,
-} from '../project/';
+import 'reflect-metadata';
 
 import {
   MinardActivity,
 } from '../activity';
-
 import {
   CommentModule,
 } from '../comment';
-
+import {
+  DeploymentModule,
+  MinardDeployment,
+} from '../deployment';
+import {
+  MinardProject,
+  ProjectModule,
+} from '../project/';
+import {
+  MinardCommit,
+} from '../shared/minard-commit';
 import {
   ApiDeployment,
   ApiProject,

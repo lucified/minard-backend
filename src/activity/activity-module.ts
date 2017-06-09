@@ -3,26 +3,22 @@ import * as Knex from 'knex';
 import * as moment from 'moment';
 
 import {
+  COMMENT_ADDED_EVENT_TYPE,
+  CommentAddedEvent,
+} from '../comment';
+import {
   DEPLOYMENT_EVENT_TYPE,
   DeploymentEvent,
   DeploymentModule,
   MinardDeployment,
 } from '../deployment';
-
-import {
-  COMMENT_ADDED_EVENT_TYPE,
-  CommentAddedEvent,
-} from '../comment';
-
 import {
   Event,
   EventBus,
   eventBusInjectSymbol,
 } from '../event-bus';
-
-import * as logger from '../shared/logger';
+import { Logger, loggerInjectSymbol } from '../shared/logger';
 import { charlesKnexInjectSymbol } from '../shared/types';
-
 import {
   createActivityEvent,
   MinardActivity,
@@ -67,7 +63,7 @@ export default class ActivityModule {
 
   public constructor(
     @inject(DeploymentModule.injectSymbol) private readonly deploymentModule: DeploymentModule,
-    @inject(logger.loggerInjectSymbol) private readonly logger: logger.Logger,
+    @inject(loggerInjectSymbol) private readonly logger: Logger,
     @inject(eventBusInjectSymbol) private readonly eventBus: EventBus,
     @inject(charlesKnexInjectSymbol) private readonly knex: Knex,
   ) {

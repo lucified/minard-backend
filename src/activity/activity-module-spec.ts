@@ -1,38 +1,30 @@
-
 import { expect } from 'chai';
+import * as Knex from 'knex';
 import * as moment from 'moment';
 import 'reflect-metadata';
-
-import { Event, LocalEventBus } from '../event-bus';
-
-import {
-  MinardCommit,
-} from '../shared/minard-commit';
 
 import {
   CommentAddedEvent,
   createCommentAddedEvent,
 } from '../comment';
-
 import {
   createDeploymentEvent,
   DeploymentEvent,
   DeploymentModule,
   MinardDeployment,
 } from '../deployment';
-
+import { Event, LocalEventBus } from '../event-bus';
 import Logger from '../shared/logger';
-
+import {
+  MinardCommit,
+} from '../shared/minard-commit';
 import ActivityModule, {
   toDbActivity,
 } from './activity-module';
-
 import {
   MinardActivity,
   NEW_ACTIVITY,
 } from './types';
-
-import * as Knex from 'knex';
 
 function getEventBus() {
   return new LocalEventBus();

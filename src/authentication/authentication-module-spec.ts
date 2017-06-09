@@ -1,9 +1,8 @@
+import { expect } from 'chai';
+import * as Knex from 'knex';
 import 'reflect-metadata';
 
-import { expect } from 'chai';
 import AuthenticationModule from './authentication-module';
-
-import * as Knex from 'knex';
 
 describe('authentication-module', () => {
   it('getGitlabPrivateToken', async () => {

@@ -1,15 +1,14 @@
 import { expect } from 'chai';
 import 'reflect-metadata';
 
-import { ProjectModule } from '../project';
-import Logger from '../shared/logger';
-import { OperationsModule } from './';
-
 import {
   DeploymentModule,
   DeploymentStatusUpdate,
   MinardDeploymentStatus,
 } from '../deployment';
+import { ProjectModule } from '../project';
+import Logger from '../shared/logger';
+import { OperationsModule } from './';
 
 const logger = Logger(undefined, true);
 

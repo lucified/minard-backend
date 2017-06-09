@@ -6,7 +6,6 @@ if [[ -n "$1" ]]; then
 fi
 FOLDER=src/integration-test/$PROJECT
 
-
 echo "Folder is $FOLDER"
 
 rm -rf $FOLDER/.git

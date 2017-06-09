@@ -1,5 +1,4 @@
-
-import * as moment from 'moment';
+import { Moment } from 'moment';
 
 import { eventCreator } from '../shared/events';
 
@@ -14,7 +13,7 @@ export interface DbComment extends BaseComment {
 
 export interface MinardComment extends BaseComment {
   id: number;
-  createdAt: moment.Moment;
+  createdAt: Moment;
 }
 
 export interface BaseComment {

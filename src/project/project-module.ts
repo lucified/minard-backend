@@ -12,7 +12,7 @@ import {
   ProjectHook,
 } from '../shared/gitlab';
 import { gitBaseUrlInjectSymbol, GitlabClient } from '../shared/gitlab-client';
-import * as logger from '../shared/logger';
+import { Logger, loggerInjectSymbol } from '../shared/logger';
 import {
   MinardCommit,
   toMinardCommit,
@@ -44,7 +44,7 @@ export default class ProjectModule {
     @inject(SystemHookModule.injectSymbol) private readonly systemHookModule: SystemHookModule,
     @inject(eventBusInjectSymbol) private readonly eventBus: EventBus,
     @inject(GitlabClient.injectSymbol) private readonly gitlab: GitlabClient,
-    @inject(logger.loggerInjectSymbol) private readonly logger: logger.Logger,
+    @inject(loggerInjectSymbol) private readonly logger: Logger,
     @inject(gitBaseUrlInjectSymbol) private readonly gitBaseUrl: string,
   ) {}
 

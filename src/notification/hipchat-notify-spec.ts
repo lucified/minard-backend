@@ -4,11 +4,9 @@ import 'reflect-metadata';
 import {
   MinardDeployment,
 } from '../deployment';
-
 import {
   HipchatNotify,
 } from './hipchat-notify';
-
 import {
   NotificationComment,
 } from './types';

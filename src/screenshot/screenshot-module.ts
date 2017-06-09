@@ -3,11 +3,13 @@ import * as fs from 'fs';
 import { inject, injectable } from 'inversify';
 import * as path from 'path';
 import { sprintf } from 'sprintf-js';
+import { promisify } from 'util';
 
 import { externalBaseUrlInjectSymbol } from '../server/types';
-import * as logger from '../shared/logger';
-import { promisify } from '../shared/promisify';
+import { Logger, loggerInjectSymbol } from '../shared/logger';
 import TokenGenerator from '../shared/token-generator';
+
+const readFile = promisify<string, string, { encoding: string; flag?: string; }>(fs.readFile);
 
 import {
   PageresOptions,
@@ -26,7 +28,7 @@ export default class ScreenshotModule {
   public static injectSymbol = Symbol('screenshot-module');
 
   constructor(
-    @inject(logger.loggerInjectSymbol) private readonly logger: logger.Logger,
+    @inject(loggerInjectSymbol) private readonly logger: Logger,
     @inject(screenshotUrlPattern) private readonly urlPattern: string,
     @inject(screenshotterInjectSymbol) private readonly screenshotter: Screenshotter,
     @inject(screenshotFolderInjectSymbol) private readonly folder: string,
@@ -52,9 +54,9 @@ export default class ScreenshotModule {
     return dataURI(path);
   }
 
-  public async getScreenshotData(projectId: number, deploymentId: number) {
+  public getScreenshotData(projectId: number, deploymentId: number) {
     const path = this.getScreenshotPath(projectId, deploymentId);
-    return promisify<string>(fs.readFile)(path);
+    return readFile(path, { encoding: 'base64' });
   }
 
   public getScreenshotPath(projectId: number, deploymentId: number) {

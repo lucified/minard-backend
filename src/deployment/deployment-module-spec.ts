@@ -1,6 +1,3 @@
-
-import 'reflect-metadata';
-
 import * as Boom from 'boom';
 import { expect } from 'chai';
 import * as fetchMock from 'fetch-mock';
@@ -10,6 +7,9 @@ import * as moment from 'moment';
 import { Response } from 'node-fetch';
 import * as os from 'os';
 import * as path from 'path';
+import 'reflect-metadata';
+import { promisify } from 'util';
+
 import Authentication from '../authentication/authentication-module';
 import {
   Event,
@@ -25,7 +25,6 @@ import {
 import { GitlabClient } from '../shared/gitlab-client';
 import Logger from '../shared/logger';
 import { MinardCommit } from '../shared/minard-commit';
-import { promisify } from '../shared/promisify';
 import {
   toGitlabTimestamp,
 } from '../shared/time-conversion';
@@ -47,7 +46,7 @@ import {
 } from './types';
 
 const rimraf = require('rimraf');
-const ncp = promisify(require('ncp'));
+const ncp = promisify<void, string, string>(require('ncp'));
 const mkpath = require('mkpath');
 
 const host = 'gitlab';

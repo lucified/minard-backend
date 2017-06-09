@@ -1,3 +1,5 @@
+import * as util from 'util';
+
 interface NodeCallback<T> {
   (err: any, result?: T): void;
 }

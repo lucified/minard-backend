@@ -202,7 +202,7 @@ services:
       - EXTERNAL_GIT_BASEURL=http://git.localtest.me:8000
       - GITLAB_ROOT_PASSWORD=12345678
       - SENTRY_DSN=$SENTRY_DSN
-      - ADMIN_TEAM_NAME=integrationtestadminteam
+      - ADMIN_ID=9A0cjUjLPIAIP52xTTWvuakblphA8EYu
       - OPEN_TEAM_NAMES=integrationtestopenteam
       - EXIT_DELAY=0
       - DEBUG=1

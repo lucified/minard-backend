@@ -11,7 +11,7 @@ import { bootstrap } from '../config';
 import { getAccessToken, getSignedAccessToken } from '../config/config-test';
 import { getTestServer } from '../server/hapi';
 import { makeRequestWithAuthentication, MethodStubber, stubber } from '../shared/test';
-import { adminTeamNameInjectSymbol, charlesKnexInjectSymbol, openTeamNamesInjectSymbol } from '../shared/types';
+import { adminIdInjectSymbol, charlesKnexInjectSymbol, openTeamNamesInjectSymbol } from '../shared/types';
 import {
   accessTokenCookieSettings,
   default as AuthenticationHapiPlugin,
@@ -717,7 +717,7 @@ describe('authentication-hapi-plugin', () => {
       const { plugin } = await getPlugin(
         (p: AuthenticationHapiPlugin, k: Container) => [
           stub(p, '_getUserGroups')
-            .returns(Promise.resolve([{ id: 1, name: k.get<string>(adminTeamNameInjectSymbol) }])),
+            .returns(Promise.resolve([{ id: 1, name: k.get<string>(adminIdInjectSymbol) }])),
         ],
       );
 
@@ -733,7 +733,7 @@ describe('authentication-hapi-plugin', () => {
       const { plugin } = await getPlugin(
         (p: AuthenticationHapiPlugin, k: Container) => [
           stub(p, '_getUserGroups')
-            .returns(Promise.resolve([{ id: 1, name: k.get<string>(adminTeamNameInjectSymbol) + '1' }])),
+            .returns(Promise.resolve([{ id: 1, name: k.get<string>(adminIdInjectSymbol) + '1' }])),
         ],
       );
 

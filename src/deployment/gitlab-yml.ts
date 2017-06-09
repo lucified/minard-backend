@@ -1,4 +1,3 @@
-
 import * as Boom from 'boom';
 import { merge, pickBy, values } from 'lodash';
 import * as YAML from 'yamljs';

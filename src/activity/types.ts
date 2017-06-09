@@ -1,4 +1,4 @@
-import * as moment from 'moment';
+import { Moment } from 'moment';
 
 import { MinardDeployment } from '../deployment';
 import { eventCreator } from '../shared/events';
@@ -30,7 +30,7 @@ export interface MinardActivity {
   activityType: 'deployment' | 'comment';
   deployment: MinardDeployment;
   id?: number;
-  timestamp: moment.Moment;
+  timestamp: Moment;
   teamId: number;
   projectId: number;
   projectName: string;

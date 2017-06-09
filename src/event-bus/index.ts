@@ -1,4 +1,3 @@
-
 import { Observable } from '@reactivex/rxjs';
 
 import { Event } from '../shared/events';

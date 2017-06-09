@@ -1,5 +1,4 @@
-
-const Serializer = require('jsonapi-serializer').Serializer; // tslint:disable-line
+const Serializer = require('jsonapi-serializer').Serializer;
 const deepcopy = require('deepcopy');
 
 import {

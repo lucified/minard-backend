@@ -1,26 +1,21 @@
 import { inject, injectable } from 'inversify';
 
-import { externalBaseUrlInjectSymbol } from '../server/types';
-
-import {
-  PreviewView,
-} from './types';
-
 import {
   DeploymentModule,
 } from '../deployment/';
-
-import {
-  JsonApiModule,
-} from './json-api-module';
-
+import { externalBaseUrlInjectSymbol } from '../server/types';
 import {
   toApiBranchId,
 } from './conversions';
-
+import {
+  JsonApiModule,
+} from './json-api-module';
 import {
   serializeApiEntity,
 } from './serialization';
+import {
+  PreviewView,
+} from './types';
 
 /*
  * Provides helpful endpoints for specific views

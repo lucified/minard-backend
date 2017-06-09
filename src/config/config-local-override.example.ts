@@ -1,4 +1,3 @@
-
 import { Container } from 'inversify';
 import * as winston from 'winston';
 

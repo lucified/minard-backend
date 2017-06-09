@@ -2,6 +2,7 @@ import * as Boom from 'boom';
 import * as auth from 'hapi-auth-jwt2';
 import { inject, injectable } from 'inversify';
 import * as Knex from 'knex';
+import memoizee = require('memoizee');
 
 import { IFetch } from '../shared/fetch';
 import { GitlabClient } from '../shared/gitlab-client';
@@ -12,14 +13,12 @@ import {
   fetchInjectSymbol,
   openTeamNamesInjectSymbol,
 } from '../shared/types';
+import AuthenticationHapiPlugin from './authentication-hapi-plugin';
 import {
   authCookieDomainInjectSymbol,
   internalHostSuffixesInjectSymbol,
   jwtOptionsInjectSymbol,
 } from './types';
-
-import memoizee = require('memoizee');
-import AuthenticationHapiPlugin from './authentication-hapi-plugin';
 
 @injectable()
 class CachedAuthenticationHapiPlugin extends AuthenticationHapiPlugin {

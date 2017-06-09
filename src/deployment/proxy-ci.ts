@@ -10,7 +10,6 @@ import { HapiRegister } from '../server/hapi-register';
 import { isBuildStatus } from '../shared/gitlab';
 import { gitlabHostInjectSymbol } from '../shared/gitlab-client';
 import * as logger from '../shared/logger';
-
 import {
   BuildCreatedEvent,
   createBuildCreatedEvent,

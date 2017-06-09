@@ -17,7 +17,6 @@ import {
   JsonApiEntity,
   JsonApiResponse,
 } from './';
-
 import { serializeApiEntity } from './serialization';
 
 const apiBaseUrl = 'http://localhost:8000/api';

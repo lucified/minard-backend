@@ -4,9 +4,12 @@ import * as moment from 'moment';
 import 'reflect-metadata';
 
 import {
+  EventBus,
+  LocalEventBus,
+} from '../event-bus';
+import {
   CommentModule,
 } from './comment-module';
-
 import {
   COMMENT_ADDED_EVENT_TYPE,
   COMMENT_DELETED_EVENT_TYPE,
@@ -15,11 +18,6 @@ import {
   DbComment,
   NewMinardComment,
 } from './types';
-
-import {
-  EventBus,
-  LocalEventBus,
-} from '../event-bus';
 
 function getEventBus() {
   return new LocalEventBus();

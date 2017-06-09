@@ -1,14 +1,13 @@
 import { expect } from 'chai';
 import 'reflect-metadata';
 
+import { STRATEGY_INTERNAL_REQUEST } from '../authentication';
 import {
   BUILD_CREATED_EVENT,
   BUILD_STATUS_EVENT_TYPE,
   BuildCreatedEvent,
   BuildStatusEvent,
 } from '../deployment';
-
-import { STRATEGY_INTERNAL_REQUEST } from '../authentication';
 import { default as EventBus } from '../event-bus/local-event-bus';
 import * as Hapi from '../server/hapi';
 import loggerConstructor from '../shared/logger';

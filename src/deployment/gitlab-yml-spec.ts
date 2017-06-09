@@ -1,11 +1,9 @@
-
 import { expect } from 'chai';
 
 import {
   getGitlabSpec,
   gitlabSpecToYml,
 } from './gitlab-yml';
-
 import {
   GitlabSpec,
   MinardJsonBuild,

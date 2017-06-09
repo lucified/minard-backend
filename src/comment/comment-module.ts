@@ -1,4 +1,3 @@
-
 import { inject, injectable } from 'inversify';
 import * as Knex from 'knex';
 import * as moment from 'moment';
@@ -8,7 +7,6 @@ import {
   eventBusInjectSymbol,
 } from '../event-bus';
 import { charlesKnexInjectSymbol } from '../shared/types';
-
 import {
   createCommentAddedEvent,
   createCommentDeletedEvent,

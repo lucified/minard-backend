@@ -1,4 +1,3 @@
-
 import { Moment } from 'moment';
 
 import { eventCreator } from '../shared/events';

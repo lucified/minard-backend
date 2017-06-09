@@ -1,4 +1,3 @@
-
 export function toApiCommitId(projectId: number, sha: string) {
   return `${projectId}-${sha}`;
 }

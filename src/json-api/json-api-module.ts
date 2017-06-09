@@ -1,10 +1,38 @@
 import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
 import { isNil, omitBy } from 'lodash';
-import * as moment from 'moment';
+import { Moment } from 'moment';
 
+import {
+  ActivityModule,
+  MinardActivity,
+} from '../activity';
+import {
+  CommentModule,
+  MinardComment,
+  NewMinardComment,
+} from '../comment';
+import {
+  DeploymentModule,
+  MinardDeployment,
+} from '../deployment/';
+import {
+  NotificationConfiguration,
+  NotificationModule,
+} from '../notification';
+import {
+  MinardBranch,
+  MinardProject,
+  ProjectModule,
+} from '../project/';
+import {
+  MinardCommit,
+} from '../shared/minard-commit';
 import { toGitlabTimestamp, toMoment } from '../shared/time-conversion';
-
+import TokenGenerator from '../shared/token-generator';
+import {
+  toApiDeploymentId,
+} from './conversions';
 import {
   ApiActivity,
   ApiActivityComment,
@@ -15,42 +43,6 @@ import {
   ApiNotificationConfiguration,
   ApiProject,
 } from './types';
-
-import {
-  ActivityModule,
-  MinardActivity,
-} from '../activity';
-
-import {
-  CommentModule,
-  MinardComment,
-  NewMinardComment,
-} from '../comment';
-
-import {
-  DeploymentModule,
-  MinardDeployment,
-} from '../deployment/';
-
-import {
-  MinardBranch,
-  MinardProject,
-  ProjectModule,
-} from '../project/';
-
-import {
-  NotificationConfiguration,
-  NotificationModule,
-} from '../notification';
-
-import {
-  MinardCommit,
-} from '../shared/minard-commit';
-
-import TokenGenerator from '../shared/token-generator';
-import {
-  toApiDeploymentId,
-} from './conversions';
 
 const deepcopy = require('deepcopy');
 
@@ -157,7 +149,7 @@ export class JsonApiModule {
   public async getBranchCommits(
     projectId: number,
     branchName: string,
-    until?: moment.Moment,
+    until?: Moment,
     count: number = 10,
   ): Promise<ApiCommit[] | null> {
     const minardCommits = await this.projectModule.getBranchCommits(projectId, branchName, until, count);

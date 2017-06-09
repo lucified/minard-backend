@@ -3,26 +3,22 @@ import * as Knex from 'knex';
 import * as moment from 'moment';
 
 import {
+  COMMENT_ADDED_EVENT_TYPE,
+  CommentAddedEvent,
+} from '../comment';
+import {
   DEPLOYMENT_EVENT_TYPE,
   DeploymentEvent,
   DeploymentModule,
   MinardDeployment,
 } from '../deployment';
-
-import {
-  COMMENT_ADDED_EVENT_TYPE,
-  CommentAddedEvent,
-} from '../comment';
-
 import {
   Event,
   EventBus,
   eventBusInjectSymbol,
 } from '../event-bus';
-
 import * as logger from '../shared/logger';
 import { charlesKnexInjectSymbol } from '../shared/types';
-
 import {
   createActivityEvent,
   MinardActivity,

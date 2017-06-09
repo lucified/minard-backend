@@ -2,21 +2,18 @@ import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
 import { differenceBy, isNil, omitBy } from 'lodash';
 
-import * as logger from '../shared/logger';
-
 import {
-  ProjectModule,
-} from '../project';
-
+  ActivityModule,
+} from '../activity';
 import {
   DeploymentEvent,
   DeploymentModule,
   MinardDeployment,
 } from '../deployment';
-
 import {
-  ActivityModule,
-} from '../activity';
+  ProjectModule,
+} from '../project';
+import * as logger from '../shared/logger';
 
 @injectable()
 export default class OperationsModule {
@@ -93,8 +90,8 @@ export default class OperationsModule {
 
   public async getMissingDeploymentActivityForProject(projectId: number) {
     const [ expected, existing ] = await Promise.all([
-      await this.getProjectDeploymentActivity(projectId),
-      await this.activityModule.getProjectActivity(projectId),
+      this.getProjectDeploymentActivity(projectId),
+      this.activityModule.getProjectActivity(projectId),
     ]);
     if (expected === null) {
       this.logger.error(`Project ${projectId} not found in getMissingDeploymentActivity.`);
@@ -103,7 +100,7 @@ export default class OperationsModule {
     if (existing === null) {
       throw Boom.badGateway();
     }
-    const mappedExisting = (existing as any).map((item: any) => ({
+    const mappedExisting = existing.map(item => ({
       projectId: item.projectId,
       deploymentId: item.deployment.id,
     }));

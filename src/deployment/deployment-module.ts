@@ -1,4 +1,4 @@
-import * as Boom from 'boom';
+import { badGateway, badImplementation, create, notFound } from 'boom';
 import { createWriteStream, existsSync } from 'fs';
 import { inject, injectable } from 'inversify';
 import * as Knex from 'knex';
@@ -376,15 +376,15 @@ export default class DeploymentModule {
     const url = `/projects/${projectId}/repository/tree?path=${path}`;
     const ret = await this.gitlab.fetchJsonAnyStatus<RepositoryObject[]>(url);
     if (ret.status === 404) {
-      throw Boom.notFound();
+      throw notFound();
     }
     if (!ret.json) {
       this.logger.error(`Unexpected non-json response from Gitlab for ${url}`, ret);
-      throw Boom.badGateway();
+      throw badGateway();
     }
     if (!Array.isArray(ret.json)) {
       this.logger.error(`Unexpected non-array response from Gitlab for ${url}`, ret);
-      throw Boom.badImplementation();
+      throw badImplementation();
     }
     return ret.json.map(item => ({
       type: item.type,
@@ -403,7 +403,7 @@ export default class DeploymentModule {
     }
     if (ret.status !== 200) {
       this.logger.warn(`Unexpected response from GitLab when fetching minard.json from ${url}`);
-      throw Boom.badGateway();
+      throw badGateway();
     }
     return await ret.text();
   }
@@ -412,11 +412,11 @@ export default class DeploymentModule {
     const url = `/projects/${projectId}/builds/${deploymentId}/trace`;
     const ret = await this.gitlab.fetch(url);
     if (ret.status === 404) {
-      throw Boom.create(404);
+      throw create(404);
     }
     if (ret.status !== 200) {
       this.logger.warn(`Unexpected response from GitLab when fetching build trace from ${url}`);
-      throw Boom.create(ret.status);
+      throw create(ret.status);
     }
     return ret.text();
   }
@@ -582,7 +582,7 @@ export default class DeploymentModule {
       deployment = await this.getDeployment(deploymentId);
       if (!deployment) {
         this.logger.error(`Failed to fetch deployment after updating deployment status. Dropping DeploymentEvent`);
-        throw Boom.badImplementation();
+        throw badImplementation();
       }
       const payload: DeploymentEvent = {
         teamId: deployment.teamId,
@@ -630,7 +630,7 @@ export default class DeploymentModule {
     const deployment = await this.getDeployment(deploymentId);
     if (!deployment) {
       this.logger.error('Could not get deployment in downloadAndExtractDeployment');
-      throw Boom.badImplementation();
+      throw badImplementation();
     }
     const minardJson = await this.getMinardJsonInfo(projectId, deployment.ref);
 
@@ -638,7 +638,7 @@ export default class DeploymentModule {
       // this should never happen as projects are not build if they don't
       // have an effective minard.json
       this.logger.error(`Detected invalid minard.json when moving extracted deployment.`);
-      throw Boom.badImplementation();
+      throw badImplementation();
     }
 
     // move to final directory
@@ -659,13 +659,13 @@ export default class DeploymentModule {
       await mkpath(finalPath);
     } catch (err) {
       this.logger.error(`Could not create directory ${finalPath}`, err);
-      throw Boom.badImplementation();
+      throw badImplementation();
     }
     try {
       await ncp(sourcePath, finalPath);
     } catch (err) {
       this.logger.error(`Could not copy extracted deployment from ${sourcePath} to  `, err);
-      throw Boom.badImplementation();
+      throw badImplementation();
     }
     return finalPath;
   }

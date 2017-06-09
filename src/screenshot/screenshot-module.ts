@@ -1,4 +1,4 @@
-import * as Boom from 'boom';
+import { badImplementation } from 'boom';
 import { exists, readFile as _readFile } from 'fs';
 import { inject, injectable } from 'inversify';
 import { join } from 'path';
@@ -96,7 +96,7 @@ export default class ScreenshotModule {
     } catch (err) {
       // TODO: detect issues taking screenshot that are not Minard's fault
       this.logger.error(`Failed to create screenshot for url ${url}`, err);
-      throw Boom.badImplementation();
+      throw badImplementation();
     }
   }
 

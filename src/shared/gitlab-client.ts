@@ -1,4 +1,4 @@
-import * as Boom from 'boom';
+import { badImplementation, badRequest, create, notFound } from 'boom';
 import { createHmac } from 'crypto';
 import { inject, injectable } from 'inversify';
 import { stringify } from 'querystring';
@@ -116,10 +116,10 @@ export class GitlabClient {
     }
     if (response.status !== 200 && response.status !== 201) {
       if (!includeErrorPayload) {
-        throw Boom.create(response.status);
+        throw create(response.status);
       }
       const json = await response.json<any>();
-      throw Boom.create(response.status, undefined, json);
+      throw create(response.status, undefined, json);
     }
     const json = await response.json<T>();
     return json;
@@ -148,7 +148,7 @@ export class GitlabClient {
       if (logErrors) {
         this.logger.error(err.message, err);
       }
-      throw Boom.badImplementation();
+      throw badImplementation();
     }
 
     if (this.logging) {
@@ -176,7 +176,7 @@ export class GitlabClient {
       true,
     );
     if (!users || !users.length) {
-      throw Boom.badRequest(`Can\'t find users`);
+      throw badRequest(`Can\'t find users`);
     }
     return users;
   }
@@ -190,13 +190,13 @@ export class GitlabClient {
       true,
     );
     if (!users || !users.length) {
-      throw Boom.badRequest(`Can\'t find user '${emailOrUsername}'`);
+      throw badRequest(`Can\'t find user '${emailOrUsername}'`);
     }
     if (users.length > 1) {
       // This shoud never happen
       const message = `Found multiple users with email or username '${emailOrUsername}'`;
       this.logger.warning(message);
-      throw Boom.badRequest(message);
+      throw badRequest(message);
     }
     return users[0];
   }
@@ -317,7 +317,7 @@ export class GitlabClient {
       true,
     );
     if (!groups.length) {
-      throw Boom.notFound(`No groups found matching '${search}'`);
+      throw notFound(`No groups found matching '${search}'`);
     }
     return groups;
   }
@@ -339,7 +339,7 @@ export class GitlabClient {
       group = await this.fetchJson<Group>(`groups/${groupIdOrPath}`, true);
     }
     if (!group || !group.id) {
-      throw Boom.notFound(`No group found with id '${groupIdOrPath}'`);
+      throw notFound(`No group found with id '${groupIdOrPath}'`);
     }
     return group;
   }
@@ -369,7 +369,7 @@ export class GitlabClient {
       project = await this.fetchJson<Project>(`projects/${projectId}`, true);
     }
     if (!project || !project.id) {
-      throw Boom.notFound(`No project found with id '${projectId}'`);
+      throw notFound(`No project found with id '${projectId}'`);
     }
     return project;
   }

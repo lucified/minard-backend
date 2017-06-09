@@ -1,9 +1,9 @@
 import { caching } from 'cache-manager';
+import * as fetchMock from 'fetch-mock';
 import { Container } from 'inversify';
 import { sign } from 'jsonwebtoken';
 import * as Knex from 'knex';
 
-import * as fetchMock from 'fetch-mock';
 import {
   AccessToken,
   authCookieDomainInjectSymbol,

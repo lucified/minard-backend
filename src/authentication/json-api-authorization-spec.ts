@@ -1,6 +1,6 @@
 import { expect, use } from 'chai';
 import 'reflect-metadata';
-import * as sinon from 'sinon';
+import { stub } from 'sinon';
 import * as sinonChai from 'sinon-chai';
 use(sinonChai);
 
@@ -48,20 +48,20 @@ function arrange(
 ) {
   return getServer(
     (plugin: AuthenticationHapiPlugin) => [
-      sinon.stub(plugin, authorizationMethod)
+      stub(plugin, authorizationMethod)
         .returns(Promise.resolve(hasAccess)),
-      sinon.stub(plugin, 'isAdmin')
+      stub(plugin, 'isAdmin')
           .returns(Promise.resolve(isAdmin)),
-      sinon.stub(plugin, 'isOpenDeployment')
+      stub(plugin, 'isOpenDeployment')
           .returns(Promise.resolve(isOpenDeployment)),
     ],
     (p: JsonApiHapiPlugin) => [
-      sinon.stub(p, handler)
+      stub(p, handler)
         .yields(200)
         .returns(Promise.resolve(true)),
-      sinon.stub(p, 'getLatestSuccessfulDeploymentIdForBranch')
+      stub(p, 'getLatestSuccessfulDeploymentIdForBranch')
         .returns(Promise.resolve(deploymentId)),
-      sinon.stub(p, 'getLatestSuccessfulDeploymentIdForProject')
+      stub(p, 'getLatestSuccessfulDeploymentIdForProject')
         .returns(Promise.resolve(deploymentId)),
     ],
   );
@@ -304,16 +304,16 @@ describe('authorization for api routes', () => {
       function arrangeCommentRemoval(hasAccess: boolean, isOpen = false) {
         return getServer(
           p => [
-            sinon.stub(p, isOpen ? 'isOpenDeployment' : 'userHasAccessToProject')
+            stub(p, isOpen ? 'isOpenDeployment' : 'userHasAccessToProject')
               .returns(Promise.resolve(hasAccess)),
-            sinon.stub(p, 'isAdmin')
+            stub(p, 'isAdmin')
               .returns(Promise.resolve(false)),
           ],
           p => [
-            sinon.stub(p, 'deleteCommentHandler')
+            stub(p, 'deleteCommentHandler')
               .yields(200)
               .returns(Promise.resolve(true)),
-            sinon.stub(p, 'getComment')
+            stub(p, 'getComment')
               .returns(Promise.resolve({ deployment: '1-1' })),
           ],
         );
@@ -433,16 +433,16 @@ describe('authorization for api routes', () => {
       function arrangeNotificationRemoval(hasAccess: boolean, teamId?: number, projectId?: number) {
         return getServer(
           p => [
-            sinon.stub(p, projectId ? 'userHasAccessToProject' : 'userHasAccessToTeam')
+            stub(p, projectId ? 'userHasAccessToProject' : 'userHasAccessToTeam')
               .returns(Promise.resolve(hasAccess)),
-            sinon.stub(p, 'isAdmin')
+            stub(p, 'isAdmin')
               .returns(Promise.resolve(false)),
           ],
           p => [
-            sinon.stub(p, 'deleteNotificationConfigurationHandler')
+            stub(p, 'deleteNotificationConfigurationHandler')
               .yields(200)
               .returns(Promise.resolve(true)),
-            sinon.stub(p, 'getNotificationConfiguration')
+            stub(p, 'getNotificationConfiguration')
               .returns(Promise.resolve({ teamId, projectId })),
           ],
         );

@@ -1,5 +1,5 @@
 import { Observable } from '@reactivex/rxjs';
-import * as Boom from 'boom';
+import { create } from 'boom';
 import { blue, cyan, magenta } from 'chalk';
 import { spawn } from 'child_process';
 import * as _debug from 'debug';
@@ -50,7 +50,7 @@ export function getResponseJson<T>(response: Response) {
           responseBody,
         ];
         const status = response.status >= 400 ? response.status : 500;
-        throw Boom.create(status, msgParts.join(`\n\n`));
+        throw create(status, msgParts.join(`\n\n`));
       }
     }
     return parsed;
@@ -95,7 +95,7 @@ export function assertResponseStatus(response: Response, requiredStatus = 200) {
       response.url,
     ];
     const status = response.status >= 400 ? response.status : 500;
-    throw Boom.create(status, msgParts.join(`\n\n`), { originalStatus: response.status });
+    throw create(status, msgParts.join(`\n\n`), { originalStatus: response.status });
   }
 }
 

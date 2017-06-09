@@ -1,4 +1,4 @@
-import * as Boom from 'boom';
+import { badGateway, badImplementation, badRequest, notFound, wrap } from 'boom';
 import { inject, injectable } from 'inversify';
 import { isNil, omitBy } from 'lodash';
 import * as moment from 'moment';
@@ -58,7 +58,7 @@ export default class ProjectModule {
         return [];
       }
       this.logger.error(`Unexpected response from GitLab when fetching project contributors for project ${projectId}`);
-      throw Boom.badGateway();
+      throw badGateway();
     }
   }
 
@@ -71,7 +71,7 @@ export default class ProjectModule {
       if (err.isBoom && err.output.statusCode === MINARD_ERROR_CODE.NOT_FOUND) {
         return null;
       }
-      throw Boom.wrap(err);
+      throw wrap(err);
     }
   }
 
@@ -102,7 +102,7 @@ export default class ProjectModule {
         return null;
       }
       this.logger.error(`Unexpected error when fetching branch commits`, err);
-      throw Boom.badGateway();
+      throw badGateway();
     }
   }
 
@@ -172,7 +172,7 @@ export default class ProjectModule {
       if (err.isBoom && err.output.statusCode === MINARD_ERROR_CODE.NOT_FOUND) {
         return null;
       }
-      throw Boom.badImplementation();
+      throw badImplementation();
     }
   }
 
@@ -201,7 +201,7 @@ export default class ProjectModule {
         return null;
       }
       this.logger.error('Unexpected error when getting all projects', err);
-      throw Boom.badGateway();
+      throw badGateway();
     }
   }
 
@@ -225,7 +225,7 @@ export default class ProjectModule {
         return null;
       }
       this.logger.error(`Failed to fetch branches for project ${projectId}`, err);
-      throw Boom.badGateway();
+      throw badGateway();
     }
   }
 
@@ -261,7 +261,7 @@ export default class ProjectModule {
       if (err.isBoom && err.output.statusCode === 404) {
         return null;
       }
-      throw Boom.wrap(err);
+      throw wrap(err);
     }
   }
 
@@ -298,7 +298,7 @@ export default class ProjectModule {
 
     if (!project) {
       this.logger.error(`Project ${projectId} not found for push event`, payload);
-      throw Boom.badImplementation();
+      throw badImplementation();
     }
 
     // While we don't expect getCommit to return null for these commits,
@@ -364,20 +364,20 @@ export default class ProjectModule {
     const res = await this.gitlab.fetchJsonAnyStatus<any>(
       `projects?${stringify(params)}`, { method: 'POST' });
     if (res.json && res.json.message && res.json.message.path[0] === 'has already been taken') {
-      throw Boom.badRequest('Name is already taken', 'name-already-taken');
+      throw badRequest('Name is already taken', 'name-already-taken');
     }
     if (res.status !== 201 || !res.json) {
       this.logger.error('Project creation failed for unexpected reason', res);
-      throw Boom.badImplementation();
+      throw badImplementation();
     }
     const project = res.json as Project;
     if (!project.id) {
       this.logger.error('Unexpected response from Gitlab when creating project: id is missing.', project);
-      throw Boom.badImplementation();
+      throw badImplementation();
     }
     if (project.path !== path) {
       this.logger.error('Unexpected response from Gitlab when creating project: project path is incorrect', project);
-      throw Boom.badImplementation();
+      throw badImplementation();
     }
     await this.assureProjectHookRegistered(project.id);
     return project;
@@ -386,16 +386,16 @@ export default class ProjectModule {
   public async deleteGitLabProject(projectId: number): Promise<MinardProject> {
     const project = await this.getProject(projectId);
     if (!project) {
-      throw Boom.notFound('Project not found');
+      throw notFound('Project not found');
     }
     const res = await this.gitlab.fetch(`projects/${projectId}`, { method: 'DELETE' });
     if (res.status === 404) {
       this.logger.warn(`Attempted to delete project ${projectId} which does not exists (according to GitLab)`);
-      throw Boom.notFound('Project not found');
+      throw notFound('Project not found');
     }
     if (res.status !== 200) {
       this.logger.error(`Unexpected status code ${res.status} when deleting project ${projectId}`);
-      throw Boom.badGateway();
+      throw badGateway();
     }
     // GitLab responds with status code 200 and text 'true' on success
     // the text 'true' is not documented, but it's probably still a good
@@ -403,7 +403,7 @@ export default class ProjectModule {
     const text = await res.text();
     if (text !== 'true') {
       this.logger.error(`Unexpected response from GitLab when deleting project ${projectId}: "${text}"`);
-      throw Boom.badGateway();
+      throw badGateway();
     }
     return project;
   }
@@ -423,14 +423,14 @@ export default class ProjectModule {
     );
     if (res.status === 404) {
       this.logger.warn(`Attempted to edit project ${projectId} which does not exists (according to GitLab)`);
-      throw Boom.notFound('Project not found');
+      throw notFound('Project not found');
     }
     if (res.json && res.json.message && res.json.message.path[0] === 'has already been taken') {
-      throw Boom.badRequest('Name is already taken', 'name-already-taken');
+      throw badRequest('Name is already taken', 'name-already-taken');
     }
     if (res.status !== 200) {
       this.logger.error(`Unexpected status code ${res.status} when editing project ${projectId}`);
-      throw Boom.badGateway();
+      throw badGateway();
     }
     const project = res.json as Project;
     // Note: we don't check that the description matches the edited description,
@@ -443,7 +443,7 @@ export default class ProjectModule {
         `Unexpected response payload from gitlab when editing project ${projectId}`,
         { projectId, attributes, res },
       );
-      throw Boom.badGateway();
+      throw badGateway();
     }
     return project;
   }
@@ -477,10 +477,10 @@ export default class ProjectModule {
   ): Promise<number> {
     const templateProject = await this.getProject(templateProjectId);
     if (!templateProject) {
-      throw Boom.notFound(`Template project ${templateProjectId} not found`);
+      throw notFound(`Template project ${templateProjectId} not found`);
     }
     if (!templateProject.defaultBranch) {
-      throw Boom.badRequest(`Cannot use an empty project as template`);
+      throw badRequest(`Cannot use an empty project as template`);
     }
     // localhost is valid, since this is something gitlab always accesses locally
     // note that this assumes that the internal port where gitlab listens on is port 80
@@ -498,7 +498,7 @@ export default class ProjectModule {
       if (!project) {
         this.logger.error(
           `Failed to get project ${gitlabProject.id} after creating it from template ${templateProjectId}`);
-        throw Boom.badGateway();
+        throw badGateway();
       }
       if (!project.defaultBranch) {
         this.logger.info(
@@ -516,7 +516,7 @@ export default class ProjectModule {
       // It might make sense to cleanup the project if this happens, but
       // this should really never happen and leaving the project there allows
       // us to investigate the problem, if this ever happens
-      throw Boom.badImplementation('never-acquired-default-branch');
+      throw badImplementation('never-acquired-default-branch');
     }
 
     this.eventBus.post(projectCreated({
@@ -588,7 +588,7 @@ export default class ProjectModule {
   public async fetchProjectHooks(projectId: number): Promise<ProjectHook[]> {
     const hooks = await this.gitlab.fetchJson<ProjectHook[]>(`/projects/${projectId}/hooks`);
     if (!Array.isArray(hooks)) {
-      throw Boom.badGateway();
+      throw badGateway();
     }
     return hooks;
   }
@@ -625,10 +625,10 @@ export default class ProjectModule {
       `projects/${projectId}/hooks?${stringify(params)}`,
       { method: 'POST' });
     if (ret.status === 404) {
-      throw Boom.notFound();
+      throw notFound();
     }
     if (ret.status !== 201) {
-      throw Boom.badGateway();
+      throw badGateway();
     }
   }
 

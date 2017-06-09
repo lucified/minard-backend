@@ -1,4 +1,4 @@
-import * as Boom from 'boom';
+import { badGateway } from 'boom';
 import { inject, injectable } from 'inversify';
 import { differenceBy, isNil, omitBy } from 'lodash';
 
@@ -123,10 +123,10 @@ export default class OperationsModule {
       this.logger.error(
         `Project ${projectId} not found in getMissingDeploymentActivity.`,
       );
-      throw Boom.badGateway();
+      throw badGateway();
     }
     if (existing === null) {
-      throw Boom.badGateway();
+      throw badGateway();
     }
     const mappedExisting = existing.map(item => ({
       projectId: item.projectId,

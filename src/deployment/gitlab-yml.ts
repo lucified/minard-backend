@@ -1,4 +1,4 @@
-import * as Boom from 'boom';
+import { badImplementation } from 'boom';
 import { merge, pickBy, values } from 'lodash';
 import { stringify } from 'yamljs';
 
@@ -107,7 +107,7 @@ function getScripts(commands: MinardJsonBuildCommand[] | string[] | MinardJsonBu
     if (typeof item === 'string') {
       return item;
     }
-    throw Boom.badImplementation();
+    throw badImplementation();
   });
   return ret;
 }
@@ -129,7 +129,7 @@ function getGitlabSpecNoAutoBuild(): GitlabSpec {
  */
 function getGitlabSpecWithBuild(spec: MinardJson): GitlabSpec {
   if (!spec.build) {
-    throw Boom.badImplementation();
+    throw badImplementation();
   }
   return {
     image: spec.build.image!,

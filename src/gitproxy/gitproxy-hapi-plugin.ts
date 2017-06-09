@@ -1,4 +1,4 @@
-import * as Boom from 'boom';
+import { create } from 'boom';
 import { inject, injectable } from 'inversify';
 
 import { STRATEGY_GIT } from '../authentication/types';
@@ -78,7 +78,7 @@ export class GitProxy extends HapiPlugin {
       this.logger.debug(`Invalid Git request: ${_error.message}`);
       const error = _error.isBoom
         ? _error
-        : Boom.create(_error.statusCode || 401, _error.description);
+        : create(_error.statusCode || 401, _error.description);
       return callback(error, uri, {});
     }
   }

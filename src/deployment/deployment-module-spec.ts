@@ -1,4 +1,4 @@
-import * as Boom from 'boom';
+import { BoomError } from 'boom';
 import { expect } from 'chai';
 import * as fetchMock from 'fetch-mock';
 import { createReadStream, existsSync } from 'fs';
@@ -1474,8 +1474,8 @@ describe('deployment-module', () => {
         await deploymentModule.filesAtPath(2, branch, repoPath);
         expect.fail('should throw');
       } catch (err) {
-        expect((err as Boom.BoomError).isBoom).to.equal(true);
-        expect((err as Boom.BoomError).output.statusCode).to.equal(404);
+        expect((err as BoomError).isBoom).to.equal(true);
+        expect((err as BoomError).output.statusCode).to.equal(404);
       }
     });
 

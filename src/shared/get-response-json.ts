@@ -1,4 +1,4 @@
-import * as Boom from 'boom';
+import { create } from 'boom';
 import { Response } from 'node-fetch';
 
 export default async function getResponseJson<T>(response: Response, requiredStatus = 200): Promise<T> {
@@ -15,7 +15,7 @@ export default async function getResponseJson<T>(response: Response, requiredSta
       response.url,
       responseBody,
     ];
-    throw Boom.create(response.status, msgParts.join(`\n\n`));
+    throw create(response.status, msgParts.join(`\n\n`));
   }
   if (!json) {
     const msgParts = [
@@ -23,7 +23,7 @@ export default async function getResponseJson<T>(response: Response, requiredSta
       `${response.url} => ${response.status}`,
       responseBody,
     ];
-    throw Boom.create(response.status, msgParts.join(`\n\n`));
+    throw create(response.status, msgParts.join(`\n\n`));
   }
   return json;
 }

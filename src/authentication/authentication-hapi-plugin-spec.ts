@@ -1,9 +1,8 @@
-import 'reflect-metadata';
-
 import * as Boom from 'boom';
 import { expect, use } from 'chai';
 import { Container } from 'inversify';
 import * as Knex from 'knex';
+import 'reflect-metadata';
 import * as sinon from 'sinon';
 import * as sinonChai from 'sinon-chai';
 use(sinonChai);

@@ -6,7 +6,7 @@ import { sprintf } from 'sprintf-js';
 
 import { promisify } from 'util';
 import { externalBaseUrlInjectSymbol } from '../server/types';
-import * as logger from '../shared/logger';
+import { Logger, loggerInjectSymbol } from '../shared/logger';
 import TokenGenerator from '../shared/token-generator';
 
 const readFile = promisify<string, string, { encoding: string; flag?: string; }>(fs.readFile);
@@ -28,7 +28,7 @@ export default class ScreenshotModule {
   public static injectSymbol = Symbol('screenshot-module');
 
   constructor(
-    @inject(logger.loggerInjectSymbol) private readonly logger: logger.Logger,
+    @inject(loggerInjectSymbol) private readonly logger: Logger,
     @inject(screenshotUrlPattern) private readonly urlPattern: string,
     @inject(screenshotterInjectSymbol) private readonly screenshotter: Screenshotter,
     @inject(screenshotFolderInjectSymbol) private readonly folder: string,

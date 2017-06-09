@@ -12,7 +12,7 @@ import {
 import * as Hapi from '../server/hapi';
 import { HapiPlugin } from '../server/hapi-register';
 import { PersistedEvent } from '../shared/events';
-import * as logger from '../shared/logger';
+import { Logger, loggerInjectSymbol } from '../shared/logger';
 import TokenGenerator from '../shared/token-generator';
 import { ObservableWrapper } from './observable-wrapper';
 import { RealtimeModule } from './realtime-module';
@@ -30,7 +30,7 @@ export class RealtimeHapiPlugin extends HapiPlugin {
   constructor(
     @inject(RealtimeModule.injectSymbol) private readonly realtimeModule: RealtimeModule,
     @inject(TokenGenerator.injectSymbol) private readonly tokenGenerator: TokenGenerator,
-    @inject(logger.loggerInjectSymbol) private readonly logger: logger.Logger,
+    @inject(loggerInjectSymbol) private readonly logger: Logger,
   ) {
     super({
       name: 'realtime-plugin',

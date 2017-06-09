@@ -13,7 +13,7 @@ import {
 import {
   ProjectModule,
 } from '../project';
-import * as logger from '../shared/logger';
+import { Logger, loggerInjectSymbol } from '../shared/logger';
 
 @injectable()
 export default class OperationsModule {
@@ -23,7 +23,7 @@ export default class OperationsModule {
   constructor(
     @inject(ProjectModule.injectSymbol) private readonly projectModule: ProjectModule,
     @inject(DeploymentModule.injectSymbol) private readonly deploymentModule: DeploymentModule,
-    @inject(logger.loggerInjectSymbol) private readonly logger: logger.Logger,
+    @inject(loggerInjectSymbol) private readonly logger: Logger,
     @inject(ActivityModule.injectSymbol) private readonly activityModule: ActivityModule,
   ) { }
 

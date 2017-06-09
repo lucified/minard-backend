@@ -42,7 +42,7 @@ import {
   PersistedEvent,
   StreamingEvent,
 } from '../shared/events';
-import * as logger from '../shared/logger';
+import { Logger, loggerInjectSymbol } from '../shared/logger';
 import {
   StreamingCodePushedEvent,
   StreamingCommentDeletedEvent,
@@ -59,7 +59,7 @@ export class RealtimeModule {
   constructor(
     @inject(JsonApiHapiPlugin.injectSymbol) private readonly jsonApiPlugin: JsonApiHapiPlugin,
     @inject(eventBusInjectSymbol) private readonly eventBus: PersistentEventBus,
-    @inject(logger.loggerInjectSymbol) private readonly logger: logger.Logger,
+    @inject(loggerInjectSymbol) private readonly logger: Logger,
   ) {
     // creates SSEEvents and posts them
     this.eventBusSubscription = this.getEnrichedStream(this.eventBus.getStream())

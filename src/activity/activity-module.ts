@@ -17,7 +17,7 @@ import {
   EventBus,
   eventBusInjectSymbol,
 } from '../event-bus';
-import * as logger from '../shared/logger';
+import { Logger, loggerInjectSymbol } from '../shared/logger';
 import { charlesKnexInjectSymbol } from '../shared/types';
 import {
   createActivityEvent,
@@ -63,7 +63,7 @@ export default class ActivityModule {
 
   public constructor(
     @inject(DeploymentModule.injectSymbol) private readonly deploymentModule: DeploymentModule,
-    @inject(logger.loggerInjectSymbol) private readonly logger: logger.Logger,
+    @inject(loggerInjectSymbol) private readonly logger: Logger,
     @inject(eventBusInjectSymbol) private readonly eventBus: EventBus,
     @inject(charlesKnexInjectSymbol) private readonly knex: Knex,
   ) {

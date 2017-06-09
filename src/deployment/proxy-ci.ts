@@ -9,7 +9,7 @@ import * as Hapi from '../server/hapi';
 import { HapiRegister } from '../server/hapi-register';
 import { isBuildStatus } from '../shared/gitlab';
 import { gitlabHostInjectSymbol } from '../shared/gitlab-client';
-import * as logger from '../shared/logger';
+import { Logger, loggerInjectSymbol } from '../shared/logger';
 import {
   BuildCreatedEvent,
   createBuildCreatedEvent,
@@ -28,7 +28,7 @@ export class CIProxy {
   public constructor(
     @inject(gitlabHostInjectSymbol) gitlabHost: string,
     @inject(eventBusInjectSymbol) private eventBus: EventBus,
-    @inject(logger.loggerInjectSymbol) private logger: logger.Logger,
+    @inject(loggerInjectSymbol) private logger: Logger,
   ) {
     this.gitlabHost = gitlabHost;
     const gitlab = url.parse(gitlabHost);

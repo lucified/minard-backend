@@ -18,7 +18,7 @@ import {
 import { ProjectModule } from '../project';
 import { ScreenshotModule } from '../screenshot';
 import { GitlabClient } from '../shared/gitlab-client';
-import * as logger from '../shared/logger';
+import { Logger, loggerInjectSymbol } from '../shared/logger';
 import { MinardCommit } from '../shared/minard-commit';
 import { toGitlabTimestamp } from '../shared/time-conversion';
 import { charlesKnexInjectSymbol } from '../shared/types';
@@ -117,7 +117,7 @@ export default class DeploymentModule {
     @inject(GitlabClient.injectSymbol) private readonly gitlab: GitlabClient,
     @inject(deploymentFolderInjectSymbol) private readonly deploymentFolder: string,
     @inject(eventBusInjectSymbol) private readonly eventBus: EventBus,
-    @inject(logger.loggerInjectSymbol) private readonly logger: logger.Logger,
+    @inject(loggerInjectSymbol) private readonly logger: Logger,
     @inject(deploymentUrlPatternInjectSymbol) private readonly urlPattern: string,
     @inject(ScreenshotModule.injectSymbol) private readonly screenshotModule: ScreenshotModule,
     @inject(ProjectModule.injectSymbol) private readonly projectModule: ProjectModule,

@@ -4,7 +4,7 @@ import { AuthenticationModule } from '../authentication';
 import { EventBus, eventBusInjectSymbol } from '../event-bus/';
 import { Cache, cacheInjectSymbol } from '../shared/cache';
 import { gitBaseUrlInjectSymbol, GitlabClient } from '../shared/gitlab-client';
-import * as logger from '../shared/logger';
+import { Logger, loggerInjectSymbol } from '../shared/logger';
 import { SystemHookModule } from '../system-hook';
 import { GitlabPushEvent } from './gitlab-push-hook-types';
 import ProjectModule from './project-module';
@@ -22,7 +22,7 @@ export default class CachedProjectModule extends ProjectModule {
     @inject(SystemHookModule.injectSymbol) systemHookModule: SystemHookModule,
     @inject(eventBusInjectSymbol) eventBus: EventBus,
     @inject(GitlabClient.injectSymbol) gitlab: GitlabClient,
-    @inject(logger.loggerInjectSymbol) logger: logger.Logger,
+    @inject(loggerInjectSymbol) logger: Logger,
     @inject(gitBaseUrlInjectSymbol) gitBaseUrl: string,
     @inject(cacheInjectSymbol) private readonly cache: Cache,
   ) {

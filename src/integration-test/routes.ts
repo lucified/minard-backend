@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import CharlesClient from './charles-client';
-import { AccessCode, AccessMatrix, Route } from './types';
+import { Route } from './types';
 
 const routes: Route[] = [
   {
@@ -10,7 +10,11 @@ const routes: Route[] = [
       expect(other.teamId).to.exist;
       return me.getProjects(other.teamId);
     },
-    accessMatrix: getMatrix('0', '0'),
+    accessMatrix: {
+      regular:         { own: '1', closed: '0', open: '0', missing: 'x' },
+      admin:           { own: '1', closed: '1', open: '1', missing: 'x' },
+      unauthenticated: { own: '0', closed: '0', open: '0', missing: 'x' },
+    },
   },
   {
     description: 'getProject',
@@ -19,7 +23,11 @@ const routes: Route[] = [
       expect(other.lastProject).to.exist;
       return me.getProject(other.lastProject!.id);
     },
-    accessMatrix: getMatrix('0', '0'),
+    accessMatrix: {
+      regular:         { own: '1', closed: '0', open: '0', missing: 'x' },
+      admin:           { own: '1', closed: '1', open: '1', missing: 'x' },
+      unauthenticated: { own: '0', closed: '0', open: '0', missing: 'x' },
+    },
   },
   {
     description: 'view deployment',
@@ -48,17 +56,6 @@ const routes: Route[] = [
     },
   },
 ];
-
-function getMatrix(
-  unauthenticatedOpen: AccessCode,
-  regularOpen: AccessCode,
-): AccessMatrix {
-  return {
-    regular:         { own: '1', closed: '0', open: regularOpen,         missing: 'x' },
-    admin:           { own: '1', closed: '1', open: '1',                 missing: 'x' },
-    unauthenticated: { own: '0', closed: '0', open: unauthenticatedOpen, missing: 'x' },
-  };
-}
 
 export const codes = {
   '1': 200,

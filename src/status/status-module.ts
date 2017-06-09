@@ -3,7 +3,7 @@ import { exists as _exists, readFile as _readFile } from 'fs';
 import { inject, injectable } from 'inversify';
 import { pick } from 'lodash';
 import * as moment from 'moment';
-import * as util from 'util';
+import { promisify } from 'util';
 
 import { AuthenticationModule } from '../authentication';
 import { Event, EventBus, eventBusInjectSymbol } from '../event-bus';
@@ -13,8 +13,8 @@ import { GitlabClient } from '../shared/gitlab-client';
 import { fetchInjectSymbol } from '../shared/types';
 import { SYSTEM_HOOK_REGISTRATION_EVENT_TYPE, SystemHookRegistrationEvent } from '../system-hook';
 
-const exists = util.promisify<boolean, string>(_exists);
-const readFile = util.promisify(_readFile);
+const exists = promisify<boolean, string>(_exists);
+const readFile = promisify(_readFile);
 
 const ecs = new ECS({
   region: process.env.AWS_DEFAULT_REGION || 'eu-west-1',

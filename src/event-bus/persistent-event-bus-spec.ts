@@ -3,12 +3,11 @@ import { expect } from 'chai';
 import * as moment from 'moment';
 import * as Redis from 'redis';
 import 'reflect-metadata';
+import { promisify } from 'util';
 
 import { eventCreator, isPersistedEvent, PersistedEvent } from '../shared/events';
 import { default as logger } from '../shared/logger';
 import { PersistentEventBus as EventBus } from './persistent-event-bus';
-
-import { promisify } from 'util';
 
 // Events boilerplate includes payload types, string identifiers and smart constructors
 interface Payload {

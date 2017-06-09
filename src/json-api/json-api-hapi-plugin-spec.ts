@@ -1,8 +1,8 @@
 import { expect, use } from 'chai';
 import * as moment from 'moment';
-import * as queryString from 'querystring';
+import { stringify } from 'querystring';
 import 'reflect-metadata';
-import * as sinon from 'sinon';
+import { SinonStub, stub } from 'sinon';
 import * as sinonChai from 'sinon-chai';
 use(sinonChai);
 
@@ -33,9 +33,9 @@ const kernel = bootstrap('test');
 
 describe('json-api-hapi-plugin', () => {
 
-  let stubs: sinon.SinonStub[];
+  let stubs: SinonStub[];
 
-  const stubJsonApi = (stubber: (api: JsonApiModule) => sinon.SinonStub | sinon.SinonStub[]) => {
+  const stubJsonApi = (stubber: (api: JsonApiModule) => SinonStub | SinonStub[]) => {
     const jsonApiModule = kernel.get<JsonApiModule>(JsonApiModule.injectSymbol);
     stubs = stubs.concat(stubber(jsonApiModule));
     kernel.rebind(JsonApiModule.injectSymbol).toConstantValue(jsonApiModule);
@@ -52,7 +52,7 @@ describe('json-api-hapi-plugin', () => {
     it('should correctly get project activity', async () => {
       // Arrange
       const projectId = 2;
-      const jsonApi = stubJsonApi(api => sinon.stub(api, 'getProjectActivity')
+      const jsonApi = stubJsonApi(api => stub(api, 'getProjectActivity')
         .returns(Promise.resolve([
           {
             id: 'foo',
@@ -83,7 +83,7 @@ describe('json-api-hapi-plugin', () => {
     it('should correctly get team activity', async () => {
       // Arrange
       const teamId = 6;
-      const jsonApi = stubJsonApi(api => sinon.stub(api, 'getTeamActivity')
+      const jsonApi = stubJsonApi(api => stub(api, 'getTeamActivity')
         .returns(Promise.resolve([
           {
             id: 'foo',
@@ -142,7 +142,7 @@ describe('json-api-hapi-plugin', () => {
   describe('POST "/projects"', () => {
     const projectId = 4;
     async function injectRequest(teamId: any, name: string, description: string | undefined) {
-      stubJsonApi(api => sinon.stub(api, 'createProject')
+      stubJsonApi(api => stub(api, 'createProject')
         .returns(Promise.resolve({
           id: projectId,
           teamId,
@@ -341,7 +341,7 @@ describe('json-api-hapi-plugin', () => {
       const options: IServerInjectOptions = {
         method: 'GET',
         url: `http://foo.com/api/branches/${projectId}-${branchName}/relationships/commits` +
-        `?${queryString.stringify(params)}`,
+        `?${stringify(params)}`,
       };
       return await server.inject(options);
     }

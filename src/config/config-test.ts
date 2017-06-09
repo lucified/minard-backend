@@ -1,4 +1,4 @@
-import * as cacheManager from 'cache-manager';
+import { caching } from 'cache-manager';
 import { Container } from 'inversify';
 import { sign } from 'jsonwebtoken';
 import * as Knex from 'knex';
@@ -109,7 +109,7 @@ export default (kernel: Container) => {
   kernel.rebind(authCookieDomainInjectSymbol).toConstantValue(AUTH_COOKIE_DOMAIN);
   kernel.rebind(externalBaseUrlInjectSymbol).toConstantValue(EXTERNAL_BASEURL);
 
-  const cache = cacheManager.caching({
+  const cache = caching({
     store: 'memory',
     max: 10,
     ttl: 0,

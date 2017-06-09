@@ -1,7 +1,7 @@
 import * as Boom from 'boom';
 import * as auth from 'hapi-auth-jwt2';
 import { inject, injectable, optional } from 'inversify';
-import * as jwksRsa from 'jwks-rsa';
+import { hapiJwt2Key } from 'jwks-rsa';
 import * as Knex from 'knex';
 
 import { parseApiBranchId } from '../json-api/conversions';
@@ -752,7 +752,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
 
       // Dynamically provide a signing key based on the kid in the header
       // and the singing keys provided by the JWKS endpoint.
-      key: jwksRsa.hapiJwt2Key({
+      key: hapiJwt2Key({
         cache: true,
         rateLimit: true,
         jwksRequestsPerMinute: 2,

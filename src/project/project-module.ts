@@ -2,7 +2,7 @@ import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
 import { isNil, omitBy } from 'lodash';
 import * as moment from 'moment';
-import * as queryString from 'querystring';
+import { stringify } from 'querystring';
 
 import { AuthenticationModule } from '../authentication';
 import { EventBus, eventBusInjectSymbol } from '../event-bus/';
@@ -92,7 +92,7 @@ export default class ProjectModule {
         until: until ? toGitlabTimestamp(until) : undefined,
       };
       let commits = await this.gitlab.fetchJson<any>(
-        `projects/${projectId}/repository/commits?${queryString.stringify(params)}`);
+        `projects/${projectId}/repository/commits?${stringify(params)}`);
       if (!(commits instanceof Array)) {
         commits = [commits];
       }
@@ -362,7 +362,7 @@ export default class ProjectModule {
     }, isNil);
 
     const res = await this.gitlab.fetchJsonAnyStatus<any>(
-      `projects?${queryString.stringify(params)}`, { method: 'POST' });
+      `projects?${stringify(params)}`, { method: 'POST' });
     if (res.json && res.json.message && res.json.message.path[0] === 'has already been taken') {
       throw Boom.badRequest('Name is already taken', 'name-already-taken');
     }
@@ -418,7 +418,7 @@ export default class ProjectModule {
       description: attributes.description,
     };
     const res = await this.gitlab.fetchJsonAnyStatus<any>(
-      `projects/${projectId}?${queryString.stringify(params)}`,
+      `projects/${projectId}?${stringify(params)}`,
       { method: 'PUT' },
     );
     if (res.status === 404) {
@@ -622,7 +622,7 @@ export default class ProjectModule {
       push_events: true,
     };
     const ret = await this.gitlab.fetchJsonAnyStatus(
-      `projects/${projectId}/hooks?${queryString.stringify(params)}`,
+      `projects/${projectId}/hooks?${stringify(params)}`,
       { method: 'POST' });
     if (ret.status === 404) {
       throw Boom.notFound();

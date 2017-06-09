@@ -2,7 +2,7 @@ import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
 import * as Joi from 'joi';
 import * as memoizee from 'memoizee';
-import * as path from 'path';
+import { join } from 'path';
 
 import { STRATEGY_INTERNAL_REQUEST, STRATEGY_ROUTELEVEL_USER_COOKIE } from '../authentication';
 import * as Hapi from '../server/hapi';
@@ -205,7 +205,7 @@ class DeploymentHapiPlugin extends HapiPlugin {
   }
 
   private distPath(projectId: number, deploymentId: number) {
-    return path.join(this.deploymentModule.getDeploymentPath(projectId, deploymentId));
+    return join(this.deploymentModule.getDeploymentPath(projectId, deploymentId));
   }
 
   private gitlabYmlRoute(): Hapi.IRouteConfiguration {

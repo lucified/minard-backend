@@ -1,7 +1,7 @@
 import * as Boom from 'boom';
 import { createHmac } from 'crypto';
 import { inject, injectable } from 'inversify';
-import * as qs from 'querystring';
+import { stringify } from 'querystring';
 
 import { RequestInit, Response } from 'node-fetch';
 import AuthenticationModule from '../authentication/authentication-module';
@@ -186,7 +186,7 @@ export class GitlabClient {
       search: emailOrUsername,
     };
     const users = await this.fetchJson<User[]>(
-      `users?${qs.stringify(search)}`,
+      `users?${stringify(search)}`,
       true,
     );
     if (!users || !users.length) {
@@ -313,7 +313,7 @@ export class GitlabClient {
 
   public async searchGroups(search: string) {
     const groups = await this.fetchJson<Group[]>(
-      `groups?${qs.stringify({ search })}`,
+      `groups?${stringify({ search })}`,
       true,
     );
     if (!groups.length) {
@@ -332,7 +332,7 @@ export class GitlabClient {
         sudo: userIdOrName,
       };
       group = await this.fetchJson<Group>(
-        `groups/${groupIdOrPath}?${qs.stringify(sudo)}`,
+        `groups/${groupIdOrPath}?${stringify(sudo)}`,
         true,
       );
     } else {
@@ -348,7 +348,7 @@ export class GitlabClient {
     const sudo = {
       sudo: userIdOrName,
     };
-    return this.fetchJson<Group[]>(`groups?${qs.stringify(sudo)}`, true);
+    return this.fetchJson<Group[]>(`groups?${stringify(sudo)}`, true);
   }
 
   public async getALLGroups() {
@@ -362,7 +362,7 @@ export class GitlabClient {
         sudo: userIdOrName,
       };
       project = await this.fetchJson<Project>(
-        `projects/${projectId}?${qs.stringify(sudo)}`,
+        `projects/${projectId}?${stringify(sudo)}`,
         true,
       );
     } else {
@@ -378,7 +378,7 @@ export class GitlabClient {
     const sudo = {
       sudo: userIdOrName,
     };
-    return this.fetchJson<Project[]>(`projects?${qs.stringify(sudo)}`, true);
+    return this.fetchJson<Project[]>(`projects?${stringify(sudo)}`, true);
   }
 }
 

@@ -1,6 +1,6 @@
 import * as Boom from 'boom';
 import { merge, pickBy, values } from 'lodash';
-import * as YAML from 'yamljs';
+import { stringify } from 'yamljs';
 
 import {
   GitlabSpec,
@@ -81,7 +81,7 @@ export function getGitlabYml(spec: MinardJson) {
 }
 
 export function gitlabSpecToYml(spec: GitlabSpec) {
-  return YAML.stringify(pickBy(spec), 5, 2);
+  return stringify(pickBy(spec), 5, 2);
 }
 
 export function getGitlabSpec(spec: MinardJson) {

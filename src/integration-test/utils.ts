@@ -1,12 +1,12 @@
 import { Observable } from '@reactivex/rxjs';
 import * as Boom from 'boom';
-import * as chalk from 'chalk';
+import { blue, cyan, magenta } from 'chalk';
 import { spawn } from 'child_process';
 import * as _debug from 'debug';
-import * as fs from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { mapValues } from 'lodash';
 import fetch, { Response } from 'node-fetch';
-import * as path from 'path';
+import { join } from 'path';
 
 import { ENV } from '../shared/types';
 import CharlesClient, { ResponseMulti, ResponseSingle } from './charles-client';
@@ -77,15 +77,15 @@ export async function runCommand(command: string, ...args: string[]): Promise<bo
 }
 
 export function log(text: string) {
-  debug(`    ${chalk.cyan(text)}`);
+  debug(`    ${cyan(text)}`);
 }
 
 export function logTitle(text: string) {
-  debug(`   ${chalk.magenta(text)}`);
+  debug(`   ${magenta(text)}`);
 }
 
 export function prettyUrl(url: string) {
-  return chalk.blue.underline(url);
+  return blue.underline(url);
 }
 
 export function assertResponseStatus(response: Response, requiredStatus = 200) {
@@ -161,15 +161,15 @@ export function saveToCache(cacheDir: string, cacheFileName: string) {
     } catch (error) {
       // nothing
     }
-    const cacheFile = path.join(cacheDir, cacheFileName);
+    const cacheFile = join(cacheDir, cacheFileName);
     const clientDtos = mapValues(clients, client => client!.toDto());
-    fs.writeFileSync(cacheFile, JSON.stringify(clientDtos, undefined, 2));
+    writeFileSync(cacheFile, JSON.stringify(clientDtos, undefined, 2));
   };
 }
 
 export function loadFromCache(cacheDir: string, cacheFileName: string): Partial<CharlesClients> {
-  const cacheFile = path.join(cacheDir, cacheFileName);
-  const clientDtos = JSON.parse(fs.readFileSync(cacheFile).toString());
+  const cacheFile = join(cacheDir, cacheFileName);
+  const clientDtos = JSON.parse(readFileSync(cacheFile).toString());
   return mapValues(clientDtos, dto => CharlesClient.load(dto));
 }
 

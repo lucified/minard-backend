@@ -1,7 +1,7 @@
-import * as events from 'events';
-import * as http from 'http';
+import { EventEmitter } from 'events';
+import { IncomingMessage } from 'http';
 import { inject, injectable } from 'inversify';
-import * as url from 'url';
+import { parse } from 'url';
 
 import { STRATEGY_INTERNAL_REQUEST } from '../authentication';
 import { EventBus, eventBusInjectSymbol } from '../event-bus';
@@ -31,7 +31,7 @@ export class CIProxy {
     @inject(loggerInjectSymbol) private logger: Logger,
   ) {
     this.gitlabHost = gitlabHost;
-    const gitlab = url.parse(gitlabHost);
+    const gitlab = parse(gitlabHost);
 
     if (!gitlab.hostname) {
       throw new Error('Malformed gitlab baseurl: ' + gitlabHost);
@@ -127,7 +127,7 @@ export class CIProxy {
 
   private postReplyHandler(
     err: any,
-    response: http.IncomingMessage,  // note that this is incorrect in the hapi type def
+    response: IncomingMessage,  // note that this is incorrect in the hapi type def
     request: Hapi.Request,
     reply: Hapi.IReply) {
 
@@ -147,7 +147,7 @@ export class CIProxy {
     return Promise.resolve(reply(response));
   }
 
-  private deploymentCreatedHandler(response: http.IncomingMessage, reply: Hapi.IReply) {
+  private deploymentCreatedHandler(response: IncomingMessage, reply: Hapi.IReply) {
     try {
       return this.collectStream(response)
         .then(JSON.parse)
@@ -162,7 +162,7 @@ export class CIProxy {
     }
   }
 
-  private runnerRegisteredHandler(response: http.IncomingMessage, reply: Hapi.IReply) {
+  private runnerRegisteredHandler(response: IncomingMessage, reply: Hapi.IReply) {
     try {
       return this.collectStream(response)
         .then(JSON.parse)
@@ -175,7 +175,7 @@ export class CIProxy {
     }
   }
 
-  private collectStream(s: events.EventEmitter): Promise<string> {
+  private collectStream(s: EventEmitter): Promise<string> {
     if (!s || !s.on) {
       throw new Error('s is not an EventEmitter');
     }

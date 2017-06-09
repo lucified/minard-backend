@@ -1,7 +1,7 @@
 import * as Boom from 'boom';
-import * as fs from 'fs';
+import { exists, readFile as _readFile } from 'fs';
 import { inject, injectable } from 'inversify';
-import * as path from 'path';
+import { join } from 'path';
 import { sprintf } from 'sprintf-js';
 import { promisify } from 'util';
 
@@ -9,7 +9,7 @@ import { externalBaseUrlInjectSymbol } from '../server/types';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
 import TokenGenerator from '../shared/token-generator';
 
-const readFile = promisify<string, string, { encoding: string; flag?: string; }>(fs.readFile);
+const readFile = promisify<string, string, { encoding: string; flag?: string; }>(_readFile);
 
 import {
   PageresOptions,
@@ -37,7 +37,7 @@ export default class ScreenshotModule {
   ) { }
 
   private getScreenshotDir(projectId: number, deploymentId: number) {
-    return path.join(this.folder, String(projectId), String(deploymentId));
+    return join(this.folder, String(projectId), String(deploymentId));
   }
 
   public getPublicUrl(projectId: number, deploymentId: number): string {
@@ -60,7 +60,7 @@ export default class ScreenshotModule {
   }
 
   public getScreenshotPath(projectId: number, deploymentId: number) {
-    return path.join(
+    return join(
       this.getScreenshotDir(projectId, deploymentId),
       this.getScreenshotFilename(projectId, deploymentId),
     );
@@ -71,12 +71,12 @@ export default class ScreenshotModule {
   }
 
   public async deploymentHasScreenshot(projectId: number, deploymentId: number) {
-    return await new Promise<boolean>(resolve => fs.exists(this.getScreenshotPath(projectId, deploymentId), resolve));
+    return await new Promise<boolean>(resolve => exists(this.getScreenshotPath(projectId, deploymentId), resolve));
   }
 
   private getRemoteDest(projectId: number, deploymentId: number) {
     // TODO: the remote path shouldn't be hardcoded here
-    return path.join('/screenshots', String(projectId), String(deploymentId));
+    return join('/screenshots', String(projectId), String(deploymentId));
   }
 
   /*

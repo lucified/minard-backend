@@ -1,7 +1,7 @@
 import * as Boom from 'boom';
 import { expect } from 'chai';
 import * as moment from 'moment';
-import * as queryString from 'querystring';
+import { stringify } from 'querystring';
 import 'reflect-metadata';
 
 import AuthenticationModule from '../authentication/authentication-module';
@@ -473,7 +473,7 @@ describe('project-module', () => {
 
     function arrangeProjectModule(status: number, _body: any) {
       return genericArrangeProjectModule(status, gitlabResponse,
-        `/projects/${projectId}/repository/commits?${queryString.stringify(params)}`);
+        `/projects/${projectId}/repository/commits?${stringify(params)}`);
     }
 
     it('should work when gitlab responds with two commits', async () => {
@@ -1010,7 +1010,7 @@ describe('project-module', () => {
         description,
         namespace_id: teamId,
       };
-      const url = `/projects?${queryString.stringify(params)}`;
+      const url = `/projects?${stringify(params)}`;
       return prepareProjectModule(status, body, url, 'POST', eventBus);
     }
 
@@ -1202,7 +1202,7 @@ describe('project-module', () => {
       params: any,
       eventBus?: EventBus,
       body?: any) {
-      const url = `/projects/${projectId}?${queryString.stringify(params)}`;
+      const url = `/projects/${projectId}?${stringify(params)}`;
       return prepareProjectModule(status, body, url, 'PUT', eventBus);
     }
 
@@ -1371,7 +1371,7 @@ describe('project-module', () => {
         url: gitlabResponse.url,
         push_events: true,
       };
-      const path = `/projects/${projectId}/hooks?${queryString.stringify(params)}`;
+      const path = `/projects/${projectId}/hooks?${stringify(params)}`;
       return arrangeProjectModuleForProjectHookTest(status, gitlabResponse, path, { method: 'POST' });
     }
 

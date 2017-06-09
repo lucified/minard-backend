@@ -3,8 +3,8 @@ import { expect } from 'chai';
 import * as moment from 'moment';
 import * as Redis from 'redis';
 import 'reflect-metadata';
-
 import { promisify } from 'util';
+
 import {
   CommentModule,
 } from '../comment';

@@ -3,8 +3,8 @@ import * as fs from 'fs';
 import { inject, injectable } from 'inversify';
 import * as path from 'path';
 import { sprintf } from 'sprintf-js';
-
 import { promisify } from 'util';
+
 import { externalBaseUrlInjectSymbol } from '../server/types';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
 import TokenGenerator from '../shared/token-generator';

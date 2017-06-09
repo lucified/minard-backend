@@ -4,7 +4,7 @@ import { join } from 'path';
 import CharlesClient from './charles-client';
 import interTeamTests from './tests-inter-team';
 import intraTeamTests from './tests-intra-team';
-import { CharlesClients } from './types';
+import { CharlesClients, Config } from './types';
 import {
   getAccessToken,
   getAnonymousClient,
@@ -17,7 +17,6 @@ import {
 const cacheDir = join(__dirname, '.cache');
 const cacheFileName = 'integration-tests-cache.json';
 const _saveToCache = saveToCache(cacheDir, cacheFileName);
-const config = getConfiguration(process.env.NODE_ENV);
 
 function hasInterTeamClients(
   clients: Partial<CharlesClients>,
@@ -28,6 +27,12 @@ function hasInterTeamClients(
 describe('system-integration', () => {
   const clientTypes: (keyof CharlesClients)[] = ['regular', 'admin', 'open'];
   let clients: Partial<CharlesClients> = {};
+  let config: Config;
+
+  before(async () => {
+    config = await getConfiguration(process.env.NODE_ENV);
+  });
+
   describe('intra-team', () => {
     for (const clientType of clientTypes) {
       describe(`user belonging to '${clientType}' team`, () => {

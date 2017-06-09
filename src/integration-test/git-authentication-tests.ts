@@ -8,30 +8,37 @@ import { getConfiguration } from './utils';
  * because they are run against the actual Auth0 backend
  */
 
-const config = getConfiguration(process.env.NODE_ENV);
-const { domain, audience, clientId, clientSecret } = config.auth0.regular;
-
-const credentialsList: {
-  description: string;
-  id: string;
-  secret: string;
-}[] = [
-  {
-    description: 'user',
-    id: process.env.USERNAME,
-    secret: process.env.PASSWORD,
-  },
-  {
-    description: 'client',
-    id: clientId,
-    secret: clientSecret,
-  },
-];
-
 describe('git-authentication', () => {
   let scheme: GitAuthScheme;
   let accessToken: string;
   let signingKey: string;
+  let domain: string;
+  let audience: string;
+  let credentialsList: {
+    description: string;
+    id: string;
+    secret: string;
+  }[] = [];
+
+  before(async () => {
+    const config = await getConfiguration(process.env.NODE_ENV);
+    const { clientId, clientSecret } = config.auth0.regular;
+    domain = config.auth0.regular.domain;
+    audience = config.auth0.regular.audience;
+    credentialsList = [
+      {
+        description: 'user',
+        id: process.env.USERNAME,
+        secret: process.env.PASSWORD,
+      },
+      {
+        description: 'client',
+        id: clientId,
+        secret: clientSecret,
+      },
+    ];
+  });
+
   beforeEach(() => {
     scheme = new GitAuthScheme(
       'ZaeiNyV7S7MpI69cKNHr8wXe5Bdr8tvW',

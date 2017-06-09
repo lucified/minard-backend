@@ -90,3 +90,8 @@ export interface LatestProject {
   repoUrl: string;
   token: string;
 }
+
+export interface OperationsResponse {
+  status: number;
+  message: string;
+}

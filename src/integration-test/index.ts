@@ -42,10 +42,9 @@ describe('system-integration', () => {
           }
         });
 
-        const auth0Config = config.auth0[clientType];
-
         describe('authentication', () => {
           it('should be able to sign in with Auth0', async function() {
+            const auth0Config = config.auth0[clientType];
             this.timeout(1000 * 30);
             const accessToken = await getAccessToken(auth0Config);
             expect(accessToken).to.exist;
@@ -57,9 +56,8 @@ describe('system-integration', () => {
         });
         intraTeamTests(
           () => Promise.resolve(clients[clientType]!),
-          auth0Config.clientId,
-          auth0Config.clientSecret,
-          config.notifications,
+          () => Promise.resolve(config.auth0[clientType]!),
+          () => Promise.resolve(config.notifications),
         );
       });
     }

@@ -202,6 +202,7 @@ services:
       - EXTERNAL_GIT_BASEURL=http://localhost:10080
       - GITLAB_ROOT_PASSWORD=12345678
       - SENTRY_DSN=$SENTRY_DSN
-      - INTEGRATION_TEST=$INTEGRATION_TEST
+      - ADMIN_TEAM_NAME=integrationtestadminteam
+      - OPEN_TEAM_NAMES=integrationtestopenteam
       - EXIT_DELAY=0
       - DEBUG=1

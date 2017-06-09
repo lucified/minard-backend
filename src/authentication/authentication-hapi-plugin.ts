@@ -793,7 +793,7 @@ export function generatePassword(length = 16) {
 }
 
 function findTeamByName(teamName: string) {
-  return (team: Group) => team.name === teamName;
+  return (team: Group) => team.name.toLowerCase() === teamName.toLowerCase();
 }
 function findTeamById(teamId: number) {
   return (team: Group) => team.id === teamId;

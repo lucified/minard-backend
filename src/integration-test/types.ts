@@ -1,3 +1,7 @@
+import { Response } from 'node-fetch';
+import { JsonApiEntity } from '../json-api/types';
+import CharlesClient from './charles-client';
+
 export interface Auth0 {
   domain: string;
   clientId: string;
@@ -6,17 +10,19 @@ export interface Auth0 {
 }
 export interface Config {
   charles: string;
-  notifications: {
-    flowdock?: FlowdockNotificationConfiguration,
-    hipchat?: HipChatNotificationConfiguration,
-    slack?: SlackNotificationConfiguration,
-  };
   auth0: {
     regular: Auth0 & { gitPassword: string };
     open: Auth0 & { gitPassword: string };
     admin: Auth0 & { gitPassword: string };
     [key: string]: Auth0 & { gitPassword: string };
   };
+  notifications?: NotificationConfigurations;
+}
+
+export interface NotificationConfigurations {
+  flowdock?: FlowdockNotificationConfiguration;
+  hipchat?: HipChatNotificationConfiguration;
+  slack?: SlackNotificationConfiguration;
 }
 interface HipChatNotificationConfiguration {
   type: 'hipchat';
@@ -38,4 +44,49 @@ export interface SSE {
   type: string;
   lastEventId: string;
   data: any;
+}
+export interface CharlesClients {
+  regular: CharlesClient;
+  admin: CharlesClient;
+  unauthenticated: CharlesClient;
+  open: CharlesClient;
+}
+
+export interface CharlesResponse<T> extends Response {
+  toJson: () => Promise<T>;
+  getEntity: () => Promise<JsonApiEntity>;
+  getEntities: () => Promise<JsonApiEntity[]>;
+}
+
+export type AccessCode = '1' | 'x' | 'r';
+
+export interface EntityResponse {
+  own: AccessCode;
+  closed: AccessCode;
+  open: AccessCode;
+  missing: AccessCode;
+}
+export type EntityType = keyof EntityResponse;
+export interface AccessMatrix {
+  regular: EntityResponse;
+  admin: EntityResponse;
+  unauthenticated: EntityResponse;
+}
+export type UserType = keyof AccessMatrix;
+export interface Route {
+  description: string;
+  request: (me: CharlesClient, other: CharlesClient) => Promise<Response>;
+  accessMatrix: AccessMatrix;
+}
+
+export interface LatestDeployment {
+  id: string;
+  url: string;
+  screenshot: string;
+  token: string;
+}
+export interface LatestProject {
+  id: number;
+  repoUrl: string;
+  token: string;
 }

@@ -67,8 +67,8 @@ of the configuration file.
 Make sure the following environment variables have been set when starting charles:
 
 ```shell
-OPEN_TEAM_NAMES=integration-test-open
-ADMIN_TEAM_NAME=integration-test-admin
+OPEN_TEAM_NAMES=integrationtestopenteam
+ADMIN_TEAM_NAME=integrationtestadminteam
 ```
 
 # Running the tests

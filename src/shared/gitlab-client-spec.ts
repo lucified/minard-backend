@@ -1,8 +1,7 @@
-
 import { expect } from 'chai';
+import * as fetchMock from 'fetch-mock';
 import 'reflect-metadata';
 
-import * as fetchMock from 'fetch-mock';
 import { bootstrap } from '../config';
 import { GitlabClient } from './gitlab-client';
 

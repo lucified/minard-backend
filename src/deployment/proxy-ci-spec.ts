@@ -1,6 +1,5 @@
-import 'reflect-metadata';
-
 import { expect } from 'chai';
+import 'reflect-metadata';
 
 import {
   BUILD_CREATED_EVENT,

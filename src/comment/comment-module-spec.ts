@@ -1,9 +1,7 @@
-
-import 'reflect-metadata';
-
 import { expect } from 'chai';
 import * as Knex from 'knex';
 import * as moment from 'moment';
+import 'reflect-metadata';
 
 import {
   CommentModule,

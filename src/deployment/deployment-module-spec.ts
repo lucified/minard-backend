@@ -1,6 +1,3 @@
-
-import 'reflect-metadata';
-
 import * as Boom from 'boom';
 import { expect } from 'chai';
 import * as fetchMock from 'fetch-mock';
@@ -10,7 +7,9 @@ import * as moment from 'moment';
 import { Response } from 'node-fetch';
 import * as os from 'os';
 import * as path from 'path';
+import 'reflect-metadata';
 import { promisify } from 'util';
+
 import Authentication from '../authentication/authentication-module';
 import {
   Event,

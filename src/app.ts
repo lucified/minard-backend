@@ -1,4 +1,3 @@
-
 // polyfills
 import 'reflect-metadata';
 
@@ -24,7 +23,6 @@ async function start() {
 start();
 
 function trapSignals(server: MinardServer, logger: Logger) {
-
   function stop(signal: string) {
     return async () => {
       logger.info('RECEIVED %s', signal);
@@ -35,5 +33,4 @@ function trapSignals(server: MinardServer, logger: Logger) {
   }
 
   ['SIGTERM', 'SIGINT'].forEach(signal => process.on(signal, stop(signal)));
-
 }

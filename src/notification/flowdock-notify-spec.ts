@@ -6,11 +6,9 @@ import 'reflect-metadata';
 import {
   MinardComment,
 } from '../comment';
-
 import {
   MinardDeployment,
 } from '../deployment';
-
 import {
   FlowdockNotify,
 } from './flowdock-notify';

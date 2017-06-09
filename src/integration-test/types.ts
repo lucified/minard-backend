@@ -58,7 +58,7 @@ export interface CharlesResponse<T> extends Response {
   getEntities: () => Promise<JsonApiEntity[]>;
 }
 
-export type AccessCode = '0' | '1' | 'x' | 'z' | 'r';
+export type AccessCode = '1' | 'x' | 'r';
 
 export interface EntityResponse {
   own: AccessCode;

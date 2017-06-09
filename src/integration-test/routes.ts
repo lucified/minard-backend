@@ -11,9 +11,9 @@ const routes: Route[] = [
       return me.getProjects(other.teamId);
     },
     accessMatrix: {
-      regular:         { own: '1', closed: '0', open: '0', missing: 'x' },
+      regular:         { own: '1', closed: 'x', open: 'x', missing: 'x' },
       admin:           { own: '1', closed: '1', open: '1', missing: 'x' },
-      unauthenticated: { own: '0', closed: '0', open: '0', missing: 'x' },
+      unauthenticated: { own: 'x', closed: 'x', open: 'x', missing: 'x' },
     },
   },
   {
@@ -24,9 +24,9 @@ const routes: Route[] = [
       return me.getProject(other.lastProject!.id);
     },
     accessMatrix: {
-      regular:         { own: '1', closed: '0', open: '0', missing: 'x' },
+      regular:         { own: '1', closed: 'x', open: 'x', missing: 'x' },
       admin:           { own: '1', closed: '1', open: '1', missing: 'x' },
-      unauthenticated: { own: '0', closed: '0', open: '0', missing: 'x' },
+      unauthenticated: { own: 'x', closed: 'x', open: 'x', missing: 'x' },
     },
   },
   {
@@ -37,7 +37,7 @@ const routes: Route[] = [
       return me.fetch(other.lastDeployment!.url + '/index.html');
     },
     accessMatrix: {
-      regular:         { own: '1', closed: '0', open: '1', missing: 'x' },
+      regular:         { own: '1', closed: 'x', open: '1', missing: 'x' },
       admin:           { own: '1', closed: '1', open: '1', missing: 'x' },
       unauthenticated: { own: 'r', closed: 'r', open: '1', missing: 'r' },
     },
@@ -59,8 +59,6 @@ const routes: Route[] = [
 
 export const codes = {
   '1': 200,
-  '0': 401,
-  'z': 403,
   'x': 404,
   'r': 302,
 };

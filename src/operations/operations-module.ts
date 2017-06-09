@@ -2,9 +2,7 @@ import * as Boom from 'boom';
 import { inject, injectable } from 'inversify';
 import { differenceBy, isNil, omitBy } from 'lodash';
 
-import {
-  ActivityModule,
-} from '../activity';
+import { ActivityModule } from '../activity';
 import {
   DeploymentEvent,
   DeploymentModule,

@@ -1,6 +1,5 @@
-import 'reflect-metadata';
-
 import { expect } from 'chai';
+import 'reflect-metadata';
 import { GitAuthScheme } from '../authentication/git-auth-scheme';
 import { getConfiguration } from './utils';
 

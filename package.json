@@ -5,7 +5,6 @@
   "main": "server.js",
   "dependencies": {
     "@reactivex/rxjs": "^5.3.0",
-    "auth0-js": "^8.7.0",
     "aws-sdk": "^2.64.0",
     "boom": "^5.1.0",
     "cache-manager": "^2.4.0",
@@ -51,7 +50,6 @@
     "yamljs": "^0.2.10"
   },
   "devDependencies": {
-    "@types/auth0-js": "^8.6.0",
     "@types/boom": "^4.3.1",
     "@types/cache-manager": "^1.2.4",
     "@types/chai": "^3.5.1",

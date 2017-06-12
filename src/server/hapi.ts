@@ -1,5 +1,5 @@
 export * from 'hapi';
-import { IReply, IRoute, IServerOptions, Request, Server } from 'hapi';
+import { ReplyNoContinue, Request, RoutePublicInterface, Server, ServerOptions } from 'hapi';
 import { RequestCredentials } from '../authentication';
 import { HapiRegister } from './hapi-register';
 
@@ -12,11 +12,8 @@ interface PluginConfig {
 }
 
 declare module 'hapi' {
-  interface IRouteHandlerConfig {
+  interface RouteHandlerPlugins {
     async?: AsyncHandler;
-  }
-  interface ICookieSettings {
-    isSameSite: false | 'Strict' | 'Lax';
   }
   interface RequestDecorators {
     userHasAccessToProject: (projectId: number) => Promise<boolean>;
@@ -32,21 +29,27 @@ declare module 'hapi' {
   }
   interface Request extends RequestDecorators {
   }
+  // interface RoutePayloadConfigurationObject {
+  //   payload?: {
+  //     output?: PayLoadOutputOption;
+  //     parse: 'gunzip' | boolean;
+  //   };
+  // }
 }
 
-type AsyncHandler = (request: Request, reply: IReply ) => Promise<any>;
+type AsyncHandler = (request: Request, reply: ReplyNoContinue ) => Promise<any>;
 
-function asyncHandlerFactory(_route: IRoute, asyncHandler: AsyncHandler) {
+function asyncHandlerFactory(_route: RoutePublicInterface, asyncHandler: AsyncHandler) {
   if (typeof asyncHandler !== 'function') {
     throw new Error('Hapi: route handler should be a function');
   }
-  return function (request: Request, reply: IReply) { // tslint:disable-line
+  return function (request: Request, reply: ReplyNoContinue) { // tslint:disable-line
     asyncHandler.call(this, request, reply)
       .catch((err: any) => reply(err));
   };
 }
 
-export function getServer(options?: IServerOptions) {
+export function getServer(options?: ServerOptions) {
   const server = new Server(options);
   server.handler('async', asyncHandlerFactory);
   return server;

@@ -35,7 +35,7 @@ describe('system-integration', () => {
 
   describe('intra-team', () => {
     for (const clientType of clientTypes) {
-      describe(`user belonging to '${clientType}' team`, () => {
+      describe(`'${clientType}' user`, () => {
         after(() => {
           if (isDebug()) {
             _saveToCache(clients);

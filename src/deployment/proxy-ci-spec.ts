@@ -18,7 +18,7 @@ const h2o2 = require('h2o2');
 function registerAuthStrategy(server: Hapi.Server) {
   server.auth.scheme('noOp', (_server: Hapi.Server, _options: any) => {
     return {
-      authenticate: (_request: Hapi.Request, reply: Hapi.IReply) => {
+      authenticate: (_request: Hapi.Request, reply: Hapi.ReplyWithContinue) => {
         return reply.continue({ credentials: { username: 'foo' } });
       },
     };
@@ -29,7 +29,7 @@ function registerAuthStrategy(server: Hapi.Server) {
 // https://github.com/hapijs/h2o2/blob/master/test/index.js
 async function provisionProxy(
   upstream = 'http://localhost:80',
-  options: Hapi.IServerConnectionOptions = { port: 8080 },
+  options: Hapi.ServerConnectionOptions = { port: 8080 },
 ) {
   const logger = loggerConstructor(undefined, false, true);
   const bus = new EventBus();
@@ -41,7 +41,7 @@ async function provisionProxy(
   return {proxy, bus, plugin};
 }
 
-const provisionUpstream = async (options: Hapi.IServerConnectionOptions = { port: 8090, address: '127.0.0.1' }) => {
+const provisionUpstream = async (options: Hapi.ServerConnectionOptions = { port: 8090, address: '127.0.0.1' }) => {
   const server = Hapi.getServer();
   server.connection(options);
   return server;
@@ -62,8 +62,7 @@ describe('ci-proxy', () => {
   });
 
   it('proxies everything under routeNamespace', async () => {
-    const { proxy, plugin } = await provisionProxy(`http://localhost:${upstream.info.port}`);
-
+    const { proxy, plugin } = await provisionProxy(`http://localhost:${upstream.info!.port}`);
     const path = plugin.routeNamespace + 'foo/bar/';
     upstream.route([{
       method: 'GET',
@@ -79,8 +78,7 @@ describe('ci-proxy', () => {
       url: path,
     });
     expect(response.statusCode).to.equal(200);
-    expect(response.payload).to.equal('Ok!');
-    await upstream.stop();
+    expect(response.payload, response.payload).to.equal('Ok!');
   });
 
   it('doesn\'t proxy weird paths' , async () => {
@@ -93,7 +91,7 @@ describe('ci-proxy', () => {
       },
     }]);
     await upstream.start();
-    const { proxy } = await provisionProxy(`http://localhost:${upstream.info.port}`);
+    const { proxy } = await provisionProxy(`http://localhost:${upstream.info!.port}`);
 
     const response = await proxy.inject({
       method: 'PUT',
@@ -104,7 +102,7 @@ describe('ci-proxy', () => {
 
   it('Posts build created event' , async () => {
 
-    const { proxy, bus, plugin } = await provisionProxy(`http://localhost:${upstream.info.port}`);
+    const { proxy, bus, plugin } = await provisionProxy(`http://localhost:${upstream.info!.port}`);
     const path = plugin.routeNamespace + 'builds/register.json';
 
     const createdPayload: BuildCreatedEvent = {
@@ -140,7 +138,7 @@ describe('ci-proxy', () => {
 
   it('Posts status updates' , async () => {
 
-    const { proxy, bus, plugin } = await provisionProxy(`http://localhost:${upstream.info.port}`);
+    const { proxy, bus, plugin } = await provisionProxy(`http://localhost:${upstream.info!.port}`);
 
     const path = plugin.routeNamespace + 'builds/1';
 

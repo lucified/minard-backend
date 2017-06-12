@@ -28,7 +28,7 @@ export class GitProxy extends HapiPlugin {
 
   public register(
     server: Hapi.Server,
-    _options: Hapi.IServerOptions,
+    _options: Hapi.ServerOptions,
     next: () => void,
   ) {
     server.route({

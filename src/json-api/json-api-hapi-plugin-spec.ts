@@ -8,7 +8,7 @@ use(sinonChai);
 
 import AuthenticationHapiPlugin from '../authentication/authentication-hapi-plugin';
 import { bootstrap } from '../config';
-import { getTestServer, IServerInjectOptions } from '../server/hapi';
+import { getTestServer, InjectedRequestOptions } from '../server/hapi';
 import { MINARD_ERROR_CODE } from '../shared/minard-error';
 import { JsonApiHapiPlugin, parseActivityFilter } from './json-api-hapi-plugin';
 import { JsonApiModule } from './json-api-module';
@@ -65,7 +65,7 @@ describe('json-api-hapi-plugin', () => {
       const server = await provisionServer();
 
       // Act
-      const options: IServerInjectOptions = {
+      const options: InjectedRequestOptions = {
         method: 'GET',
         url: `http://foo.com/api/activity?filter=project[${projectId}]`,
       };
@@ -96,7 +96,7 @@ describe('json-api-hapi-plugin', () => {
       const server = await provisionServer();
 
       // Act
-      const options: IServerInjectOptions = {
+      const options: InjectedRequestOptions = {
         method: 'GET',
         url: `http://foo.com/api/activity?filter=team[${teamId}]`,
       };
@@ -150,7 +150,7 @@ describe('json-api-hapi-plugin', () => {
           description,
         })));
       const server = await provisionServer();
-      const options: IServerInjectOptions = {
+      const options: InjectedRequestOptions = {
         method: 'POST',
         url: 'http://foo.com/api/projects',
         headers: {
@@ -245,7 +245,7 @@ describe('json-api-hapi-plugin', () => {
       } as JsonApiModule;
       const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any, {} as any);
       const server = await provisionServer(plugin);
-      const options: IServerInjectOptions = {
+      const options: InjectedRequestOptions = {
         method: 'PATCH',
         url: `http://foo.com/api/projects/${projectId}`,
         payload: {
@@ -338,7 +338,7 @@ describe('json-api-hapi-plugin', () => {
       } as JsonApiModule;
       const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any, {} as any);
       const server = await provisionServer(plugin);
-      const options: IServerInjectOptions = {
+      const options: InjectedRequestOptions = {
         method: 'GET',
         url: `http://foo.com/api/branches/${projectId}-${branchName}/relationships/commits` +
         `?${stringify(params)}`,

@@ -86,7 +86,15 @@ export class GitAuthScheme {
   }
 
   public login(username: string, password: string) {
+    // Check if the username is an email
     if (username.indexOf('@') >= 0) {
+      /**
+       * Authenticates against Auth0 using the 'Resource Owner Password Grant',
+       * with 'realm' support. Here the realm specifies a 'connection'. Intended
+       * to be used by users who have signed up via Auth0.
+       *
+       * https://auth0.com/docs/api-auth/tutorials/password-grant#realm-support
+       */
       return this.userLogin({
         realm: 'Username-Password-Authentication',
         username,
@@ -97,6 +105,13 @@ export class GitAuthScheme {
     return this.clientLogin(username, password);
   }
 
+  /**
+   * Authenticates against Auth0 using the 'Client Credentials Grant'.
+   * Intended to be used by CLI tools, CI, tests etc,
+   *
+   * @param string clientId
+   * @param string clientSecret
+   */
   public async clientLogin(clientId: string, clientSecret: string) {
     const body = {
       audience: this.auth0Audience,

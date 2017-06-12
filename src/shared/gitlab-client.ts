@@ -29,7 +29,9 @@ export class GitlabClient {
 
   public constructor(
     @inject(gitlabHostInjectSymbol) public readonly host: string,
-    @inject(gitlabPasswordSecretInjectSymbol) private readonly passwordSecret: string,
+    @inject(
+      gitlabPasswordSecretInjectSymbol,
+    ) private readonly passwordSecret: string,
     @inject(fetchInjectSymbol) private readonly originalFetch: IFetch,
     @inject(
       AuthenticationModule.injectSymbol,
@@ -171,10 +173,7 @@ export class GitlabClient {
   }
 
   public async getUsers() {
-    const users = await this.fetchJson<User[]>(
-      `users`,
-      true,
-    );
+    const users = await this.fetchJson<User[]>(`users`, undefined, true);
     if (!users || !users.length) {
       throw badRequest(`Can\'t find users`);
     }
@@ -187,6 +186,7 @@ export class GitlabClient {
     };
     const users = await this.fetchJson<User[]>(
       `users?${stringify(search)}`,
+      undefined,
       true,
     );
     if (!users || !users.length) {
@@ -232,7 +232,10 @@ export class GitlabClient {
     );
   }
 
-  public modifyUser(id: number, changes: Partial<User> & {password?: string}) {
+  public modifyUser(
+    id: number,
+    changes: Partial<User> & { password?: string },
+  ) {
     return this.fetchJson<User>(
       `users/${id}`,
       {
@@ -314,6 +317,7 @@ export class GitlabClient {
   public async searchGroups(search: string) {
     const groups = await this.fetchJson<Group[]>(
       `groups?${stringify({ search })}`,
+      undefined,
       true,
     );
     if (!groups.length) {
@@ -333,10 +337,11 @@ export class GitlabClient {
       };
       group = await this.fetchJson<Group>(
         `groups/${groupIdOrPath}?${stringify(sudo)}`,
+        undefined,
         true,
       );
     } else {
-      group = await this.fetchJson<Group>(`groups/${groupIdOrPath}`, true);
+      group = await this.fetchJson<Group>(`groups/${groupIdOrPath}`, undefined, true);
     }
     if (!group || !group.id) {
       throw notFound(`No group found with id '${groupIdOrPath}'`);
@@ -348,11 +353,11 @@ export class GitlabClient {
     const sudo = {
       sudo: userIdOrName,
     };
-    return this.fetchJson<Group[]>(`groups?${stringify(sudo)}`, true);
+    return this.fetchJson<Group[]>(`groups?${stringify(sudo)}`, undefined, true);
   }
 
   public async getALLGroups() {
-    return this.fetchJson<Group[]>(`groups`, true);
+    return this.fetchJson<Group[]>(`groups`, undefined, true);
   }
 
   public async getProject(projectId: number, userIdOrName?: number | string) {
@@ -363,10 +368,11 @@ export class GitlabClient {
       };
       project = await this.fetchJson<Project>(
         `projects/${projectId}?${stringify(sudo)}`,
+        undefined,
         true,
       );
     } else {
-      project = await this.fetchJson<Project>(`projects/${projectId}`, true);
+      project = await this.fetchJson<Project>(`projects/${projectId}`, undefined, true);
     }
     if (!project || !project.id) {
       throw notFound(`No project found with id '${projectId}'`);
@@ -378,7 +384,7 @@ export class GitlabClient {
     const sudo = {
       sudo: userIdOrName,
     };
-    return this.fetchJson<Project[]>(`projects?${stringify(sudo)}`, true);
+    return this.fetchJson<Project[]>(`projects?${stringify(sudo)}`, undefined, true);
   }
 }
 

@@ -46,9 +46,6 @@ class DeploymentHapiPlugin extends HapiPlugin {
       promise: true,
       normalizer: (args: any) => `${args[0]}-${args[1]}`,
     });
-    this.parseHostPre = this.parseHostPre.bind(this);
-    this.authorizePre = this.authorizePre.bind(this);
-    this.checkDeploymentPre = this.checkDeploymentPre.bind(this);
   }
 
   public register(
@@ -137,11 +134,11 @@ class DeploymentHapiPlugin extends HapiPlugin {
           },
           pre: [
             {
-              method: this.parseHostPre,
+              method: this.parseHostPre.bind(this),
               assign: PREKEY,
             },
-            this.authorizePre,
-            this.checkDeploymentPre,
+            this.authorizePre.bind(this),
+            this.checkDeploymentPre.bind(this),
           ],
         },
       },

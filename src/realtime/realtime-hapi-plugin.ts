@@ -1,5 +1,5 @@
 import { Observable } from '@reactivex/rxjs';
-import * as Boom from 'boom';
+import { forbidden, notFound, wrap } from 'boom';
 import { inject, injectable } from 'inversify';
 import * as Joi from 'joi';
 import * as moment from 'moment';
@@ -125,7 +125,7 @@ export class RealtimeHapiPlugin extends HapiPlugin {
       return this.streamReply(stream, request, reply);
     } catch (err) {
       this.logger.warn('Problems handling a SSE request', err);
-      return reply(Boom.wrap(err));
+      return reply(wrap(err));
     }
   }
 
@@ -137,7 +137,7 @@ export class RealtimeHapiPlugin extends HapiPlugin {
       const correctToken = this.tokenGenerator.deploymentToken(projectId, deploymentId);
 
       if (!token || token !== correctToken) {
-        return reply(Boom.forbidden('Invalid token'));
+        return reply(forbidden('Invalid token'));
       }
 
       return reply('ok');
@@ -145,7 +145,7 @@ export class RealtimeHapiPlugin extends HapiPlugin {
     } catch (error) {
       // Nothing to be done here
     }
-    return reply(Boom.forbidden('Invalid token'));
+    return reply(forbidden('Invalid token'));
 
   }
 
@@ -165,7 +165,7 @@ export class RealtimeHapiPlugin extends HapiPlugin {
     } catch (error) {
       this.logger.warn('Problems authorizing a realtime request', error);
     }
-    return reply(Boom.notFound());
+    return reply(notFound());
   }
 
   public async deploymentHandler(request: Hapi.Request, reply: Hapi.IReply) {
@@ -179,7 +179,7 @@ export class RealtimeHapiPlugin extends HapiPlugin {
       return this.streamReply(stream, request, reply);
     } catch (err) {
       this.logger.warn('Problems handling a realtime request', err);
-      return reply(Boom.wrap(err));
+      return reply(wrap(err));
     }
   }
 }

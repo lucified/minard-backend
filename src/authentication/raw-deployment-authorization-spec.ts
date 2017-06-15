@@ -1,7 +1,7 @@
 import { expect, use } from 'chai';
 import { Server } from 'hapi';
 import 'reflect-metadata';
-import * as sinon from 'sinon';
+import { stub } from 'sinon';
 import * as sinonChai from 'sinon-chai';
 use(sinonChai);
 
@@ -26,7 +26,7 @@ async function getServer(
   const authenticationPlugin = stubber(authenticationStubber, AuthenticationHapiPlugin.injectSymbol, kernel);
   const deploymentPlugin = stubber(plugin, DeploymentHapiPlugin.injectSymbol, kernel);
   const server = await getTestServer(false, authenticationPlugin.instance);
-  const handlerStub = sinon.stub().yields(200);
+  const handlerStub = stub().yields(200);
   server.handler('directory', (_route, _options) => handlerStub);
   await server.register(deploymentPlugin.instance);
   await server.initialize();
@@ -45,16 +45,16 @@ function arrange(
   return getServer(
     (p: AuthenticationHapiPlugin) => {
         return [
-          sinon.stub(p, p.userHasAccessToDeployment.name)
+          stub(p, p.userHasAccessToDeployment.name)
             .returns(Promise.resolve(hasAccess)),
-          sinon.stub(p, p.isAdmin.name)
+          stub(p, p.isAdmin.name)
             .returns(Promise.resolve(false)),
-          sinon.stub(p, p.isOpenDeployment.name)
+          stub(p, p.isOpenDeployment.name)
             .returns(Promise.resolve(isOpenDeployment)),
         ];
     },
     (p: DeploymentHapiPlugin) => [
-      sinon.stub(p, p.checkDeploymentPre.name)
+      stub(p, p.checkDeploymentPre.name)
         .yields(200)
         .returns(Promise.resolve(true)),
     ],

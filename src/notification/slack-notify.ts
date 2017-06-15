@@ -1,4 +1,4 @@
-import * as gravatar from 'gravatar';
+import { url as gravatarUrl } from 'gravatar';
 import { inject, injectable } from 'inversify';
 
 import { MinardDeployment } from '../deployment';
@@ -20,7 +20,7 @@ export function getMessage(
     fallback,
     color: '#40C1AC',
     author_name: author.name || author.email,
-    author_icon: gravatar.url(author.email, undefined, false),
+    author_icon: gravatarUrl(author.email, undefined, false),
     title: comment ? 'New comment' : 'New preview',
     title_link: previewUrl,
     text: comment ? comment.message : deployment.commit.message,

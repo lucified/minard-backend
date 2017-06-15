@@ -1,4 +1,4 @@
-import * as gravatar from 'gravatar';
+import { url as gravatarUrl } from 'gravatar';
 import { inject, injectable } from 'inversify';
 import { RequestInit } from 'node-fetch';
 
@@ -123,13 +123,13 @@ export class FlowdockNotify {
       return {
         name: comment.name ? comment.name : comment.email,
         email: comment.email,
-        avatar: gravatar.url(comment.email),
+        avatar: gravatarUrl(comment.email),
       };
     }
     return {
       name: deployment.commit.committer.name,
       email: deployment.commit.committer.email,
-      avatar: gravatar.url(deployment.commit.committer.email),
+      avatar: gravatarUrl(deployment.commit.committer.email),
     };
   }
 

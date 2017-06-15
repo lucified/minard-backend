@@ -1,4 +1,4 @@
-import * as Boom from 'boom';
+import { notFound } from 'boom';
 import * as auth from 'hapi-auth-jwt2';
 import { inject, injectable, optional } from 'inversify';
 import * as Knex from 'knex';
@@ -93,7 +93,7 @@ class CachedAuthenticationHapiPlugin extends AuthenticationHapiPlugin {
         if (result) {
           return done(undefined, result);
         }
-        return done(Boom.notFound(), false); // Don't cache falses
+        return done(notFound(), false); // Don't cache falses
       },
       error => done(error, false),
     );
@@ -121,7 +121,7 @@ class CachedAuthenticationHapiPlugin extends AuthenticationHapiPlugin {
         if (result) {
           return done(undefined, result);
         }
-        return done(Boom.notFound(), false); // Don't cache falses
+        return done(notFound(), false); // Don't cache falses
       },
       error => done(error, false),
     );

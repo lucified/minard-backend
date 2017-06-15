@@ -1,7 +1,7 @@
-import * as Boom from 'boom';
+import { badImplementation, badRequest, create, notFound, unauthorized, wrap } from 'boom';
 import * as auth from 'hapi-auth-jwt2';
 import { inject, injectable, optional } from 'inversify';
-import * as jwksRsa from 'jwks-rsa';
+import { hapiJwt2Key } from 'jwks-rsa';
 import * as Knex from 'knex';
 
 import { parseApiBranchId } from '../json-api/conversions';
@@ -257,7 +257,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       if (teams.length > 1) {
         // NOTE: we only support a single team for now
         // This is a configuration error.
-        throw Boom.badImplementation('User can only belong to a single team.');
+        throw badImplementation('User can only belong to a single team.');
       }
       const team = teams[0];
       this.setAuthCookie(request, reply);
@@ -273,7 +273,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       });
     } catch (error) {
       this.logger.error(`Can't fetch user or team`, error);
-      return reply(Boom.wrap(error, 404));
+      return reply(wrap(error, 404));
     }
   }
 
@@ -315,7 +315,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
         // NOTE: we only support a single team for now
         teamId = userTeams[0].id;
       } else {
-        return reply(Boom.create(401, `Insufficient privileges`));
+        return reply(create(401, `Insufficient privileges`));
       }
       const teamToken = await teamTokenQuery(this.db, { teamId });
       if (!teamToken || !teamToken.length) {
@@ -323,7 +323,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       }
       return reply(teamToken[0]);
     } catch (error) {
-      return reply(Boom.notFound(error.message));
+      return reply(notFound(error.message));
     }
   }
 
@@ -335,7 +335,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       this.logger.debug('Created a new team-token for team %s', teamIdOrName);
       return reply(teamToken).code(201);
     } catch (error) {
-      return reply(Boom.badRequest(error.message));
+      return reply(badRequest(error.message));
     }
   }
 
@@ -379,7 +379,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       const message = `Unable to sign up user ${email}: ${error.isBoom &&
         (error.output.payload.message || error.data.message) || error.message}`;
       this.logger.error(message, credentials);
-      return reply(Boom.badRequest(message));
+      return reply(badRequest(message));
     }
   }
 
@@ -511,7 +511,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
         if (this.isInternalRequest(request)) {
           return reply.continue({ credentials: {} });
         } else {
-          return reply(Boom.unauthorized());
+          return reply(unauthorized());
         }
       },
     }));
@@ -752,7 +752,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
 
       // Dynamically provide a signing key based on the kid in the header
       // and the singing keys provided by the JWKS endpoint.
-      key: jwksRsa.hapiJwt2Key({
+      key: hapiJwt2Key({
         cache: true,
         rateLimit: true,
         jwksRequestsPerMinute: 2,

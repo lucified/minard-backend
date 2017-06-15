@@ -1,8 +1,8 @@
-import * as cacheManager from 'cache-manager';
+import { caching } from 'cache-manager';
 import { Container } from 'inversify';
 import * as Knex from 'knex';
 import { parse as parseUrl } from 'url';
-import * as winston from 'winston';
+import { transports } from 'winston';
 
 import {
   auth0AudienceInjectSymbol,
@@ -109,7 +109,7 @@ const goodOptions = {
 
 const winstonOptions = {
   transports: [
-    new winston.transports.Console({
+    new transports.Console({
       level: 'info',
       colorize: true,
       timestamp: true,
@@ -256,7 +256,7 @@ const SCREENSHOT_FOLDER = env.SCREENSHOT_FOLDER || 'gitlab-data/charles/screensh
 // Redis cache
 // -----------
 
-const cache = cacheManager.caching({
+const cache = caching({
   store: redisStore,
   host: REDIS_HOST,
   port: REDIS_PORT,

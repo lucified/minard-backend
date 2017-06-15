@@ -1,11 +1,11 @@
-import * as winston from 'winston';
+import { Logger, LoggerInstance, LoggerOptions, transports } from 'winston';
 
 export const loggerInjectSymbol = Symbol('logger');
-export type Logger = winston.LoggerInstance;
+export type Logger = LoggerInstance;
 
-export default (options?: winston.LoggerOptions, silent?: boolean, debug?: boolean) => new winston.Logger(options || {
+export default (options?: LoggerOptions, silent?: boolean, debug?: boolean) => new Logger(options || {
   transports: [
-    new winston.transports.Console({
+    new transports.Console({
       level: debug ? 'debug' : 'info',
       colorize: true,
       timestamp: true,

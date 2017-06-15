@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import * as fetchMock from 'fetch-mock';
+import { mock, restore } from 'fetch-mock';
 import 'reflect-metadata';
 
 import { bootstrap } from '../config';
@@ -66,7 +66,7 @@ describe('gitlab-client', () => {
         b: 'b',
       };
       const gitlabClient = getClient();
-      fetchMock.restore().mock(`^${host}${gitlabClient.apiPrefix}/`, json);
+      restore().mock(`^${host}${gitlabClient.apiPrefix}/`, json);
 
       // Act
       const r = await gitlabClient.fetchJson<Ijson>('');
@@ -79,7 +79,7 @@ describe('gitlab-client', () => {
     it('throws a Boom error object on error', async () => {
       // Arrange
       const gitlabClient = getClient();
-      fetchMock.restore().mock(`^${host}${gitlabClient.apiPrefix}/`, 501);
+      restore().mock(`^${host}${gitlabClient.apiPrefix}/`, 501);
 
       // Act
       try {
@@ -97,7 +97,7 @@ describe('gitlab-client', () => {
     it.skip('can fetch deployments given project id', async () => {
       // Arrange
       const gitlabClient = getClient();
-      fetchMock.mock(`^${host}${gitlabClient.apiPrefix}/`, 200);
+      mock(`^${host}${gitlabClient.apiPrefix}/`, 200);
 
     });
   });
@@ -106,9 +106,9 @@ describe('gitlab-client', () => {
     it('returns a single group', async () => {
       // Arrange
       const gitlab = getClient();
-      fetchMock.restore();
+      restore();
       const id = 4;
-      fetchMock.mock(/\/groups\/4/, {
+      mock(/\/groups\/4/, {
         id,
         name: 'Twitter',
         path: 'twitter',
@@ -263,9 +263,9 @@ describe('gitlab-client', () => {
     it('throws when not found', async () => {
       // Arrange
       const gitlab = getClient();
-      fetchMock.restore();
+      restore();
       const id = 100;
-      fetchMock.mock(/\/teams\/100/, {});
+      mock(/\/teams\/100/, {});
 
       // Act
       try {
@@ -283,9 +283,9 @@ describe('gitlab-client', () => {
     it('returns a single user', async () => {
       // Arrange
       const gitlab = getClient();
-      fetchMock.restore();
+      restore();
       const email = 'foo@bar.com';
-      fetchMock.mock(/\/users/, [{
+      mock(/\/users/, [{
         id: 1,
         email,
       }]);
@@ -300,9 +300,9 @@ describe('gitlab-client', () => {
     it('throws when not found', async () => {
       // Arrange
       const gitlab = getClient();
-      fetchMock.restore();
+      restore();
       const email = 'foo@bar.com';
-      fetchMock.mock(/\/users/, []);
+      mock(/\/users/, []);
 
       // Act
       try {
@@ -321,9 +321,9 @@ describe('gitlab-client', () => {
     it('returns an array of teams', async () => {
       // Arrange
       const gitlab = getClient();
-      fetchMock.restore();
+      restore();
       const email = 'foo@bar.com';
-      fetchMock.mock(/\/groups/, [{
+      mock(/\/groups/, [{
         id: 1,
         email,
       }]);
@@ -339,8 +339,8 @@ describe('gitlab-client', () => {
     it('returns an empty array when user is not on any team', async () => {
       // Arrange
       const gitlab = getClient();
-      fetchMock.restore();
-      fetchMock.mock(/\/groups/, []);
+      restore();
+      mock(/\/groups/, []);
 
       // Act
       const response = await gitlab.getUserGroups(1);
@@ -352,8 +352,8 @@ describe('gitlab-client', () => {
     it('throws when the user\'s not found', async () => {
       // Arrange
       const gitlab = getClient();
-      fetchMock.restore();
-      fetchMock.mock(/\/groups/, 404);
+      restore();
+      mock(/\/groups/, 404);
 
       // Act
       try {

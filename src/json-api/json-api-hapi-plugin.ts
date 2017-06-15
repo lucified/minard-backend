@@ -1,4 +1,4 @@
-import * as Boom from 'boom';
+import { badRequest, forbidden, notFound, unauthorized, wrap } from 'boom';
 import { inject, injectable } from 'inversify';
 import * as Joi from 'joi';
 import * as moment from 'moment';
@@ -611,7 +611,7 @@ export class JsonApiHapiPlugin {
   public async getEntity(type: string, entityFetcher: (api: JsonApiModule) => apiReturn) {
     const entity = await entityFetcher(this.jsonApi);
     if (!entity) {
-      throw Boom.notFound(`${type} not found`);
+      throw notFound(`${type} not found`);
     }
     return this.serializeApiEntity(type, entity);
   }
@@ -640,7 +640,7 @@ export class JsonApiHapiPlugin {
     } catch (exception) {
       // TODO: log exception
     }
-    return reply(Boom.unauthorized());
+    return reply(unauthorized());
   }
 
   public async postProjectHandler(request: Hapi.Request, reply: Hapi.IReply) {
@@ -656,7 +656,7 @@ export class JsonApiHapiPlugin {
     const projectId = Number(request.params.projectId);
     if (!attributes.name && !attributes.description) {
       // Require that at least something is edited
-      throw Boom.badRequest();
+      throw badRequest();
     }
     const project = await this.jsonApi.editProject(projectId, attributes);
     return reply(this.serializeApiEntity('project', project));
@@ -687,7 +687,7 @@ export class JsonApiHapiPlugin {
         case PreviewType.BRANCH:
           const matches = parseApiBranchId(branchId);
           if (!matches) {
-            return reply(Boom.badRequest('Invalid branch id'));
+            return reply(badRequest('Invalid branch id'));
           }
           const { projectId, branchName } = matches;
           correctToken = this.tokenGenerator.branchToken(projectId, branchName);
@@ -696,11 +696,11 @@ export class JsonApiHapiPlugin {
           correctToken = this.tokenGenerator.deploymentToken(Number(projectIdString), deploymentId);
           break;
         default:
-          return reply(Boom.badRequest('Invalid token data'));
+          return reply(badRequest('Invalid token data'));
       }
 
       if (!token || token !== correctToken) {
-        return reply(Boom.forbidden('Invalid token'));
+        return reply(forbidden('Invalid token'));
       }
 
       return reply('ok');
@@ -716,16 +716,16 @@ export class JsonApiHapiPlugin {
         return reply(preview);
       }
     } catch (err) {
-      return reply(Boom.wrap(err));
+      return reply(wrap(err));
     }
 
-    return reply(Boom.notFound());
+    return reply(notFound());
   }
 
   public async getBranchHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const matches = parseApiBranchId(request.params.branchId);
     if (!matches) {
-      throw Boom.badRequest('Invalid branch id');
+      throw badRequest('Invalid branch id');
     }
     const { projectId, branchName } = matches;
     return reply(this.getEntity('branch', api => api.getBranch(projectId, branchName)));
@@ -734,13 +734,13 @@ export class JsonApiHapiPlugin {
   public async getBranchCommitsHandler(request: Hapi.Request, reply: Hapi.IReply) {
     const matches = parseApiBranchId(request.params.branchId);
     if (!matches) {
-      throw Boom.badRequest('Invalid branch id');
+      throw badRequest('Invalid branch id');
     }
     const { projectId, branchName } = matches;
     const { until, count } = request.query;
     const untilMoment = moment(until);
     if (!untilMoment.isValid) {
-      throw Boom.badRequest('Until is not in valid format');
+      throw badRequest('Until is not in valid format');
     }
     return reply(this.getEntity('commit', api => api.getBranchCommits(projectId, branchName, untilMoment, count)));
   }
@@ -756,7 +756,7 @@ export class JsonApiHapiPlugin {
       const filter: string = request.query.filter;
       return reply(parseActivityFilter(filter));
     } catch (exception) {
-      return reply(Boom.badRequest());
+      return reply(badRequest());
     }
   }
 
@@ -769,7 +769,7 @@ export class JsonApiHapiPlugin {
     if (filter.teamId) {
       return reply(this.getEntity('activity', api => api.getTeamActivity(filter.teamId, until, count)));
     }
-    throw Boom.badRequest('team or project filter must be specified');
+    throw badRequest('team or project filter must be specified');
   }
 
   public getJsonApiModule() {
@@ -790,7 +790,7 @@ export class JsonApiHapiPlugin {
     try {
       reply(request.payload.data.attributes);
     } catch (error) {
-      reply(Boom.badRequest());
+      reply(badRequest());
     }
   }
 
@@ -802,10 +802,10 @@ export class JsonApiHapiPlugin {
       const pre = request.pre[TEAM_OR_PROJECT_PRE_KEY];
       const { teamId, projectId } = pre;
       if (!teamId && !projectId) {
-        return reply(Boom.badRequest('teamId or projectId should be defined'));
+        return reply(badRequest('teamId or projectId should be defined'));
       }
       if (teamId && projectId) {
-        return reply(Boom.badRequest('teamId and projectId should not both be defined'));
+        return reply(badRequest('teamId and projectId should not both be defined'));
       }
       if (projectId && await request.userHasAccessToProject(projectId)) {
         return reply(pre);
@@ -816,7 +816,7 @@ export class JsonApiHapiPlugin {
     } catch (exception) {
       // TODO: log exception
     }
-    return reply(Boom.unauthorized());
+    return reply(unauthorized());
   }
 
   public async getNotificationConfiguration(notificationConfigurationId: number) {
@@ -840,7 +840,7 @@ export class JsonApiHapiPlugin {
     } catch (exception) {
       // TODO: log exception
     }
-    return reply(Boom.unauthorized());
+    return reply(unauthorized());
   }
 
   public async postNotificationConfigurationHandler(request: Hapi.Request, reply: Hapi.IReply) {
@@ -862,7 +862,7 @@ export class JsonApiHapiPlugin {
       const deploymentId = request.payload.data.attributes.deployment;
       const parsed = parseApiDeploymentId(deploymentId);
       if (!parsed) {
-        return reply(Boom.badRequest('Invalid deployment id'));
+        return reply(badRequest('Invalid deployment id'));
       }
       if (await request.userHasAccessToDeployment(parsed.projectId, deploymentId, request.auth.credentials)) {
         return reply(parsed.deploymentId);
@@ -870,7 +870,7 @@ export class JsonApiHapiPlugin {
     } catch (exception) {
       // TODO: log exception
     }
-    return reply(Boom.unauthorized());
+    return reply(unauthorized());
   }
 
   public async getComment(commentId: number) {
@@ -883,7 +883,7 @@ export class JsonApiHapiPlugin {
       const comment = await this.getComment(commentId);
       const parsed = parseApiDeploymentId(comment.deployment);
       if (!parsed) {
-        return reply(Boom.badRequest('Invalid deployment id'));
+        return reply(badRequest('Invalid deployment id'));
       }
       const { projectId, deploymentId } = parsed;
       if (await request.userHasAccessToDeployment(projectId, deploymentId, request.auth.credentials)) {
@@ -892,7 +892,7 @@ export class JsonApiHapiPlugin {
     } catch (exception) {
       // TODO: log exception
     }
-    return reply(Boom.unauthorized());
+    return reply(unauthorized());
   }
 
   public async postCommentHandler(request: Hapi.Request, reply: Hapi.IReply) {
@@ -923,7 +923,7 @@ export class JsonApiHapiPlugin {
       if (branchId) {
         const matches = parseApiBranchId(branchId);
         if (!matches) {
-          return reply(Boom.badRequest('Invalid branch id'));
+          return reply(badRequest('Invalid branch id'));
         }
         projectId = matches.projectId;
         branchName = matches.branchName;
@@ -932,7 +932,7 @@ export class JsonApiHapiPlugin {
       }
 
       if (Number.isNaN(projectId)) {
-        return reply(Boom.badRequest('Invalid project id'));
+        return reply(badRequest('Invalid project id'));
       }
 
       switch (previewType) {
@@ -941,7 +941,7 @@ export class JsonApiHapiPlugin {
           break;
         case PreviewType.BRANCH:
           if (!branchName) {
-            return reply(Boom.badRequest('Invalid branch name'));
+            return reply(badRequest('Invalid branch name'));
           }
           deploymentId = await this.getLatestSuccessfulDeploymentIdForBranch(projectId, branchName);
           break;
@@ -949,11 +949,11 @@ export class JsonApiHapiPlugin {
           deploymentId = Number(deploymentIdString);
           break;
         default:
-          return reply(Boom.badRequest('Invalid preview data'));
+          return reply(badRequest('Invalid preview data'));
       }
 
       if (!deploymentId || Number.isNaN(deploymentId)) {
-        return reply(Boom.notFound(`Unable to find deployment`));
+        return reply(notFound(`Unable to find deployment`));
       }
 
       return reply({
@@ -974,7 +974,7 @@ export class JsonApiHapiPlugin {
     } catch (err) {
       // Nothing to be done
     }
-    return reply(Boom.unauthorized());
+    return reply(unauthorized());
   }
 
   // These are public and wrapped mainly to ease mocking in unit testing

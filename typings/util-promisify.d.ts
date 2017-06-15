@@ -7,7 +7,6 @@ interface NodeCallback2<T> {
   (result: T): void;
 }
 
-
 declare module "util" {
   export function promisify<T>(f: (callback?: NodeCallback<undefined>) => void): () => Promise<T>;
   export function promisify<T, S>(f: (arg1: S, callback: NodeCallback<T>) => void): (arg1: S) => Promise<T>;

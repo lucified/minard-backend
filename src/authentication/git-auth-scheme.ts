@@ -1,5 +1,5 @@
 import { WebAuth } from 'auth0-js';
-import * as Boom from 'boom';
+import { badRequest, create, unauthorized } from 'boom';
 import { decode, verify } from 'jsonwebtoken';
 import * as jwksRsa from 'jwks-rsa';
 import fetch from 'node-fetch';
@@ -78,7 +78,7 @@ export class GitAuthScheme {
             this.logger.debug(`Invalid Git request: ${_error.message}`);
           const error = _error.isBoom
             ? _error
-            : Boom.create(_error.statusCode || 401, _error.description);
+            : create(_error.statusCode || 401, _error.description);
           return reply(error);
         }
       },
@@ -151,30 +151,30 @@ export class GitAuthScheme {
   public parseBasicAuth(req: Hapi.Request) {
     const authorization = req.headers.authorization;
     if (!authorization) {
-      throw Boom.unauthorized(null, 'Basic');
+      throw unauthorized(null, 'Basic');
     }
 
     const parts = authorization.split(/\s+/);
 
     if (parts[0].toLowerCase() !== 'basic') {
-      throw Boom.unauthorized(null, 'Basic');
+      throw unauthorized(null, 'Basic');
     }
 
     if (parts.length !== 2) {
-      throw Boom.badRequest('Bad HTTP authentication header format', 'Basic');
+      throw badRequest('Bad HTTP authentication header format', 'Basic');
     }
 
     const credentialsPart = new Buffer(parts[1], 'base64').toString();
     const sep = credentialsPart.indexOf(':');
     if (sep === -1) {
-      throw Boom.badRequest('Bad header internal syntax', 'Basic');
+      throw badRequest('Bad header internal syntax', 'Basic');
     }
 
     const username = credentialsPart.slice(0, sep);
     const password = credentialsPart.slice(sep + 1);
 
     if (!username) {
-      throw Boom.unauthorized(
+      throw unauthorized(
         'HTTP authentication header missing username',
         'Basic',
       );

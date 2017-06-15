@@ -1,7 +1,7 @@
-import * as Boom from 'boom';
+import { badImplementation, badRequest, create, notFound } from 'boom';
 import { createHmac } from 'crypto';
 import { inject, injectable } from 'inversify';
-import * as qs from 'querystring';
+import { stringify } from 'querystring';
 
 import { RequestInit, Response } from 'node-fetch';
 import AuthenticationModule from '../authentication/authentication-module';
@@ -118,10 +118,10 @@ export class GitlabClient {
     }
     if (response.status !== 200 && response.status !== 201) {
       if (!includeErrorPayload) {
-        throw Boom.create(response.status);
+        throw create(response.status);
       }
       const json = await response.json<any>();
-      throw Boom.create(response.status, undefined, json);
+      throw create(response.status, undefined, json);
     }
     const json = await response.json<T>();
     return json;
@@ -150,7 +150,7 @@ export class GitlabClient {
       if (logErrors) {
         this.logger.error(err.message, err);
       }
-      throw Boom.badImplementation();
+      throw badImplementation();
     }
 
     if (this.logging) {
@@ -178,7 +178,7 @@ export class GitlabClient {
     const largestSignedInteger = 2147483646;
     const users = await this.fetchJson<User[]>(`users?per_page=${largestSignedInteger}`, undefined, true);
     if (!users || !users.length) {
-      throw Boom.badRequest(`Can\'t find users`);
+      throw badRequest(`Can\'t find users`);
     }
     return users;
   }
@@ -188,18 +188,18 @@ export class GitlabClient {
       search: emailOrUsername,
     };
     const users = await this.fetchJson<User[]>(
-      `users?${qs.stringify(search)}`,
+      `users?${stringify(search)}`,
       undefined,
       true,
     );
     if (!users || !users.length) {
-      throw Boom.badRequest(`Can\'t find user '${emailOrUsername}'`);
+      throw badRequest(`Can\'t find user '${emailOrUsername}'`);
     }
     if (users.length > 1) {
       // This shoud never happen
       const message = `Found multiple users with email or username '${emailOrUsername}'`;
       this.logger.warning(message);
-      throw Boom.badRequest(message);
+      throw badRequest(message);
     }
     return users[0];
   }
@@ -319,12 +319,12 @@ export class GitlabClient {
 
   public async searchGroups(search: string) {
     const groups = await this.fetchJson<Group[]>(
-      `groups?${qs.stringify({ search })}`,
+      `groups?${stringify({ search })}`,
       undefined,
       true,
     );
     if (!groups.length) {
-      throw Boom.notFound(`No groups found matching '${search}'`);
+      throw notFound(`No groups found matching '${search}'`);
     }
     return groups;
   }
@@ -339,7 +339,7 @@ export class GitlabClient {
         sudo: userIdOrName,
       };
       group = await this.fetchJson<Group>(
-        `groups/${groupIdOrPath}?${qs.stringify(sudo)}`,
+        `groups/${groupIdOrPath}?${stringify(sudo)}`,
         undefined,
         true,
       );
@@ -347,7 +347,7 @@ export class GitlabClient {
       group = await this.fetchJson<Group>(`groups/${groupIdOrPath}`, undefined, true);
     }
     if (!group || !group.id) {
-      throw Boom.notFound(`No group found with id '${groupIdOrPath}'`);
+      throw notFound(`No group found with id '${groupIdOrPath}'`);
     }
     return group;
   }
@@ -356,7 +356,7 @@ export class GitlabClient {
     const sudo = {
       sudo: userIdOrName,
     };
-    return this.fetchJson<Group[]>(`groups?${qs.stringify(sudo)}`, undefined, true);
+    return this.fetchJson<Group[]>(`groups?${stringify(sudo)}`, undefined, true);
   }
 
   public async getALLGroups() {
@@ -370,7 +370,7 @@ export class GitlabClient {
         sudo: userIdOrName,
       };
       project = await this.fetchJson<Project>(
-        `projects/${projectId}?${qs.stringify(sudo)}`,
+        `projects/${projectId}?${stringify(sudo)}`,
         undefined,
         true,
       );
@@ -378,7 +378,7 @@ export class GitlabClient {
       project = await this.fetchJson<Project>(`projects/${projectId}`, undefined, true);
     }
     if (!project || !project.id) {
-      throw Boom.notFound(`No project found with id '${projectId}'`);
+      throw notFound(`No project found with id '${projectId}'`);
     }
     return project;
   }
@@ -387,7 +387,7 @@ export class GitlabClient {
     const sudo = {
       sudo: userIdOrName,
     };
-    return this.fetchJson<Project[]>(`projects?${qs.stringify(sudo)}`, undefined, true);
+    return this.fetchJson<Project[]>(`projects?${stringify(sudo)}`, undefined, true);
   }
 }
 

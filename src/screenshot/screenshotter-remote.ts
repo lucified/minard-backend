@@ -1,4 +1,4 @@
-import * as Boom from 'boom';
+import { create, wrap } from 'boom';
 import { inject, injectable } from 'inversify';
 
 import { IFetch } from '../shared/fetch';
@@ -45,11 +45,11 @@ export class RemoteScreenshotter implements Screenshotter {
         timeout: 0.5 * 60 * 1000,
       });
       if (response.status !== 200) {
-        throw Boom.create(response.status, response.statusText);
+        throw create(response.status, response.statusText);
       }
       return true;
     } catch (err) {
-      throw Boom.wrap(err);
+      throw wrap(err);
     }
   }
 

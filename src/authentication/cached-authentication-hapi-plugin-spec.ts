@@ -1,7 +1,7 @@
-import * as Boom from 'boom';
+import { badGateway } from 'boom';
 import { expect, use } from 'chai';
 import 'reflect-metadata';
-import * as sinon from 'sinon';
+import { stub } from 'sinon';
 import * as sinonChai from 'sinon-chai';
 use(sinonChai);
 
@@ -23,7 +23,7 @@ describe('CachedAuthenticationHapiPlugin', () => {
       // Arrange
       const userName = 'foo';
       const projectId = 1;
-      const { instance } = getPlugin(p => sinon.stub(p, '_userHasAccessToProject')
+      const { instance } = getPlugin(p => stub(p, '_userHasAccessToProject')
         .returns(Promise.resolve(true)));
 
       // Act
@@ -38,7 +38,7 @@ describe('CachedAuthenticationHapiPlugin', () => {
       // Arrange
       const userName = 'foo';
       const projectId = 1;
-      const { instance } = getPlugin(p => sinon.stub(p, '_userHasAccessToProject')
+      const { instance } = getPlugin(p => stub(p, '_userHasAccessToProject')
         .returns(Promise.resolve(false)));
 
       // Act
@@ -54,7 +54,7 @@ describe('CachedAuthenticationHapiPlugin', () => {
       const userName = 'foo';
       const projectId = 1;
       const projectId2 = 2;
-      const { instance } = getPlugin(p => sinon.stub(p, '_userHasAccessToProject')
+      const { instance } = getPlugin(p => stub(p, '_userHasAccessToProject')
         .returns(Promise.resolve(false)));
 
       // Act
@@ -69,8 +69,8 @@ describe('CachedAuthenticationHapiPlugin', () => {
       // Arrange
       const userName = 'foo';
       const projectId = 1;
-      const { instance } = getPlugin(p => sinon.stub(p, '_userHasAccessToProject')
-        .returns(Promise.reject(Boom.badGateway())));
+      const { instance } = getPlugin(p => stub(p, '_userHasAccessToProject')
+        .returns(Promise.reject(badGateway())));
 
       // Act
       const res1 = await instance.userHasAccessToProject(userName, projectId);
@@ -86,7 +86,7 @@ describe('CachedAuthenticationHapiPlugin', () => {
       // Arrange
       const userName = 'foo';
       const projectId = 1;
-      const { instance } = getPlugin(p => sinon.stub(p, '_userHasAccessToTeam')
+      const { instance } = getPlugin(p => stub(p, '_userHasAccessToTeam')
         .returns(Promise.resolve(true)));
 
       // Act
@@ -101,7 +101,7 @@ describe('CachedAuthenticationHapiPlugin', () => {
       // Arrange
       const userName = 'foo';
       const projectId = 1;
-      const { instance } = getPlugin(p => sinon.stub(p, '_userHasAccessToTeam')
+      const { instance } = getPlugin(p => stub(p, '_userHasAccessToTeam')
         .returns(Promise.resolve(false)));
 
       // Act
@@ -117,7 +117,7 @@ describe('CachedAuthenticationHapiPlugin', () => {
       const userName = 'foo';
       const projectId = 1;
       const projectId2 = 2;
-      const { instance } = getPlugin(p => sinon.stub(p, '_userHasAccessToTeam')
+      const { instance } = getPlugin(p => stub(p, '_userHasAccessToTeam')
         .returns(Promise.resolve(false)));
 
       // Act
@@ -132,8 +132,8 @@ describe('CachedAuthenticationHapiPlugin', () => {
       // Arrange
       const userName = 'foo';
       const projectId = 1;
-      const { instance } = getPlugin(p => sinon.stub(p, '_userHasAccessToTeam')
-        .returns(Promise.reject(Boom.badGateway())));
+      const { instance } = getPlugin(p => stub(p, '_userHasAccessToTeam')
+        .returns(Promise.reject(badGateway())));
 
       // Act
       const res1 = await instance.userHasAccessToTeam(userName, projectId);
@@ -149,7 +149,7 @@ describe('CachedAuthenticationHapiPlugin', () => {
     it('should memoize trues', async () => {
       // Arrange
       const userName = 'foo';
-      const { instance, stubs } = getPlugin(p => sinon.stub(p, '_isAdmin')
+      const { instance, stubs } = getPlugin(p => stub(p, '_isAdmin')
         .returns(Promise.resolve(true)));
 
       // Act
@@ -164,7 +164,7 @@ describe('CachedAuthenticationHapiPlugin', () => {
     it('should memoize falses', async () => {
       // Arrange
       const userName = 'foo';
-      const { instance, stubs } = getPlugin(p => sinon.stub(p, '_isAdmin')
+      const { instance, stubs } = getPlugin(p => stub(p, '_isAdmin')
         .returns(Promise.resolve(false)));
 
       // Act
@@ -181,7 +181,7 @@ describe('CachedAuthenticationHapiPlugin', () => {
       const userName = 'foo';
       const userName2 = 'bar';
 
-      const { instance, stubs } = getPlugin(p => sinon.stub(p, '_isAdmin')
+      const { instance, stubs } = getPlugin(p => stub(p, '_isAdmin')
         .returns(Promise.resolve(false)));
 
       // Act
@@ -196,8 +196,8 @@ describe('CachedAuthenticationHapiPlugin', () => {
     it('should not memoize exceptions', async () => {
       // Arrange
       const userName = 'foo';
-      const { instance, stubs } = getPlugin(p => sinon.stub(p, '_isAdmin')
-        .returns(Promise.reject(Boom.badGateway())));
+      const { instance, stubs } = getPlugin(p => stub(p, '_isAdmin')
+        .returns(Promise.reject(badGateway())));
 
       // Act
       const res1 = await instance.isAdmin(userName);
@@ -213,7 +213,7 @@ describe('CachedAuthenticationHapiPlugin', () => {
   describe('getProjectTeam', () => {
     it('should memoize succesfull calls', async () => {
       // Arrange
-      const { instance, stubs } = getPlugin(p => sinon.stub(p, '_getProjectTeam')
+      const { instance, stubs } = getPlugin(p => stub(p, '_getProjectTeam')
         .returns(Promise.resolve(true)));
 
       // Act
@@ -227,7 +227,7 @@ describe('CachedAuthenticationHapiPlugin', () => {
     });
     it('should not memoize different calls', async () => {
       // Arrange
-      const { instance, stubs } = getPlugin(p => sinon.stub(p, '_getProjectTeam')
+      const { instance, stubs } = getPlugin(p => stub(p, '_getProjectTeam')
         .returns(Promise.resolve(false)));
 
       // Act
@@ -241,8 +241,8 @@ describe('CachedAuthenticationHapiPlugin', () => {
     });
     it('should not memoize exceptions', async () => {
       // Arrange
-      const { instance, stubs } = getPlugin(p => sinon.stub(p, '_getProjectTeam')
-        .returns(Promise.reject(Boom.badGateway())));
+      const { instance, stubs } = getPlugin(p => stub(p, '_getProjectTeam')
+        .returns(Promise.reject(badGateway())));
 
       // Act
       try {

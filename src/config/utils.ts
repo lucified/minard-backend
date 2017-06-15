@@ -1,6 +1,6 @@
-import * as stream from 'stream';
+import { Transform } from 'stream';
 
-export class FilterStream extends stream.Transform {
+export class FilterStream extends Transform {
   private requestFilter: (data: any) => boolean;
 
   constructor(requestFilter: (data: any) => boolean) {

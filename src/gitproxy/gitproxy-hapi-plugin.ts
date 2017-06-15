@@ -1,4 +1,4 @@
-import * as Boom from 'boom';
+import { create } from 'boom';
 import { inject, injectable } from 'inversify';
 
 import { STRATEGY_GIT } from '../authentication/types';
@@ -8,7 +8,7 @@ import {
   gitlabHostInjectSymbol,
   gitVhostInjectSymbol,
 } from '../shared/gitlab-client';
-import * as logger from '../shared/logger';
+import { Logger, loggerInjectSymbol } from '../shared/logger';
 
 @injectable()
 export class GitProxy extends HapiPlugin {
@@ -17,7 +17,7 @@ export class GitProxy extends HapiPlugin {
   public constructor(
     @inject(gitlabHostInjectSymbol) private readonly gitlabHost: string,
     @inject(gitVhostInjectSymbol) private readonly gitVhost: string,
-    @inject(logger.loggerInjectSymbol) private readonly logger: logger.Logger,
+    @inject(loggerInjectSymbol) private readonly logger: Logger,
   ) {
     super({
       name: 'gitproxy',
@@ -78,7 +78,7 @@ export class GitProxy extends HapiPlugin {
       this.logger.debug(`Invalid Git request: ${_error.message}`);
       const error = _error.isBoom
         ? _error
-        : Boom.create(_error.statusCode || 401, _error.description);
+        : create(_error.statusCode || 401, _error.description);
       return callback(error, uri, {});
     }
   }

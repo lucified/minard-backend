@@ -1,8 +1,8 @@
-import * as Boom from 'boom';
+import { badImplementation, create, notFound, unauthorized } from 'boom';
 import { inject, injectable } from 'inversify';
 import * as Joi from 'joi';
 import * as memoizee from 'memoizee';
-import * as path from 'path';
+import { join } from 'path';
 
 import { STRATEGY_INTERNAL_REQUEST, STRATEGY_ROUTELEVEL_USER_COOKIE } from '../authentication';
 import * as Hapi from '../server/hapi';
@@ -130,7 +130,7 @@ class DeploymentHapiPlugin extends HapiPlugin {
   protected parseHostPre(request: Hapi.Request, reply: Hapi.IReply) {
     const key = getDeploymentKeyFromHost(request.app.hostname);
     if (!key) {
-      return reply(Boom.create(
+      return reply(create(
         403,
         `Could not parse deployment URL from hostname '${request.app.hostname}'`,
       ));
@@ -151,7 +151,7 @@ class DeploymentHapiPlugin extends HapiPlugin {
     } catch (exception) {
       // Nothing to do here
     }
-    return reply(Boom.unauthorized());
+    return reply(unauthorized());
   }
 
   public async checkDeploymentPre(request: Hapi.Request, reply: Hapi.IReply) {
@@ -159,15 +159,15 @@ class DeploymentHapiPlugin extends HapiPlugin {
     try {
       if (!(await this.checkHash(deploymentId, shortId))) {
         this.logger.info(`checkHash failed for deployment`, { deploymentId, projectId, shortId });
-        return reply(Boom.notFound('Invalid commit hash or deployment not found'));
+        return reply(notFound('Invalid commit hash or deployment not found'));
       }
     } catch (err) {
       this.logger.error('Unexpected error in precheck', err);
-      return reply(Boom.badImplementation());
+      return reply(badImplementation());
     }
     const isReady = this.deploymentModule.isDeploymentReadyToServe(projectId, deploymentId);
     if (!isReady) {
-      return reply(Boom.notFound(`Deployment is not ready for serving`));
+      return reply(notFound(`Deployment is not ready for serving`));
     }
     return reply('ok');
   }
@@ -205,7 +205,7 @@ class DeploymentHapiPlugin extends HapiPlugin {
   }
 
   private distPath(projectId: number, deploymentId: number) {
-    return path.join(this.deploymentModule.getDeploymentPath(projectId, deploymentId));
+    return join(this.deploymentModule.getDeploymentPath(projectId, deploymentId));
   }
 
   private gitlabYmlRoute(): Hapi.IRouteConfiguration {

@@ -1,14 +1,14 @@
+import { caching } from 'cache-manager';
 import { expect } from 'chai';
 import 'reflect-metadata';
 
-import * as cacheManager from 'cache-manager';
 import { Cache } from '../shared/cache';
 import CachedProjectModule from './cached-project-module';
 
 describe('cached-project-module', () => {
 
   function setupCache(): Cache {
-    return cacheManager.caching({
+    return caching({
       store: 'memory',
       ttl: 1000,
     }) as Cache;

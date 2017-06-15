@@ -1,7 +1,7 @@
 import { Observable } from '@reactivex/rxjs';
 import { expect } from 'chai';
 import * as moment from 'moment';
-import * as Redis from 'redis';
+import { createClient } from 'redis';
 import 'reflect-metadata';
 import { promisify } from 'util';
 
@@ -52,7 +52,7 @@ function getEventBus() {
 async function clearDb() {
   if (persistence.type === 'redis') {
     // we need to clear the db manually, otherwise nothing will work
-    const client = Redis.createClient(persistence);
+    const client = createClient(persistence);
     const flushdb = client.flushdb.bind(client) as any;
     const quit = client.quit.bind(client) as any;
     const flushdbAsync = promisify(flushdb);

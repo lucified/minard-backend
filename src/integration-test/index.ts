@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import * as path from 'path';
+import { join } from 'path';
 
 import CharlesClient from './charles-client';
 import interTeamTests from './tests-inter-team';
@@ -14,7 +14,7 @@ import {
   saveToCache,
 } from './utils';
 
-const cacheDir = path.join(__dirname, '.cache');
+const cacheDir = join(__dirname, '.cache');
 const cacheFileName = 'integration-tests-cache.json';
 const _saveToCache = saveToCache(cacheDir, cacheFileName);
 const config = getConfiguration(process.env.NODE_ENV);

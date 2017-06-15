@@ -1,5 +1,5 @@
 import { Container } from 'inversify';
-import * as winston from 'winston';
+import { transports } from 'winston';
 
 import { goodOptionsInjectSymbol } from '../server';
 import Logger, { loggerInjectSymbol } from '../shared/logger';
@@ -44,7 +44,7 @@ const goodOptions = {
 
 const winstonOptions = {
   transports: [
-    new winston.transports.Console({
+    new transports.Console({
       level: 'info',
       colorize: true,
       timestamp: true,

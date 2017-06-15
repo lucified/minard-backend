@@ -84,7 +84,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     this.authorizeCustom = this.authorizeCustom.bind(this);
   }
 
-  public async register(server: Hapi.Server, _options: Hapi.IServerOptions, next: () => void) {
+  public async register(server: Hapi.Server, _options: Hapi.ServerOptions, next: () => void) {
     await this.registerAuth(server);
     server.route([{
       method: 'GET',
@@ -156,11 +156,11 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   }
 
   // For use in unit tests
-  public async registerNoOp(server: Hapi.Server, _opt: Hapi.IServerOptions, next: () => void) {
+  public async registerNoOp(server: Hapi.Server, _opt: Hapi.ServerOptions, next: () => void) {
     const testUsername = 'auth-123';
     server.auth.scheme('noOp', (_server: Hapi.Server, _options: any) => {
       return {
-        authenticate: (_request: Hapi.Request, reply: Hapi.IReply) => {
+        authenticate: (_request: Hapi.Request, reply: Hapi.ReplyWithContinue) => {
           return reply.continue({ credentials: { username: testUsername } });
         },
       };
@@ -249,7 +249,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     );
   }
 
-  public async getTeamHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  public async getTeamHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
     try {
       const credentials = request.auth.credentials as AccessToken;
       const username = sanitizeSubClaim(credentials.sub);
@@ -277,7 +277,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     }
   }
 
-  public async logoutHandler(_request: Hapi.Request, reply: Hapi.IReply) {
+  public async logoutHandler(_request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
     return reply(200).unstate('token');
   }
 
@@ -286,7 +286,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
    *  1. An authenticated user belongs to
    *  2. An admin user has specified in the request by a team's id or name
    */
-  public async getTeamTokenHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  public async getTeamTokenHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
     try {
       const credentials = request.auth.credentials as AccessToken;
       const userName = sanitizeSubClaim(credentials.sub);
@@ -327,7 +327,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     }
   }
 
-  public async createTeamTokenHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  public async createTeamTokenHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
     try {
       const teamIdOrName = request.params[teamIdOrNameKey];
       const teamId = await this.teamIdOrNameToTeamId(teamIdOrName);
@@ -339,7 +339,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     }
   }
 
-  public async signupHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  public async signupHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
     let email: string | undefined;
     let credentials: AccessToken | undefined;
     try {
@@ -460,7 +460,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     return teamId;
   }
 
-  private setAuthCookie(request: Hapi.Request, reply: Hapi.IReply) {
+  private setAuthCookie(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
     const headerToken: string | undefined = (request.auth as any).token;
     const cookieToken: string | undefined = request.state && request.state.token;
     if (headerToken && request.auth.isAuthenticated && cookieToken !== headerToken) {
@@ -507,7 +507,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       validateFunc: this.validateFuncFactory(this.authorizeCustom),
     });
     server.auth.scheme('internal', (_server: Hapi.Server, _options: any) => ({
-      authenticate: (request: Hapi.Request, reply: Hapi.IReply) => {
+      authenticate: (request: Hapi.Request, reply: Hapi.ReplyWithContinue) => {
         if (this.isInternalRequest(request)) {
           return reply.continue({ credentials: {} });
         } else {
@@ -854,7 +854,7 @@ export function accessTokenCookieSettings(
   domainOrBaseUrl: string,
   ttl?: number,
   defaultPath = '/',
-): Hapi.ICookieSettings {
+): Hapi.ServerStateCookieConfiguationObject {
   const regex = /^(https?:\/\/)?\.?([^\/:]+)(:\d+)?(\/.+)?$/;
   const urlParts = regex.exec(domainOrBaseUrl);
   if (urlParts === null) {

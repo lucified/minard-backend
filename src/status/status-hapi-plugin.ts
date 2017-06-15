@@ -27,7 +27,7 @@ class StatusHapiPlugin {
     next();
   }
 
-  private getRoutes() {
+  private getRoutes(): Hapi.RouteConfiguration[] {
     return [{
       method: 'GET',
       path: '/status/{ecs?}',
@@ -65,7 +65,7 @@ class StatusHapiPlugin {
     return getEcsStatus();
   }
 
-  private async getStatusHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  private async getStatusHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
     const ecsKey = 'ecs';
     const withEcs = request.params[ecsKey] === 'ecs';
     const state = await this.statusModule.getStatus(withEcs);
@@ -74,12 +74,12 @@ class StatusHapiPlugin {
       .code(systemStatus ? 200 : 503);
   }
 
-  private async getHealthHandler(_request: Hapi.Request, reply: Hapi.IReply) {
+  private async getHealthHandler(_request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
     return reply('OK').code(200);
   }
 
   // This is intentionally async
-  private async getErrorHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  private async getErrorHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
 
     if (request.paramsArray[0] === 'winston') {
       this.logger.error('winston error', new Error('An intentional winston error'));

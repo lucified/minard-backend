@@ -40,7 +40,7 @@ export class RealtimeHapiPlugin extends HapiPlugin {
     this.authorizeDeployment = this.authorizeDeployment.bind(this);
   }
 
-  public register(server: Hapi.Server, _options: Hapi.IServerOptions, next: () => void) {
+  public register(server: Hapi.Server, _options: Hapi.ServerOptions, next: () => void) {
 
     server.route([{
       method: 'GET',
@@ -104,7 +104,11 @@ export class RealtimeHapiPlugin extends HapiPlugin {
     );
   }
 
-  private async streamReply(stream: Observable<PersistedEvent<any>>, request: Hapi.Request, reply: Hapi.IReply) {
+  private async streamReply(
+    stream: Observable<PersistedEvent<any>>,
+    request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
     const nodeStream = new ObservableWrapper(stream);
     reply(nodeStream)
       .header('content-type', 'text/event-stream')
@@ -116,7 +120,7 @@ export class RealtimeHapiPlugin extends HapiPlugin {
     });
   }
 
-  private async teamHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  private async teamHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
     try {
       const { teamId } = request.params;
       const _teamId = parseInt(teamId, 10);
@@ -129,7 +133,7 @@ export class RealtimeHapiPlugin extends HapiPlugin {
     }
   }
 
-  public validateDeploymentToken(request: Hapi.Request, reply: Hapi.IReply) {
+  public validateDeploymentToken(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
     try {
       const { token, deploymentId: _deploymentId, projectId: _projectId } = request.params;
       const deploymentId = Number(_deploymentId);
@@ -149,7 +153,7 @@ export class RealtimeHapiPlugin extends HapiPlugin {
 
   }
 
-  public async authorizeDeployment(request: Hapi.Request, reply: Hapi.IReply) {
+  public async authorizeDeployment(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
     try {
       const { deploymentId: _deploymentId, projectId: _projectId } = request.params;
       const deploymentId = Number(_deploymentId);
@@ -168,9 +172,9 @@ export class RealtimeHapiPlugin extends HapiPlugin {
     return reply(notFound());
   }
 
-  public async deploymentHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  public async deploymentHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
     try {
-      const { teamId: _teamId, deploymentId: _deploymentId, projectId: _projectId } = request.pre[PREKEY];
+      const { teamId: _teamId, deploymentId: _deploymentId, projectId: _projectId } = (request.pre as any)[PREKEY];
       const deploymentId = Number(_deploymentId);
       const projectId = Number(_projectId);
       const teamId = Number(_teamId);

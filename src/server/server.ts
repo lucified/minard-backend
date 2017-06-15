@@ -60,7 +60,7 @@ export default class MinardServer {
     @inject(RealtimeHapiPlugin.injectSymbol) private readonly realtimePlugin: RealtimeHapiPlugin,
     @inject(sentryDsnInjectSymbol) private readonly sentryDsn: string,
     @inject(exitDelayInjectSymbol) private readonly exitDelay: number,
-    @inject(hapiOptionsInjectSymbol) @optional() hapiOptions?: Hapi.IServerOptions,
+    @inject(hapiOptionsInjectSymbol) @optional() hapiOptions?: Hapi.ServerOptions,
   ) {
     this.hapiServer = Hapi.getServer(hapiOptions);
     this.publicServer = this.hapiServer.connection({
@@ -93,7 +93,7 @@ export default class MinardServer {
 
     await this.initialize();
     await server.start();
-    this.logger.info('Charles is up and listening on %s', this.publicServer.info.uri);
+    this.logger.info('Charles is up and listening on %s', this.publicServer.info!.uri);
     await this.operationsPlugin.operationsModule.cleanupRunningDeployments();
     this.projectPlugin.registerHooks();
     return server;
@@ -108,7 +108,7 @@ export default class MinardServer {
     return this.hapiServer;
   }
 
-  public stop(): Promise<void> {
+  public stop(): Promise<Error | null> {
     return this.hapiServer.stop();
   }
 

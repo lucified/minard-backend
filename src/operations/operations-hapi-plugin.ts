@@ -63,7 +63,7 @@ export default class OperationsHapiPlugin {
 
   public async checkScreenshotsHandler(
     _request: Hapi.Request,
-    reply: Hapi.IReply,
+    reply: Hapi.ReplyNoContinue,
   ) {
     this.operationsModule.assureScreenshotsGenerated();
     return reply({
@@ -74,7 +74,7 @@ export default class OperationsHapiPlugin {
 
   public async checkDeploymentActivityHandler(
     _request: Hapi.Request,
-    reply: Hapi.IReply,
+    reply: Hapi.ReplyNoContinue,
   ) {
     this.operationsModule.assureDeploymentActivity();
     return reply({
@@ -85,7 +85,7 @@ export default class OperationsHapiPlugin {
 
   public async cleanupRunningDeployments(
     _request: Hapi.Request,
-    reply: Hapi.IReply,
+    reply: Hapi.ReplyNoContinue,
   ) {
     this.operationsModule.cleanupRunningDeployments();
     return reply({
@@ -96,7 +96,7 @@ export default class OperationsHapiPlugin {
 
   public async regenerateGitlabPasswords(
     _request: Hapi.Request,
-    reply: Hapi.IReply,
+    reply: Hapi.ReplyNoContinue,
   ) {
     const result = await this.operationsModule.regenerateGitlabPasswords();
     return reply({

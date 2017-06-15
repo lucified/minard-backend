@@ -44,7 +44,7 @@ export default class ScreenshotHapiPlugin {
     next();
   }
 
-  public async screenshotHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  public async screenshotHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
     const projectId = (<any> request.params).projectId;
     const deploymentId = (<any> request.params).deploymentId;
     const token = (<any> request.query).token;

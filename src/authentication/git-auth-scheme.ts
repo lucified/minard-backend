@@ -66,7 +66,7 @@ export class GitAuthScheme {
 
   public getScheme() {
     return (_server: Hapi.Server, _options: any) => ({
-      authenticate: async (request: Hapi.Request, reply: Hapi.IReply) => {
+      authenticate: async (request: Hapi.Request, reply: Hapi.ReplyWithContinue) => {
         try {
           const { username, password } = this.parseBasicAuth(request);
           const { accessToken } = await this.login(username, password);

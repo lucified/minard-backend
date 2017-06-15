@@ -231,9 +231,12 @@ export default class OperationsModule {
     const users = await this.gitlab.getUsers();
     const responses: { username: string }[] = [];
     for (const user of users) {
-      const password = this.gitlab.getUserPassword(user.username);
-      const response = await this.gitlab.modifyUser(user.id, { password });
-      responses.push({ username: response.username });
+      // don't change password for root user
+      if (user.id !== 1) {
+        const password = this.gitlab.getUserPassword(user.username);
+        const response = await this.gitlab.modifyUser(user.id, { password });
+        responses.push({ username: response.username });
+      }
     }
     return responses;
   }

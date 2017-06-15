@@ -56,7 +56,7 @@ to the integration test configuration file described above.
 
 ## GitLab configuration
 
-Create three new groups, 'integration-test', 'integration-test-open' and 'integration-test-admin'.
+Create three new groups, 'integrationtest', 'integrationtestopen' and 'integrationtestadmin'.
 Add a user to each of these and set the username to `clients-{clientId}` where clientId
 is the id of the corresponding Auth0 client. Set the user's password to some generated value and
 copy it to the `gitPassword` field of the corresponding team in the `auth0` block

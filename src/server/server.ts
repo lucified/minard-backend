@@ -108,7 +108,7 @@ export default class MinardServer {
     return this.hapiServer;
   }
 
-  public stop(): Promise<Error | null> {
+  public stop(): Promise<Error | null> {
     return this.hapiServer.stop();
   }
 

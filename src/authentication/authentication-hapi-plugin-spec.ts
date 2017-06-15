@@ -11,7 +11,7 @@ import { bootstrap } from '../config';
 import { getAccessToken, getSignedAccessToken } from '../config/config-test';
 import { getTestServer } from '../server/hapi';
 import { makeRequestWithAuthentication, MethodStubber, stubber } from '../shared/test';
-import { adminTeamNameInjectSymbol, charlesKnexInjectSymbol, openTeamNamesInjectSymbol } from '../shared/types';
+import { adminIdInjectSymbol, charlesKnexInjectSymbol, openTeamNamesInjectSymbol } from '../shared/types';
 import {
   accessTokenCookieSettings,
   default as AuthenticationHapiPlugin,
@@ -40,7 +40,7 @@ async function getPlugin(authenticationStubber?: MethodStubber<AuthenticationHap
   await initializeTeamTokenTable(db);
   if (authenticationStubber) {
     const { instance } = stubber(authenticationStubber, AuthenticationHapiPlugin.injectSymbol, kernel);
-    return { plugin: instance, db };
+    return { plugin: instance, db, kernel };
   }
   const plugin = kernel.get<AuthenticationHapiPlugin>(AuthenticationHapiPlugin.injectSymbol);
   return { plugin, db, kernel };
@@ -711,54 +711,29 @@ describe('authentication-hapi-plugin', () => {
 
   });
   describe('_isAdmin', () => {
-    it('returns true if the user belongs to a team with the correct name', async () => {
+    it('returns true when called with the bound value of adminIdInjectSymbol prepended with \'clients-\'', async () => {
 
       // Arrange
-      const { plugin } = await getPlugin(
-        (p: AuthenticationHapiPlugin, k: Container) => [
-          stub(p, '_getUserGroups')
-            .returns(Promise.resolve([{ id: 1, name: k.get<string>(adminTeamNameInjectSymbol) }])),
-        ],
-      );
+      const { plugin, kernel } = await getPlugin();
+      const adminId = kernel.get<string>(adminIdInjectSymbol);
 
       // Act
-      const result = await plugin._isAdmin('foo');
+      const result = await plugin._isAdmin(`clients-${adminId}`);
 
       // Assert
       expect(result).to.be.true;
     });
-    it('returns false if the user belongs to a team with an incorrect name', async () => {
+    it('returns false if called with some other value', async () => {
 
       // Arrange
-      const { plugin } = await getPlugin(
-        (p: AuthenticationHapiPlugin, k: Container) => [
-          stub(p, '_getUserGroups')
-            .returns(Promise.resolve([{ id: 1, name: k.get<string>(adminTeamNameInjectSymbol) + '1' }])),
-        ],
-      );
+      const { plugin, kernel } = await getPlugin();
+      const adminId = kernel.get<string>(adminIdInjectSymbol);
 
       // Act
-      const result = await plugin._isAdmin('foo');
+      const result = await plugin._isAdmin(adminId + 'x');
 
       // Assert
       expect(result).to.be.false;
-    });
-    it('throws if something unexpected happens', async () => {
-
-      // Arrange
-      const { plugin } = await getPlugin(
-        (p: AuthenticationHapiPlugin) => [
-          stub(p, '_getUserGroups')
-            .returns(Promise.reject(badGateway())),
-        ],
-      );
-
-      // Act
-      const resultPromise = plugin._isAdmin('foo');
-
-      // Assert
-      return resultPromise
-        .then(_ => expect.fail(), error => expect(error.isBoom).to.be.true);
     });
   });
   describe('isOpenDeployment', () => {

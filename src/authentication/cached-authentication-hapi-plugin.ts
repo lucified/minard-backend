@@ -8,7 +8,7 @@ import { IFetch } from '../shared/fetch';
 import { GitlabClient } from '../shared/gitlab-client';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
 import {
-  adminTeamNameInjectSymbol,
+  adminIdInjectSymbol,
   charlesKnexInjectSymbol,
   fetchInjectSymbol,
   openTeamNamesInjectSymbol,
@@ -34,7 +34,7 @@ class CachedAuthenticationHapiPlugin extends AuthenticationHapiPlugin {
     @inject(auth0AudienceInjectSymbol) auth0Audience: string,
     @inject(charlesKnexInjectSymbol) db: Knex,
     @inject(loggerInjectSymbol) logger: Logger,
-    @inject(adminTeamNameInjectSymbol) adminTeamName: string,
+    @inject(adminIdInjectSymbol) adminTeamName: string,
     @inject(openTeamNamesInjectSymbol) openTeamNames: string[],
     @inject(fetchInjectSymbol) fetch: IFetch,
     @inject(internalHostSuffixesInjectSymbol) internalHostSuffixes: string[],

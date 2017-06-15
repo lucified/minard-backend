@@ -1,4 +1,5 @@
 import { Observable } from '@reactivex/rxjs';
+import { S3 } from 'aws-sdk';
 import { create } from 'boom';
 import { blue, cyan, magenta } from 'chalk';
 import { spawn } from 'child_process';
@@ -119,10 +120,20 @@ export async function getAccessToken(config: Auth0) {
   return json.access_token as string;
 }
 
-export function getConfiguration(env?: ENV, silent = false): Config {
+export function parseS3Url(url: string) {
+  const parts = url.replace('s3://', '').split('/');
+  const bucket = parts.shift();
+  const key = parts.join('/');
+  if (!bucket || !key) {
+    throw new Error('Invalid S3 uri');
+  }
+  return { bucket, key };
+}
+
+export async function getConfiguration(env?: ENV, silent = false): Promise<Config> {
   // Load bindings that represent configuration
   const _env: ENV = env || process.env.NODE_ENV || 'development';
-  let config: any;
+  let config: Config | string;
   switch (_env) {
     case 'staging':
       config = require('./configuration.staging').default;
@@ -136,8 +147,26 @@ export function getConfiguration(env?: ENV, silent = false): Config {
     default:
       throw new Error(`Unsupported environment '${_env}''`);
   }
+  if (typeof config === 'string') { // assume it's an S3 URL
+    const { bucket, key } = parseS3Url(config);
+    const s3 = new S3({region: process.env.AWS_DEFAULT_REGION || 'eu-west-1'});
+    const { Body } = await s3.getObject({
+      Bucket: bucket,
+      Key: key,
+      ResponseContentType: 'application/json',
+    }).promise();
+    let body: string = Body as string;
+    if (Buffer.isBuffer(Body)) {
+      body = Body.toString();
+    }
+    if (typeof body !== 'string') {
+      throw new Error('[getConfiguration] Unable to parse body of type ' + typeof body);
+    }
+    config = JSON.parse(body);
+  }
+  config = config as Config;
   if (!silent) {
-    console.log(`Loaded configuration for environment '${_env}'`);
+    console.log(`Loaded configuration for environment '${_env}': ${config.charles}`);
   }
   return config;
 }

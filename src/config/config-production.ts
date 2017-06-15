@@ -46,7 +46,7 @@ import {
   tokenSecretInjectSymbol,
 } from '../shared/token-generator';
 import {
-  adminTeamNameInjectSymbol,
+  adminIdInjectSymbol,
   charlesDbNameInjectSymbol,
   charlesKnexInjectSymbol,
   gitlabKnexInjectSymbol,
@@ -291,7 +291,7 @@ const EXIT_DELAY = env.EXIT_DELAY ? parseInt(env.EXIT_DELAY, 10) : 15000;
 // Admin team name
 // --------------
 
-const ADMIN_TEAM_NAME = env.ADMIN_TEAM_NAME || 'lucify';
+const ADMIN_ID = env.ADMIN_ID;
 
 // The names of teams that should have open (= no auth required) deployments
 // --------------
@@ -332,7 +332,7 @@ export default (kernel: Container) => {
   kernel.bind(auth0ClientIdInjectSymbol).toConstantValue(AUTH0_CLIENT_ID);
   kernel.bind(auth0AudienceInjectSymbol).toConstantValue(AUTH0_AUDIENCE);
   kernel.bind(authCookieDomainInjectSymbol).toConstantValue(AUTH_COOKIE_DOMAIN);
-  kernel.bind(adminTeamNameInjectSymbol).toConstantValue(ADMIN_TEAM_NAME);
+  kernel.bind(adminIdInjectSymbol).toConstantValue(ADMIN_ID);
   kernel.bind(openTeamNamesInjectSymbol).toConstantValue(OPEN_TEAM_NAMES);
   kernel.bind(internalHostSuffixesInjectSymbol).toConstantValue(INTERNAL_HOST_SUFFIXES.split(','));
 };

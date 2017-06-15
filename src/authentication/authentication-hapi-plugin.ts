@@ -12,7 +12,7 @@ import { Group } from '../shared/gitlab';
 import { GitlabClient, looselyValidateEmail } from '../shared/gitlab-client';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
 import {
-  adminTeamNameInjectSymbol,
+  adminIdInjectSymbol,
   charlesKnexInjectSymbol,
   fetchInjectSymbol,
   openTeamNamesInjectSymbol,
@@ -56,7 +56,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     @inject(auth0AudienceInjectSymbol) private readonly auth0Audience: string,
     @inject(charlesKnexInjectSymbol) private readonly db: Knex,
     @inject(loggerInjectSymbol) private readonly logger: Logger,
-    @inject(adminTeamNameInjectSymbol) private readonly adminTeamName: string,
+    @inject(adminIdInjectSymbol) private readonly adminId: string,
     @inject(openTeamNamesInjectSymbol) private readonly openTeamNames: string[],
     @inject(fetchInjectSymbol) private readonly fetch: IFetch,
     @inject(internalHostSuffixesInjectSymbol) private readonly internalHostSuffixes: string[],
@@ -702,11 +702,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
 
   // Public only for unit testing
   public async _isAdmin(userName: string) {
-    const teams = await this._getUserGroups(userName);
-    if (teams && teams.find(findTeamByName(this.adminTeamName)) !== undefined) {
-      return true;
-    }
-    return false;
+    return Promise.resolve(userName === `clients-${this.adminId}`);
   }
 
   // Public only for unit testing

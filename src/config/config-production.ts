@@ -145,10 +145,10 @@ const SCREENSHOTTER_BASEURL = env.SCREENSHOTTER_BASEURL || 'http://localhost:800
 // Generic external base URL for charles
 const EXTERNAL_BASEURL = env.EXTERNAL_BASEURL || `http://localhost:${PORT}`;
 
-// External baseUrl for git clone urls
+// External baseUrl for git urls
 const EXTERNAL_GIT_BASEURL = env.EXTERNAL_GIT_BASEURL || `http://localhost:${GITLAB_PORT}`;
 
-// External baseUrl for git clone urls
+// External hostname for git urls, e.g. git.minard.io
 const GIT_VHOST = env.GIT_VHOST || parseUrl(EXTERNAL_GIT_BASEURL).hostname;
 
 // A secret for generating gitlab passwords

@@ -24,9 +24,9 @@ interface Config {
     },
   };
   auth0: {
-    regular: Auth0 & { gitPassword: string };
-    open: Auth0 & { gitPassword: string };
-    admin: Auth0 & { gitPassword: string };
+    regular: Auth0;
+    open: Auth0;
+    admin: Auth0;
   };
 }
 interface Auth0 {
@@ -56,17 +56,24 @@ to the integration test configuration file described above.
 
 ## GitLab configuration
 
-Create three new groups, 'integrationtest', 'integrationtestopen' and 'integrationtestadmin'.
+Create two new groups, 'integrationtest' and 'integrationtestopen'.
 Add a user to each of these and set the username to `clients-{clientId}` where clientId
-is the id of the corresponding Auth0 client. Set the user's password to some generated value and
-copy it to the `gitPassword` field of the corresponding team in the `auth0` block
-of the configuration file.
+is the id of the corresponding Auth0 client. Additionally, create one more new user, which
+you don't need add to any group. This will be admin user.
+
+After setting up these configuration, update the passwords for all users
+by running:
+
+```shell
+charles-client regenerateGitlabPasswords
+```
 
 ## Charles's configuration
 
 Make sure the following environment variables have been set when starting charles:
 
 ```shell
+ADMIN_ID=auth0ClientIdForAdminUser
 OPEN_TEAM_NAMES=integrationtestopenteam
 ADMIN_TEAM_NAME=integrationtestadminteam
 ```

@@ -31,7 +31,7 @@ export default class CharlesClient {
 
   constructor(
     public readonly url: string,
-    private readonly accessToken: string,
+    public readonly accessToken: string,
     public readonly throwOnUnsuccessful = false,
   ) {
     this.fetchOptions = {
@@ -115,7 +115,8 @@ export default class CharlesClient {
    */
 
   public getProject(projectId?: number) {
-    const _projectId = projectId || (this.lastCreatedProject && this.lastCreatedProject.id);
+    const _projectId =
+      projectId || (this.lastCreatedProject && this.lastCreatedProject.id);
     if (!_projectId) {
       throw new Error('No projectId available');
     }
@@ -156,7 +157,8 @@ export default class CharlesClient {
       | { name: string; description: string },
     projectId?: number,
   ) {
-    const _projectId = projectId || (this.lastCreatedProject && this.lastCreatedProject.id);
+    const _projectId =
+      projectId || (this.lastCreatedProject && this.lastCreatedProject.id);
     if (!_projectId) {
       throw new Error('No projectId available');
     }
@@ -179,7 +181,8 @@ export default class CharlesClient {
   }
 
   public getProjectActivity(projectId?: number) {
-    const _projectId = projectId || (this.lastCreatedProject && this.lastCreatedProject.id);
+    const _projectId =
+      projectId || (this.lastCreatedProject && this.lastCreatedProject.id);
     if (!_projectId) {
       throw new Error('No projectId available');
     }
@@ -193,7 +196,8 @@ export default class CharlesClient {
   }
 
   public getBranches(projectId?: number) {
-    const _projectId = projectId || (this.lastCreatedProject && this.lastCreatedProject.id);
+    const _projectId =
+      projectId || (this.lastCreatedProject && this.lastCreatedProject.id);
     if (!_projectId) {
       throw new Error('No projectId available');
     }
@@ -400,7 +404,11 @@ export default class CharlesClient {
   }
 
   public static load(dto: any) {
-    const instance = new CharlesClient(dto.url, dto.accessToken);
+    const instance = new CharlesClient(
+      dto.url,
+      dto.accessToken,
+      dto.throwOnUnsuccessful,
+    );
     instance.lastCreatedProject = dto.lastProject;
     instance.lastDeployment = dto.lastDeployment;
     instance.teamId = dto.teamId;

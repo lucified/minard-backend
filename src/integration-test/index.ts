@@ -6,6 +6,7 @@ import interTeamTests from './tests-inter-team';
 import intraTeamTests from './tests-intra-team';
 import { CharlesClients, Config } from './types';
 import {
+  cloneCharlesClient,
   getAccessToken,
   getAnonymousClient,
   getConfiguration,
@@ -51,6 +52,7 @@ describe('system-integration', () => {
             clients[clientType] = new CharlesClient(
               config.charles,
               accessToken,
+              true,
             );
           });
         });
@@ -74,7 +76,9 @@ describe('system-integration', () => {
     });
     interTeamTests(() =>
       Promise.resolve({
-        ...clients as CharlesClients,
+        admin: cloneCharlesClient(clients.admin!, false),
+        open: cloneCharlesClient(clients.open!, false),
+        regular: cloneCharlesClient(clients.regular!, false),
         unauthenticated: getAnonymousClient(clients.regular!),
       }),
     );

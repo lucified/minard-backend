@@ -224,3 +224,15 @@ export function getAnonymousClient(client: CharlesClient) {
 export function isDebug() {
  return process.env.DEBUG === 'system-integration-tests';
 }
+
+export function cloneCharlesClient(client: CharlesClient, throwOnUnsuccessful = false) {
+  const clone = new CharlesClient(
+    client.url,
+    client.accessToken,
+    throwOnUnsuccessful,
+  );
+  clone.teamId = client.teamId;
+  clone.lastCreatedProject = client.lastCreatedProject;
+  clone.lastDeployment = client.lastDeployment;
+  return clone;
+}

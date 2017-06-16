@@ -9,6 +9,7 @@ import { Logger } from './shared/logger';
 const kernel = bootstrap(undefined, false);
 const migrations = kernel.get<Migrations>(Migrations.injectSymbol);
 const minardServer = kernel.get<MinardServer>(MinardServer.injectSymbol);
+const signals: NodeJS.Signals[] = ['SIGTERM', 'SIGINT'];
 
 async function start() {
   try {
@@ -23,7 +24,7 @@ async function start() {
 start();
 
 function trapSignals(server: MinardServer, logger: Logger) {
-  function stop(signal: string) {
+  function stop(signal: NodeJS.Signals) {
     return async () => {
       logger.info('RECEIVED %s', signal);
       await server.stop();
@@ -32,5 +33,5 @@ function trapSignals(server: MinardServer, logger: Logger) {
     };
   }
 
-  ['SIGTERM', 'SIGINT'].forEach(signal => process.on(signal, stop(signal)));
+  signals.forEach(signal => process.on(signal, stop(signal)));
 }

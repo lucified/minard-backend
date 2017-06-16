@@ -40,7 +40,6 @@ import {
   teamTokenClaimKey,
 } from './types';
 
-const randomstring = require('randomstring');
 const teamIdOrNameKey = 'teamIdOrName';
 
 @injectable()
@@ -373,7 +372,6 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       this.setAuthCookie(request, reply);
       return reply({
         team,
-        password,
       }).code(201); // created
     } catch (error) {
       const message = `Unable to sign up user ${email}: ${error.isBoom &&
@@ -825,11 +823,6 @@ export async function getAuth0UserInfo(auth0Domain: string, accessToken: string,
   const response = await fetch(`${baseUrl}/userinfo`, options);
   return await response.json();
 }
-
-export function generatePassword(length = 16) {
-  return randomstring.generate({ length, charset: 'alphanumeric', readable: true }) as string;
-}
-
 function findTeamByName(teamName: string) {
   return (team: Group) => team.name.toLowerCase() === teamName.toLowerCase();
 }

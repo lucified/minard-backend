@@ -15,7 +15,6 @@ import { adminIdInjectSymbol, charlesKnexInjectSymbol, openTeamNamesInjectSymbol
 import {
   accessTokenCookieSettings,
   default as AuthenticationHapiPlugin,
-  generatePassword,
   sanitizeSubClaim,
 } from './authentication-hapi-plugin';
 import { generateAndSaveTeamToken, generateTeamToken, teamTokenLength } from './team-token';
@@ -369,7 +368,6 @@ describe('authentication-hapi-plugin', () => {
       expect(plugin._addUserToGroup).to.have.been.calledOnce;
       const json = JSON.parse(response.payload);
       expect(json.team.id).to.eq(callerTeamId);
-      expect(json.password).to.exist;
 
     });
     it('should report the email on error', async () => {
@@ -397,13 +395,6 @@ describe('authentication-hapi-plugin', () => {
     });
   });
 
-  describe('generatePassword', () => {
-    it('should return a string of 16 chars by default', () => {
-      const password = generatePassword();
-      expect(typeof password, password).to.equal('string');
-      expect(password.length, password).to.equal(16);
-    });
-  });
   describe('cookie', () => {
     it('should be set with the access token as the value when accessing the team endpoint', async () => {
       // Arrange

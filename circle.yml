@@ -6,6 +6,10 @@ machine:
   environment:
     COMMIT: $CIRCLE_SHA1
 
+dependencies:
+  override:
+    - npm install --no-save
+
 test:
   override:
     - npm run clean-test

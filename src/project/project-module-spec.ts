@@ -6,7 +6,7 @@ import 'reflect-metadata';
 
 import AuthenticationModule from '../authentication/authentication-module';
 import { EventBus, LocalEventBus } from '../event-bus';
-import { Commit } from '../shared/gitlab';
+import { Commit, Project } from '../shared/gitlab';
 import { GitlabClient } from '../shared/gitlab-client';
 import Logger from '../shared/logger';
 import { MinardCommit } from '../shared/minard-commit';
@@ -882,7 +882,7 @@ describe('project-module', () => {
         expect(_importUrl).to.equal('http://root:foo-password@localhost/foo-namespace/bar-project-name.git');
         return {
           id: projectId,
-        };
+        } as Project;
       };
       return projectModule;
     }
@@ -1644,11 +1644,11 @@ describe('project-module', () => {
           return {
             id: sha,
             parentIds: ['first-parent-hash', 'second-parent-hash', 'null-commit-hash'],
-          };
+          } as MinardCommit;
         }
         return {
           id: sha,
-        };
+        } as MinardCommit;
       };
 
       projectModule.getProject = async (_projectId: number) => {

@@ -10,7 +10,7 @@ import { runCommand, withPing } from './utils';
 export default (
   clientFactory: () => Promise<CharlesClient>,
   credentialsFactory: () => Promise<Auth0>,
-  notifications: () => Promise<NotificationConfigurations>,
+  notifications: () => Promise<NotificationConfigurations | undefined>,
   projectName = 'regular-project',
 ) => {
 

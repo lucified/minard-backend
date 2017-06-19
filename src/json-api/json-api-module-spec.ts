@@ -20,6 +20,7 @@ import {
   MinardCommit,
 } from '../shared/minard-commit';
 import {
+  ApiCommit,
   ApiDeployment,
   ApiProject,
   JsonApiModule,
@@ -109,7 +110,7 @@ describe('json-api-module', () => {
         // rewrite the ids to chech that this was called, with correct parameters
         return {
           id: `${projectId}-${deployment.id}`,
-        };
+        } as ApiDeployment;
       };
 
       // Act
@@ -205,7 +206,7 @@ describe('json-api-module', () => {
       const commentActivity: MinardActivity = {
         ...minardActivity,
         ...attributes,
-      };
+      } as MinardActivity;
       const jsonApiModule = new JsonApiModule(
         {} as any,
         {} as any,
@@ -307,7 +308,7 @@ describe('json-api-module', () => {
             {
               id: 'bar-deployment',
               commitHash: minardCommits[1].id,
-           },
+           } as {} as MinardDeployment,
           ];
         }
         throw new Error('invalid hash');
@@ -388,10 +389,10 @@ describe('json-api-module', () => {
       jsonApiModule.toApiCommit = async(_projectId: number, commit: MinardCommit, _deployments?: ApiDeployment[]) => {
         expect(commit).to.exist;
         if (commit.id === minardBranch.latestCommit.id) {
-          return latestCommitReturnedFromToApiCommit;
+          return latestCommitReturnedFromToApiCommit as ApiCommit;
         }
         if (commit.id === minardDeployment.commit.id) {
-          return latestDeployedCommitFromToApiCommit;
+          return latestDeployedCommitFromToApiCommit as ApiCommit;
         }
         throw Error('invalid params to toApiCommit');
       };

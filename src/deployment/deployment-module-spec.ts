@@ -582,11 +582,11 @@ describe('deployment-module', () => {
       let resolve1: ((arg: any) => void) | undefined;
       let reject1: ((arg: any) => void) | undefined;
       let resolve2: ((arg: any) => void) | undefined;
-      const promise1 = new Promise((resolve, reject) => {
+      const promise1 = new Promise<boolean>((resolve, reject) => {
         resolve1 = resolve;
         reject1 = reject;
       });
-      const promise2 = new Promise((resolve, _reject) => {
+      const promise2 = new Promise<boolean>((resolve, _reject) => {
         resolve2 = resolve;
       });
       let firstCalled = false;
@@ -734,7 +734,7 @@ describe('deployment-module', () => {
         expect(_projectId).to.equal(projectId);
         expect(shaOrBranchName).to.equal(branchName);
         expect(path).to.equal(minardJson.publicRoot);
-        return [{}];
+        return [{} as any];
       };
 
       // Act

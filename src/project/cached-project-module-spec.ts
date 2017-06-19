@@ -11,7 +11,7 @@ describe('cached-project-module', () => {
     return caching({
       store: 'memory',
       ttl: 1000,
-    }) as Cache;
+    }) as {} as Cache;
   }
 
   function getProjectModule(cache: Cache) {

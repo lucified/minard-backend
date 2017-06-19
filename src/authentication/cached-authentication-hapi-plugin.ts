@@ -73,7 +73,7 @@ class CachedAuthenticationHapiPlugin extends AuthenticationHapiPlugin {
   }
 
   public userHasAccessToTeam(userName: string, teamId: number) {
-    return new Promise((resolve, _reject) => {
+    return new Promise<boolean>((resolve, _reject) => {
       this.userHasAccessToTeamAsync(userName, teamId, (error: any, result: boolean) => {
         if (error) {
           return resolve(false);
@@ -100,7 +100,7 @@ class CachedAuthenticationHapiPlugin extends AuthenticationHapiPlugin {
   }
 
   public userHasAccessToProject(userName: string, projectId: number) {
-    return new Promise((resolve, _reject) => {
+    return new Promise<boolean>((resolve, _reject) => {
       this.userHasAccessToProjectAsync(userName, projectId, (error: any, result: boolean) => {
         if (error) {
           return resolve(false);
@@ -128,7 +128,7 @@ class CachedAuthenticationHapiPlugin extends AuthenticationHapiPlugin {
   }
 
   public isAdmin(userIdOrName: string) {
-    return new Promise((resolve, _reject) => {
+    return new Promise<boolean>((resolve, _reject) => {
       this.isAdminAsync(userIdOrName, (error: any, result: boolean) => {
         if (error) {
           return resolve(false);

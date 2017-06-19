@@ -18,3 +18,4 @@ src/integration-test/gitlab-api-tests.ts
 src/integration-test/configuration.*.ts
 src/integration-test/.cache
 !src/integration-test/configuration.example.ts
+src/integration-test/blank-*

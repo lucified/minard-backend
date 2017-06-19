@@ -1,2 +1,3 @@
 --compilers ts:ts-node/register
+src/integration-test/git-authentication-tests.ts
 src/integration-test/index.ts

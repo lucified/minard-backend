@@ -65,13 +65,11 @@ export class GitProxy extends HapiPlugin {
     const { path } = request.url;
     const uri = `${this.gitlabHost}${path}`;
     try {
-      const { headers } = request;
       const { username, gitlabPassword } = request.auth.credentials;
       const basic = new Buffer(`${username}:${gitlabPassword}`).toString(
         'base64',
       );
       return callback(undefined, uri, {
-        ...headers,
         authorization: `Basic ${basic}`,
       });
     } catch (_error) {

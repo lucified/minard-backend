@@ -11,16 +11,16 @@ RUN npm config set maxsockets 5
 RUN npm config set registry http://registry.npmjs.org/
 RUN npm config set strict-ssl false
 
-RUN npm install -g node-dev node-gyp
+RUN npm install -g node-dev node-gyp yarn
 
 COPY package.json /code/package.json
-COPY package-lock.json /code/package-lock.json
-RUN npm install
+COPY yarn.lock /code/yarn.lock
+RUN yarn
 
 COPY . /code
-RUN npm run transpile
+RUN yarn run transpile
 
 # https://github.com/npm/npm/issues/4531
 RUN npm config set unsafe-perm true
 
-CMD ["npm", "start"]
+CMD ["yarn", "start"]

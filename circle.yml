@@ -7,22 +7,24 @@ machine:
     COMMIT: $CIRCLE_SHA1
 
 dependencies:
+  pre:
+    - npm install -g yarn
   override:
-    - npm install --no-save
+    - yarn
 
 test:
   override:
-    - npm run clean-test
-    - npm run lint
+    - yarn run clean-test
+    - yarn run lint
 
 deployment:
   auto:
     branch: master
     commands:
-      - npm run write-version
-      - npm run deploy
+      - yarn run write-version
+      - yarn run deploy
   chatops:
     branch: /^(?!nodeploy-).*$/
     commands:
-      - npm run write-version
-      - npm run deploy-chatops
+      - yarn run write-version
+      - yarn run deploy-chatops

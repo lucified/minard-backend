@@ -30,7 +30,9 @@ describe('system-integration', () => {
   let clients: Partial<CharlesClients> = {};
   let config: Config;
 
-  before(async () => {
+  // tslint:disable-next-line:only-arrow-functions
+  before(async function() {
+    this.timeout(5000);
     config = await getConfiguration(process.env.NODE_ENV);
   });
 

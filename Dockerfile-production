@@ -7,7 +7,7 @@ COPY yarn.lock /code/yarn.lock
 ENV NODE_ENV production
 RUN yarn install --prod
 
-# NOTE: 'dist/' is assumed to contained the latest transpiled code
+# NOTE: 'dist/' is assumed to contains the latest transpiled code
 COPY . /code
 
 # NOTE: don't use npm here since the OS signals, e.g. SIGTERM, won't propagate

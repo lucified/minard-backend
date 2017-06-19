@@ -64,8 +64,9 @@ export async function runCommand(command: string, ...args: string[]): Promise<bo
     const child = spawn(command, args, { stdio });
     child.on('close', (code: any) => {
       if (code !== 0) {
-        debug(`process exited with code ${code}`);
-        reject(code);
+        const msg = `process exited with code ${code}`;
+        debug(msg);
+        reject(new Error(msg));
         return;
       }
       resolve(true);
@@ -101,11 +102,11 @@ export function assertResponseStatus(response: Response, requiredStatus = 200) {
 }
 
 export async function getAccessToken(config: Auth0) {
-  const { domain, audience, clientId, clientSecret } = config;
+  const { domain, audience, nonInteractiveClientId, nonInteractiveClientSecret } = config;
   const body = {
     audience,
-    client_id: clientId,
-    client_secret: clientSecret,
+    client_id: nonInteractiveClientId,
+    client_secret: nonInteractiveClientSecret,
     grant_type: 'client_credentials',
   };
   const url = `${domain}/oauth/token`;

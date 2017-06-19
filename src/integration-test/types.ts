@@ -4,8 +4,9 @@ import CharlesClient from './charles-client';
 
 export interface Auth0 {
   domain: string;
-  clientId: string;
-  clientSecret: string;
+  uiClientId: string;
+  nonInteractiveClientId: string;
+  nonInteractiveClientSecret: string;
   audience: string;
 }
 export interface Config {

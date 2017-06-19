@@ -108,6 +108,7 @@ describe('git-authentication', () => {
       });
 
       it('should be able to get the signing key', async () => {
+        this.timeout(5000);
         // Act
         const response = await scheme.getSigningKey(scheme.decode(accessToken));
 
@@ -152,6 +153,7 @@ describe('git-authentication', () => {
 
       it('should throw an error with incorrect credentials', async () => {
         // Arrange
+        this.timeout(5000);
         const id = await idPromise!;
         const secret = await secretPromise!;
 

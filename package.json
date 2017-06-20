@@ -41,6 +41,7 @@
     "perfy": "^1.1.2",
     "pg": "^6.2.4",
     "pkginfo": "^0.4.0",
+    "prettier": "^1.4.4",
     "promise-queue": "^2.2.3",
     "randomstring": "^1.1.5",
     "redis": "^2.7.1",
@@ -106,7 +107,8 @@
     "watch": "tsc -w",
     "lint": "tslint -t verbose 'src/**/*.ts'",
     "deploy": "lucify-notifier ecs-updater",
-    "deploy-chatops": "[ \"$AWS_TEMPORARY\" ] && npm run deploy || echo 'Skipping deployment'"
+    "deploy-chatops": "[ \"$AWS_TEMPORARY\" ] && npm run deploy || echo 'Skipping deployment'",
+    "prettify": "prettier --parser typescript --single-quote --trailing-comma all --write \"src/**/*.ts?(x)\" \"typings/**/*.ts?(x)\""
   },
   "contributors": [
     {

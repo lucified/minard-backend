@@ -22,15 +22,15 @@ export class GitAuthScheme {
   private readonly userLogin: (options: any) => Promise<Auth0LoginResponse>;
 
   public constructor(
-    auth0ClientId: string,
-    private readonly auth0Domain: string,
-    private readonly auth0Audience: string,
+    public readonly auth0UIClientId: string,
+    public readonly auth0Domain: string,
+    public readonly auth0Audience: string,
     private readonly passwordFactory: (username: string) => string,
     private readonly logger?: Logger,
   ) {
     const webAuth = new WebAuth({
       domain: auth0Domain.replace(/^https?:\/\//, ''),
-      clientID: auth0ClientId,
+      clientID: auth0UIClientId,
       responseType: 'token',
       audience: auth0Audience,
     });
@@ -66,10 +66,20 @@ export class GitAuthScheme {
 
   public getScheme() {
     return (_server: Hapi.Server, _options: any) => ({
-      authenticate: async (request: Hapi.Request, reply: Hapi.ReplyWithContinue) => {
+      authenticate: async (
+        request: Hapi.Request,
+        reply: Hapi.ReplyWithContinue,
+      ) => {
         try {
-          const { username, password } = this.parseBasicAuth(request);
-          const { accessToken } = await this.login(username, password);
+          const { username, password } = this.parseBasicAuth(
+            request.headers.authorization,
+          );
+          // We accept either username and password or an accessToken
+          // in place of the username and an empty password
+          let accessToken = username;
+          if (username && password) {
+            accessToken = await this.login(username, password);
+          }
           const signingKey = await this.getSigningKey(this.decode(accessToken));
           const credentials = this.verify(accessToken, signingKey);
           return reply.continue({ credentials });
@@ -85,7 +95,7 @@ export class GitAuthScheme {
     });
   }
 
-  public login(username: string, password: string) {
+  public async login(username: string, password: string) {
     // Check if the username is an email
     if (username.indexOf('@') >= 0) {
       /**
@@ -95,12 +105,13 @@ export class GitAuthScheme {
        *
        * https://auth0.com/docs/api-auth/tutorials/password-grant#realm-support
        */
-      return this.userLogin({
+      const response = await this.userLogin({
         realm: 'Username-Password-Authentication',
         username,
         password,
         scope: 'openid email',
       });
+      return response.accessToken;
     }
     return this.clientLogin(username, password);
   }
@@ -128,7 +139,7 @@ export class GitAuthScheme {
       body: JSON.stringify(body),
     });
     const json = await getResponseJson<{ access_token: string }>(response);
-    return { accessToken: json.access_token as string };
+    return json.access_token;
   }
 
   public decode(accessToken: string) {
@@ -148,8 +159,7 @@ export class GitAuthScheme {
     return payload;
   }
 
-  public parseBasicAuth(req: Hapi.Request) {
-    const authorization = req.headers.authorization;
+  public parseBasicAuth(authorization: string) {
     if (!authorization) {
       throw unauthorized(null, 'Basic');
     }

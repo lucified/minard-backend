@@ -253,12 +253,13 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       const credentials = request.auth.credentials as AccessToken;
       const username = sanitizeSubClaim(credentials.sub);
       const teams = await this._getUserGroups(username);
-      if (teams.length > 1) {
-        // NOTE: we only support a single team for now
-        // This is a configuration error.
-        throw badImplementation('User can only belong to a single team.');
+      if (teams.length > 1 ) {
+          throw badImplementation('User can only belong to a single team.');
       }
       const team = teams[0];
+      if (!team) {
+        throw notFound();
+      }
       this.setAuthCookie(request, reply);
       const teamTokenResult = await teamTokenQuery(this.db, { teamId: team.id });
       const teamToken =
@@ -272,7 +273,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       });
     } catch (error) {
       this.logger.error(`Can't fetch user or team`, error);
-      return reply(wrap(error, 404));
+      return reply(error.isBoom ? error : wrap(error, 404));
     }
   }
 

@@ -92,11 +92,14 @@ export default (
   describe('deployments', () => {
     it('should be able to create a successful deployment by pushing code', async function () {
       const client = await clientFactory();
-      const { clientId, clientSecret } = await credentialsFactory();
+      const { nonInteractiveClientId, nonInteractiveClientSecret } = await credentialsFactory();
       this.timeout(1000 * 60 * 5);
       debug('Pushing code');
       const repoFolder = `src/integration-test/blank`;
-      const repoUrl = client.getRepoUrlWithCredentials(clientId, clientSecret);
+      const repoUrl = client.getRepoUrlWithCredentials({
+        username: nonInteractiveClientId,
+        password: nonInteractiveClientSecret,
+      });
       await runCommand('src/integration-test/setup-repo');
       await runCommand('git', '-C', repoFolder, 'remote', 'add', 'minard', repoUrl);
       await runCommand('git', '-C', repoFolder, 'push', 'minard', 'master');

@@ -3,67 +3,112 @@ import 'reflect-metadata';
 import { GitAuthScheme } from '../authentication/git-auth-scheme';
 import { getConfiguration } from './utils';
 
+const { MINARD_USERNAME, MINARD_PASSWORD, NODE_ENV } = process.env;
+const configPromise = getConfiguration(NODE_ENV);
+const hasUserCredentials = MINARD_USERNAME && MINARD_PASSWORD;
 /*
  * While theses test only test one class, they are integration tests,
  * because they are run against the actual Auth0 backend
  */
-
 describe('git-authentication', () => {
   let scheme: GitAuthScheme;
   let accessToken: string;
   let signingKey: string;
-  let domain: string;
-  let audience: string;
-  let credentialsList: {
+  const credentialsList: {
     description: string;
-    id: string;
-    secret: string;
-  }[] = [];
+    idPromise?: Promise<string>;
+    secretPromise?: Promise<string>;
+  }[] = [
+    {
+      description: 'user',
+      idPromise: hasUserCredentials
+        ? Promise.resolve(process.env.MINARD_USERNAME)
+        : undefined,
+      secretPromise: hasUserCredentials
+        ? Promise.resolve(process.env.MINARD_PASSWORD)
+        : undefined,
+    },
+    {
+      description: 'client',
+      idPromise: configPromise.then(
+        c => c.auth0.regular.nonInteractiveClientId,
+      ),
+      secretPromise: configPromise.then(
+        c => c.auth0.regular.nonInteractiveClientSecret,
+      ),
+    },
+  ];
 
-  before(async () => {
-    const config = await getConfiguration(process.env.NODE_ENV);
-    const { clientId, clientSecret } = config.auth0.regular;
-    domain = config.auth0.regular.domain;
-    audience = config.auth0.regular.audience;
-    credentialsList = [
-      {
-        description: 'user',
-        id: process.env.USERNAME,
-        secret: process.env.PASSWORD,
-      },
-      {
-        description: 'client',
-        id: clientId,
-        secret: clientSecret,
-      },
-    ];
+  beforeEach(async () => {
+    const config = await configPromise;
+    const { uiClientId, domain, audience } = config.auth0.regular;
+    scheme = new GitAuthScheme(uiClientId, domain, audience, _ => 'foo');
   });
 
-  beforeEach(() => {
-    scheme = new GitAuthScheme(
-      'ZaeiNyV7S7MpI69cKNHr8wXe5Bdr8tvW',
-      domain,
-      audience,
-      _ => '12345678',
-    );
+  describe('parseBasicAuth', () => {
+    it('should be able to parse username and password', () => {
+      // Arrange
+      const correctUsername = 'foo';
+      const correctPassword = 'bar';
+      const buffer = new Buffer(`${correctUsername}:${correctPassword}`);
+      const authorization = `Basic ${buffer.toString('base64')}`;
+
+      // Act
+      const { username, password } = scheme.parseBasicAuth(authorization);
+
+      // Assert
+      expect(username).to.eq(correctUsername);
+      expect(password).to.eq(correctPassword);
+    });
+    it('should be able to parse username if password is empty', () => {
+      // Arrange
+      const correctUsername = 'foo';
+      const correctPassword = '';
+      const buffer = new Buffer(`${correctUsername}:${correctPassword}`);
+      const authorization = `Basic ${buffer.toString('base64')}`;
+
+      // Act
+      const { username, password } = scheme.parseBasicAuth(authorization);
+
+      // Assert
+      expect(username).to.eq(correctUsername);
+      expect(password).to.eq(correctPassword);
+
+    });
+    it('should throw if separator is not found', () => {
+      // Arrange
+      const correctUsername = 'foo';
+      const correctPassword = '';
+      const buffer = new Buffer(`${correctUsername}${correctPassword}`);
+      const authorization = `Basic ${buffer.toString('base64')}`;
+
+      // Act
+      const tryParse = () => scheme.parseBasicAuth(authorization);
+
+      // Assert
+      expect(tryParse).to.throw;
+    });
   });
 
-  for (const { id, secret, description } of credentialsList) {
-    (id && secret ? describe : describe.skip)(description, () => {
-      const invalidSecret = secret + '9';
-
-      it('should be able to get the accessToken with correct credentials', async () => {
+  for (const { idPromise, secretPromise, description } of credentialsList) {
+    (idPromise && secretPromise ? describe : describe.skip)(description, () => {
+      // tslint:disable-next-line:only-arrow-functions
+      it('should be able to get the accessToken with correct credentials', async function () {
+        // Arrange
+        this.timeout(5000);
+        const id = await idPromise!;
+        const secret = await secretPromise!;
         // Act
-        const response = await scheme.login(id, secret);
+        accessToken = await scheme.login(id, secret);
 
         // Assert
-        expect(response.accessToken).to.exist;
-        const parts = response.accessToken.split('.');
+        expect(accessToken).to.exist;
+        const parts = accessToken.split('.');
         expect(parts.length).to.eq(3);
-        accessToken = response.accessToken;
       });
 
-      it('should be able to get the signing key', async () => {
+      it('should be able to get the signing key', async function() {
+        this.timeout(5000);
         // Act
         const response = await scheme.getSigningKey(scheme.decode(accessToken));
 
@@ -80,7 +125,8 @@ describe('git-authentication', () => {
         // Assert
         expect(response.sub).to.exist;
         expect(response.username).to.exist;
-        expect(response.aud).to.include(audience);
+        expect(response.gitlabPassword).to.exist;
+        expect(response.aud).to.include(scheme.auth0Audience);
       });
 
       it('should throw an error with invalid accessToken', () => {
@@ -105,10 +151,15 @@ describe('git-authentication', () => {
         }
       });
 
-      it('should throw an error with incorrect credentials', async () => {
+      it('should throw an error with incorrect credentials', async function() {
+        // Arrange
+        this.timeout(5000);
+        const id = await idPromise!;
+        const secret = await secretPromise!;
+
         // Act
         try {
-          await scheme.login(id, invalidSecret);
+          await scheme.login(id, secret + 'x');
           expect.fail();
         } catch (error) {
           // Assert

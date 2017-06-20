@@ -139,7 +139,7 @@ export class GitAuthScheme {
       body: JSON.stringify(body),
     });
     const json = await getResponseJson<{ access_token: string }>(response);
-    return json.access_token as string;
+    return json.access_token;
   }
 
   public decode(accessToken: string) {

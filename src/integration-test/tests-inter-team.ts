@@ -36,7 +36,7 @@ export default (
       }
     });
   }
-  const userTypes: (keyof CharlesClients)[] = ['regular', 'open'];
+  const userTypes: (keyof CharlesClients)[] = ['regular', 'open', 'admin'];
   for (const userType of userTypes) {
     describe(`${userType} user`, () => {
       // tslint:disable-next-line:only-arrow-functions
@@ -94,35 +94,6 @@ export default (
       });
     });
   }
-  describe('admin user', () => {
-    for (const userType of userTypes) {
-      // tslint:disable-next-line:only-arrow-functions
-      it(`should be able to clone ${userType} user's project`, async function() {
-        this.timeout(20000);
-        const accessToken = clients.admin.accessToken;
-        const repoFolder = `src/integration-test/blank-cloned-admin`;
-        await runCommand('rm', '-rf', repoFolder);
-        await runCommand(
-          'git',
-          'clone',
-          clients[userType].getRepoUrlWithCredentials({
-            username: accessToken,
-            password: '',
-          }),
-          repoFolder,
-        );
-      });
-      // tslint:disable-next-line:only-arrow-functions
-      it(`should be able to push to ${userType} user's project`, async function() {
-        this.timeout(20000);
-        const repoFolder = `src/integration-test/blank-cloned-admin`;
-        await runCommand('touch', `${repoFolder}/newFile${Date.now()}`);
-        await runCommand('git', '-C', repoFolder, 'add', '-A');
-        await runCommand('git', '-C', repoFolder, 'commit', '-m', 'message');
-        await runCommand('git', '-C', repoFolder, 'push', 'origin', 'master');
-      });
-    }
-  });
 };
 
 function getOwnerClient(

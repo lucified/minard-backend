@@ -253,21 +253,10 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       const credentials = request.auth.credentials as AccessToken;
       const username = sanitizeSubClaim(credentials.sub);
       const teams = await this._getUserGroups(username);
-      let team: Group | undefined;
       if (teams.length > 1 ) {
-        if (this.isAdmin(username)) {
-          // NOTE: this is a heuristic which means there should exist a single
-          // team with the string 'admin' in its name. This is a bit of a hack until
-          // there's proper multi-team support.
-          team = teams.find(t => t.name.toLowerCase().indexOf('admin') > -1);
-        } else {
-          // NOTE: we only support a single team for now
-          // This is a configuration error.
           throw badImplementation('User can only belong to a single team.');
-        }
-      } else {
-        team = teams[0];
       }
+      const team = teams[0];
       if (!team) {
         throw notFound();
       }

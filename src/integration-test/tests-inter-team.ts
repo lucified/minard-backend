@@ -53,7 +53,6 @@ export default (
           expect.fail(undefined, undefined, 'message');
         } catch (error) {
           expect(error.message).to.not.eq('message');
-          console.log(error);
         }
       });
 
@@ -91,7 +90,6 @@ export default (
           expect.fail(undefined, undefined, 'message');
         } catch (error) {
           expect(error.message).to.not.eq('message');
-          console.log(error);
         }
       });
     });

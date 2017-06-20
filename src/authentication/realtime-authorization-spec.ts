@@ -1,7 +1,7 @@
 import { expect, use } from 'chai';
 import { Server } from 'hapi';
 import 'reflect-metadata';
-import * as sinon from 'sinon';
+import { stub } from 'sinon';
 import * as sinonChai from 'sinon-chai';
 use(sinonChai);
 
@@ -22,7 +22,7 @@ async function getServer(
   kernel.rebind(AuthenticationHapiPlugin.injectSymbol).to(AuthenticationHapiPlugin);
   kernel.rebind(RealtimeHapiPlugin.injectSymbol).to(RealtimeHapiPlugin);
   const plugin = stubber<RealtimeHapiPlugin>(
-    p => sinon.stub(p, p.deploymentHandler.name)
+    p => stub(p, p.deploymentHandler.name)
         .yields(200)
         .returns(Promise.resolve(true)),
     RealtimeHapiPlugin.injectSymbol,
@@ -48,13 +48,13 @@ function arrange(
   return getServer(
     (p: AuthenticationHapiPlugin) => {
       return [
-        sinon.stub(p, p.userHasAccessToProject.name)
+        stub(p, p.userHasAccessToProject.name)
           .returns(Promise.resolve(hasAccessToProject)),
-        sinon.stub(p, p.isAdmin.name)
+        stub(p, p.isAdmin.name)
           .returns(Promise.resolve(isAdmin)),
-        sinon.stub(p, p.isOpenDeployment.name)
+        stub(p, p.isOpenDeployment.name)
           .returns(Promise.resolve(isOpenDeployment)),
-        sinon.stub(p, p.getProjectTeam.name)
+        stub(p, p.getProjectTeam.name)
           .returns(Promise.resolve({id: 1, name: 'foo'})),
       ];
     },

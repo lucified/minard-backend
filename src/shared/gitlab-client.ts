@@ -1,7 +1,7 @@
-
-import * as Boom from 'boom';
+import { badImplementation, badRequest, create, notFound } from 'boom';
+import { createHmac } from 'crypto';
 import { inject, injectable } from 'inversify';
-import * as qs from 'querystring';
+import { stringify } from 'querystring';
 
 import { RequestInit, Response } from 'node-fetch';
 import AuthenticationModule from '../authentication/authentication-module';
@@ -14,35 +14,36 @@ const perfy = require('perfy');
 const randomstring = require('randomstring');
 
 export const gitBaseUrlInjectSymbol = Symbol('git-base-url');
+export const gitVhostInjectSymbol = Symbol('git-vhost');
 export const gitlabHostInjectSymbol = Symbol('gitlab-host');
+export const gitlabPasswordSecretInjectSymbol = Symbol('git-password-secret');
 
 const urljoin = require('url-join');
 
 @injectable()
 export class GitlabClient {
-
   public static injectSymbol = Symbol('gitlab-client');
 
-  public readonly host: string;
   public readonly apiPrefix: string = '/api/v3';
   public readonly authenticationHeader = 'PRIVATE-TOKEN';
-  public readonly logger: Logger;
-
-  private _fetch: IFetch;
-  private _logging: boolean;
-  private _authentication: AuthenticationModule;
 
   public constructor(
-    @inject(gitlabHostInjectSymbol) host: string,
-    @inject(fetchInjectSymbol) fetch: IFetch,
-    @inject(AuthenticationModule.injectSymbol) auth: AuthenticationModule,
-    @inject(loggerInjectSymbol) logger: Logger,
-    logging: boolean = false) {
-    this.host = host;
-    this.logger = logger;
-    this._fetch = fetch;
-    this._logging = logging;
-    this._authentication = auth;
+    @inject(gitlabHostInjectSymbol) public readonly host: string,
+    @inject(
+      gitlabPasswordSecretInjectSymbol,
+    ) private readonly passwordSecret: string,
+    @inject(fetchInjectSymbol) private readonly originalFetch: IFetch,
+    @inject(
+      AuthenticationModule.injectSymbol,
+    ) private readonly authentication: AuthenticationModule,
+    @inject(loggerInjectSymbol) public readonly logger: Logger,
+    private readonly logging: boolean = false,
+  ) {}
+
+  public getUserPassword(username: string) {
+    return createHmac('sha1', this.passwordSecret)
+      .update(`U${username}`)
+      .digest('base64');
   }
 
   public url(path: string) {
@@ -50,17 +51,17 @@ export class GitlabClient {
   }
 
   public get rawFetch(): IFetch {
-    return this._fetch;
+    return this.originalFetch;
   }
 
   private log(msg: string): void {
-    if (this._logging && this.logger && this.logger.info) {
+    if (this.logging && this.logger && this.logger.info) {
       this.logger.info(msg);
     }
   }
 
   public getToken() {
-    return this._authentication.getRootAuthenticationToken();
+    return this.authentication.getRootAuthenticationToken();
   }
 
   public async authenticate(options?: RequestInit) {
@@ -93,28 +94,34 @@ export class GitlabClient {
     const url = this.url(path);
     const _options = await this.authenticate(options);
     this.log(`GitlabClient: sending request to ${url}`);
-    return this._fetch(url, _options);
+    return this.originalFetch(url, _options);
   }
 
-  public async fetchJson<T>(path: string, options?: RequestInit, includeErrorPayload = false): Promise<T> {
-    const timerId = this._logging ? randomstring.generate() : null;
-    if (this._logging) {
+  public async fetchJson<T>(
+    path: string,
+    options?: RequestInit,
+    includeErrorPayload = false,
+  ): Promise<T> {
+    const timerId = this.logging ? randomstring.generate() : null;
+    if (this.logging) {
       perfy.start(timerId);
     }
     const url = this.url(path);
     const _options = await this.authenticate(options);
     this.log(`GitlabClient: sending request to ${url}`);
-    const response = await this._fetch(url, _options);
-    if (this._logging) {
+    const response = await this.originalFetch(url, _options);
+    if (this.logging) {
       const timerResult = perfy.end(timerId);
-      this.log(`GitlabClient: received response ${response.status} from ${url} in ${timerResult.time} secs.`);
+      this.log(
+        `GitlabClient: received response ${response.status} from ${url} in ${timerResult.time} secs.`,
+      );
     }
     if (response.status !== 200 && response.status !== 201) {
       if (!includeErrorPayload) {
-        throw Boom.create(response.status);
+        throw create(response.status);
       }
       const json = await response.json<any>();
-      throw Boom.create(response.status, undefined, json);
+      throw create(response.status, undefined, json);
     }
     const json = await response.json<T>();
     return json;
@@ -127,9 +134,9 @@ export class GitlabClient {
     path: string,
     options?: RequestInit,
     logErrors: boolean = true,
-  ): Promise<{ status: number, json: T | undefined }> {
-    const timerId = this._logging ? randomstring.generate() : null;
-    if (this._logging) {
+  ): Promise<{ status: number; json: T | undefined }> {
+    const timerId = this.logging ? randomstring.generate() : null;
+    if (this.logging) {
       perfy.start(timerId);
     }
     const url = this.url(path);
@@ -138,15 +145,19 @@ export class GitlabClient {
 
     let res: Response;
     try {
-      res = await this._fetch(url, _options);
+      res = await this.originalFetch(url, _options);
     } catch (err) {
-      if (logErrors) { this.logger.error(err.message, err); }
-      throw Boom.badImplementation();
+      if (logErrors) {
+        this.logger.error(err.message, err);
+      }
+      throw badImplementation();
     }
 
-    if (this._logging) {
+    if (this.logging) {
       const timerResult = perfy.end(timerId);
-      this.log(`GitlabClient: received response ${res.status} from ${url} in ${timerResult.time} secs.`);
+      this.log(
+        `GitlabClient: received response ${res.status} from ${url} in ${timerResult.time} secs.`,
+      );
     }
 
     let json: T | undefined;
@@ -161,19 +172,34 @@ export class GitlabClient {
     };
   }
 
+  public async getUsers() {
+    // to get all users, we put a per_page param equal to the largest
+    // signed 32-bit integer, which gitlab should be able to handle fine
+    const largestSignedInteger = 2147483646;
+    const users = await this.fetchJson<User[]>(`users?per_page=${largestSignedInteger}`, undefined, true);
+    if (!users || !users.length) {
+      throw badRequest(`Can\'t find users`);
+    }
+    return users;
+  }
+
   public async getUserByEmailOrUsername(emailOrUsername: string) {
     const search = {
       search: emailOrUsername,
     };
-    const users = await this.fetchJson<User[]>(`users?${qs.stringify(search)}`, true);
+    const users = await this.fetchJson<User[]>(
+      `users?${stringify(search)}`,
+      undefined,
+      true,
+    );
     if (!users || !users.length) {
-      throw Boom.badRequest(`Can\'t find user '${emailOrUsername}'`);
+      throw badRequest(`Can\'t find user '${emailOrUsername}'`);
     }
     if (users.length > 1) {
       // This shoud never happen
       const message = `Found multiple users with email or username '${emailOrUsername}'`;
       this.logger.warning(message);
-      throw Boom.badRequest(message);
+      throw badRequest(message);
     }
     return users[0];
   }
@@ -196,13 +222,34 @@ export class GitlabClient {
       provider,
       confirm,
     };
-    return this.fetchJson<User>(`users`, {
-      method: 'POST',
-      body: JSON.stringify(newUser),
-      headers: {
-        'content-type': 'application/json',
+    return this.fetchJson<User>(
+      `users`,
+      {
+        method: 'POST',
+        body: JSON.stringify(newUser),
+        headers: {
+          'content-type': 'application/json',
+        },
       },
-    }, true);
+      true,
+    );
+  }
+
+  public modifyUser(
+    id: number,
+    changes: Partial<User> & { password?: string },
+  ) {
+    return this.fetchJson<User>(
+      `users/${id}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(changes),
+        headers: {
+          'content-type': 'application/json',
+        },
+      },
+      true,
+    );
   }
 
   public createGroup(
@@ -221,97 +268,127 @@ export class GitlabClient {
       lfs_enabled: lfsEnabled,
       request_access_enabled: requestAccessEnabled,
     };
-    return this.fetchJson<Group>(`groups`, {
-      method: 'POST',
-      body: JSON.stringify(newGroup),
-      headers: {
-        'content-type': 'application/json',
+    return this.fetchJson<Group>(
+      `groups`,
+      {
+        method: 'POST',
+        body: JSON.stringify(newGroup),
+        headers: {
+          'content-type': 'application/json',
+        },
       },
-    }, true);
+      true,
+    );
   }
 
-  public deleteGroup(idOrPath: number | string) {
-    return this.fetchJson(`groups/${idOrPath}`, {
-      method: 'DELETE',
-    }, true);
+  public deleteGroup(idOrPath: number | string) {
+    return this.fetchJson(
+      `groups/${idOrPath}`,
+      {
+        method: 'DELETE',
+      },
+      true,
+    );
   }
 
   /**
    * Adds a user to a project or group.
    * The access levels are documented here: https://docs.gitlab.com/ce/api/members.html.
    */
-  public addUserToGroup(userId: number, teamId: number, accessLevel = UserGroupAccessLevel.MASTER) {
-    return this.fetchJson(`groups/${teamId}/members`, {
-      method: 'POST',
-      body: JSON.stringify({
-        id: teamId,
-        user_id: userId,
-        access_level: accessLevel,
-      }),
-      headers: {
-        'content-type': 'application/json',
+  public addUserToGroup(
+    userId: number,
+    teamId: number,
+    accessLevel = UserGroupAccessLevel.MASTER,
+  ) {
+    return this.fetchJson(
+      `groups/${teamId}/members`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          id: teamId,
+          user_id: userId,
+          access_level: accessLevel,
+        }),
+        headers: {
+          'content-type': 'application/json',
+        },
       },
-    }, true);
+      true,
+    );
   }
 
   public async searchGroups(search: string) {
-    const groups = await this.fetchJson<Group[]>(`groups?${qs.stringify({ search })}`, true);
+    const groups = await this.fetchJson<Group[]>(
+      `groups?${stringify({ search })}`,
+      undefined,
+      true,
+    );
     if (!groups.length) {
-      throw Boom.notFound(`No groups found matching '${search}'`);
+      throw notFound(`No groups found matching '${search}'`);
     }
     return groups;
   }
 
-  public async getGroup(groupIdOrPath: number | string, userIdOrName?: number | string) {
+  public async getGroup(
+    groupIdOrPath: number | string,
+    userIdOrName?: number | string,
+  ) {
     let group: Group;
     if (userIdOrName) {
       const sudo = {
         sudo: userIdOrName,
       };
-      group = await this.fetchJson<Group>(`groups/${groupIdOrPath}?${qs.stringify(sudo)}`, true);
+      group = await this.fetchJson<Group>(
+        `groups/${groupIdOrPath}?${stringify(sudo)}`,
+        undefined,
+        true,
+      );
     } else {
-      group = await this.fetchJson<Group>(`groups/${groupIdOrPath}`, true);
+      group = await this.fetchJson<Group>(`groups/${groupIdOrPath}`, undefined, true);
     }
     if (!group || !group.id) {
-      throw Boom.notFound(`No group found with id '${groupIdOrPath}'`);
+      throw notFound(`No group found with id '${groupIdOrPath}'`);
     }
     return group;
   }
 
-  public async getUserGroups(userIdOrName: number | string) {
+  public async getUserGroups(userIdOrName: number | string) {
     const sudo = {
       sudo: userIdOrName,
     };
-    return this.fetchJson<Group[]>(`groups?${qs.stringify(sudo)}`, true);
+    return this.fetchJson<Group[]>(`groups?${stringify(sudo)}`, undefined, true);
   }
 
   public async getALLGroups() {
-    return this.fetchJson<Group[]>(`groups`, true);
+    return this.fetchJson<Group[]>(`groups`, undefined, true);
   }
 
-  public async getProject(projectId: number, userIdOrName?: number | string) {
+  public async getProject(projectId: number, userIdOrName?: number | string) {
     let project: Project;
     if (userIdOrName) {
       const sudo = {
         sudo: userIdOrName,
       };
-      project = await this.fetchJson<Project>(`projects/${projectId}?${qs.stringify(sudo)}`, true);
+      project = await this.fetchJson<Project>(
+        `projects/${projectId}?${stringify(sudo)}`,
+        undefined,
+        true,
+      );
     } else {
-      project = await this.fetchJson<Project>(`projects/${projectId}`, true);
+      project = await this.fetchJson<Project>(`projects/${projectId}`, undefined, true);
     }
     if (!project || !project.id) {
-      throw Boom.notFound(`No project found with id '${projectId}'`);
+      throw notFound(`No project found with id '${projectId}'`);
     }
     return project;
   }
 
-  public async getUserProjects(userIdOrName: number | string) {
+  public async getUserProjects(userIdOrName: number | string) {
     const sudo = {
       sudo: userIdOrName,
     };
-    return this.fetchJson<Project[]>(`projects?${qs.stringify(sudo)}`, true);
+    return this.fetchJson<Project[]>(`projects?${stringify(sudo)}`, undefined, true);
   }
-
 }
 
 export function validateEmail(email: any): email is string {

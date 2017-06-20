@@ -4,14 +4,13 @@ import * as debug from 'debug';
 import { JsonApiEntity } from '../json-api/types';
 import { NotificationConfiguration, NotificationType } from '../notification/types';
 import CharlesClient from './charles-client';
-import { LatestDeployment, NotificationConfigurations, SSE } from './types';
+import { Auth0, LatestDeployment, NotificationConfigurations, SSE } from './types';
 import { runCommand, withPing } from './utils';
 
 export default (
   clientFactory: () => Promise<CharlesClient>,
-  gitUser: string,
-  gitPassword: string,
-  notificationConfigurations?: NotificationConfigurations,
+  credentialsFactory: () => Promise<Auth0>,
+  notifications: () => Promise<NotificationConfigurations | undefined>,
   projectName = 'regular-project',
 ) => {
 
@@ -93,10 +92,11 @@ export default (
   describe('deployments', () => {
     it('should be able to create a successful deployment by pushing code', async function () {
       const client = await clientFactory();
+      const { clientId, clientSecret } = await credentialsFactory();
       this.timeout(1000 * 60 * 5);
       debug('Pushing code');
       const repoFolder = `src/integration-test/blank`;
-      const repoUrl = client.getRepoUrlWithCredentials(gitUser, gitPassword);
+      const repoUrl = client.getRepoUrlWithCredentials(clientId, clientSecret);
       await runCommand('src/integration-test/setup-repo');
       await runCommand('git', '-C', repoFolder, 'remote', 'add', 'minard', repoUrl);
       await runCommand('git', '-C', repoFolder, 'push', 'minard', 'master');
@@ -182,6 +182,7 @@ export default (
 
     it('should be able to configure notifications', async function () {
       const client = await clientFactory();
+      const notificationConfigurations = await notifications();
       if (!notificationConfigurations) {
         this.skip();
         return;

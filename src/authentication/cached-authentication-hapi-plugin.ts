@@ -1,6 +1,6 @@
-import * as Boom from 'boom';
+import { notFound } from 'boom';
 import * as auth from 'hapi-auth-jwt2';
-import { inject, injectable } from 'inversify';
+import { inject, injectable, optional } from 'inversify';
 import * as Knex from 'knex';
 import memoizee = require('memoizee');
 
@@ -8,13 +8,16 @@ import { IFetch } from '../shared/fetch';
 import { GitlabClient } from '../shared/gitlab-client';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
 import {
-  adminTeamNameInjectSymbol,
+  adminIdInjectSymbol,
   charlesKnexInjectSymbol,
   fetchInjectSymbol,
   openTeamNamesInjectSymbol,
 } from '../shared/types';
 import AuthenticationHapiPlugin from './authentication-hapi-plugin';
 import {
+  auth0AudienceInjectSymbol,
+  auth0ClientIdInjectSymbol,
+  auth0DomainInjectSymbol,
   authCookieDomainInjectSymbol,
   internalHostSuffixesInjectSymbol,
   jwtOptionsInjectSymbol,
@@ -25,25 +28,31 @@ class CachedAuthenticationHapiPlugin extends AuthenticationHapiPlugin {
 
   constructor(
     @inject(GitlabClient.injectSymbol) gitlab: GitlabClient,
-    @inject(jwtOptionsInjectSymbol) hapiOptions: auth.JWTStrategyOptions,
     @inject(authCookieDomainInjectSymbol) authCookieDomain: string,
+    @inject(auth0ClientIdInjectSymbol) auth0ClientId: string,
+    @inject(auth0DomainInjectSymbol) auth0Domain: string,
+    @inject(auth0AudienceInjectSymbol) auth0Audience: string,
     @inject(charlesKnexInjectSymbol) db: Knex,
     @inject(loggerInjectSymbol) logger: Logger,
-    @inject(adminTeamNameInjectSymbol) adminTeamName: string,
+    @inject(adminIdInjectSymbol) adminTeamName: string,
     @inject(openTeamNamesInjectSymbol) openTeamNames: string[],
     @inject(fetchInjectSymbol) fetch: IFetch,
     @inject(internalHostSuffixesInjectSymbol) internalHostSuffixes: string[],
+    @inject(jwtOptionsInjectSymbol) @optional() defaultJWTOptions?: auth.JWTStrategyOptions,
   ) {
     super(
       gitlab,
-      hapiOptions,
       authCookieDomain,
+      auth0ClientId,
+      auth0Domain,
+      auth0Audience,
       db,
       logger,
       adminTeamName,
       openTeamNames,
       fetch,
       internalHostSuffixes,
+      defaultJWTOptions,
     );
     this.userHasAccessToProjectAsync = memoizee(
       this.userHasAccessToProjectAsync,
@@ -64,7 +73,7 @@ class CachedAuthenticationHapiPlugin extends AuthenticationHapiPlugin {
   }
 
   public userHasAccessToTeam(userName: string, teamId: number) {
-    return new Promise((resolve, _reject) => {
+    return new Promise<boolean>((resolve, _reject) => {
       this.userHasAccessToTeamAsync(userName, teamId, (error: any, result: boolean) => {
         if (error) {
           return resolve(false);
@@ -84,14 +93,14 @@ class CachedAuthenticationHapiPlugin extends AuthenticationHapiPlugin {
         if (result) {
           return done(undefined, result);
         }
-        return done(Boom.notFound(), false); // Don't cache falses
+        return done(notFound(), false); // Don't cache falses
       },
       error => done(error, false),
     );
   }
 
   public userHasAccessToProject(userName: string, projectId: number) {
-    return new Promise((resolve, _reject) => {
+    return new Promise<boolean>((resolve, _reject) => {
       this.userHasAccessToProjectAsync(userName, projectId, (error: any, result: boolean) => {
         if (error) {
           return resolve(false);
@@ -112,14 +121,14 @@ class CachedAuthenticationHapiPlugin extends AuthenticationHapiPlugin {
         if (result) {
           return done(undefined, result);
         }
-        return done(Boom.notFound(), false); // Don't cache falses
+        return done(notFound(), false); // Don't cache falses
       },
       error => done(error, false),
     );
   }
 
   public isAdmin(userIdOrName: string) {
-    return new Promise((resolve, _reject) => {
+    return new Promise<boolean>((resolve, _reject) => {
       this.isAdminAsync(userIdOrName, (error: any, result: boolean) => {
         if (error) {
           return resolve(false);

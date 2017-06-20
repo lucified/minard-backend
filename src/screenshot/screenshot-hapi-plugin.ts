@@ -1,4 +1,4 @@
-import * as Boom from 'boom';
+import { forbidden, notFound } from 'boom';
 import { inject, injectable } from 'inversify';
 import * as Joi from 'joi';
 
@@ -44,15 +44,15 @@ export default class ScreenshotHapiPlugin {
     next();
   }
 
-  public async screenshotHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  public async screenshotHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
     const projectId = (<any> request.params).projectId;
     const deploymentId = (<any> request.params).deploymentId;
     const token = (<any> request.query).token;
     if (!this.screenshotModule.deploymentHasScreenshot(projectId, deploymentId)) {
-      throw Boom.notFound();
+      throw notFound();
     }
     if (!this.screenshotModule.isValidToken(projectId, deploymentId, token)) {
-      throw Boom.forbidden('Invalid token');
+      throw forbidden('Invalid token');
     }
     const path = this.screenshotModule.getScreenshotPath(projectId, deploymentId);
     return reply.file(path, { confine: false } as any);

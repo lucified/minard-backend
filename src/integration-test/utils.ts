@@ -1,12 +1,13 @@
 import { Observable } from '@reactivex/rxjs';
-import * as Boom from 'boom';
-import * as chalk from 'chalk';
+import { S3 } from 'aws-sdk';
+import { create } from 'boom';
+import { blue, cyan, magenta } from 'chalk';
 import { spawn } from 'child_process';
 import * as _debug from 'debug';
-import * as fs from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { mapValues } from 'lodash';
 import fetch, { Response } from 'node-fetch';
-import * as path from 'path';
+import { join } from 'path';
 
 import { ENV } from '../shared/types';
 import CharlesClient, { ResponseMulti, ResponseSingle } from './charles-client';
@@ -50,7 +51,7 @@ export function getResponseJson<T>(response: Response) {
           responseBody,
         ];
         const status = response.status >= 400 ? response.status : 500;
-        throw Boom.create(status, msgParts.join(`\n\n`));
+        throw create(status, msgParts.join(`\n\n`));
       }
     }
     return parsed;
@@ -77,15 +78,15 @@ export async function runCommand(command: string, ...args: string[]): Promise<bo
 }
 
 export function log(text: string) {
-  debug(`    ${chalk.cyan(text)}`);
+  debug(`    ${cyan(text)}`);
 }
 
 export function logTitle(text: string) {
-  debug(`   ${chalk.magenta(text)}`);
+  debug(`   ${magenta(text)}`);
 }
 
 export function prettyUrl(url: string) {
-  return chalk.blue.underline(url);
+  return blue.underline(url);
 }
 
 export function assertResponseStatus(response: Response, requiredStatus = 200) {
@@ -95,7 +96,7 @@ export function assertResponseStatus(response: Response, requiredStatus = 200) {
       response.url,
     ];
     const status = response.status >= 400 ? response.status : 500;
-    throw Boom.create(status, msgParts.join(`\n\n`), { originalStatus: response.status });
+    throw create(status, msgParts.join(`\n\n`), { originalStatus: response.status });
   }
 }
 
@@ -119,10 +120,20 @@ export async function getAccessToken(config: Auth0) {
   return json.access_token as string;
 }
 
-export function getConfiguration(env?: ENV, silent = false): Config {
+export function parseS3Url(url: string) {
+  const parts = url.replace('s3://', '').split('/');
+  const bucket = parts.shift();
+  const key = parts.join('/');
+  if (!bucket || !key) {
+    throw new Error('Invalid S3 uri');
+  }
+  return { bucket, key };
+}
+
+export async function getConfiguration(env?: ENV, silent = false): Promise<Config> {
   // Load bindings that represent configuration
   const _env: ENV = env || process.env.NODE_ENV || 'development';
-  let config: any;
+  let config: Config | string;
   switch (_env) {
     case 'staging':
       config = require('./configuration.staging').default;
@@ -136,8 +147,26 @@ export function getConfiguration(env?: ENV, silent = false): Config {
     default:
       throw new Error(`Unsupported environment '${_env}''`);
   }
+  if (typeof config === 'string') { // assume it's an S3 URL
+    const { bucket, key } = parseS3Url(config);
+    const s3 = new S3({region: process.env.AWS_DEFAULT_REGION || 'eu-west-1'});
+    const { Body } = await s3.getObject({
+      Bucket: bucket,
+      Key: key,
+      ResponseContentType: 'application/json',
+    }).promise();
+    let body: string = Body as string;
+    if (Buffer.isBuffer(Body)) {
+      body = Body.toString();
+    }
+    if (typeof body !== 'string') {
+      throw new Error('[getConfiguration] Unable to parse body of type ' + typeof body);
+    }
+    config = JSON.parse(body);
+  }
+  config = config as Config;
   if (!silent) {
-    console.log(`Loaded configuration for environment '${_env}'`);
+    console.log(`Loaded configuration for environment '${_env}': ${config.charles}`);
   }
   return config;
 }
@@ -161,15 +190,15 @@ export function saveToCache(cacheDir: string, cacheFileName: string) {
     } catch (error) {
       // nothing
     }
-    const cacheFile = path.join(cacheDir, cacheFileName);
+    const cacheFile = join(cacheDir, cacheFileName);
     const clientDtos = mapValues(clients, client => client!.toDto());
-    fs.writeFileSync(cacheFile, JSON.stringify(clientDtos, undefined, 2));
+    writeFileSync(cacheFile, JSON.stringify(clientDtos, undefined, 2));
   };
 }
 
 export function loadFromCache(cacheDir: string, cacheFileName: string): Partial<CharlesClients> {
-  const cacheFile = path.join(cacheDir, cacheFileName);
-  const clientDtos = JSON.parse(fs.readFileSync(cacheFile).toString());
+  const cacheFile = join(cacheDir, cacheFileName);
+  const clientDtos = JSON.parse(readFileSync(cacheFile).toString());
   return mapValues(clientDtos, dto => CharlesClient.load(dto));
 }
 
@@ -194,4 +223,16 @@ export function getAnonymousClient(client: CharlesClient) {
 
 export function isDebug() {
  return process.env.DEBUG === 'system-integration-tests';
+}
+
+export function cloneCharlesClient(client: CharlesClient, throwOnUnsuccessful = false) {
+  const clone = new CharlesClient(
+    client.url,
+    client.accessToken,
+    throwOnUnsuccessful,
+  );
+  clone.teamId = client.teamId;
+  clone.lastCreatedProject = client.lastCreatedProject;
+  clone.lastDeployment = client.lastDeployment;
+  return clone;
 }

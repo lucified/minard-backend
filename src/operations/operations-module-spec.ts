@@ -55,6 +55,7 @@ describe('operations-module', () => {
         new MockDeploymentModule() as any,
         logger,
         {} as any,
+        {} as any,
       );
     }
 
@@ -119,6 +120,7 @@ describe('operations-module', () => {
         new MockDeploymentModule() as any,
         logger,
         {} as any,
+        {} as any,
       );
 
       // Act
@@ -164,6 +166,7 @@ describe('operations-module', () => {
         new MockDeploymentModule() as any,
         logger,
         {} as any,
+        {} as any,
       );
 
       // Act
@@ -199,6 +202,7 @@ describe('operations-module', () => {
         {} as any,
         deploymentModule,
         logger,
+        {} as any,
         {} as any,
       );
 

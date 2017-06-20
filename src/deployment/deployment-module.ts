@@ -1,12 +1,12 @@
-import * as Boom from 'boom';
-import * as fs from 'fs';
+import { badGateway, badImplementation, create, notFound } from 'boom';
+import { createWriteStream, existsSync } from 'fs';
 import { inject, injectable } from 'inversify';
 import * as Knex from 'knex';
 import { isNil, omitBy, values } from 'lodash';
 import * as moment from 'moment';
-import * as os from 'os';
-import * as path from 'path';
-import * as querystring from 'querystring';
+import { tmpdir } from 'os';
+import { join } from 'path';
+import { stringify } from 'querystring';
 import { sprintf } from 'sprintf-js';
 
 import { promisify } from 'util';
@@ -364,27 +364,27 @@ export default class DeploymentModule {
   }
 
   public getDeploymentPath(projectId: number, deploymentId: number) {
-    return path.join(this.deploymentFolder, String(projectId), String(deploymentId));
+    return join(this.deploymentFolder, String(projectId), String(deploymentId));
   }
 
   public isDeploymentReadyToServe(projectId: number, deploymentId: number) {
     const path = this.getDeploymentPath(projectId, deploymentId);
-    return fs.existsSync(path);
+    return existsSync(path);
   }
 
   public async filesAtPath(projectId: number, _shaOrBranchName: string, path: string) {
     const url = `/projects/${projectId}/repository/tree?path=${path}`;
     const ret = await this.gitlab.fetchJsonAnyStatus<RepositoryObject[]>(url);
     if (ret.status === 404) {
-      throw Boom.notFound();
+      throw notFound();
     }
     if (!ret.json) {
       this.logger.error(`Unexpected non-json response from Gitlab for ${url}`, ret);
-      throw Boom.badGateway();
+      throw badGateway();
     }
     if (!Array.isArray(ret.json)) {
       this.logger.error(`Unexpected non-array response from Gitlab for ${url}`, ret);
-      throw Boom.badImplementation();
+      throw badImplementation();
     }
     return ret.json.map(item => ({
       type: item.type,
@@ -393,7 +393,7 @@ export default class DeploymentModule {
   }
 
   public async getRawMinardJson(projectId: number, shaOrBranchName: string): Promise<any> {
-    const query = querystring.stringify({
+    const query = stringify({
       filepath: 'minard.json',
     });
     const url = `/projects/${projectId}/repository/blobs/${shaOrBranchName}?${query}`;
@@ -403,7 +403,7 @@ export default class DeploymentModule {
     }
     if (ret.status !== 200) {
       this.logger.warn(`Unexpected response from GitLab when fetching minard.json from ${url}`);
-      throw Boom.badGateway();
+      throw badGateway();
     }
     return await ret.text();
   }
@@ -412,11 +412,11 @@ export default class DeploymentModule {
     const url = `/projects/${projectId}/builds/${deploymentId}/trace`;
     const ret = await this.gitlab.fetch(url);
     if (ret.status === 404) {
-      throw Boom.create(404);
+      throw create(404);
     }
     if (ret.status !== 200) {
       this.logger.warn(`Unexpected response from GitLab when fetching build trace from ${url}`);
-      throw Boom.create(ret.status);
+      throw create(ret.status);
     }
     return ret.text();
   }
@@ -582,7 +582,7 @@ export default class DeploymentModule {
       deployment = await this.getDeployment(deploymentId);
       if (!deployment) {
         this.logger.error(`Failed to fetch deployment after updating deployment status. Dropping DeploymentEvent`);
-        throw Boom.badImplementation();
+        throw badImplementation();
       }
       const payload: DeploymentEvent = {
         teamId: deployment.teamId,
@@ -601,11 +601,11 @@ export default class DeploymentModule {
     const url = `/projects/${projectId}/builds/${deploymentId}/artifacts`;
 
     const response = await this.gitlab.fetch(url);
-    const tempDir = path.join(os.tmpdir(), 'minard');
+    const tempDir = join(tmpdir(), 'minard');
     await mkpath(tempDir);
     const readableStream = response.body;
-    const tempFileName = path.join(tempDir, `minard-${projectId}-${deploymentId}.zip`);
-    const writeStream = fs.createWriteStream(tempFileName);
+    const tempFileName = join(tempDir, `minard-${projectId}-${deploymentId}.zip`);
+    const writeStream = createWriteStream(tempFileName);
 
     await new Promise<void>((resolve, reject) => {
       readableStream.pipe(writeStream);
@@ -621,8 +621,8 @@ export default class DeploymentModule {
   }
 
   public getTempArtifactsPath(projectId: number, deploymentId: number) {
-    const tempDir = path.join(os.tmpdir(), 'minard');
-    return path.join(tempDir, `minard-${projectId}-${deploymentId}`);
+    const tempDir = join(tmpdir(), 'minard');
+    return join(tempDir, `minard-${projectId}-${deploymentId}`);
   }
 
   public async moveExtractedDeployment(projectId: number, deploymentId: number) {
@@ -630,7 +630,7 @@ export default class DeploymentModule {
     const deployment = await this.getDeployment(deploymentId);
     if (!deployment) {
       this.logger.error('Could not get deployment in downloadAndExtractDeployment');
-      throw Boom.badImplementation();
+      throw badImplementation();
     }
     const minardJson = await this.getMinardJsonInfo(projectId, deployment.ref);
 
@@ -638,7 +638,7 @@ export default class DeploymentModule {
       // this should never happen as projects are not build if they don't
       // have an effective minard.json
       this.logger.error(`Detected invalid minard.json when moving extracted deployment.`);
-      throw Boom.badImplementation();
+      throw badImplementation();
     }
 
     // move to final directory
@@ -646,8 +646,8 @@ export default class DeploymentModule {
     const finalPath = this.getDeploymentPath(projectId, deploymentId);
     const publicRoot = minardJson.effective.publicRoot;
     const sourcePath = !publicRoot || publicRoot === '.' ? extractedTempPath :
-      path.join(extractedTempPath, publicRoot);
-    const exists = fs.existsSync(sourcePath);
+      join(extractedTempPath, publicRoot);
+    const exists = existsSync(sourcePath);
     if (!exists) {
       const msg = `Deployment "${projectId}_${deploymentId}" did not have directory at repo path ` +
         `"${minardJson.effective.publicRoot}". Local sourcePath was ${sourcePath}`;
@@ -659,13 +659,13 @@ export default class DeploymentModule {
       await mkpath(finalPath);
     } catch (err) {
       this.logger.error(`Could not create directory ${finalPath}`, err);
-      throw Boom.badImplementation();
+      throw badImplementation();
     }
     try {
       await ncp(sourcePath, finalPath);
     } catch (err) {
       this.logger.error(`Could not copy extracted deployment from ${sourcePath} to  `, err);
-      throw Boom.badImplementation();
+      throw badImplementation();
     }
     return finalPath;
   }

@@ -1,9 +1,9 @@
-import * as Boom from 'boom';
+import { badGateway, notFound } from 'boom';
 import { expect, use } from 'chai';
 import { Container } from 'inversify';
 import * as Knex from 'knex';
 import 'reflect-metadata';
-import * as sinon from 'sinon';
+import { stub } from 'sinon';
 import * as sinonChai from 'sinon-chai';
 use(sinonChai);
 
@@ -11,11 +11,10 @@ import { bootstrap } from '../config';
 import { getAccessToken, getSignedAccessToken } from '../config/config-test';
 import { getTestServer } from '../server/hapi';
 import { makeRequestWithAuthentication, MethodStubber, stubber } from '../shared/test';
-import { adminTeamNameInjectSymbol, charlesKnexInjectSymbol, openTeamNamesInjectSymbol } from '../shared/types';
+import { adminIdInjectSymbol, charlesKnexInjectSymbol, openTeamNamesInjectSymbol } from '../shared/types';
 import {
   accessTokenCookieSettings,
   default as AuthenticationHapiPlugin,
-  generatePassword,
   sanitizeSubClaim,
 } from './authentication-hapi-plugin';
 import { generateAndSaveTeamToken, generateTeamToken, teamTokenLength } from './team-token';
@@ -40,7 +39,7 @@ async function getPlugin(authenticationStubber?: MethodStubber<AuthenticationHap
   await initializeTeamTokenTable(db);
   if (authenticationStubber) {
     const { instance } = stubber(authenticationStubber, AuthenticationHapiPlugin.injectSymbol, kernel);
-    return { plugin: instance, db };
+    return { plugin: instance, db, kernel };
   }
   const plugin = kernel.get<AuthenticationHapiPlugin>(AuthenticationHapiPlugin.injectSymbol);
   return { plugin, db, kernel };
@@ -103,7 +102,7 @@ describe('authentication-hapi-plugin', () => {
     it('should call the route handler when the token is valid', async () => {
       // Arrange
       const { server, plugin } = await getServer(
-        p => sinon.stub(p, 'getTeamHandler')
+        p => stub(p, 'getTeamHandler')
           .yields(200)
           .returns(Promise.resolve(true)),
       );
@@ -130,9 +129,9 @@ describe('authentication-hapi-plugin', () => {
       const callerTeamId = 1;
       const { server, plugin, db } = await getServer(
         (p: AuthenticationHapiPlugin) => [
-          sinon.stub(p, 'isAdmin')
+          stub(p, 'isAdmin')
             .returns(Promise.resolve(false)),
-          sinon.stub(p, '_getUserGroups')
+          stub(p, '_getUserGroups')
             .returns(Promise.resolve([{ id: callerTeamId, name: 'foo' }])),
         ],
       );
@@ -154,9 +153,9 @@ describe('authentication-hapi-plugin', () => {
       const callerTeamId = 1;
       const { server, plugin, db } = await getServer(
         (p: AuthenticationHapiPlugin) => [
-          sinon.stub(p, 'isAdmin')
+          stub(p, 'isAdmin')
             .returns(Promise.resolve(false)),
-          sinon.stub(p, '_getUserGroups')
+          stub(p, '_getUserGroups')
             .returns(Promise.resolve([{ id: callerTeamId, name: 'foo' }])),
         ],
       );
@@ -179,9 +178,9 @@ describe('authentication-hapi-plugin', () => {
       const otherTeamId = 2;
       const { server, plugin, db } = await getServer(
         p => [
-          sinon.stub(p, 'isAdmin')
+          stub(p, 'isAdmin')
             .returns(Promise.resolve(false)),
-          sinon.stub(p, '_getUserGroups')
+          stub(p, '_getUserGroups')
             .returns(Promise.resolve([{ id: callerTeamId, name: 'foo' }])),
         ],
       );
@@ -202,9 +201,9 @@ describe('authentication-hapi-plugin', () => {
       const otherTeamId = 2;
       const { server, plugin, db } = await getServer(
         (p: AuthenticationHapiPlugin) => [
-          sinon.stub(p, 'isAdmin')
+          stub(p, 'isAdmin')
             .returns(Promise.resolve(true)),
-          sinon.stub(p, '_getUserGroups')
+          stub(p, '_getUserGroups')
             .returns(Promise.resolve([{ id: callerTeamId, name: 'foo' }])),
         ],
       );
@@ -226,9 +225,9 @@ describe('authentication-hapi-plugin', () => {
       const callerTeamId = 1;
       const { server, plugin } = await getServer(
         (p: AuthenticationHapiPlugin) => [
-          sinon.stub(p, 'isAdmin')
+          stub(p, 'isAdmin')
             .returns(Promise.resolve(false)),
-          sinon.stub(p, '_getUserGroups')
+          stub(p, '_getUserGroups')
             .returns(Promise.resolve([{ id: callerTeamId, name: 'foo' }])),
         ],
       );
@@ -251,7 +250,7 @@ describe('authentication-hapi-plugin', () => {
       const callerTeamDescription = 'team description';
       const { server, plugin } = await getServer(
         (p: AuthenticationHapiPlugin) => [
-          sinon.stub(p, '_getUserGroups')
+          stub(p, '_getUserGroups')
             .returns(Promise.resolve([{
               id: callerTeamId,
               name: callerTeamName,
@@ -277,7 +276,7 @@ describe('authentication-hapi-plugin', () => {
       const callerTeamId = 1;
       const { server, plugin, db } = await getServer(
         (p: AuthenticationHapiPlugin) => [
-          sinon.stub(p, '_getUserGroups')
+          stub(p, '_getUserGroups')
             .returns(Promise.resolve([{ id: callerTeamId, name: 'foo' }])),
         ],
       );
@@ -299,7 +298,7 @@ describe('authentication-hapi-plugin', () => {
       const callerTeamId = 1;
       const { server, plugin } = await getServer(
         (p: AuthenticationHapiPlugin) => [
-          sinon.stub(p, '_getUserGroups')
+          stub(p, '_getUserGroups')
             .returns(Promise.resolve([{ id: callerTeamId, name: 'foo' }])),
         ],
       );
@@ -319,7 +318,7 @@ describe('authentication-hapi-plugin', () => {
       const callerTeamId = 1;
       const { server, plugin } = await getServer(
         (p: AuthenticationHapiPlugin) => [
-          sinon.stub(p, '_getUserGroups')
+          stub(p, '_getUserGroups')
             .returns(Promise.resolve([{
               id: callerTeamId,
               name: 'foo',
@@ -348,11 +347,11 @@ describe('authentication-hapi-plugin', () => {
       const callerTeamId = 12;
       const { server, plugin, db } = await getServer(
         (p: AuthenticationHapiPlugin) => [
-          sinon.stub(p, '_getGroup')
+          stub(p, '_getGroup')
             .returns(Promise.resolve({ id: callerTeamId, name: 'foo' })),
-          sinon.stub(p, '_createUser')
+          stub(p, '_createUser')
             .returns(Promise.resolve({ id: 1, name: 'foo' })),
-          sinon.stub(p, '_addUserToGroup')
+          stub(p, '_addUserToGroup')
             .returns(Promise.resolve(true)),
         ],
       );
@@ -369,7 +368,6 @@ describe('authentication-hapi-plugin', () => {
       expect(plugin._addUserToGroup).to.have.been.calledOnce;
       const json = JSON.parse(response.payload);
       expect(json.team.id).to.eq(callerTeamId);
-      expect(json.password).to.exist;
 
     });
     it('should report the email on error', async () => {
@@ -377,11 +375,11 @@ describe('authentication-hapi-plugin', () => {
       const callerTeamId = 12;
       const { server } = await getServer(
         (p: AuthenticationHapiPlugin) => [
-          sinon.stub(p, '_getGroup')
+          stub(p, '_getGroup')
             .returns(Promise.resolve({ id: callerTeamId, name: 'foo' })),
-          sinon.stub(p, '_createUser')
+          stub(p, '_createUser')
             .returns(Promise.resolve({ id: 1, name: 'foo' })),
-          sinon.stub(p, '_addUserToGroup')
+          stub(p, '_addUserToGroup')
             .returns(Promise.resolve(true)),
         ],
       );
@@ -397,20 +395,13 @@ describe('authentication-hapi-plugin', () => {
     });
   });
 
-  describe('generatePassword', () => {
-    it('should return a string of 16 chars by default', () => {
-      const password = generatePassword();
-      expect(typeof password, password).to.equal('string');
-      expect(password.length, password).to.equal(16);
-    });
-  });
   describe('cookie', () => {
     it('should be set with the access token as the value when accessing the team endpoint', async () => {
       // Arrange
       const callerTeamId = 1;
       const { server } = await getServer(
         (p: AuthenticationHapiPlugin) => [
-          sinon.stub(p, '_getUserGroups')
+          stub(p, '_getUserGroups')
             .returns(Promise.resolve([{ id: callerTeamId, name: 'foo' }])),
         ],
       );
@@ -457,9 +448,9 @@ describe('authentication-hapi-plugin', () => {
       const callerTeamId = 1;
       const { plugin } = await getPlugin(
         (p: AuthenticationHapiPlugin) => [
-          sinon.stub(p, '_getUserGroups')
+          stub(p, '_getUserGroups')
             .returns(Promise.resolve([{ id: callerTeamId, name: 'foo' }])),
-          sinon.stub(p, 'isAdmin')
+          stub(p, 'isAdmin')
             .returns(Promise.resolve(false)),
         ],
       );
@@ -476,9 +467,9 @@ describe('authentication-hapi-plugin', () => {
       const callerTeamId = 1;
       const { plugin } = await getPlugin(
         (p: AuthenticationHapiPlugin) => [
-          sinon.stub(p, '_getUserGroups')
+          stub(p, '_getUserGroups')
             .returns(Promise.resolve([{ id: callerTeamId + 1, name: 'foo' }])),
-          sinon.stub(p, 'isAdmin')
+          stub(p, 'isAdmin')
             .returns(Promise.resolve(false)),
         ],
       );
@@ -495,7 +486,7 @@ describe('authentication-hapi-plugin', () => {
       const callerTeamId = 1;
       const { plugin } = await getPlugin(
         (p: AuthenticationHapiPlugin) => [
-          sinon.stub(p, 'isAdmin')
+          stub(p, 'isAdmin')
             .returns(Promise.resolve(true)),
         ],
       );
@@ -512,9 +503,9 @@ describe('authentication-hapi-plugin', () => {
       const callerTeamId = 1;
       const { plugin } = await getPlugin(
         (p: AuthenticationHapiPlugin) => [
-          sinon.stub(p, '_getUserGroups')
-            .returns(Promise.reject(Boom.badGateway())),
-          sinon.stub(p, 'isAdmin')
+          stub(p, '_getUserGroups')
+            .returns(Promise.reject(badGateway())),
+          stub(p, 'isAdmin')
             .returns(Promise.resolve(false)),
         ],
       );
@@ -534,9 +525,9 @@ describe('authentication-hapi-plugin', () => {
       const projectId = 1;
       const { plugin } = await getPlugin(
         (p: AuthenticationHapiPlugin) => [
-          sinon.stub(p, '_getProject')
+          stub(p, '_getProject')
             .returns(Promise.resolve(1)),
-          sinon.stub(p, 'isAdmin')
+          stub(p, 'isAdmin')
             .returns(Promise.resolve(false)),
         ],
       );
@@ -553,9 +544,9 @@ describe('authentication-hapi-plugin', () => {
       const projectId = 1;
       const { plugin } = await getPlugin(
         (p: AuthenticationHapiPlugin) => [
-          sinon.stub(p, '_getProject')
-            .returns(Promise.reject(Boom.notFound())),
-          sinon.stub(p, 'isAdmin')
+          stub(p, '_getProject')
+            .returns(Promise.reject(notFound())),
+          stub(p, 'isAdmin')
             .returns(Promise.resolve(false)),
         ],
       );
@@ -574,7 +565,7 @@ describe('authentication-hapi-plugin', () => {
       const projectId = 1;
       const { plugin } = await getPlugin(
         (p: AuthenticationHapiPlugin) => [
-          sinon.stub(p, 'isAdmin')
+          stub(p, 'isAdmin')
             .returns(Promise.resolve(true)),
         ],
       );
@@ -605,7 +596,7 @@ describe('authentication-hapi-plugin', () => {
       const status = AuthorizationStatus.AUTHORIZED;
       const { plugin } = await getPlugin(
         (p: AuthenticationHapiPlugin) => [
-          sinon.stub(p, p.isOpenDeployment.name)
+          stub(p, p.isOpenDeployment.name)
             .returns(Promise.resolve(true)),
         ],
       );
@@ -622,7 +613,7 @@ describe('authentication-hapi-plugin', () => {
       const status = AuthorizationStatus.NOT_CHECKED;
       const { plugin } = await getPlugin(
         (p: AuthenticationHapiPlugin) => [
-          sinon.stub(p, p._userHasAccessToProject.name)
+          stub(p, p._userHasAccessToProject.name)
             .returns(Promise.resolve(true)),
         ],
       );
@@ -641,7 +632,7 @@ describe('authentication-hapi-plugin', () => {
       const status = AuthorizationStatus.UNAUTHORIZED;
       const { plugin } = await getPlugin(
         (p: AuthenticationHapiPlugin) => [
-          sinon.stub(p, p.isOpenDeployment.name)
+          stub(p, p.isOpenDeployment.name)
             .returns(Promise.resolve(true)),
         ],
       );
@@ -659,7 +650,7 @@ describe('authentication-hapi-plugin', () => {
       // Arrange
       const { plugin } = await getPlugin(
         (p: AuthenticationHapiPlugin) => [
-          sinon.stub(p, p.isOpenDeployment.name)
+          stub(p, p.isOpenDeployment.name)
             .returns(Promise.resolve(true)),
         ],
       );
@@ -678,7 +669,7 @@ describe('authentication-hapi-plugin', () => {
       const status = AuthorizationStatus.UNAUTHORIZED;
       const { plugin } = await getPlugin(
         (p: AuthenticationHapiPlugin) => [
-          sinon.stub(p, p.isOpenDeployment.name)
+          stub(p, p.isOpenDeployment.name)
             .returns(Promise.resolve(false)),
         ],
       );
@@ -696,7 +687,7 @@ describe('authentication-hapi-plugin', () => {
       // Arrange
       const { plugin } = await getPlugin(
         (p: AuthenticationHapiPlugin) => [
-          sinon.stub(p, p.isOpenDeployment.name)
+          stub(p, p.isOpenDeployment.name)
             .returns(Promise.resolve(false)),
         ],
       );
@@ -711,54 +702,29 @@ describe('authentication-hapi-plugin', () => {
 
   });
   describe('_isAdmin', () => {
-    it('returns true if the user belongs to a team with the correct name', async () => {
+    it('returns true when called with the bound value of adminIdInjectSymbol prepended with \'clients-\'', async () => {
 
       // Arrange
-      const { plugin } = await getPlugin(
-        (p: AuthenticationHapiPlugin, k: Container) => [
-          sinon.stub(p, '_getUserGroups')
-            .returns(Promise.resolve([{ id: 1, name: k.get<string>(adminTeamNameInjectSymbol) }])),
-        ],
-      );
+      const { plugin, kernel } = await getPlugin();
+      const adminId = kernel.get<string>(adminIdInjectSymbol);
 
       // Act
-      const result = await plugin._isAdmin('foo');
+      const result = await plugin._isAdmin(`clients-${adminId}`);
 
       // Assert
       expect(result).to.be.true;
     });
-    it('returns false if the user belongs to a team with an incorrect name', async () => {
+    it('returns false if called with some other value', async () => {
 
       // Arrange
-      const { plugin } = await getPlugin(
-        (p: AuthenticationHapiPlugin, k: Container) => [
-          sinon.stub(p, '_getUserGroups')
-            .returns(Promise.resolve([{ id: 1, name: k.get<string>(adminTeamNameInjectSymbol) + '1' }])),
-        ],
-      );
+      const { plugin, kernel } = await getPlugin();
+      const adminId = kernel.get<string>(adminIdInjectSymbol);
 
       // Act
-      const result = await plugin._isAdmin('foo');
+      const result = await plugin._isAdmin(adminId + 'x');
 
       // Assert
       expect(result).to.be.false;
-    });
-    it('throws if something unexpected happens', async () => {
-
-      // Arrange
-      const { plugin } = await getPlugin(
-        (p: AuthenticationHapiPlugin) => [
-          sinon.stub(p, '_getUserGroups')
-            .returns(Promise.reject(Boom.badGateway())),
-        ],
-      );
-
-      // Act
-      const resultPromise = plugin._isAdmin('foo');
-
-      // Assert
-      return resultPromise
-        .then(_ => expect.fail(), error => expect(error.isBoom).to.be.true);
     });
   });
   describe('isOpenDeployment', () => {
@@ -770,7 +736,7 @@ describe('authentication-hapi-plugin', () => {
           const openTeamName = k.get<string[]>(openTeamNamesInjectSymbol)[0];
 
           return [
-            sinon.stub(p, p.getProjectTeam.name)
+            stub(p, p.getProjectTeam.name)
               .returns(Promise.resolve({ name: openTeamName, id: 1 })),
           ];
         },
@@ -790,7 +756,7 @@ describe('authentication-hapi-plugin', () => {
           const openTeamName = k.get<string[]>(openTeamNamesInjectSymbol)[1];
 
           return [
-            sinon.stub(p, p.getProjectTeam.name)
+            stub(p, p.getProjectTeam.name)
               .returns(Promise.resolve({ name: openTeamName, id: 1 })),
           ];
         },
@@ -810,7 +776,7 @@ describe('authentication-hapi-plugin', () => {
           const notOpenTeamName = 'notopenteamname';
 
           return [
-            sinon.stub(p, p.getProjectTeam.name)
+            stub(p, p.getProjectTeam.name)
               .returns(Promise.resolve({ name: notOpenTeamName, id: 1 })),
           ];
         },
@@ -827,8 +793,8 @@ describe('authentication-hapi-plugin', () => {
       // Arrange
       const { plugin } = await getPlugin(
         (p: AuthenticationHapiPlugin) => [
-          sinon.stub(p, p.getProjectTeam.name)
-            .returns(Promise.reject(Boom.badGateway())),
+          stub(p, p.getProjectTeam.name)
+            .returns(Promise.reject(badGateway())),
         ],
       );
 

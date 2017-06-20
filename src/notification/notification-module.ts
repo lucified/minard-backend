@@ -1,4 +1,4 @@
-import * as Boom from 'boom';
+import { badImplementation, badRequest } from 'boom';
 import { inject, injectable } from 'inversify';
 import * as Knex from 'knex';
 
@@ -83,7 +83,7 @@ export class NotificationModule {
         .where('id', id);
     } catch (error) {
       this.logger.error('Failed to delete notification configuration', error);
-      throw Boom.badImplementation();
+      throw badImplementation();
     }
   }
 
@@ -93,7 +93,7 @@ export class NotificationModule {
       return ids[0];
     } catch (error) {
       this.logger.error('Failed to add notification configuration', error);
-      throw Boom.badImplementation();
+      throw badImplementation();
     }
   }
 
@@ -106,13 +106,13 @@ export class NotificationModule {
         .first();
     } catch (error) {
       this.logger.error('Failed to get notification configuration', error);
-      throw Boom.badImplementation();
+      throw badImplementation();
     }
   }
 
   public async getTeamConfigurations(teamId: number): Promise<NotificationConfiguration[]> {
     if (!teamId) {
-      throw Boom.badRequest('teamId must be defined');
+      throw badRequest('teamId must be defined');
     }
     try {
       const select = this.knex.select('*')
@@ -122,13 +122,13 @@ export class NotificationModule {
       return ret || [];
     } catch (error) {
       this.logger.error('Failed to fetch notification configurations', error);
-      throw Boom.badImplementation();
+      throw badImplementation();
     }
   }
 
   public async getProjectConfigurations(projectId: number): Promise<NotificationConfiguration[]> {
     if (!projectId) {
-      throw Boom.badRequest('projectId must be defined');
+      throw badRequest('projectId must be defined');
     }
     try {
       const select = this.knex.select('*')
@@ -138,7 +138,7 @@ export class NotificationModule {
       return ret || [];
     } catch (error) {
       this.logger.error('Failed to fetch notification configurations', error);
-      throw Boom.badImplementation();
+      throw badImplementation();
     }
   }
 

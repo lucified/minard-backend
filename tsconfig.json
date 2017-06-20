@@ -10,7 +10,7 @@
     "noImplicitThis": false,
     "target": "es2017",
     "lib": [
-      "dom",
+      "dom", // Needed for RxJS: https://github.com/ReactiveX/rxjs/issues/1986
       "es2017"
     ],
     "module": "commonjs",

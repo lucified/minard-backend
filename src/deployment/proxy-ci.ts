@@ -1,7 +1,8 @@
-import * as events from 'events';
-import * as http from 'http';
+import { EventEmitter } from 'events';
+import { ProxyHandlerOptions } from 'h2o2';
+import { IncomingMessage } from 'http';
 import { inject, injectable } from 'inversify';
-import * as url from 'url';
+import { parse } from 'url';
 
 import { STRATEGY_INTERNAL_REQUEST } from '../authentication';
 import { EventBus, eventBusInjectSymbol } from '../event-bus';
@@ -18,10 +19,9 @@ import {
 
 @injectable()
 export class CIProxy {
-
   public static readonly injectSymbol = Symbol('ci-proxy');
   private gitlabHost: string;
-  private proxyOptions: { host: string, port: number, protocol: string, passThrough: boolean };
+  private proxyOptions: ProxyHandlerOptions;
   public readonly routeNamespace = '/ci/api/v1/';
   public readonly routePath = this.routeNamespace + '{what}/{id}/{action?}';
 
@@ -31,7 +31,7 @@ export class CIProxy {
     @inject(loggerInjectSymbol) private logger: Logger,
   ) {
     this.gitlabHost = gitlabHost;
-    const gitlab = url.parse(gitlabHost);
+    const gitlab = parse(gitlabHost);
 
     if (!gitlab.hostname) {
       throw new Error('Malformed gitlab baseurl: ' + gitlabHost);
@@ -40,7 +40,7 @@ export class CIProxy {
     this.proxyOptions = {
       host: gitlab.hostname,
       port: gitlab.port ? parseInt(gitlab.port, 10) : 80,
-      protocol: gitlab.protocol || 'http',
+      protocol: gitlab.protocol === 'https' ? 'https' : 'http',
       passThrough: true,
     };
 
@@ -52,41 +52,61 @@ export class CIProxy {
     });
   }
 
-  private _register(server: Hapi.Server, _options: Hapi.IServerOptions, next: () => void) {
-    const config = {
-      bind: this,
-      auth: {
-        strategies: [STRATEGY_INTERNAL_REQUEST],
-      },
-      payload: {
-        output: 'stream',
-        parse: false,
-      },
-    };
-
+  private _register(
+    server: Hapi.Server,
+    _options: Hapi.ServerOptions,
+    next: () => void,
+  ) {
     server.route({
       method: '*',
       path: this.routeNamespace + '{path*}',
       handler: {
         proxy: this.proxyOptions,
       },
-      config,
+      config: {
+        bind: this,
+        auth: {
+          strategies: [STRATEGY_INTERNAL_REQUEST],
+        },
+        payload: {
+          output: 'stream',
+          parse: false,
+        },
+      },
     });
 
     server.route({
       method: 'PUT',
       path: this.routeNamespace + 'builds/{id}',
       handler: this.putRequestHandler,
-      config,
+      config: {
+        bind: this,
+        auth: {
+          strategies: [STRATEGY_INTERNAL_REQUEST],
+        },
+        payload: {
+          output: 'stream',
+          parse: false,
+        },
+      },
     });
 
     server.route({
       method: 'POST',
       path: this.routeNamespace + '{entities}/register.json',
       handler: {
-        proxy: { ...this.proxyOptions, onResponse: this.postReplyHandler } as any,
+        proxy: { ...this.proxyOptions, onResponse: this.postReplyHandler },
       },
-      config,
+      config: {
+        bind: this,
+        auth: {
+          strategies: [STRATEGY_INTERNAL_REQUEST],
+        },
+        payload: {
+          output: 'stream',
+          parse: false,
+        },
+      },
     });
 
     next();
@@ -94,7 +114,10 @@ export class CIProxy {
 
   public readonly register: HapiRegister;
 
-  private putRequestHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  private putRequestHandler(
+    request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
     try {
       const id = parseInt(request.paramsArray[0], 10);
       this.collectStream(request.payload)
@@ -127,10 +150,10 @@ export class CIProxy {
 
   private postReplyHandler(
     err: any,
-    response: http.IncomingMessage,  // note that this is incorrect in the hapi type def
+    response: IncomingMessage, // note that this is incorrect in the hapi type def
     request: Hapi.Request,
-    reply: Hapi.IReply) {
-
+    reply: Hapi.ReplyNoContinue,
+  ) {
     if (err) {
       console.log(err);
       return Promise.resolve(reply(err));
@@ -147,7 +170,10 @@ export class CIProxy {
     return Promise.resolve(reply(response));
   }
 
-  private deploymentCreatedHandler(response: http.IncomingMessage, reply: Hapi.IReply) {
+  private deploymentCreatedHandler(
+    response: IncomingMessage,
+    reply: Hapi.ReplyNoContinue,
+  ) {
     try {
       return this.collectStream(response)
         .then(JSON.parse)
@@ -162,7 +188,10 @@ export class CIProxy {
     }
   }
 
-  private runnerRegisteredHandler(response: http.IncomingMessage, reply: Hapi.IReply) {
+  private runnerRegisteredHandler(
+    response: IncomingMessage,
+    reply: Hapi.ReplyNoContinue,
+  ) {
     try {
       return this.collectStream(response)
         .then(JSON.parse)
@@ -175,19 +204,22 @@ export class CIProxy {
     }
   }
 
-  private collectStream(s: events.EventEmitter): Promise<string> {
+  private collectStream(s: EventEmitter): Promise<string> {
     if (!s || !s.on) {
       throw new Error('s is not an EventEmitter');
     }
     const body: Buffer[] = [];
     return new Promise((resolve, reject) => {
-      s.on('error', (err: any) => {
-        reject(err);
-      }).on('data', (chunk: Buffer) => {
-        body.push(chunk);
-      }).on('end', () => {
-        resolve(Buffer.concat(body).toString());
-      });
+      s
+        .on('error', (err: any) => {
+          reject(err);
+        })
+        .on('data', (chunk: Buffer) => {
+          body.push(chunk);
+        })
+        .on('end', () => {
+          resolve(Buffer.concat(body).toString());
+        });
     });
   }
 }

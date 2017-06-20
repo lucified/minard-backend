@@ -11,10 +11,10 @@ export interface Auth0 {
 export interface Config {
   charles: string;
   auth0: {
-    regular: Auth0 & { gitPassword: string };
-    open: Auth0 & { gitPassword: string };
-    admin: Auth0 & { gitPassword: string };
-    [key: string]: Auth0 & { gitPassword: string };
+    regular: Auth0;
+    open: Auth0;
+    admin: Auth0;
+    [key: string]: Auth0;
   };
   notifications?: NotificationConfigurations;
 }
@@ -89,4 +89,9 @@ export interface LatestProject {
   id: number;
   repoUrl: string;
   token: string;
+}
+
+export interface OperationsResponse {
+  status: number;
+  message: string;
 }

@@ -2,7 +2,7 @@ import { injectable } from 'inversify';
 import * as Hapi from './hapi';
 
 export interface HapiRegister {
-  (server: Hapi.Server, _options: Hapi.IServerOptions, next: any): void;
+  (server: Hapi.Server, _options: Hapi.ServerOptions, next: any): void;
   attributes?: any;
 }
 
@@ -16,5 +16,5 @@ export abstract class HapiPlugin {
   constructor(attributes: HapiPluginAttributes) {
     this.register = Object.assign(this.register.bind(this), { attributes });
   }
-  public abstract register(server: Hapi.Server, options: Hapi.IServerOptions, next: () => void): any;
+  public abstract register(server: Hapi.Server, options: Hapi.ServerOptions, next: () => void): any;
 }

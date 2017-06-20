@@ -1,4 +1,4 @@
-import * as Boom from 'boom';
+import { badImplementation, badRequest, notFound } from 'boom';
 import { inject, injectable } from 'inversify';
 import { isNil, omitBy } from 'lodash';
 import { Moment } from 'moment';
@@ -82,7 +82,7 @@ export class JsonApiModule {
       // createProject in projectModule will throw
       // if there are errors, so we should always be
       // able to get the project afterwards
-      throw Boom.badImplementation();
+      throw badImplementation();
     }
     return project;
   }
@@ -101,7 +101,7 @@ export class JsonApiModule {
       // createProject in projectModule will throw
       // if there are errors, so we should always be
       // able to get the project afterwards
-      throw Boom.badImplementation();
+      throw badImplementation();
     }
     return project;
   }
@@ -134,7 +134,7 @@ export class JsonApiModule {
 
   public async getBranch(projectId: number, branchName: string): Promise<ApiBranch | null> {
     if (!branchName) {
-      throw Boom.badRequest('branchName is missing');
+      throw badRequest('branchName is missing');
     }
     const [project, branch] = await Promise.all([
       this.getProject(projectId),
@@ -154,7 +154,7 @@ export class JsonApiModule {
   ): Promise<ApiCommit[] | null> {
     const minardCommits = await this.projectModule.getBranchCommits(projectId, branchName, until, count);
     if (!minardCommits) {
-      throw Boom.notFound('branch not found');
+      throw notFound('branch not found');
     }
     return Promise.all(minardCommits.map(commit => {
       return this.toApiCommit(projectId, commit);
@@ -236,7 +236,7 @@ export class JsonApiModule {
   ): Promise<ApiCommit> {
     const ret = deepcopy(commit) as MinardCommit as ApiCommit;
     if (!commit) {
-      throw Boom.badImplementation();
+      throw badImplementation();
     }
     if (deployments) {
       ret.deployments = deployments;
@@ -367,7 +367,7 @@ export class JsonApiModule {
   ): Promise<ApiComment> {
     const deployment = await this.deploymentModule.getDeployment(deploymentId);
     if (!deployment) {
-      throw Boom.notFound('deployment not found');
+      throw notFound('deployment not found');
     }
     const newMinardComment: NewMinardComment = {
       projectId: deployment.projectId,
@@ -384,7 +384,7 @@ export class JsonApiModule {
   public async getComment(commentId: number): Promise<ApiComment> {
     const comment = await this.commentModule.getComment(commentId);
     if (!comment) {
-      throw Boom.notFound();
+      throw notFound();
     }
     return this.toApiComment(comment);
   }

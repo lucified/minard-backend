@@ -1,12 +1,12 @@
-import * as Boom from 'boom';
+import { badGateway, BoomError } from 'boom';
 import { expect } from 'chai';
 import * as moment from 'moment';
-import * as queryString from 'querystring';
+import { stringify } from 'querystring';
 import 'reflect-metadata';
 
 import AuthenticationModule from '../authentication/authentication-module';
 import { EventBus, LocalEventBus } from '../event-bus';
-import { Commit } from '../shared/gitlab';
+import { Commit, Project } from '../shared/gitlab';
 import { GitlabClient } from '../shared/gitlab-client';
 import Logger from '../shared/logger';
 import { MinardCommit } from '../shared/minard-commit';
@@ -38,7 +38,7 @@ const getClient = () => {
       return 'secret-token';
     }
   }
-  return new GitlabClient(host, fetchMock.fetchMock,
+  return new GitlabClient(host, 'secret', fetchMock.fetchMock,
     new MockAuthModule() as AuthenticationModule, logger);
 };
 
@@ -65,8 +65,8 @@ async function expectServerError(functionToRun: () => any) {
      await functionToRun();
      failed = true;
    } catch (err) {
-      expect((err as Boom.BoomError).isBoom).to.equal(true);
-      expect((err as Boom.BoomError).isServer).to.equal(true);
+      expect((err as BoomError).isBoom).to.equal(true);
+      expect((err as BoomError).isServer).to.equal(true);
    }
    if (failed) {
      expect.fail('should throw');
@@ -315,7 +315,7 @@ describe('project-module', () => {
       const projectModule = genericArrangeProjectModule(200, gitlabResponse, path);
       projectModule.getProjectContributors = async (_projectId: number) => {
         expect(_projectId).to.equal(gitlabProjectResponse.id);
-        throw Boom.badGateway();
+        throw badGateway();
       };
       // Act && Assert
       await expectServerError(async () => await projectModule.getProjects(teamId));
@@ -473,7 +473,7 @@ describe('project-module', () => {
 
     function arrangeProjectModule(status: number, _body: any) {
       return genericArrangeProjectModule(status, gitlabResponse,
-        `/projects/${projectId}/repository/commits?${queryString.stringify(params)}`);
+        `/projects/${projectId}/repository/commits?${stringify(params)}`);
     }
 
     it('should work when gitlab responds with two commits', async () => {
@@ -859,6 +859,7 @@ describe('project-module', () => {
     function arrangeProjectModule(bus: LocalEventBus = new LocalEventBus()) {
       const gitlab = new GitlabClient(
         '',
+        '',
         {} as any,
         {} as any,
         {} as any,
@@ -881,7 +882,7 @@ describe('project-module', () => {
         expect(_importUrl).to.equal('http://root:foo-password@localhost/foo-namespace/bar-project-name.git');
         return {
           id: projectId,
-        };
+        } as Project;
       };
       return projectModule;
     }
@@ -956,10 +957,10 @@ describe('project-module', () => {
       };
 
       // Act
-      let error: Boom.BoomError | undefined;
+      let error: BoomError | undefined;
       await projectModule.doCreateProjectFromTemplate(
         templateProjectId, teamId, projectName, description)
-        .catch((err) => error = err as Boom.BoomError);
+        .catch((err) => error = err as BoomError);
 
       // Assert
       expect(error).to.exist;
@@ -981,10 +982,10 @@ describe('project-module', () => {
       };
 
       // Act
-      let error: Boom.BoomError | undefined;
+      let error: BoomError | undefined;
       await projectModule.doCreateProjectFromTemplate(
         templateProjectId, teamId, projectName, description)
-        .catch((err) => error = err as Boom.BoomError);
+        .catch((err) => error = err as BoomError);
 
       // Assert
       expect(error).to.exist;
@@ -1009,7 +1010,7 @@ describe('project-module', () => {
         description,
         namespace_id: teamId,
       };
-      const url = `/projects?${queryString.stringify(params)}`;
+      const url = `/projects?${stringify(params)}`;
       return prepareProjectModule(status, body, url, 'POST', eventBus);
     }
 
@@ -1069,8 +1070,8 @@ describe('project-module', () => {
         await projectModule.doCreateProject(teamId, name, description);
         expect.fail('should throw');
       } catch (err) {
-        expect((err as Boom.BoomError).isBoom).to.equal(true);
-        expect((err as Boom.BoomError).isServer).to.equal(false);
+        expect((err as BoomError).isBoom).to.equal(true);
+        expect((err as BoomError).isServer).to.equal(false);
         expect(err.data).to.equal('name-already-taken');
       }
     });
@@ -1150,8 +1151,8 @@ describe('project-module', () => {
         await projectModule.deleteProject(projectId);
         expect.fail('should throw');
       } catch (err) {
-        expect((err as Boom.BoomError).isBoom).to.equal(true);
-        expect((err as Boom.BoomError).isServer).to.equal(true);
+        expect((err as BoomError).isBoom).to.equal(true);
+        expect((err as BoomError).isServer).to.equal(true);
       }
     });
 
@@ -1162,8 +1163,8 @@ describe('project-module', () => {
         await projectModule.deleteProject(projectId);
         expect.fail('should throw');
       } catch (err) {
-        expect((err as Boom.BoomError).isBoom).to.equal(true);
-        expect((err as Boom.BoomError).isServer).to.equal(true);
+        expect((err as BoomError).isBoom).to.equal(true);
+        expect((err as BoomError).isServer).to.equal(true);
       }
     });
 
@@ -1178,9 +1179,9 @@ describe('project-module', () => {
         await projectModule.deleteProject(projectId);
         expect.fail('should throw');
       } catch (err) {
-        expect((err as Boom.BoomError).isBoom).to.equal(true);
-        expect((err as Boom.BoomError).isServer).to.equal(false);
-        expect((err as Boom.BoomError).output.statusCode).to.equal(404);
+        expect((err as BoomError).isBoom).to.equal(true);
+        expect((err as BoomError).isServer).to.equal(false);
+        expect((err as BoomError).output.statusCode).to.equal(404);
       }
     });
 
@@ -1201,7 +1202,7 @@ describe('project-module', () => {
       params: any,
       eventBus?: EventBus,
       body?: any) {
-      const url = `/projects/${projectId}?${queryString.stringify(params)}`;
+      const url = `/projects/${projectId}?${stringify(params)}`;
       return prepareProjectModule(status, body, url, 'PUT', eventBus);
     }
 
@@ -1275,8 +1276,8 @@ describe('project-module', () => {
         await projectModule.editProject(projectId, { name, description });
         expect.fail('should throw');
       } catch (err) {
-        expect((err as Boom.BoomError).isBoom).to.equal(true);
-        expect((err as Boom.BoomError).isServer).to.equal(false);
+        expect((err as BoomError).isBoom).to.equal(true);
+        expect((err as BoomError).isServer).to.equal(false);
         expect(err.data).to.equal('name-already-taken');
       }
     });
@@ -1301,8 +1302,8 @@ describe('project-module', () => {
         expect.fail('should throw');
       } catch (err) {
         expect(fetchMock.called()).to.equal(true);
-        expect((err as Boom.BoomError).isBoom).to.equal(true);
-        expect((err as Boom.BoomError).isServer).to.equal(true);
+        expect((err as BoomError).isBoom).to.equal(true);
+        expect((err as BoomError).isServer).to.equal(true);
       }
     }
 
@@ -1370,7 +1371,7 @@ describe('project-module', () => {
         url: gitlabResponse.url,
         push_events: true,
       };
-      const path = `/projects/${projectId}/hooks?${queryString.stringify(params)}`;
+      const path = `/projects/${projectId}/hooks?${stringify(params)}`;
       return arrangeProjectModuleForProjectHookTest(status, gitlabResponse, path, { method: 'POST' });
     }
 
@@ -1391,8 +1392,8 @@ describe('project-module', () => {
       await projectModule.registerProjectHook(projectId).then(
         () => expect.fail('should throw'),
         (err) => {
-          expect((err as Boom.BoomError).isBoom).to.equal(true);
-          expect((err as Boom.BoomError).isServer).to.equal(false);
+          expect((err as BoomError).isBoom).to.equal(true);
+          expect((err as BoomError).isServer).to.equal(false);
         });
     });
 
@@ -1402,8 +1403,8 @@ describe('project-module', () => {
       await projectModule.registerProjectHook(projectId).then(
         () => expect.fail('should throw'),
         (err) => {
-          expect((err as Boom.BoomError).isBoom).to.equal(true);
-          expect((err as Boom.BoomError).isServer).to.equal(true);
+          expect((err as BoomError).isBoom).to.equal(true);
+          expect((err as BoomError).isServer).to.equal(true);
         });
     });
   });
@@ -1465,8 +1466,8 @@ describe('project-module', () => {
       await projectModule.fetchProjectHooks(projectId).then(
         () => expect.fail('should throw'),
         (err) => {
-          expect((err as Boom.BoomError).isBoom).to.equal(true);
-          expect((err as Boom.BoomError).isServer).to.equal(true);
+          expect((err as BoomError).isBoom).to.equal(true);
+          expect((err as BoomError).isServer).to.equal(true);
         });
     });
 
@@ -1478,8 +1479,8 @@ describe('project-module', () => {
       await projectModule.fetchProjectHooks(projectId).then(
         () => expect.fail('should throw'),
         (err) => {
-          expect((err as Boom.BoomError).isBoom).to.equal(true);
-          expect((err as Boom.BoomError).isServer).to.equal(false);
+          expect((err as BoomError).isBoom).to.equal(true);
+          expect((err as BoomError).isServer).to.equal(false);
         });
     });
 
@@ -1491,8 +1492,8 @@ describe('project-module', () => {
       await projectModule.fetchProjectHooks(projectId).then(
         () => expect.fail('should throw'),
         (err) => {
-          expect((err as Boom.BoomError).isBoom).to.equal(true);
-          expect((err as Boom.BoomError).isServer).to.equal(true);
+          expect((err as BoomError).isBoom).to.equal(true);
+          expect((err as BoomError).isServer).to.equal(true);
         });
     });
 
@@ -1643,11 +1644,11 @@ describe('project-module', () => {
           return {
             id: sha,
             parentIds: ['first-parent-hash', 'second-parent-hash', 'null-commit-hash'],
-          };
+          } as MinardCommit;
         }
         return {
           id: sha,
-        };
+        } as MinardCommit;
       };
 
       projectModule.getProject = async (_projectId: number) => {

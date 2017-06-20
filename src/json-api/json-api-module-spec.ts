@@ -20,6 +20,7 @@ import {
   MinardCommit,
 } from '../shared/minard-commit';
 import {
+  ApiCommit,
   ApiDeployment,
   ApiProject,
   JsonApiModule,
@@ -109,7 +110,7 @@ describe('json-api-module', () => {
         // rewrite the ids to chech that this was called, with correct parameters
         return {
           id: `${projectId}-${deployment.id}`,
-        };
+        } as ApiDeployment;
       };
 
       // Act
@@ -205,7 +206,7 @@ describe('json-api-module', () => {
       const commentActivity: MinardActivity = {
         ...minardActivity,
         ...attributes,
-      };
+      } as MinardActivity;
       const jsonApiModule = new JsonApiModule(
         {} as any,
         {} as any,
@@ -240,7 +241,7 @@ describe('json-api-module', () => {
           email: 'fooman@foomail.com',
           timestamp: 'fooo',
         },
-      } as any as MinardDeployment;
+      } as MinardDeployment;
 
       const commentModule = {} as CommentModule;
       commentModule.getCommentCountForDeployment = async (deploymentId: number) => {
@@ -307,7 +308,7 @@ describe('json-api-module', () => {
             {
               id: 'bar-deployment',
               commitHash: minardCommits[1].id,
-           },
+           } as {} as MinardDeployment,
           ];
         }
         throw new Error('invalid hash');
@@ -360,11 +361,11 @@ describe('json-api-module', () => {
     const latestCommitReturnedFromToApiCommit = {
       id: '5-foo-commit-id',
       hash: 'foo-commit-hash',
-    };
+    } as ApiCommit;
     const latestDeployedCommitFromToApiCommit = {
       id: '5-bar-commit-id',
       hash: 'bar-commit-hash',
-    };
+    } as ApiCommit;
 
     it('should return valid ApiBranch when fetching of related data succeeds', async () => {
       // Arrange

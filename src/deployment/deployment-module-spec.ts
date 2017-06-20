@@ -1,12 +1,12 @@
-import * as Boom from 'boom';
+import { BoomError } from 'boom';
 import { expect } from 'chai';
 import * as fetchMock from 'fetch-mock';
-import * as fs from 'fs';
+import { createReadStream, existsSync } from 'fs';
 import * as Knex from 'knex';
 import * as moment from 'moment';
 import { Response } from 'node-fetch';
-import * as os from 'os';
-import * as path from 'path';
+import { tmpdir } from 'os';
+import { join } from 'path';
 import 'reflect-metadata';
 import { promisify } from 'util';
 
@@ -58,7 +58,7 @@ const getClient = () => {
       return token;
     }
   }
-  return new GitlabClient(host, (fetchMock as any).fetchMock,
+  return new GitlabClient(host, 'secret', (fetchMock as any).fetchMock,
     new MockAuthModule() as Authentication, {} as any);
 };
 
@@ -468,9 +468,9 @@ describe('deployment-module', () => {
 
     it('should work with a simple artifact', async () => {
       // Arrange
-      rimraf.sync(path.join(os.tmpdir(), 'minard'));
-      const thePath = path.join(__dirname, '../../src/deployment/test-data/test-artifact.zip');
-      const stream = fs.createReadStream(thePath);
+      rimraf.sync(join(tmpdir(), 'minard'));
+      const thePath = join(__dirname, '../../src/deployment/test-data/test-artifact.zip');
+      const stream = createReadStream(thePath);
       const opts = {
         status: 200,
         statusText: 'ok',
@@ -479,15 +479,15 @@ describe('deployment-module', () => {
       const gitlabClient = getClient();
       const mockUrl = `${host}${gitlabClient.apiPrefix}/projects/1/builds/2/artifacts`;
       fetchMock.restore().mock(mockUrl, response);
-      const deploymentsDir = path.join(os.tmpdir(), 'minard', 'deploys');
+      const deploymentsDir = join(tmpdir(), 'minard', 'deploys');
       const deploymentModule = getDeploymentModule(gitlabClient, deploymentsDir);
 
       // Act
       const deploymentPath = await deploymentModule.downloadAndExtractDeployment(1, 2);
 
       // Assert
-      const indexFilePath = path.join(deploymentPath, 'dist', 'index.html');
-      expect(fs.existsSync(indexFilePath)).to.equal(true);
+      const indexFilePath = join(deploymentPath, 'dist', 'index.html');
+      expect(existsSync(indexFilePath)).to.equal(true);
       expect(deploymentPath).to.equal(deploymentModule.getTempArtifactsPath(1, 2));
     });
 
@@ -498,21 +498,21 @@ describe('deployment-module', () => {
     const projectId = 3;
     const deploymentId = 4;
     const branchName = 'master';
-    const deploymentPath = path.join(os.tmpdir(), 'minard-move', 'test-deployment');
-    const extractedPath = path.join(os.tmpdir(), 'minard-move', 'extracted');
+    const deploymentPath = join(tmpdir(), 'minard-move', 'test-deployment');
+    const extractedPath = join(tmpdir(), 'minard-move', 'extracted');
 
     async function shouldMoveCorrectly(publicRoot: string, artifactFolder: string, _logger: any = basicLogger) {
       // Arrange
       rimraf.sync(deploymentPath);
       rimraf.sync(extractedPath);
       mkpath.sync(extractedPath);
-      await ncp(path.join(__dirname, '../../src/deployment/test-data'), extractedPath);
+      await ncp(join(__dirname, '../../src/deployment/test-data'), extractedPath);
       const deploymentModule = {
         logger: _logger,
         getTempArtifactsPath: (_projectId: number, _deploymentId: number) => {
           expect(_projectId).to.equal(projectId);
           expect(_deploymentId).to.equal(deploymentId);
-          return path.join(extractedPath, artifactFolder);
+          return join(extractedPath, artifactFolder);
         },
         getDeployment: async (_deploymentId: number) => {
           expect(_deploymentId).to.equal(deploymentId);
@@ -544,18 +544,18 @@ describe('deployment-module', () => {
 
     it('should move files correctly when publicRoot is "foo"', async () => {
       const ret = await shouldMoveCorrectly('foo', 'test-extracted-artifact-1');
-      expect(fs.existsSync(path.join(deploymentPath, 'index.html'))).to.equal(true);
+      expect(existsSync(join(deploymentPath, 'index.html'))).to.equal(true);
       expect(ret).to.equal(deploymentPath);
     });
 
     it('should move files correctly when publicRoot is "foo/bar"', async () => {
       await shouldMoveCorrectly('foo/bar', 'test-extracted-artifact-2');
-      expect(fs.existsSync(path.join(deploymentPath, 'index.html'))).to.equal(true);
+      expect(existsSync(join(deploymentPath, 'index.html'))).to.equal(true);
     });
 
     it('should move files correctly when publicRoot is "."', async () => {
       await shouldMoveCorrectly('.', 'test-extracted-artifact-3');
-      expect(fs.existsSync(path.join(deploymentPath, 'index.html'))).to.equal(true);
+      expect(existsSync(join(deploymentPath, 'index.html'))).to.equal(true);
     });
 
     it('should return undefined when publicRoot does not exist in artifacts"', async () => {
@@ -582,11 +582,11 @@ describe('deployment-module', () => {
       let resolve1: ((arg: any) => void) | undefined;
       let reject1: ((arg: any) => void) | undefined;
       let resolve2: ((arg: any) => void) | undefined;
-      const promise1 = new Promise((resolve, reject) => {
+      const promise1 = new Promise<boolean>((resolve, reject) => {
         resolve1 = resolve;
         reject1 = reject;
       });
-      const promise2 = new Promise((resolve, _reject) => {
+      const promise2 = new Promise<boolean>((resolve, _reject) => {
         resolve2 = resolve;
       });
       let firstCalled = false;
@@ -734,7 +734,7 @@ describe('deployment-module', () => {
         expect(_projectId).to.equal(projectId);
         expect(shaOrBranchName).to.equal(branchName);
         expect(path).to.equal(minardJson.publicRoot);
-        return [{}];
+        return [{} as any];
       };
 
       // Act
@@ -1474,8 +1474,8 @@ describe('deployment-module', () => {
         await deploymentModule.filesAtPath(2, branch, repoPath);
         expect.fail('should throw');
       } catch (err) {
-        expect((err as Boom.BoomError).isBoom).to.equal(true);
-        expect((err as Boom.BoomError).output.statusCode).to.equal(404);
+        expect((err as BoomError).isBoom).to.equal(true);
+        expect((err as BoomError).output.statusCode).to.equal(404);
       }
     });
 

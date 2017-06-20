@@ -1,9 +1,9 @@
-import * as cacheManager from 'cache-manager';
+import { caching } from 'cache-manager';
+import * as fetchMock from 'fetch-mock';
 import { Container } from 'inversify';
 import { sign } from 'jsonwebtoken';
 import * as Knex from 'knex';
 
-import * as fetchMock from 'fetch-mock';
 import {
   AccessToken,
   authCookieDomainInjectSymbol,
@@ -30,6 +30,7 @@ const getClient = () => {
   }
   return new GitlabClient(
     'gitlab',
+    'secret',
     (fetchMock as any).fetchMock,
     new MockAuthModule() as AuthenticationModule,
     logger,
@@ -104,11 +105,11 @@ export default (kernel: Container) => {
   });
   kernel.rebind(charlesKnexInjectSymbol).toConstantValue(charlesKnex);
   kernel.rebind(loggerInjectSymbol).toConstantValue(logger);
-  kernel.rebind(jwtOptionsInjectSymbol).toConstantValue(getJwtOptions());
+  kernel.bind(jwtOptionsInjectSymbol).toConstantValue(getJwtOptions());
   kernel.rebind(authCookieDomainInjectSymbol).toConstantValue(AUTH_COOKIE_DOMAIN);
   kernel.rebind(externalBaseUrlInjectSymbol).toConstantValue(EXTERNAL_BASEURL);
 
-  const cache = cacheManager.caching({
+  const cache = caching({
     store: 'memory',
     max: 10,
     ttl: 0,

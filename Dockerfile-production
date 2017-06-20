@@ -1,16 +1,14 @@
-FROM node:7.5-alpine
-
+FROM node:8.1-alpine
+RUN echo #### Remember to transpile before building! ####
 WORKDIR /code
 
 COPY package.json /code/package.json
-
-RUN npm install
-
+COPY yarn.lock /code/yarn.lock
 ENV NODE_ENV production
+RUN yarn install --prod
 
+# NOTE: 'dist/' is assumed to contains the latest transpiled code
 COPY . /code
-RUN npm run transpile
-RUN npm prune && rm -rf src
 
 # NOTE: don't use npm here since the OS signals, e.g. SIGTERM, won't propagate
 # (read https://github.com/yelp/dumb-init for more)

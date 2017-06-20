@@ -1,4 +1,18 @@
-# Prerequisites
+# Tests
+
+## Unit tests
+
+The backend has more than 250 unit tests. Run them with
+```shell
+npm test
+```
+
+All unit tests are named with the pattern `foo-spec.ts`. The test
+files are located in the same directory as the code to be tested.
+
+## System integration tests
+
+### Prerequisites
 
 The integration tests require a configuration file, `src/integration-test/configuration.{environment}.ts` for each environment
 you want to run the tests against. The
@@ -24,9 +38,9 @@ interface Config {
     },
   };
   auth0: {
-    regular: Auth0 & { gitPassword: string };
-    open: Auth0 & { gitPassword: string };
-    admin: Auth0 & { gitPassword: string };
+    regular: Auth0;
+    open: Auth0;
+    admin: Auth0;
   };
 }
 interface Auth0 {
@@ -42,7 +56,7 @@ An example file can be found from `src/integration-test/configuration.example.ts
 The integration tests assume that a predefined set of "users" have been created in Auth0 and linked with
 corresponding user accounts and groups in GitLab.  To be able to get up and running from scratch remains a TODO.
 
-## Auth0 configuration
+### Auth0 configuration
 
 We currenty have three kinds of teams: *regular*, *open* and *admin*.
 A new non interactive client needs to be created for each of these.
@@ -56,19 +70,25 @@ to the integration test configuration file described above.
 
 ## GitLab configuration
 
-Create three new groups, 'integration-test', 'integration-test-open' and 'integration-test-admin'.
+Create two new groups, 'integrationtest' and 'integrationtestopenteam'.
 Add a user to each of these and set the username to `clients-{clientId}` where clientId
-is the id of the corresponding Auth0 client. Set the user's password to some generated value and
-copy it to the `gitPassword` field of the corresponding team in the `auth0` block
-of the configuration file.
+is the id of the corresponding Auth0 client. Additionally, create one more user, which
+you don't need to add to any group. This will be the admin user.
+
+After creating the groups and users, update the passwords for all users
+by running:
+
+```shell
+charles-client regenerateGitlabPasswords
+```
 
 ## Charles's configuration
 
 Make sure the following environment variables have been set when starting charles:
 
 ```shell
+ADMIN_ID=auth0ClientIdForAdminUser
 OPEN_TEAM_NAMES=integrationtestopenteam
-ADMIN_TEAM_NAME=integrationtestadminteam
 ```
 
 # Running the tests

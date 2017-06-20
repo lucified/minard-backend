@@ -1,5 +1,5 @@
 import { Observable } from '@reactivex/rxjs';
-import * as Boom from 'boom';
+import { forbidden, notFound, wrap } from 'boom';
 import { inject, injectable } from 'inversify';
 import * as Joi from 'joi';
 import * as moment from 'moment';
@@ -40,7 +40,7 @@ export class RealtimeHapiPlugin extends HapiPlugin {
     this.authorizeDeployment = this.authorizeDeployment.bind(this);
   }
 
-  public register(server: Hapi.Server, _options: Hapi.IServerOptions, next: () => void) {
+  public register(server: Hapi.Server, _options: Hapi.ServerOptions, next: () => void) {
 
     server.route([{
       method: 'GET',
@@ -104,7 +104,11 @@ export class RealtimeHapiPlugin extends HapiPlugin {
     );
   }
 
-  private async streamReply(stream: Observable<PersistedEvent<any>>, request: Hapi.Request, reply: Hapi.IReply) {
+  private async streamReply(
+    stream: Observable<PersistedEvent<any>>,
+    request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
     const nodeStream = new ObservableWrapper(stream);
     reply(nodeStream)
       .header('content-type', 'text/event-stream')
@@ -116,7 +120,7 @@ export class RealtimeHapiPlugin extends HapiPlugin {
     });
   }
 
-  private async teamHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  private async teamHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
     try {
       const { teamId } = request.params;
       const _teamId = parseInt(teamId, 10);
@@ -125,11 +129,11 @@ export class RealtimeHapiPlugin extends HapiPlugin {
       return this.streamReply(stream, request, reply);
     } catch (err) {
       this.logger.warn('Problems handling a SSE request', err);
-      return reply(Boom.wrap(err));
+      return reply(wrap(err));
     }
   }
 
-  public validateDeploymentToken(request: Hapi.Request, reply: Hapi.IReply) {
+  public validateDeploymentToken(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
     try {
       const { token, deploymentId: _deploymentId, projectId: _projectId } = request.params;
       const deploymentId = Number(_deploymentId);
@@ -137,7 +141,7 @@ export class RealtimeHapiPlugin extends HapiPlugin {
       const correctToken = this.tokenGenerator.deploymentToken(projectId, deploymentId);
 
       if (!token || token !== correctToken) {
-        return reply(Boom.forbidden('Invalid token'));
+        return reply(forbidden('Invalid token'));
       }
 
       return reply('ok');
@@ -145,11 +149,11 @@ export class RealtimeHapiPlugin extends HapiPlugin {
     } catch (error) {
       // Nothing to be done here
     }
-    return reply(Boom.forbidden('Invalid token'));
+    return reply(forbidden('Invalid token'));
 
   }
 
-  public async authorizeDeployment(request: Hapi.Request, reply: Hapi.IReply) {
+  public async authorizeDeployment(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
     try {
       const { deploymentId: _deploymentId, projectId: _projectId } = request.params;
       const deploymentId = Number(_deploymentId);
@@ -165,12 +169,12 @@ export class RealtimeHapiPlugin extends HapiPlugin {
     } catch (error) {
       this.logger.warn('Problems authorizing a realtime request', error);
     }
-    return reply(Boom.notFound());
+    return reply(notFound());
   }
 
-  public async deploymentHandler(request: Hapi.Request, reply: Hapi.IReply) {
+  public async deploymentHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
     try {
-      const { teamId: _teamId, deploymentId: _deploymentId, projectId: _projectId } = request.pre[PREKEY];
+      const { teamId: _teamId, deploymentId: _deploymentId, projectId: _projectId } = (request.pre as any)[PREKEY];
       const deploymentId = Number(_deploymentId);
       const projectId = Number(_projectId);
       const teamId = Number(_teamId);
@@ -179,7 +183,7 @@ export class RealtimeHapiPlugin extends HapiPlugin {
       return this.streamReply(stream, request, reply);
     } catch (err) {
       this.logger.warn('Problems handling a realtime request', err);
-      return reply(Boom.wrap(err));
+      return reply(wrap(err));
     }
   }
 }

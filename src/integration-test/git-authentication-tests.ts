@@ -107,7 +107,7 @@ describe('git-authentication', () => {
         expect(parts.length).to.eq(3);
       });
 
-      it('should be able to get the signing key', async () => {
+      it('should be able to get the signing key', async function() {
         this.timeout(5000);
         // Act
         const response = await scheme.getSigningKey(scheme.decode(accessToken));
@@ -151,7 +151,7 @@ describe('git-authentication', () => {
         }
       });
 
-      it('should throw an error with incorrect credentials', async () => {
+      it('should throw an error with incorrect credentials', async function() {
         // Arrange
         this.timeout(5000);
         const id = await idPromise!;

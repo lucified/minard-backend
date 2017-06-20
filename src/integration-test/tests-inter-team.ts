@@ -43,8 +43,9 @@ export default (
       it(`should not be able to clone another team\'s project`, async function() {
         const accessToken = clients[userType].accessToken;
         const repoFolder = `src/integration-test/blank-cloned`;
+        const other = userType === 'admin' ? clients.regular : clients.admin;
         await runCommand('rm', '-rf', repoFolder);
-        const repoUrl = clients.admin.getRepoUrlWithCredentials({
+        const repoUrl = other.getRepoUrlWithCredentials({
           username: accessToken,
           password: '',
         });
@@ -61,14 +62,15 @@ export default (
         this.timeout(20000);
         const accessToken = clients[userType].accessToken;
         const repoFolder = `src/integration-test/blank-cloned`;
+        const other = userType === 'admin' ? clients.regular : clients.admin;
         await runCommand('rm', '-rf', repoFolder);
         await runCommand(
           'git',
           'clone',
-          clients.admin.getRepoUrlWithCredentials(),
+          other.getRepoUrlWithCredentials(),
           repoFolder,
         );
-        const repoUrl = clients.admin.getRepoUrlWithCredentials({
+        const repoUrl = other.getRepoUrlWithCredentials({
           username: accessToken,
           password: '',
         });

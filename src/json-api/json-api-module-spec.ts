@@ -241,7 +241,7 @@ describe('json-api-module', () => {
           email: 'fooman@foomail.com',
           timestamp: 'fooo',
         },
-      } as any as MinardDeployment;
+      } as MinardDeployment;
 
       const commentModule = {} as CommentModule;
       commentModule.getCommentCountForDeployment = async (deploymentId: number) => {
@@ -361,11 +361,11 @@ describe('json-api-module', () => {
     const latestCommitReturnedFromToApiCommit = {
       id: '5-foo-commit-id',
       hash: 'foo-commit-hash',
-    };
+    } as ApiCommit;
     const latestDeployedCommitFromToApiCommit = {
       id: '5-bar-commit-id',
       hash: 'bar-commit-hash',
-    };
+    } as ApiCommit;
 
     it('should return valid ApiBranch when fetching of related data succeeds', async () => {
       // Arrange
@@ -389,10 +389,10 @@ describe('json-api-module', () => {
       jsonApiModule.toApiCommit = async(_projectId: number, commit: MinardCommit, _deployments?: ApiDeployment[]) => {
         expect(commit).to.exist;
         if (commit.id === minardBranch.latestCommit.id) {
-          return latestCommitReturnedFromToApiCommit as ApiCommit;
+          return latestCommitReturnedFromToApiCommit;
         }
         if (commit.id === minardDeployment.commit.id) {
-          return latestDeployedCommitFromToApiCommit as ApiCommit;
+          return latestDeployedCommitFromToApiCommit;
         }
         throw Error('invalid params to toApiCommit');
       };

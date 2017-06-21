@@ -87,7 +87,7 @@ describe('authorization for raw deployments', () => {
     // Act
     const response = await makeRequest(server);
     // Assert
-    expect(response.statusCode).to.eq(401);
+    expect(response.statusCode).to.eq(404);
     expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
     expect(handlerStub).to.not.have.been.called;
 

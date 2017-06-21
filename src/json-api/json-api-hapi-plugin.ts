@@ -8,8 +8,9 @@ import {
   STRATEGY_TOPLEVEL_USER_HEADER,
 } from '../authentication/types';
 import * as Hapi from '../server/hapi';
-import { HapiRegister } from '../server/hapi-register';
+import { HapiPlugin } from '../server/hapi-register';
 import { externalBaseUrlInjectSymbol } from '../server/types';
+import { maskErrors } from '../shared/errors';
 import TokenGenerator from '../shared/token-generator';
 import { parseApiBranchId, parseApiDeploymentId } from './conversions';
 import { JsonApiModule } from './json-api-module';
@@ -17,38 +18,30 @@ import { serializeApiEntity } from './serialization';
 import { ApiEntities, ApiEntity, PreviewType } from './types';
 import { ViewEndpoints } from './view-endpoints';
 
-function applyHeaders(obj: any) {
-  obj.headers['content-type'] = 'application/vnd.api+json; charset=utf-8';
-  obj.headers['Access-Control-Allow-Origin'] = '*';
+function applyHeaders(headers: { [key: string]: string }) {
+  headers['content-type'] = 'application/vnd.api+json; charset=utf-8';
+  headers['Access-Control-Allow-Origin'] = '*';
 }
 
-function onPreResponse(_server: Hapi.Server, request: Hapi.Request, reply: Hapi.ReplyWithContinue) {
+function onPreResponse(
+  _server: Hapi.Server,
+  request: Hapi.Request,
+  reply: Hapi.ReplyWithContinue,
+) {
   const response = request.response;
   if (!response) {
     return reply.continue();
   }
 
-  if (!request.path.startsWith('/api')) {
+  if (!request.path.startsWith('/api') || request.method === 'options') {
     return reply.continue();
   }
 
-  if (request.method === 'options') {
-    return reply.continue();
-  }
-
-  if (response.isBoom) {
-    const output = (response as any).output;
-    const error = {
-      title: output.payload.error,
-      status: output.statusCode,
-      detail: output.payload.message,
-    };
-    output.payload = {
-      errors: [error],
-    };
-    applyHeaders(output);
+  if (response.isBoom && response.output) {
+    maskErrors(response);
+    applyHeaders(response.output.headers);
   } else {
-    applyHeaders(response);
+    applyHeaders(response.headers);
   }
   return reply.continue();
 }
@@ -81,7 +74,7 @@ const projectNameRegex = /^[\w|\-]+$/;
 const TEAM_OR_PROJECT_PRE_KEY = 'teamOrProject';
 const DEPLOYMENT_PRE_KEY = 'deployment';
 @injectable()
-export class JsonApiHapiPlugin {
+export class JsonApiHapiPlugin extends HapiPlugin {
 
   public static injectSymbol = Symbol('json-api-hapi-plugin');
 
@@ -93,16 +86,16 @@ export class JsonApiHapiPlugin {
     @inject(ViewEndpoints.injectSymbol) private readonly viewEndpoints: ViewEndpoints,
     @inject(TokenGenerator.injectSymbol) private readonly tokenGenerator: TokenGenerator,
   ) {
-    this.register.attributes = {
+    super({
       name: 'json-api-plugin',
       version: '1.0.0',
-    };
+    });
     this.baseUrl = baseUrl + '/api';
     this.getDeploymentId = this.getDeploymentId.bind(this);
     this.validatePreviewToken = this.validatePreviewToken.bind(this);
   }
 
-  public register: HapiRegister = (server, _options, next) => {
+  public register(server: Hapi.Server, _options: Hapi.ServerOptions, next: () => void) {
 
     server.ext('onPreResponse', onPreResponse.bind(undefined, server));
 

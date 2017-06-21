@@ -12,6 +12,7 @@ import {
 import * as Hapi from '../server/hapi';
 import { HapiPlugin } from '../server/hapi-register';
 import { minardUiBaseUrlInjectSymbol } from '../server/types';
+import { maskErrors } from '../shared/errors';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
 import DeploymentModule, {
   deploymentVhost,
@@ -83,20 +84,23 @@ class DeploymentHapiPlugin extends HapiPlugin {
     reply: Hapi.ReplyWithContinue,
   ) {
     // Redirect to login page, if user didn't pass
-    const output = (request.response as any).output;
-    const hasForbiddenStatusCode =
-      output && [401, 403].find(code => code === output.statusCode);
-    if (
-      request.info.hostname === deploymentVhost &&
-      request.response &&
-      request.response.isBoom &&
-      hasForbiddenStatusCode &&
-      !request.auth.isAuthenticated &&
-      !request.isInternal
-    ) {
-      return reply.redirect(
-        `${this.uiBaseUrl}/login/${getEncodedUri(request)}`,
-      );
+    const { response } = request;
+    if (!response || !response.isBoom || !response.output) {
+      return reply.continue();
+    }
+    const { statusCode } = response.output;
+    const hasForbiddenStatusCode = [401, 403].find(code => code === statusCode);
+    if (request.info.hostname === deploymentVhost && hasForbiddenStatusCode) {
+      maskErrors(response);
+
+      if (
+        !request.auth.isAuthenticated &&
+        !request.isInternal
+      ) {
+        return reply.redirect(
+          `${this.uiBaseUrl}/login/${getEncodedUri(request)}`,
+        );
+      }
     }
     return reply.continue();
   }

@@ -58,6 +58,7 @@ export function getResponseJson<T>(response: Response) {
   };
 }
 
+// prettier-ignore
 export async function runCommand(
   command: string,
   ...args: string[],

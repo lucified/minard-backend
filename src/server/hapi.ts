@@ -62,6 +62,7 @@ export function getServer(options?: ServerOptions) {
   return server;
 }
 
+// prettier-ignore
 export async function getTestServer(
   initialize: boolean,
   ...plugins: PluginConfig[],

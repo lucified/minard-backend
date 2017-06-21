@@ -195,7 +195,7 @@ describe('json-api serialization', () => {
 
       // included deployment
       expect(converted.included).to.have.length(2);
-      const includedDeployment = (<any>converted.included).find(
+      const includedDeployment = (converted.included as any).find(
         (item: any) =>
           item.id ===
             project.latestSuccessfullyDeployedCommit!.deployments[0].id &&
@@ -210,7 +210,7 @@ describe('json-api serialization', () => {
       );
 
       // included commit
-      const includedCommit = (<any>converted.included).find(
+      const includedCommit = (converted.included as any).find(
         (item: any) =>
           item.id === project.latestSuccessfullyDeployedCommit!.id &&
           item.type === 'commits',
@@ -332,7 +332,7 @@ describe('json-api serialization', () => {
       expect(data.relationships['latest-commit'].data.type).to.equal('commits');
 
       // included latestCommit
-      const includedCommit = (<any>converted.included).find(
+      const includedCommit = (converted.included as any).find(
         (item: any) =>
           item.id === branch.latestCommit.id && item.type === 'commits',
       );
@@ -341,7 +341,7 @@ describe('json-api serialization', () => {
       expect(includedCommit.attributes.hash).to.equal(branch.latestCommit.hash);
 
       // included deployment from latestCommit
-      const includedDeployment = (<any>converted.included).find(
+      const includedDeployment = (converted.included as any).find(
         (item: any) =>
           item.id === branch.latestCommit.deployments[0].id &&
           item.type === 'deployments',
@@ -367,7 +367,7 @@ describe('json-api serialization', () => {
       ).to.equal('commits');
 
       // included latestSuccessfullyDeployedCommit
-      const includedSuccessCommit = (<any>converted.included).find(
+      const includedSuccessCommit = (converted.included as any).find(
         (item: any) =>
           item.id === branch.latestSuccessfullyDeployedCommit!.id &&
           item.type === 'commits',
@@ -381,7 +381,7 @@ describe('json-api serialization', () => {
       );
 
       // included deployment from latestSuccessfullyDeployedCommit
-      const includedSuccessDeployment = (<any>converted.included).find(
+      const includedSuccessDeployment = (converted.included as any).find(
         (item: any) =>
           item.id ===
             branch.latestSuccessfullyDeployedCommit!.deployments[0].id &&
@@ -438,7 +438,7 @@ describe('json-api serialization', () => {
       expect(values(converted.included)).to.have.length(1);
 
       // included deployment
-      const includedDeployment = (<any>converted.included).find(
+      const includedDeployment = (converted.included as any).find(
         (item: any) =>
           item.id === commit.deployments[0].id && item.type === 'deployments',
       );

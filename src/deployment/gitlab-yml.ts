@@ -107,12 +107,12 @@ function getScripts(
     return [commands];
   }
   if (typeof commands === 'object' && !Array.isArray(commands)) {
-    return [(<MinardJsonBuildCommand>commands).command];
+    return [(commands as MinardJsonBuildCommand).command];
   }
   const cmds = commands as any[];
   const ret = cmds.map((item: MinardJsonBuildCommand | string) => {
     if (typeof item === 'object' && !Array.isArray(item)) {
-      return (<MinardJsonBuildCommand>item).command;
+      return (item as MinardJsonBuildCommand).command;
     }
     if (typeof item === 'string') {
       return item;

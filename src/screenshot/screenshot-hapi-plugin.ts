@@ -48,9 +48,9 @@ export default class ScreenshotHapiPlugin {
     request: Hapi.Request,
     reply: Hapi.ReplyNoContinue,
   ) {
-    const projectId = (<any>request.params).projectId;
-    const deploymentId = (<any>request.params).deploymentId;
-    const token = (<any>request.query).token;
+    const projectId = (request.params as any).projectId;
+    const deploymentId = (request.params as any).deploymentId;
+    const token = (request.query as any).token;
     if (
       !this.screenshotModule.deploymentHasScreenshot(projectId, deploymentId)
     ) {

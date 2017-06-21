@@ -123,7 +123,7 @@ describe('persistent-event-bus', () => {
     const bus = getEventBus();
     const promise = bus
       .getStream()
-      .map(event => <PersistedEvent<any>>event)
+      .map(event => event as PersistedEvent<any>)
       .takeUntil(Observable.timer(100))
       .toArray()
       .toPromise();
@@ -139,7 +139,7 @@ describe('persistent-event-bus', () => {
     const bus = getEventBus();
     const promise = bus
       .getStream()
-      .map(event => <PersistedEvent<any>>event)
+      .map(event => event as PersistedEvent<any>)
       .takeUntil(Observable.timer(100))
       .toArray()
       .toPromise();
@@ -157,7 +157,7 @@ describe('persistent-event-bus', () => {
     const bus = getEventBus();
     const promise = bus
       .getStream()
-      .map(event => <PersistedEvent<any>>event)
+      .map(event => event as PersistedEvent<any>)
       .takeUntil(Observable.timer(100))
       .toArray()
       .toPromise();
@@ -184,7 +184,7 @@ describe('persistent-event-bus', () => {
     const bus = getEventBus();
     const promise = bus
       .getStream()
-      .map(event => <PersistedEvent<any>>event)
+      .map(event => event as PersistedEvent<any>)
       .takeUntil(Observable.timer(200))
       .toArray()
       .toPromise();
@@ -269,7 +269,7 @@ describe('persistent-event-bus', () => {
     const realTime = bus
       .getStream()
       .filter(isPersistedEvent)
-      .map(event => <PersistedEvent<any>>event);
+      .map(event => event as PersistedEvent<any>);
     const combined = Observable.concat(Observable.from(existing), realTime);
 
     const promise = combined.take(finalNumber).toArray().toPromise();

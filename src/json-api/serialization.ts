@@ -191,7 +191,7 @@ function projectSerializer(apiBaseUrl: string) {
         'project',
         projectSerialization(apiBaseUrl),
       );
-      (<any>entity).branches = {};
+      (entity as any).branches = {};
       return serializer.serialize(entity);
     },
   };
@@ -204,7 +204,7 @@ function branchSerializer(apiBaseUrl: string) {
         'branch',
         branchSerialization(apiBaseUrl),
       );
-      (<any>entity).commits = {};
+      (entity as any).commits = {};
       return serializer.serialize(entity);
     },
   };

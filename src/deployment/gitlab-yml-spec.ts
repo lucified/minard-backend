@@ -184,6 +184,7 @@ describe('gitlab-yml', () => {
       expectDoNotBuildSpec(getGitlabSpec(minardJson));
     });
 
+    // tslint:disable-next-line:max-line-length
     it('should return do-not-build spec when build commands in an array with an object with no command attribute', () => {
       const minardJson = {
         publicRoot: 'foo',
@@ -207,6 +208,7 @@ describe('gitlab-yml', () => {
       expectDoNotBuildSpec(getGitlabSpec(minardJson));
     });
 
+    // tslint:disable-next-line:max-line-length
     it('should return do-not-build spec when build commands in an array with an object with invalid command attribute', () => {
       const minardJson = {
         publicRoot: 'foo',

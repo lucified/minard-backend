@@ -60,7 +60,7 @@ export function getResponseJson<T>(response: Response) {
 
 export async function runCommand(
   command: string,
-  ...args: string[]
+  ...args: string[],
 ): Promise<boolean> {
   return await new Promise<boolean>((resolve, reject) => {
     const stdio = isDebug() ? 'inherit' : 'pipe';

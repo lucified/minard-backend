@@ -53,7 +53,7 @@ export const eventCreator = <T extends EventPayload>(
     }
     return event;
   };
-  (<any>ret).type = type;
+  (ret as any).type = type;
   return ret as EventCreator<T>;
 };
 
@@ -73,7 +73,7 @@ export function isPersistedEvent<T>(
 ): event is PersistedEvent<T> {
   return (
     isSSE(event) &&
-    typeof (<any>event).id === 'string' &&
-    typeof (<any>event).streamRevision === 'number'
+    typeof (event as any).id === 'string' &&
+    typeof (event as any).streamRevision === 'number'
   );
 }

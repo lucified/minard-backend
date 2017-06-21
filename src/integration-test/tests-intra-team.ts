@@ -388,8 +388,8 @@ export default (
         }
       });
 
+      // tslint:disable-next-line:only-arrow-functions
       it('should be able to request events retrospectively', async function() {
-        // tslint:disable-line
         const client = await clientFactory();
         const eventStream = await client.teamEvents(
           eventType,

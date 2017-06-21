@@ -39,12 +39,6 @@ declare module 'hapi' {
     isInternal: boolean;
   }
   interface Request extends RequestDecorators {}
-  // interface RoutePayloadConfigurationObject {
-  //   payload?: {
-  //     output?: PayLoadOutputOption;
-  //     parse: 'gunzip' | boolean;
-  //   };
-  // }
 }
 
 type AsyncHandler = (request: Request, reply: ReplyNoContinue) => Promise<any>;
@@ -70,7 +64,7 @@ export function getServer(options?: ServerOptions) {
 
 export async function getTestServer(
   initialize: boolean,
-  ...plugins: PluginConfig[]
+  ...plugins: PluginConfig[],
 ) {
   const server = getServer({
     debug: {

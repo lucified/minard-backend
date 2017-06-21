@@ -1113,6 +1113,7 @@ describe('deployment-module', () => {
       return deploymentModule;
     }
 
+    // tslint:disable-next-line:max-line-length
     it('should return gitlab yml with manual build when there is already a build with status success for given sha', async () => {
       // Arrange
       const deploymentModule = arrangeDeploymentModule([
@@ -1126,6 +1127,7 @@ describe('deployment-module', () => {
       expect(yml.indexOf('manual') !== -1).to.equal(true);
     });
 
+    // tslint:disable-next-line:max-line-length
     it('should return gitlab yml with manual build when there is already a build with status success for given sha', async () => {
       // Arrange
       const deploymentModule = arrangeDeploymentModule([
@@ -1664,6 +1666,7 @@ describe('deployment-module', () => {
       );
     });
 
+    // tslint:disable-next-line:max-line-length
     it('should update with correct status when screenshot turns to success when deployment is already success', async () => {
       // this can happen when we recreate screenshots for deployments
       // that were successfully created but screenshots failed for some reason

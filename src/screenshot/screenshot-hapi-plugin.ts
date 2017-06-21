@@ -1,4 +1,4 @@
-import { forbidden, notFound } from 'boom';
+import { notFound } from 'boom';
 import { inject, injectable } from 'inversify';
 import * as Joi from 'joi';
 
@@ -52,7 +52,7 @@ export default class ScreenshotHapiPlugin {
       throw notFound();
     }
     if (!this.screenshotModule.isValidToken(projectId, deploymentId, token)) {
-      throw forbidden('Invalid token');
+      throw notFound();
     }
     const path = this.screenshotModule.getScreenshotPath(projectId, deploymentId);
     return reply.file(path, { confine: false } as any);

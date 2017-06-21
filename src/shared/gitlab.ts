@@ -24,21 +24,28 @@ export interface Commit {
   parent_ids: string[];
 }
 
-export type BuildStatus = 'running' | 'success' | 'failed' | 'canceled' | 'pending';
+export type BuildStatus =
+  | 'running'
+  | 'success'
+  | 'failed'
+  | 'canceled'
+  | 'pending';
 export function isBuildStatus(status: string): status is BuildStatus {
-  return ['success', 'failed', 'canceled', 'pending', 'running'].indexOf(status) > -1;
+  return (
+    ['success', 'failed', 'canceled', 'pending', 'running'].indexOf(status) > -1
+  );
 }
 
 export interface Build {
   commit: Commit;
-  coverage: string|null;
+  coverage: string | null;
   created_at: string;
-  artifacts_file: ArtifactsFile|null;
+  artifacts_file: ArtifactsFile | null;
   finished_at: string;
   id: number;
   name: string;
   ref: string;
-  runner: string|null;
+  runner: string | null;
   stage: string;
   started_at: string;
   status: BuildStatus;
@@ -56,7 +63,7 @@ export const enum UserGroupAccessLevel {
 
 export interface User {
   avatar_url: string;
-  bio: string|null;
+  bio: string | null;
   created_at: string;
   id: number;
   is_admin: boolean;

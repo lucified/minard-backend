@@ -16,18 +16,23 @@ export interface TeamToken {
  * The results can be filtered by specifying a token,
  * a teamId or both.
  */
-export function teamTokenQuery(db: Knex, options: { token?: string, teamId?: number }) {
+export function teamTokenQuery(
+  db: Knex,
+  options: { token?: string; teamId?: number },
+) {
   const { token, teamId } = options;
   const latestTokens = db('teamtoken')
     .select('teamId')
     .max('createdAt AS latestStamp')
     .groupBy('teamId')
     .as('latest');
-  const query = db('teamtoken')
-    .join(latestTokens, ((join: any) => join
-      .on('teamtoken.teamId', '=', 'latest.teamId')
-      .andOn('teamtoken.createdAt', '=', 'latest.latestStamp')) as any,
-    );
+  const query = db('teamtoken').join(
+    latestTokens,
+    ((join: any) =>
+      join
+        .on('teamtoken.teamId', '=', 'latest.teamId')
+        .andOn('teamtoken.createdAt', '=', 'latest.latestStamp')) as any,
+  );
   if (token) {
     if (token.length !== teamTokenLength || !token.match(/^\w+$/)) {
       throw new Error(`Invalid team token ${token}`);
@@ -69,7 +74,10 @@ export function generateTeamToken(): string {
   });
 }
 
-export async function generateAndSaveTeamToken(teamId: number, db: Knex): Promise<TeamToken> {
+export async function generateAndSaveTeamToken(
+  teamId: number,
+  db: Knex,
+): Promise<TeamToken> {
   let inserted = false;
   let token: TeamToken | undefined;
   while (!inserted) {

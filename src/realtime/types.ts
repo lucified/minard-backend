@@ -1,7 +1,4 @@
-
-import {
-  JsonApiEntity,
-} from '../json-api/types';
+import { JsonApiEntity } from '../json-api/types';
 
 export interface StreamingCodePushedEvent {
   teamId: number;

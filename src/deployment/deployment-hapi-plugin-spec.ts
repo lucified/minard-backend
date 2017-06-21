@@ -1,15 +1,10 @@
 import { expect } from 'chai';
 import 'reflect-metadata';
 
-import {
-  DeploymentHapiPlugin,
-  DeploymentModule,
-} from './';
+import { DeploymentHapiPlugin, DeploymentModule } from './';
 
 describe('deployment-hapi-plugin', () => {
-
   describe('checkHash', () => {
-
     const deploymentId = 9;
 
     function arrange() {
@@ -64,7 +59,7 @@ describe('deployment-hapi-plugin', () => {
       expect(await plugin.checkHash(deploymentId, 'foo')).to.be.true;
 
       // Second lookup
-      deploymentModule.getDeployment = async(_deploymentId: number) => {
+      deploymentModule.getDeployment = async (_deploymentId: number) => {
         expect.fail('should not be called');
         return undefined;
       };
@@ -99,7 +94,5 @@ describe('deployment-hapi-plugin', () => {
       expect(await plugin.checkHash(5, 'bar')).to.be.false;
       expect(await plugin.checkHash(6, 'foo')).to.be.false;
     });
-
   });
-
 });

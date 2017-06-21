@@ -2,10 +2,7 @@ import { inject, injectable } from 'inversify';
 import * as Knex from 'knex';
 import * as moment from 'moment';
 
-import {
-  EventBus,
-  eventBusInjectSymbol,
-} from '../event-bus';
+import { EventBus, eventBusInjectSymbol } from '../event-bus';
 import { charlesKnexInjectSymbol } from '../shared/types';
 import {
   createCommentAddedEvent,
@@ -30,7 +27,6 @@ function toMinardComment(comment: DbComment): MinardComment {
 
 @injectable()
 export class CommentModule {
-
   public static injectSymbol = Symbol('comment-module');
 
   private knex: Knex;
@@ -38,7 +34,8 @@ export class CommentModule {
 
   public constructor(
     @inject(charlesKnexInjectSymbol) knex: Knex,
-    @inject(eventBusInjectSymbol) eventBus: EventBus) {
+    @inject(eventBusInjectSymbol) eventBus: EventBus,
+  ) {
     this.knex = knex;
     this.eventBus = eventBus;
   }
@@ -55,7 +52,9 @@ export class CommentModule {
       projectId: comment.projectId,
     };
 
-    const ids = await this.knex('comment').insert(partialDbComment).returning('id');
+    const ids = await this.knex('comment')
+      .insert(partialDbComment)
+      .returning('id');
     const dbComment: DbComment = {
       ...partialDbComment as DbComment,
       id: ids[0],
@@ -65,8 +64,11 @@ export class CommentModule {
     return created;
   }
 
-  public async getComment(commentId: number): Promise<MinardComment | undefined> {
-    const select = this.knex.select('*')
+  public async getComment(
+    commentId: number,
+  ): Promise<MinardComment | undefined> {
+    const select = this.knex
+      .select('*')
       .from('comment')
       .where('id', commentId)
       .andWhere('status', 'n')
@@ -85,20 +87,23 @@ export class CommentModule {
       // TODO: log
       return;
     }
-    await this.knex('comment')
-      .update({ status: 'd'})
-      .where('id', commentId);
+    await this.knex('comment').update({ status: 'd' }).where('id', commentId);
 
-    this.eventBus.post(createCommentDeletedEvent({
-      commentId,
-      teamId: comment.teamId,
-      deploymentId: comment.deploymentId,
-      projectId: comment.projectId,
-    }));
+    this.eventBus.post(
+      createCommentDeletedEvent({
+        commentId,
+        teamId: comment.teamId,
+        deploymentId: comment.deploymentId,
+        projectId: comment.projectId,
+      }),
+    );
   }
 
-  public async getCommentsForDeployment(deploymentId: number): Promise<MinardComment[]> {
-    const comments = await this.knex.select('*')
+  public async getCommentsForDeployment(
+    deploymentId: number,
+  ): Promise<MinardComment[]> {
+    const comments = await this.knex
+      .select('*')
       .from('comment')
       .where('deploymentId', deploymentId)
       .andWhere('status', 'n')
@@ -106,9 +111,10 @@ export class CommentModule {
     return comments.map(toMinardComment);
   }
 
-  public async getCommentCountForDeployment(deploymentId: number): Promise<number> {
+  public async getCommentCountForDeployment(
+    deploymentId: number,
+  ): Promise<number> {
     const comments = await this.getCommentsForDeployment(deploymentId);
     return comments.length;
   }
-
 }

@@ -1,4 +1,11 @@
-import { badImplementation, badRequest, create, notFound, unauthorized, wrap } from 'boom';
+import {
+  badImplementation,
+  badRequest,
+  create,
+  notFound,
+  unauthorized,
+  wrap,
+} from 'boom';
 import * as auth from 'hapi-auth-jwt2';
 import { inject, injectable, optional } from 'inversify';
 import { hapiJwt2Key } from 'jwks-rsa';
@@ -18,7 +25,11 @@ import {
   openTeamNamesInjectSymbol,
 } from '../shared/types';
 import { GitAuthScheme } from './git-auth-scheme';
-import { generateAndSaveTeamToken, getTeamIdWithToken, teamTokenQuery } from './team-token';
+import {
+  generateAndSaveTeamToken,
+  getTeamIdWithToken,
+  teamTokenQuery,
+} from './team-token';
 import {
   AccessToken,
   auth0AudienceInjectSymbol,
@@ -49,7 +60,8 @@ class AuthenticationHapiPlugin extends HapiPlugin {
 
   constructor(
     @inject(GitlabClient.injectSymbol) private readonly gitlab: GitlabClient,
-    @inject(authCookieDomainInjectSymbol) private readonly authCookieDomain: string,
+    @inject(authCookieDomainInjectSymbol)
+    private readonly authCookieDomain: string,
     @inject(auth0ClientIdInjectSymbol) auth0ClientId: string,
     @inject(auth0DomainInjectSymbol) private readonly auth0Domain: string,
     @inject(auth0AudienceInjectSymbol) private readonly auth0Audience: string,
@@ -58,8 +70,11 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     @inject(adminIdInjectSymbol) private readonly adminId: string,
     @inject(openTeamNamesInjectSymbol) private readonly openTeamNames: string[],
     @inject(fetchInjectSymbol) private readonly fetch: IFetch,
-    @inject(internalHostSuffixesInjectSymbol) private readonly internalHostSuffixes: string[],
-    @inject(jwtOptionsInjectSymbol) @optional() private readonly defaultJWTOptions?: auth.JWTStrategyOptions,
+    @inject(internalHostSuffixesInjectSymbol)
+    private readonly internalHostSuffixes: string[],
+    @inject(jwtOptionsInjectSymbol)
+    @optional()
+    private readonly defaultJWTOptions?: auth.JWTStrategyOptions,
   ) {
     super({
       name: 'authentication-plugin',
@@ -83,36 +98,44 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     this.authorizeCustom = this.authorizeCustom.bind(this);
   }
 
-  public async register(server: Hapi.Server, _options: Hapi.ServerOptions, next: () => void) {
+  public async register(
+    server: Hapi.Server,
+    _options: Hapi.ServerOptions,
+    next: () => void,
+  ) {
     await this.registerAuth(server);
-    server.route([{
-      method: 'GET',
-      path: '/team',
-      handler: {
-        async: this.getTeamHandler,
-      },
-      config: {
-        bind: this,
-        auth: STRATEGY_ROUTELEVEL_USER_HEADER,
-        cors: {
-          credentials: true,
+    server.route([
+      {
+        method: 'GET',
+        path: '/team',
+        handler: {
+          async: this.getTeamHandler,
+        },
+        config: {
+          bind: this,
+          auth: STRATEGY_ROUTELEVEL_USER_HEADER,
+          cors: {
+            credentials: true,
+          },
         },
       },
-    }]);
-    server.route([{
-      method: 'GET',
-      path: '/signup',
-      handler: {
-        async: this.signupHandler,
-      },
-      config: {
-        bind: this,
-        auth: STRATEGY_ROUTELEVEL_USER_HEADER,
-        cors: {
-          credentials: true,
+    ]);
+    server.route([
+      {
+        method: 'GET',
+        path: '/signup',
+        handler: {
+          async: this.signupHandler,
+        },
+        config: {
+          bind: this,
+          auth: STRATEGY_ROUTELEVEL_USER_HEADER,
+          cors: {
+            credentials: true,
+          },
         },
       },
-    }]);
+    ]);
     server.route({
       method: 'GET',
       path: '/team-token/{teamIdOrName?}',
@@ -155,11 +178,18 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   }
 
   // For use in unit tests
-  public async registerNoOp(server: Hapi.Server, _opt: Hapi.ServerOptions, next: () => void) {
+  public async registerNoOp(
+    server: Hapi.Server,
+    _opt: Hapi.ServerOptions,
+    next: () => void,
+  ) {
     const testUsername = 'auth-123';
     server.auth.scheme('noOp', (_server: Hapi.Server, _options: any) => {
       return {
-        authenticate: (_request: Hapi.Request, reply: Hapi.ReplyWithContinue) => {
+        authenticate: (
+          _request: Hapi.Request,
+          reply: Hapi.ReplyWithContinue,
+        ) => {
           return reply.continue({ credentials: { username: testUsername } });
         },
       };
@@ -248,22 +278,28 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     );
   }
 
-  public async getTeamHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
+  public async getTeamHandler(
+    request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
     try {
       const credentials = request.auth.credentials as AccessToken;
       const username = sanitizeSubClaim(credentials.sub);
       const teams = await this._getUserGroups(username);
-      if (teams.length > 1 ) {
-          throw badImplementation('User can only belong to a single team.');
+      if (teams.length > 1) {
+        throw badImplementation('User can only belong to a single team.');
       }
       const team = teams[0];
       if (!team) {
         throw notFound();
       }
       this.setAuthCookie(request, reply);
-      const teamTokenResult = await teamTokenQuery(this.db, { teamId: team.id });
-      const teamToken =
-        (teamTokenResult && teamTokenResult.length) ? teamTokenResult[0].token : undefined;
+      const teamTokenResult = await teamTokenQuery(this.db, {
+        teamId: team.id,
+      });
+      const teamToken = teamTokenResult && teamTokenResult.length
+        ? teamTokenResult[0].token
+        : undefined;
       return reply({
         id: team.id,
         name: team.name,
@@ -277,7 +313,10 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     }
   }
 
-  public async logoutHandler(_request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
+  public async logoutHandler(
+    _request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
     return reply(200).unstate('token');
   }
 
@@ -286,7 +325,10 @@ class AuthenticationHapiPlugin extends HapiPlugin {
    *  1. An authenticated user belongs to
    *  2. An admin user has specified in the request by a team's id or name
    */
-  public async getTeamTokenHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
+  public async getTeamTokenHandler(
+    request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
     try {
       const credentials = request.auth.credentials as AccessToken;
       const userName = sanitizeSubClaim(credentials.sub);
@@ -301,11 +343,14 @@ class AuthenticationHapiPlugin extends HapiPlugin {
 
       let teamId: number | undefined;
 
-      if (requestedOwnTeam) { // a request for a team that the user belongs to
+      if (requestedOwnTeam) {
+        // a request for a team that the user belongs to
         teamId = requestedOwnTeam.id;
-      } else if (isAdmin && teamIdOrName) { // An admin can get any team's token
+      } else if (isAdmin && teamIdOrName) {
+        // An admin can get any team's token
         teamId = await this.teamIdOrNameToTeamId(teamIdOrName);
-      } else if (!teamIdOrName) { // no specific team requested, try to return one anyway
+      } else if (!teamIdOrName) {
+        // no specific team requested, try to return one anyway
         if (!userTeams.length) {
           throw Error(`User ${userName} is not in any team`);
         }
@@ -327,7 +372,10 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     }
   }
 
-  public async createTeamTokenHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
+  public async createTeamTokenHandler(
+    request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
     try {
       const teamIdOrName = request.params[teamIdOrNameKey];
       const teamId = await this.teamIdOrNameToTeamId(teamIdOrName);
@@ -339,7 +387,10 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     }
   }
 
-  public async signupHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
+  public async signupHandler(
+    request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
     let email: string | undefined;
     let credentials: AccessToken | undefined;
     try {
@@ -375,21 +426,28 @@ class AuthenticationHapiPlugin extends HapiPlugin {
         team,
       }).code(201); // created
     } catch (error) {
-      const message = `Unable to sign up user ${email}: ${error.isBoom &&
-        (error.output.payload.message || error.data.message) || error.message}`;
+      const message = `Unable to sign up user ${email}: ${(error.isBoom &&
+        (error.output.payload.message || error.data.message)) ||
+        error.message}`;
       this.logger.error(message, credentials);
       return reply(badRequest(message));
     }
   }
 
   private async authorizeUser(userName: string, request: Hapi.Request) {
-    const isAuthorized = await this.isAdmin(userName) || await this.authorize(userName, request);
-    return isAuthorized ? AuthorizationStatus.AUTHORIZED : AuthorizationStatus.UNAUTHORIZED;
+    const isAuthorized =
+      (await this.isAdmin(userName)) ||
+      (await this.authorize(userName, request));
+    return isAuthorized
+      ? AuthorizationStatus.AUTHORIZED
+      : AuthorizationStatus.UNAUTHORIZED;
   }
 
   private async authorizeAdmin(userName: string, _request: Hapi.Request) {
     const isAuthorized = await this.isAdmin(userName);
-    return isAuthorized ? AuthorizationStatus.AUTHORIZED : AuthorizationStatus.UNAUTHORIZED;
+    return isAuthorized
+      ? AuthorizationStatus.AUTHORIZED
+      : AuthorizationStatus.UNAUTHORIZED;
   }
 
   private authorizeCustom(_userName: string, _request: Hapi.Request) {
@@ -402,7 +460,8 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       request: Hapi.Request,
       callback: (err: any, valid: boolean, credentials?: any) => void,
     ) => {
-      let authorizationStatus: AuthorizationStatus = AuthorizationStatus.UNAUTHORIZED;
+      let authorizationStatus: AuthorizationStatus =
+        AuthorizationStatus.UNAUTHORIZED;
       try {
         const userName = sanitizeSubClaim(payload.sub);
         payload.username = userName;
@@ -412,7 +471,10 @@ class AuthenticationHapiPlugin extends HapiPlugin {
         this.logger.warn('Authorization exception: %s', error.message);
       }
       if (authorizationStatus === AuthorizationStatus.UNAUTHORIZED) {
-        this.logger.debug('User %s not is not authorized', payload.username || payload.sub);
+        this.logger.debug(
+          'User %s not is not authorized',
+          payload.username || payload.sub,
+        );
       }
       return callback(
         undefined,
@@ -434,7 +496,11 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   private async tryGetEmailFromAuth0(accessToken: string) {
     // We assume that if the issuer is defined, it's the Auth0 baseUrl
     let email: string | undefined;
-    const userInfo = await getAuth0UserInfo(this.auth0Domain, accessToken, this.fetch);
+    const userInfo = await getAuth0UserInfo(
+      this.auth0Domain,
+      accessToken,
+      this.fetch,
+    );
     if (looselyValidateEmail(userInfo.email)) {
       email = userInfo.email;
       // the email can actually be in the name field depending on the identity provider
@@ -461,15 +527,21 @@ class AuthenticationHapiPlugin extends HapiPlugin {
 
   private setAuthCookie(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
     const headerToken: string | undefined = (request.auth as any).token;
-    const cookieToken: string | undefined = request.state && request.state.token;
-    if (headerToken && request.auth.isAuthenticated && cookieToken !== headerToken) {
+    const cookieToken: string | undefined =
+      request.state && request.state.token;
+    if (
+      headerToken &&
+      request.auth.isAuthenticated &&
+      cookieToken !== headerToken
+    ) {
       reply.state('token', headerToken);
     }
   }
 
   protected async registerAuth(server: Hapi.Server) {
     await server.register(auth);
-    const defaultJWTOptions = this.defaultJWTOptions || this.getDefaultJWTOptions();
+    const defaultJWTOptions =
+      this.defaultJWTOptions || this.getDefaultJWTOptions();
     server.auth.strategy(STRATEGY_TOPLEVEL_USER_HEADER, 'jwt', true, {
       ...defaultJWTOptions,
       headerKey: 'authorization',
@@ -518,7 +590,10 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     server.auth.scheme('git', this.gitAuthScheme.getScheme());
     server.auth.strategy(STRATEGY_GIT, 'git', false);
     const ttl = 365 * 24 * 3600 * 1000; // ~year in ms
-    server.state('token', accessTokenCookieSettings(this.authCookieDomain, ttl));
+    server.state(
+      'token',
+      accessTokenCookieSettings(this.authCookieDomain, ttl),
+    );
   }
 
   private isInternalRequest(request: Hapi.Request) {
@@ -529,8 +604,9 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     }
     const split = host.split(':');
     const hostWithoutPort = split[0];
-    const ret = internalHostSuffixes
-      .filter(suffix => hostWithoutPort.endsWith(suffix)).length > 0;
+    const ret =
+      internalHostSuffixes.filter(suffix => hostWithoutPort.endsWith(suffix))
+        .length > 0;
     return ret;
   }
 
@@ -570,7 +646,10 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       try {
         return this.userHasAccessToTeam(this.getUserName(request), teamId);
       } catch (error) {
-        this.logger.warn(`Can't check authorization since user is not authenticated`, error);
+        this.logger.warn(
+          `Can't check authorization since user is not authenticated`,
+          error,
+        );
         return false;
       }
     };
@@ -579,18 +658,21 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   private userHasAccessToProjectDecorator(request: Hapi.Request) {
     return async (projectId: number) => {
       try {
-        return this.userHasAccessToProject(this.getUserName(request), projectId);
+        return this.userHasAccessToProject(
+          this.getUserName(request),
+          projectId,
+        );
       } catch (error) {
-        this.logger.warn(`Can't check authorization since user is not authenticated`, error);
+        this.logger.warn(
+          `Can't check authorization since user is not authenticated`,
+          error,
+        );
         return false;
       }
     };
   }
 
-  public async userHasAccessToProject(
-    userName: string,
-    projectId: number,
-  ) {
+  public async userHasAccessToProject(userName: string, projectId: number) {
     try {
       return await this._userHasAccessToProject(userName, projectId);
     } catch (exception) {
@@ -599,10 +681,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     return false;
   }
 
-  public async userHasAccessToTeam(
-    userName: string,
-    teamId: number,
-  ) {
+  public async userHasAccessToTeam(userName: string, teamId: number) {
     try {
       return await this._userHasAccessToTeam(userName, teamId);
     } catch (error) {
@@ -621,9 +700,14 @@ class AuthenticationHapiPlugin extends HapiPlugin {
       // If it's NOT_CHECKED, we need to check here
       // Otherwise only allow access to open deployments
       if (
-        (credentials && credentials.authorizationStatus === AuthorizationStatus.AUTHORIZED) ||
-        (credentials && credentials.authorizationStatus === AuthorizationStatus.NOT_CHECKED &&
-          (await this.userHasAccessToProject(credentials.username!, projectId))) ||
+        (credentials &&
+          credentials.authorizationStatus === AuthorizationStatus.AUTHORIZED) ||
+        (credentials &&
+          credentials.authorizationStatus === AuthorizationStatus.NOT_CHECKED &&
+          (await this.userHasAccessToProject(
+            credentials.username!,
+            projectId,
+          ))) ||
         (await this.isOpenDeployment(projectId, deploymentId))
       ) {
         return true;
@@ -673,10 +757,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   }
 
   // Public only for unit testing
-  public async _userHasAccessToProject(
-    userName: string,
-    projectId: number,
-  ) {
+  public async _userHasAccessToProject(userName: string, projectId: number) {
     if (await this.isAdmin(userName)) {
       return true;
     }
@@ -685,10 +766,7 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   }
 
   // Public only for unit testing
-  public async _userHasAccessToTeam(
-    userName: string,
-    teamId: number,
-  ) {
+  public async _userHasAccessToTeam(userName: string, teamId: number) {
     if (await this.isAdmin(userName)) {
       return true;
     }
@@ -737,7 +815,15 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     provider?: string,
     confirm = false,
   ) {
-    return this.gitlab.createUser(email, password, username, name, externUid, provider, confirm);
+    return this.gitlab.createUser(
+      email,
+      password,
+      username,
+      name,
+      externUid,
+      provider,
+      confirm,
+    );
   }
 
   private getDefaultJWTOptions(): auth.JWTStrategyOptions {
@@ -769,7 +855,7 @@ export default AuthenticationHapiPlugin;
 
 export function parseSub(sub: string) {
   if (!validateSubClaim(sub)) {
-    throw new Error('Invalid \'sub\' claim.');
+    throw new Error("Invalid 'sub' claim.");
   }
   const parts = sub.split('|');
   return {
@@ -812,12 +898,16 @@ export function assertValidSubClaim(sub: string) {
   return true;
 }
 
-export async function getAuth0UserInfo(auth0Domain: string, accessToken: string, fetch: IFetch) {
+export async function getAuth0UserInfo(
+  auth0Domain: string,
+  accessToken: string,
+  fetch: IFetch,
+) {
   const baseUrl = auth0Domain.replace(/\/$/, '');
   const options = {
     method: 'GET',
     headers: {
-      'Authorization': `Bearer ${accessToken}`,
+      Authorization: `Bearer ${accessToken}`,
       'content-type': 'application/json',
     },
   };

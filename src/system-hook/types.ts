@@ -1,4 +1,3 @@
-
 import { eventCreator } from '../shared/events';
 
 export interface SystemHookRegistrationEvent {
@@ -7,6 +6,8 @@ export interface SystemHookRegistrationEvent {
   readonly message?: string;
 }
 
-export const SYSTEM_HOOK_REGISTRATION_EVENT_TYPE = 'SYSTEM_HOOK_REGISTRATION_EVENT_TYPE';
-export const createSystemHookRegistrationEvent =
-  eventCreator<SystemHookRegistrationEvent>(SYSTEM_HOOK_REGISTRATION_EVENT_TYPE);
+export const SYSTEM_HOOK_REGISTRATION_EVENT_TYPE =
+  'SYSTEM_HOOK_REGISTRATION_EVENT_TYPE';
+export const createSystemHookRegistrationEvent = eventCreator<
+  SystemHookRegistrationEvent
+>(SYSTEM_HOOK_REGISTRATION_EVENT_TYPE);

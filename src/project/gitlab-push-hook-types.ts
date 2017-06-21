@@ -1,4 +1,3 @@
-
 export interface GitlabPushEventProject {
   name: string;
   description: string;

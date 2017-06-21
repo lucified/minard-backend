@@ -14,24 +14,41 @@ import TokenGenerator from '../shared/token-generator';
 import AuthenticationHapiPlugin from './authentication-hapi-plugin';
 import { generateTeamToken } from './team-token';
 
-const validAccessToken = getSignedAccessToken('auth0|12345678', generateTeamToken(), 'foo@bar.com');
+const validAccessToken = getSignedAccessToken(
+  'auth0|12345678',
+  generateTeamToken(),
+  'foo@bar.com',
+);
 async function getServer(
   authenticationStubber: MethodStubber<AuthenticationHapiPlugin>,
 ) {
   const kernel = bootstrap('test');
-  kernel.rebind(AuthenticationHapiPlugin.injectSymbol).to(AuthenticationHapiPlugin);
+  kernel
+    .rebind(AuthenticationHapiPlugin.injectSymbol)
+    .to(AuthenticationHapiPlugin);
   kernel.rebind(RealtimeHapiPlugin.injectSymbol).to(RealtimeHapiPlugin);
   const plugin = stubber<RealtimeHapiPlugin>(
-    p => stub(p, p.deploymentHandler.name)
+    p =>
+      stub(p, p.deploymentHandler.name)
         .yields(200)
         .returns(Promise.resolve(true)),
     RealtimeHapiPlugin.injectSymbol,
     kernel,
   );
 
-  const authenticationPlugin = stubber(authenticationStubber, AuthenticationHapiPlugin.injectSymbol, kernel);
-  const server = await getTestServer(true, authenticationPlugin.instance, plugin.instance);
-  const tokenGenerator = kernel.get<TokenGenerator>(TokenGenerator.injectSymbol);
+  const authenticationPlugin = stubber(
+    authenticationStubber,
+    AuthenticationHapiPlugin.injectSymbol,
+    kernel,
+  );
+  const server = await getTestServer(
+    true,
+    authenticationPlugin.instance,
+    plugin.instance,
+  );
+  const tokenGenerator = kernel.get<TokenGenerator>(
+    TokenGenerator.injectSymbol,
+  );
 
   return {
     server,
@@ -45,20 +62,20 @@ function arrange(
   isAdmin = false,
   isOpenDeployment = false,
 ) {
-  return getServer(
-    (p: AuthenticationHapiPlugin) => {
-      return [
-        stub(p, p.userHasAccessToProject.name)
-          .returns(Promise.resolve(hasAccessToProject)),
-        stub(p, p.isAdmin.name)
-          .returns(Promise.resolve(isAdmin)),
-        stub(p, p.isOpenDeployment.name)
-          .returns(Promise.resolve(isOpenDeployment)),
-        stub(p, p.getProjectTeam.name)
-          .returns(Promise.resolve({id: 1, name: 'foo'})),
-      ];
-    },
-  );
+  return getServer((p: AuthenticationHapiPlugin) => {
+    return [
+      stub(p, p.userHasAccessToProject.name).returns(
+        Promise.resolve(hasAccessToProject),
+      ),
+      stub(p, p.isAdmin.name).returns(Promise.resolve(isAdmin)),
+      stub(p, p.isOpenDeployment.name).returns(
+        Promise.resolve(isOpenDeployment),
+      ),
+      stub(p, p.getProjectTeam.name).returns(
+        Promise.resolve({ id: 1, name: 'foo' }),
+      ),
+    ];
+  });
 }
 
 describe('authorization for deployment events', () => {
@@ -73,16 +90,26 @@ describe('authorization for deployment events', () => {
       // Arrange
       const { server, authentication, tokenGenerator } = await arrange(true);
       // Act
-      const response = await makeRequest(server, tokenGenerator.deploymentToken(1, 1));
+      const response = await makeRequest(
+        server,
+        tokenGenerator.deploymentToken(1, 1),
+      );
       // Assert
       expect(response.statusCode, response.payload).to.eq(200);
       expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
     });
     it('should allow accessing open deployments', async () => {
       // Arrange
-      const { server, authentication, tokenGenerator } = await arrange(true, false, true);
+      const { server, authentication, tokenGenerator } = await arrange(
+        true,
+        false,
+        true,
+      );
       // Act
-      const response = await makeRequest(server, tokenGenerator.deploymentToken(1, 1));
+      const response = await makeRequest(
+        server,
+        tokenGenerator.deploymentToken(1, 1),
+      );
       // Assert
       expect(response.statusCode).to.eq(200);
       expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
@@ -91,7 +118,10 @@ describe('authorization for deployment events', () => {
       // Arrange
       const { server, authentication, tokenGenerator } = await arrange(false);
       // Act
-      const response = await makeRequest(server, tokenGenerator.deploymentToken(1, 1));
+      const response = await makeRequest(
+        server,
+        tokenGenerator.deploymentToken(1, 1),
+      );
       // Assert
       expect(response.statusCode).to.eq(404);
       expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
@@ -117,7 +147,10 @@ describe('authorization for deployment events', () => {
       // Arrange
       const { server, tokenGenerator } = await arrange(false);
       // Act
-      const response = await makeRequest(server, tokenGenerator.deploymentToken(1, 1));
+      const response = await makeRequest(
+        server,
+        tokenGenerator.deploymentToken(1, 1),
+      );
       // Assert
       expect(response.statusCode, response.payload).to.eq(404);
     });
@@ -125,7 +158,10 @@ describe('authorization for deployment events', () => {
       // Arrange
       const { server, tokenGenerator } = await arrange(false, false, true);
       // Act
-      const response = await makeRequest(server, tokenGenerator.deploymentToken(1, 1));
+      const response = await makeRequest(
+        server,
+        tokenGenerator.deploymentToken(1, 1),
+      );
       // Assert
       expect(response.statusCode).to.eq(200);
     });

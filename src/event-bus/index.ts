@@ -3,7 +3,10 @@ import { Observable } from '@reactivex/rxjs';
 import { Event } from '../shared/events';
 
 export { default as LocalEventBus } from './local-event-bus';
-export { PersistentEventBus, eventStoreConfigInjectSymbol } from './persistent-event-bus';
+export {
+  PersistentEventBus,
+  eventStoreConfigInjectSymbol,
+} from './persistent-event-bus';
 
 export type Event<T> = Event<T>;
 

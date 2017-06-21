@@ -11,7 +11,6 @@ const kernel = bootstrap('test');
 const getClient = () => kernel.get<GitlabClient>(GitlabClient.injectSymbol);
 
 describe('gitlab-client', () => {
-
   describe('auth', () => {
     it('sets authentication if nothing provided', async () => {
       // Arrange
@@ -23,7 +22,6 @@ describe('gitlab-client', () => {
 
       // Assert
       expect(h[gitlabClient.authenticationHeader]).to.equal(token);
-
     });
 
     it('sets authentication if some headers provided', async () => {
@@ -32,15 +30,15 @@ describe('gitlab-client', () => {
       const token = await gitlabClient.getToken();
 
       // Act
-      const h = (await gitlabClient.authenticate({ headers: { a: 'b' } })).headers as any;
+      const h = (await gitlabClient.authenticate({ headers: { a: 'b' } }))
+        .headers as any;
 
       // Assert
       expect(h[gitlabClient.authenticationHeader]).to.equal(token);
       expect(h.a).to.equal('b');
-
     });
 
-    it('won\'t override authentication', async () => {
+    it("won't override authentication", async () => {
       // Arrange
       const gitlabClient = getClient();
       const opt = { headers: { [gitlabClient.authenticationHeader]: 'b' } };
@@ -49,9 +47,7 @@ describe('gitlab-client', () => {
 
       // Assert
       expect(h[gitlabClient.authenticationHeader]).to.equal('b');
-
     });
-
   });
 
   describe('fetchJson', () => {
@@ -73,7 +69,6 @@ describe('gitlab-client', () => {
       // Assert
       expect(r.a).equals(json.a);
       expect(r.b).equals(json.b);
-
     });
 
     it('throws a Boom error object on error', async () => {
@@ -90,7 +85,6 @@ describe('gitlab-client', () => {
         expect(err.output.statusCode).equals(501);
       }
     });
-
   });
 
   describe('fetch', () => {
@@ -98,7 +92,6 @@ describe('gitlab-client', () => {
       // Arrange
       const gitlabClient = getClient();
       mock(`^${host}${gitlabClient.apiPrefix}/`, 200);
-
     });
   });
 
@@ -112,7 +105,8 @@ describe('gitlab-client', () => {
         id,
         name: 'Twitter',
         path: 'twitter',
-        description: 'Aliquid qui quis dignissimos distinctio ut commodi voluptas est.',
+        description:
+          'Aliquid qui quis dignissimos distinctio ut commodi voluptas est.',
         visibility_level: 20,
         avatar_url: null,
         web_url: 'https://gitlab.example.com/groups/twitter',
@@ -123,14 +117,16 @@ describe('gitlab-client', () => {
         projects: [
           {
             id: 7,
-            description: 'Voluptas veniam qui et beatae voluptas doloremque explicabo facilis.',
+            description:
+              'Voluptas veniam qui et beatae voluptas doloremque explicabo facilis.',
             default_branch: 'master',
             tag_list: [],
             public: true,
             archived: false,
             visibility_level: 20,
             ssh_url_to_repo: 'git@gitlab.example.com:twitter/typeahead-js.git',
-            http_url_to_repo: 'https://gitlab.example.com/twitter/typeahead-js.git',
+            http_url_to_repo:
+              'https://gitlab.example.com/twitter/typeahead-js.git',
             web_url: 'https://gitlab.example.com/twitter/typeahead-js',
             name: 'Typeahead.Js',
             name_with_namespace: 'Twitter / Typeahead.Js',
@@ -209,8 +205,10 @@ describe('gitlab-client', () => {
             public: false,
             archived: false,
             visibility_level: 0,
-            ssh_url_to_repo: 'git@gitlab.example.com:h5bp/html5-boilerplate.git',
-            http_url_to_repo: 'https://gitlab.example.com/h5bp/html5-boilerplate.git',
+            ssh_url_to_repo:
+              'git@gitlab.example.com:h5bp/html5-boilerplate.git',
+            http_url_to_repo:
+              'https://gitlab.example.com/h5bp/html5-boilerplate.git',
             web_url: 'https://gitlab.example.com/h5bp/html5-boilerplate',
             name: 'Html5 Boilerplate',
             name_with_namespace: 'H5bp / Html5 Boilerplate',
@@ -275,7 +273,7 @@ describe('gitlab-client', () => {
         expect(err).to.exist;
         return;
       }
-      expect.fail('Didn\'t throw');
+      expect.fail("Didn't throw");
     });
   });
 
@@ -285,17 +283,18 @@ describe('gitlab-client', () => {
       const gitlab = getClient();
       restore();
       const email = 'foo@bar.com';
-      mock(/\/users/, [{
-        id: 1,
-        email,
-      }]);
+      mock(/\/users/, [
+        {
+          id: 1,
+          email,
+        },
+      ]);
 
       // Act
       const response = await gitlab.getUserByEmailOrUsername(email);
 
       // Assert
       expect(response.id).to.equal(1);
-
     });
     it('throws when not found', async () => {
       // Arrange
@@ -312,8 +311,7 @@ describe('gitlab-client', () => {
         expect(err).to.exist;
         return;
       }
-      expect.fail('Didn\'t throw');
-
+      expect.fail("Didn't throw");
     });
   });
 
@@ -323,10 +321,12 @@ describe('gitlab-client', () => {
       const gitlab = getClient();
       restore();
       const email = 'foo@bar.com';
-      mock(/\/groups/, [{
-        id: 1,
-        email,
-      }]);
+      mock(/\/groups/, [
+        {
+          id: 1,
+          email,
+        },
+      ]);
 
       // Act
       const response = await gitlab.getUserGroups(1);
@@ -334,7 +334,6 @@ describe('gitlab-client', () => {
       // Assert
       expect(response.length).to.equal(1);
       expect(response[0].id).to.equal(1);
-
     });
     it('returns an empty array when user is not on any team', async () => {
       // Arrange
@@ -347,9 +346,8 @@ describe('gitlab-client', () => {
 
       // Assert
       expect(response.length).to.equal(0);
-
     });
-    it('throws when the user\'s not found', async () => {
+    it("throws when the user's not found", async () => {
       // Arrange
       const gitlab = getClient();
       restore();
@@ -363,8 +361,7 @@ describe('gitlab-client', () => {
         expect(err).to.exist;
         return;
       }
-      expect.fail('Didn\'t throw');
+      expect.fail("Didn't throw");
     });
   });
-
 });

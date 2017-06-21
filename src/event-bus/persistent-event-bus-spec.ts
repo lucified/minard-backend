@@ -5,7 +5,11 @@ import { createClient } from 'redis';
 import 'reflect-metadata';
 import { promisify } from 'util';
 
-import { eventCreator, isPersistedEvent, PersistedEvent } from '../shared/events';
+import {
+  eventCreator,
+  isPersistedEvent,
+  PersistedEvent,
+} from '../shared/events';
 import { default as logger } from '../shared/logger';
 import { PersistentEventBus as EventBus } from './persistent-event-bus';
 
@@ -29,7 +33,9 @@ const TEST_EVENT_TYPE = 'TEST_EVENT_TYPE';
 const testEventCreator = eventCreator<Payload>(TEST_EVENT_TYPE);
 
 const ANOTHER_TEST_EVENT_TYPE = 'ANOTHER_TEST_EVENT_TYPE';
-const anotherTestEventCreator = eventCreator<AnotherPayload>(ANOTHER_TEST_EVENT_TYPE);
+const anotherTestEventCreator = eventCreator<AnotherPayload>(
+  ANOTHER_TEST_EVENT_TYPE,
+);
 
 let persistence: any = { type: 'inmemory' };
 
@@ -46,7 +52,7 @@ if (process.env.TEST_USE_REDIS) {
 }
 
 function getEventBus() {
-  return  new EventBus(logger(undefined, false, true), persistence);
+  return new EventBus(logger(undefined, false, true), persistence);
 }
 
 async function clearDb() {
@@ -63,12 +69,11 @@ async function clearDb() {
 }
 
 describe('persistent-event-bus', () => {
-
   beforeEach(clearDb);
 
   // afterEach(clearDb);
 
-  it('should work with an event that doesn\'t have teamId', async () => {
+  it("should work with an event that doesn't have teamId", async () => {
     const bus = getEventBus();
     const promise = bus
       .getStream()
@@ -118,7 +123,7 @@ describe('persistent-event-bus', () => {
     const bus = getEventBus();
     const promise = bus
       .getStream()
-      .map(event => <PersistedEvent<any>> event)
+      .map(event => event as PersistedEvent<any>)
       .takeUntil(Observable.timer(100))
       .toArray()
       .toPromise();
@@ -134,7 +139,7 @@ describe('persistent-event-bus', () => {
     const bus = getEventBus();
     const promise = bus
       .getStream()
-      .map(event => <PersistedEvent<any>> event)
+      .map(event => event as PersistedEvent<any>)
       .takeUntil(Observable.timer(100))
       .toArray()
       .toPromise();
@@ -152,13 +157,22 @@ describe('persistent-event-bus', () => {
     const bus = getEventBus();
     const promise = bus
       .getStream()
-      .map(event => <PersistedEvent<any>> event)
+      .map(event => event as PersistedEvent<any>)
       .takeUntil(Observable.timer(100))
       .toArray()
       .toPromise();
 
-    bus.post(sseEventCreator({ status: 'bar', teamId: 23234, projectId: 34534 }));
-    bus.post(sseEventCreator({ status: 'bar', foo: 'baz', teamId: 23234, projectId: 2 }));
+    bus.post(
+      sseEventCreator({ status: 'bar', teamId: 23234, projectId: 34534 }),
+    );
+    bus.post(
+      sseEventCreator({
+        status: 'bar',
+        foo: 'baz',
+        teamId: 23234,
+        projectId: 2,
+      }),
+    );
     const events = await promise;
     expect(events.length).to.eq(2);
     expect(events[0].streamRevision).to.eql(0);
@@ -166,11 +180,11 @@ describe('persistent-event-bus', () => {
     expect(events[1].streamRevision).to.eql(1);
   });
 
-  it('should add a streamRevision that doesn\'t increment when using separate teamIds', async () => {
+  it("should add a streamRevision that doesn't increment when using separate teamIds", async () => {
     const bus = getEventBus();
     const promise = bus
       .getStream()
-      .map(event => <PersistedEvent<any>> event)
+      .map(event => event as PersistedEvent<any>)
       .takeUntil(Observable.timer(200))
       .toArray()
       .toPromise();
@@ -188,11 +202,7 @@ describe('persistent-event-bus', () => {
     const bus = getEventBus();
     const teamId = 33423;
 
-    const promise = bus
-      .getStream()
-      .take(3)
-      .toArray()
-      .toPromise();
+    const promise = bus.getStream().take(3).toArray().toPromise();
 
     bus.post(sseEventCreator({ status: 'bar', teamId }));
     bus.post(testEventCreator({ status: 'bar', foo: 'foo', teamId }));
@@ -213,11 +223,7 @@ describe('persistent-event-bus', () => {
     const bus = getEventBus();
     const teamId = 33423;
 
-    const promise = bus
-      .getStream()
-      .take(3)
-      .toArray()
-      .toPromise();
+    const promise = bus.getStream().take(3).toArray().toPromise();
 
     bus.post(sseEventCreator({ status: 'bar', teamId }));
     bus.post(testEventCreator({ status: 'bar', foo: 'foo', teamId }));
@@ -242,7 +248,8 @@ describe('persistent-event-bus', () => {
     const finalNumber = numPersisted - since + 1;
     // Arrange
 
-    const persistedPromise = bus.getStream()
+    const persistedPromise = bus
+      .getStream()
       .take(numPersisted)
       .toArray()
       .toPromise();
@@ -259,14 +266,13 @@ describe('persistent-event-bus', () => {
       return expect.fail('Unexpected error');
     }
     expect(existing.length).to.eq(numPersisted - since);
-    const realTime = bus.getStream().filter(isPersistedEvent)
-      .map(event => <PersistedEvent<any>> event);
+    const realTime = bus
+      .getStream()
+      .filter(isPersistedEvent)
+      .map(event => event as PersistedEvent<any>);
     const combined = Observable.concat(Observable.from(existing), realTime);
 
-    const promise = combined
-      .take(finalNumber)
-      .toArray()
-      .toPromise();
+    const promise = combined.take(finalNumber).toArray().toPromise();
 
     // This one is realtime
     bus.post(sseEventCreator({ status: 'bar', foo: 'baz', teamId }));
@@ -278,7 +284,6 @@ describe('persistent-event-bus', () => {
     for (let i = 0; i < finalNumber; i++) {
       expect(events[i].streamRevision).to.eql(since + i);
     }
-
   });
 
   it('should allow filtering by types', async () => {
@@ -294,20 +299,25 @@ describe('persistent-event-bus', () => {
 
     expect(event.type).to.equal(TEST_EVENT_TYPE);
     expect(event.payload.status).to.equal('bar');
-
   });
 
   it('should allow filtering by multiple types', async () => {
     const bus = getEventBus();
     let counter = 0;
     const promise = bus
-      .filterEvents<Payload | AnotherPayload>(TEST_EVENT_TYPE, ANOTHER_TEST_EVENT_TYPE)
+      .filterEvents<Payload | AnotherPayload>(
+        TEST_EVENT_TYPE,
+        ANOTHER_TEST_EVENT_TYPE,
+      )
       .take(2)
       .toArray()
       .toPromise();
 
     const testEvent = testEventCreator({ status: 'bar', foo: 'foo' });
-    const anotherTestEvent = anotherTestEventCreator({ status: 'foo', bar: 'bar' });
+    const anotherTestEvent = anotherTestEventCreator({
+      status: 'foo',
+      bar: 'bar',
+    });
 
     await Promise.all([bus.post(testEvent), bus.post(anotherTestEvent)]);
     const events = await promise;
@@ -333,7 +343,5 @@ describe('persistent-event-bus', () => {
       counter++;
     });
     expect(counter).to.eq(2);
-
   });
-
 });

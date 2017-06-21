@@ -17,16 +17,13 @@ export default class OperationsModule {
   public static injectSymbol = Symbol('operations-module');
 
   constructor(
-    @inject(
-      ProjectModule.injectSymbol,
-    ) private readonly projectModule: ProjectModule,
-    @inject(
-      DeploymentModule.injectSymbol,
-    ) private readonly deploymentModule: DeploymentModule,
+    @inject(ProjectModule.injectSymbol)
+    private readonly projectModule: ProjectModule,
+    @inject(DeploymentModule.injectSymbol)
+    private readonly deploymentModule: DeploymentModule,
     @inject(loggerInjectSymbol) private readonly logger: Logger,
-    @inject(
-      ActivityModule.injectSymbol,
-    ) private readonly activityModule: ActivityModule,
+    @inject(ActivityModule.injectSymbol)
+    private readonly activityModule: ActivityModule,
     @inject(GitlabClient.injectSymbol) private readonly gitlab: GitlabClient,
   ) {}
 

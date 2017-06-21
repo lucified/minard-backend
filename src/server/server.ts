@@ -1,9 +1,7 @@
 import { inject, injectable, optional } from 'inversify';
 
 import { AuthenticationHapiPlugin } from '../authentication';
-import {
-  DeploymentHapiPlugin,
-} from '../deployment';
+import { DeploymentHapiPlugin } from '../deployment';
 import { CIProxy } from '../deployment';
 import { GitProxy } from '../gitproxy/gitproxy-hapi-plugin';
 import { JsonApiHapiPlugin } from '../json-api';
@@ -35,32 +33,42 @@ export const hapiOptionsInjectSymbol = Symbol('hapi-options');
 
 @injectable()
 export default class MinardServer {
-
   public static injectSymbol = Symbol('minard-server');
   private readonly hapiServer: Hapi.Server;
   private readonly publicServer: Hapi.Server;
   private isInitialized = false;
 
   constructor(
-    @inject(AuthenticationHapiPlugin.injectSymbol) private readonly authenticationPlugin: AuthenticationHapiPlugin,
-    @inject(DeploymentHapiPlugin.injectSymbol) private readonly deploymentPlugin: DeploymentHapiPlugin,
+    @inject(AuthenticationHapiPlugin.injectSymbol)
+    private readonly authenticationPlugin: AuthenticationHapiPlugin,
+    @inject(DeploymentHapiPlugin.injectSymbol)
+    private readonly deploymentPlugin: DeploymentHapiPlugin,
     // tslint:disable-next-line:max-line-length
-    @inject(ProjectHapiPlugin.injectSymbol) private readonly projectPlugin: ProjectHapiPlugin,
-    @inject(JsonApiHapiPlugin.injectSymbol) private readonly jsonApiPlugin: JsonApiHapiPlugin,
+    @inject(ProjectHapiPlugin.injectSymbol)
+    private readonly projectPlugin: ProjectHapiPlugin,
+    @inject(JsonApiHapiPlugin.injectSymbol)
+    private readonly jsonApiPlugin: JsonApiHapiPlugin,
     @inject(CIProxy.injectSymbol) private readonly ciProxy: CIProxy,
     @inject(GitProxy.injectSymbol) private readonly gitProxy: GitProxy,
     @inject(hostInjectSymbol) private readonly host: string,
     @inject(portInjectSymbol) private readonly port: number,
-    @inject(minardUiBaseUrlInjectSymbol) private readonly minardUiBaseUrl: string,
-    @inject(StatusHapiPlugin.injectSymbol) private readonly statusPlugin: StatusHapiPlugin,
+    @inject(minardUiBaseUrlInjectSymbol)
+    private readonly minardUiBaseUrl: string,
+    @inject(StatusHapiPlugin.injectSymbol)
+    private readonly statusPlugin: StatusHapiPlugin,
     @inject(goodOptionsInjectSymbol) private readonly goodOptions: any,
     @inject(loggerInjectSymbol) public readonly logger: Logger,
-    @inject(ScreenshotHapiPlugin.injectSymbol) private readonly screenshotPlugin: ScreenshotHapiPlugin,
-    @inject(OperationsHapiPlugin.injectSymbol) private readonly operationsPlugin: OperationsHapiPlugin,
-    @inject(RealtimeHapiPlugin.injectSymbol) private readonly realtimePlugin: RealtimeHapiPlugin,
+    @inject(ScreenshotHapiPlugin.injectSymbol)
+    private readonly screenshotPlugin: ScreenshotHapiPlugin,
+    @inject(OperationsHapiPlugin.injectSymbol)
+    private readonly operationsPlugin: OperationsHapiPlugin,
+    @inject(RealtimeHapiPlugin.injectSymbol)
+    private readonly realtimePlugin: RealtimeHapiPlugin,
     @inject(sentryDsnInjectSymbol) private readonly sentryDsn: string,
     @inject(exitDelayInjectSymbol) private readonly exitDelay: number,
-    @inject(hapiOptionsInjectSymbol) @optional() hapiOptions?: Hapi.ServerOptions,
+    @inject(hapiOptionsInjectSymbol)
+    @optional()
+    hapiOptions?: Hapi.ServerOptions,
   ) {
     this.hapiServer = Hapi.getServer(hapiOptions);
     this.publicServer = this.hapiServer.connection({
@@ -73,9 +81,7 @@ export default class MinardServer {
         },
         cors: {
           origin: [this.minardUiBaseUrl],
-          additionalHeaders: [
-            'Accept-Language',
-          ],
+          additionalHeaders: ['Accept-Language'],
         },
       },
     });
@@ -93,7 +99,10 @@ export default class MinardServer {
 
     await this.initialize();
     await server.start();
-    this.logger.info('Charles is up and listening on %s', this.publicServer.info!.uri);
+    this.logger.info(
+      'Charles is up and listening on %s',
+      this.publicServer.info!.uri,
+    );
     await this.operationsPlugin.operationsModule.cleanupRunningDeployments();
     this.projectPlugin.registerHooks();
     return server;
@@ -113,7 +122,6 @@ export default class MinardServer {
   }
 
   private async loadBasePlugins(server: Hapi.Server) {
-
     const basePlugins = [
       { register: h2o2 },
       { register: inert },
@@ -136,10 +144,14 @@ export default class MinardServer {
     if (ravenRegister) {
       const ravenClientKey = 'hapi-raven';
       const raven = server.plugins[ravenClientKey].client;
-      this.logger.add(new WinstonSentry({
-        level: 'warn',
-        raven,
-      }), undefined, true);
+      this.logger.add(
+        new WinstonSentry({
+          level: 'warn',
+          raven,
+        }),
+        undefined,
+        true,
+      );
     }
   }
 
@@ -157,7 +169,10 @@ export default class MinardServer {
           environment = charles.environment;
         }
       } catch (err) {
-        this.logger.warn('Unable to get release information for Sentry: %s', err.message);
+        this.logger.warn(
+          'Unable to get release information for Sentry: %s',
+          err.message,
+        );
       }
 
       return {
@@ -206,5 +221,4 @@ export default class MinardServer {
       this.gitProxy.register,
     ]);
   }
-
 }

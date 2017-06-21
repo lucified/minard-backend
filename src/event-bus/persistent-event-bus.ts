@@ -27,13 +27,9 @@ export class PersistentEventBus extends LocalEventBus {
       eventStoreConfig,
       logger,
     );
-    if (debug) {
-      this.queueSubscription = this.subscribeWithTiming();
-    } else {
-      this.queueSubscription = this.queue
-        .flatMap(job => job(), 1)
-        .subscribe();
-    }
+    this.queueSubscription = debug
+      ? this.subscribeWithTiming()
+      : this.queue.flatMap(job => job(), 1).subscribe();
   }
 
   private publish(event: Event<any>, callback: (err?: any) => void) {
@@ -52,7 +48,8 @@ export class PersistentEventBus extends LocalEventBus {
   }
 
   private async _post(event: Event<any>) {
-    if (!isSSE(event)) { // only persist SSE events
+    if (!isSSE(event)) {
+      // only persist SSE events
       this.subject.next(event);
       return event;
     }

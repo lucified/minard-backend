@@ -6,12 +6,14 @@ import AuthenticationModule from './authentication-module';
 
 describe('authentication-module', () => {
   it('getGitlabPrivateToken', async () => {
-    const knex = Knex({
-      client: 'sqlite3',
-      connection: { filename: ':memory:' },
-      useNullAsDefault: true,
-    } as Knex.Config);
-    await knex.schema.createTable('users', (table) => {
+    const knex = Knex(
+      {
+        client: 'sqlite3',
+        connection: { filename: ':memory:' },
+        useNullAsDefault: true,
+      } as Knex.Config,
+    );
+    await knex.schema.createTable('users', table => {
       table.string('authentication_token');
       table.integer('id');
     });

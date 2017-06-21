@@ -29,13 +29,11 @@ export class GitlabClient {
 
   public constructor(
     @inject(gitlabHostInjectSymbol) public readonly host: string,
-    @inject(
-      gitlabPasswordSecretInjectSymbol,
-    ) private readonly passwordSecret: string,
+    @inject(gitlabPasswordSecretInjectSymbol)
+    private readonly passwordSecret: string,
     @inject(fetchInjectSymbol) private readonly originalFetch: IFetch,
-    @inject(
-      AuthenticationModule.injectSymbol,
-    ) private readonly authentication: AuthenticationModule,
+    @inject(AuthenticationModule.injectSymbol)
+    private readonly authentication: AuthenticationModule,
     @inject(loggerInjectSymbol) public readonly logger: Logger,
     private readonly logging: boolean = false,
   ) {}
@@ -176,7 +174,11 @@ export class GitlabClient {
     // to get all users, we put a per_page param equal to the largest
     // signed 32-bit integer, which gitlab should be able to handle fine
     const largestSignedInteger = 2147483646;
-    const users = await this.fetchJson<User[]>(`users?per_page=${largestSignedInteger}`, undefined, true);
+    const users = await this.fetchJson<User[]>(
+      `users?per_page=${largestSignedInteger}`,
+      undefined,
+      true,
+    );
     if (!users || !users.length) {
       throw badRequest(`Can\'t find users`);
     }
@@ -344,7 +346,11 @@ export class GitlabClient {
         true,
       );
     } else {
-      group = await this.fetchJson<Group>(`groups/${groupIdOrPath}`, undefined, true);
+      group = await this.fetchJson<Group>(
+        `groups/${groupIdOrPath}`,
+        undefined,
+        true,
+      );
     }
     if (!group || !group.id) {
       throw notFound(`No group found with id '${groupIdOrPath}'`);
@@ -356,7 +362,11 @@ export class GitlabClient {
     const sudo = {
       sudo: userIdOrName,
     };
-    return this.fetchJson<Group[]>(`groups?${stringify(sudo)}`, undefined, true);
+    return this.fetchJson<Group[]>(
+      `groups?${stringify(sudo)}`,
+      undefined,
+      true,
+    );
   }
 
   public async getALLGroups() {
@@ -375,7 +385,11 @@ export class GitlabClient {
         true,
       );
     } else {
-      project = await this.fetchJson<Project>(`projects/${projectId}`, undefined, true);
+      project = await this.fetchJson<Project>(
+        `projects/${projectId}`,
+        undefined,
+        true,
+      );
     }
     if (!project || !project.id) {
       throw notFound(`No project found with id '${projectId}'`);
@@ -387,7 +401,11 @@ export class GitlabClient {
     const sudo = {
       sudo: userIdOrName,
     };
-    return this.fetchJson<Project[]>(`projects?${stringify(sudo)}`, undefined, true);
+    return this.fetchJson<Project[]>(
+      `projects?${stringify(sudo)}`,
+      undefined,
+      true,
+    );
   }
 }
 

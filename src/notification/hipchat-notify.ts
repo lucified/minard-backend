@@ -1,14 +1,10 @@
 import { inject, injectable } from 'inversify';
 import { truncate } from 'lodash';
 
-import {
-  MinardDeployment,
-} from '../deployment';
+import { MinardDeployment } from '../deployment';
 import { IFetch } from '../shared/fetch';
 import { fetchInjectSymbol } from '../shared/types';
-import {
-  NotificationComment,
-} from './types';
+import { NotificationComment } from './types';
 
 export function getMessageWithScreenshot(
   deployment: MinardDeployment,
@@ -63,8 +59,11 @@ export function getDescription(
     return `<b>${name}</b> added a new comment: <i>${comment.message}</i>`;
   }
 
-  const message = truncate(deployment.commit.message.split('\n')[0], { length: 50 });
-  let ret = `<b>${deployment.commit.committer.name}</b> generated ` +
+  const message = truncate(deployment.commit.message.split('\n')[0], {
+    length: 50,
+  });
+  let ret =
+    `<b>${deployment.commit.committer.name}</b> generated ` +
     `a new <a href="${previewUrl}">preview</a> ` +
     `in <b><a href="${projectUrl}">${deployment.projectName}</a></b>.`;
   if (message && message.length > 0) {
@@ -75,26 +74,34 @@ export function getDescription(
 
 @injectable()
 export class HipchatNotify {
-
   public static injectSymbol = Symbol('hipchat-notify');
 
-  public constructor(@inject(fetchInjectSymbol) private fetch: IFetch) { }
+  public constructor(@inject(fetchInjectSymbol) private fetch: IFetch) {}
 
-  private getCard(deployment: MinardDeployment, projectUrl: string, previewUrl: string, comment?: NotificationComment) {
+  private getCard(
+    deployment: MinardDeployment,
+    projectUrl: string,
+    previewUrl: string,
+    comment?: NotificationComment,
+  ) {
     // we need this hack to show proper screenshot in integration
     // tests, as thumbnails served via localhost will crash the
     // hipchat android app
     if (deployment.projectName === 'integration-test-project') {
-      deployment.screenshot = 'http://www.lucify.com/images/lucify-asylum-countries-open-graph-size-5adef1be36.png';
+      deployment.screenshot =
+        'http://www.lucify.com/images/lucify-asylum-countries-open-graph-size-5adef1be36.png';
     }
 
     // do not include thumbnail if screenshot url points to
     // localhost, as this will crash the hipchat mobile app
-    const thumbnail = deployment.screenshot && deployment.screenshot.indexOf('//localhost') === -1 ? {
-      url: deployment.screenshot,
-      width: 1200,
-      height: 750,
-    } : undefined;
+    const thumbnail = deployment.screenshot &&
+      deployment.screenshot.indexOf('//localhost') === -1
+      ? {
+          url: deployment.screenshot,
+          width: 1200,
+          height: 750,
+        }
+      : undefined;
 
     return {
       id: `minard-deployment-${deployment.id}`,
@@ -123,7 +130,6 @@ export class HipchatNotify {
     commentUrl: string | undefined,
     comment: NotificationComment | undefined,
   ): Promise<any> {
-
     const status = deployment.status;
 
     // do not send notification for failed deployments
@@ -136,7 +142,13 @@ export class HipchatNotify {
     const fullPreviewUrl = commentUrl || previewUrl;
 
     // this is only used for clients that don't support the card
-    const message = deployment.screenshot ? getMessageWithScreenshot(deployment, projectUrl, fullPreviewUrl, comment)
+    const message = deployment.screenshot
+      ? getMessageWithScreenshot(
+          deployment,
+          projectUrl,
+          fullPreviewUrl,
+          comment,
+        )
       : getBasicMessage(deployment, projectUrl, fullPreviewUrl, comment);
 
     const body = {
@@ -157,7 +169,12 @@ export class HipchatNotify {
     };
 
     const ret = await this.fetch(url, options);
-    if (ret.status === 202 || ret.status === 200 || ret.status === 201 || ret.status === 204) {
+    if (
+      ret.status === 202 ||
+      ret.status === 200 ||
+      ret.status === 201 ||
+      ret.status === 204
+    ) {
       return;
     }
 
@@ -165,9 +182,12 @@ export class HipchatNotify {
       const json = await ret.json();
       throw Error(
         `Unexpected status ${ret.status} when posting HipChat notification. ` +
-        `Response was ${JSON.stringify(json, null, 2)}`);
+          `Response was ${JSON.stringify(json, null, 2)}`,
+      );
     } catch (error) {
-      throw Error(`Unexpected status ${ret.status} when posting HipChat notification.`);
+      throw Error(
+        `Unexpected status ${ret.status} when posting HipChat notification.`,
+      );
     }
   }
 }

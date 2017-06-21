@@ -9,12 +9,20 @@ import { getSignedAccessToken } from '../config/config-test';
 import { JsonApiHapiPlugin } from '../json-api';
 import { ProjectModule } from '../project';
 import { getTestServer } from '../server/hapi';
-import { makeRequestWithAuthentication, MethodStubber, stubber } from '../shared/test';
+import {
+  makeRequestWithAuthentication,
+  MethodStubber,
+  stubber,
+} from '../shared/test';
 import TokenGenerator from '../shared/token-generator';
 import AuthenticationHapiPlugin from './authentication-hapi-plugin';
 import { generateTeamToken } from './team-token';
 
-const validAccessToken = getSignedAccessToken('auth0|12345678', generateTeamToken(), 'foo@bar.com');
+const validAccessToken = getSignedAccessToken(
+  'auth0|12345678',
+  generateTeamToken(),
+  'foo@bar.com',
+);
 const makeRequest = makeRequestWithAuthentication(validAccessToken);
 
 async function getServer(
@@ -22,14 +30,26 @@ async function getServer(
   apiStubber: MethodStubber<JsonApiHapiPlugin>,
 ) {
   const kernel = bootstrap('test');
-  kernel.rebind(AuthenticationHapiPlugin.injectSymbol).to(AuthenticationHapiPlugin);
+  kernel
+    .rebind(AuthenticationHapiPlugin.injectSymbol)
+    .to(AuthenticationHapiPlugin);
   kernel.rebind(JsonApiHapiPlugin.injectSymbol).to(JsonApiHapiPlugin);
   kernel.rebind(ProjectModule.injectSymbol).to(ProjectModule);
-  const authenticationPlugin = stubber(authenticationStubber, AuthenticationHapiPlugin.injectSymbol, kernel);
+  const authenticationPlugin = stubber(
+    authenticationStubber,
+    AuthenticationHapiPlugin.injectSymbol,
+    kernel,
+  );
   const apiPlugin = stubber(apiStubber, JsonApiHapiPlugin.injectSymbol, kernel);
-  const tokenGenerator = kernel.get<TokenGenerator>(TokenGenerator.injectSymbol);
+  const tokenGenerator = kernel.get<TokenGenerator>(
+    TokenGenerator.injectSymbol,
+  );
   return {
-    server: await getTestServer(true, authenticationPlugin.instance, apiPlugin.instance),
+    server: await getTestServer(
+      true,
+      authenticationPlugin.instance,
+      apiPlugin.instance,
+    ),
     authentication: authenticationPlugin.instance,
     api: apiPlugin.instance,
     tokenGenerator,
@@ -48,21 +68,20 @@ function arrange(
 ) {
   return getServer(
     (plugin: AuthenticationHapiPlugin) => [
-      stub(plugin, authorizationMethod)
-        .returns(Promise.resolve(hasAccess)),
-      stub(plugin, 'isAdmin')
-          .returns(Promise.resolve(isAdmin)),
-      stub(plugin, 'isOpenDeployment')
-          .returns(Promise.resolve(isOpenDeployment)),
+      stub(plugin, authorizationMethod).returns(Promise.resolve(hasAccess)),
+      stub(plugin, 'isAdmin').returns(Promise.resolve(isAdmin)),
+      stub(plugin, 'isOpenDeployment').returns(
+        Promise.resolve(isOpenDeployment),
+      ),
     ],
     (p: JsonApiHapiPlugin) => [
-      stub(p, handler)
-        .yields(200)
-        .returns(Promise.resolve(true)),
-      stub(p, 'getLatestSuccessfulDeploymentIdForBranch')
-        .returns(Promise.resolve(deploymentId)),
-      stub(p, 'getLatestSuccessfulDeploymentIdForProject')
-        .returns(Promise.resolve(deploymentId)),
+      stub(p, handler).yields(200).returns(Promise.resolve(true)),
+      stub(p, 'getLatestSuccessfulDeploymentIdForBranch').returns(
+        Promise.resolve(deploymentId),
+      ),
+      stub(p, 'getLatestSuccessfulDeploymentIdForProject').returns(
+        Promise.resolve(deploymentId),
+      ),
     ],
   );
 }
@@ -70,7 +89,7 @@ function arrange(
 describe('authorization for api routes', () => {
   describe('standard - in AuthenticationHapiPlugin', () => {
     describe('getProjectsHandler', () => {
-      it('should allow listing authorized team\'s projects', async () => {
+      it("should allow listing authorized team's projects", async () => {
         // Arrange
         const { server, authentication, api } = await arrange(
           'userHasAccessToTeam',
@@ -83,7 +102,7 @@ describe('authorization for api routes', () => {
         expect(authentication.userHasAccessToTeam).to.have.been.calledOnce;
         expect(api.getProjectsHandler).to.have.been.calledOnce;
       });
-      it('should not allow listing unauthorized team\'s projects', async () => {
+      it("should not allow listing unauthorized team's projects", async () => {
         // Arrange
         const { server, authentication, api } = await arrange(
           'userHasAccessToTeam',
@@ -91,7 +110,10 @@ describe('authorization for api routes', () => {
           'getProjectsHandler',
         );
         // Act
-        const response = await makeRequest(server, '/teams/1/relationships/projects');
+        const response = await makeRequest(
+          server,
+          '/teams/1/relationships/projects',
+        );
         // Assert
         expect(response.statusCode).to.eq(401);
         expect(authentication.userHasAccessToTeam).to.have.been.calledOnce;
@@ -142,7 +164,11 @@ describe('authorization for api routes', () => {
       });
       it('should not allow fetching a branch in an unauthorized project', async () => {
         // Arrange
-        const { server, authentication, api } = await arrange('userHasAccessToProject', false, 'getBranchHandler');
+        const { server, authentication, api } = await arrange(
+          'userHasAccessToProject',
+          false,
+          'getBranchHandler',
+        );
         // Act
         const response = await makeRequest(server, '/branches/1-master');
         // Assert
@@ -151,7 +177,6 @@ describe('authorization for api routes', () => {
         expect(api.getBranchHandler).to.not.have.been.called;
       });
     });
-
   });
   describe('preHandlers', () => {
     describe('postProjectHandler', () => {
@@ -189,7 +214,12 @@ describe('authorization for api routes', () => {
           'postProjectHandler',
         );
         // Act
-        const response = await makeRequest(server, '/projects', 'POST', payload);
+        const response = await makeRequest(
+          server,
+          '/projects',
+          'POST',
+          payload,
+        );
         // Assert
         expect(response.statusCode).to.eq(401);
         expect(authentication.userHasAccessToTeam).to.have.been.calledOnce;
@@ -219,7 +249,11 @@ describe('authorization for api routes', () => {
           'getDeploymentCommentsHandler',
         );
         // Act
-        const response = await makeRequest(server, '/comments/deployment/1-1', 'GET');
+        const response = await makeRequest(
+          server,
+          '/comments/deployment/1-1',
+          'GET',
+        );
 
         expect(response.statusCode).to.eq(401);
         expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
@@ -272,9 +306,18 @@ describe('authorization for api routes', () => {
       });
       it('should not allow creating a comment for a deployment in an unauthorized project', async () => {
         // Arrange
-        const { server, authentication, api } = await arrange('userHasAccessToProject', false, 'postCommentHandler');
+        const { server, authentication, api } = await arrange(
+          'userHasAccessToProject',
+          false,
+          'postCommentHandler',
+        );
         // Act
-        const response = await makeRequest(server, '/comments', 'POST', payload);
+        const response = await makeRequest(
+          server,
+          '/comments',
+          'POST',
+          payload,
+        );
         // Assert
         expect(response.statusCode).to.eq(401);
         expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
@@ -304,23 +347,27 @@ describe('authorization for api routes', () => {
       function arrangeCommentRemoval(hasAccess: boolean, isOpen = false) {
         return getServer(
           p => [
-            stub(p, isOpen ? 'isOpenDeployment' : 'userHasAccessToProject')
-              .returns(Promise.resolve(hasAccess)),
-            stub(p, 'isAdmin')
-              .returns(Promise.resolve(false)),
+            stub(
+              p,
+              isOpen ? 'isOpenDeployment' : 'userHasAccessToProject',
+            ).returns(Promise.resolve(hasAccess)),
+            stub(p, 'isAdmin').returns(Promise.resolve(false)),
           ],
           p => [
             stub(p, 'deleteCommentHandler')
               .yields(200)
               .returns(Promise.resolve(true)),
-            stub(p, 'getComment')
-              .returns(Promise.resolve({ deployment: '1-1' })),
+            stub(p, 'getComment').returns(
+              Promise.resolve({ deployment: '1-1' }),
+            ),
           ],
         );
       }
       it('should allow deleting a comment for a deployment in an authorized project', async () => {
         // Arrange
-        const { server, authentication, api } = await arrangeCommentRemoval(true);
+        const { server, authentication, api } = await arrangeCommentRemoval(
+          true,
+        );
         // Act
         await makeRequest(server, '/comments/1', 'DELETE');
         // Assert
@@ -330,7 +377,9 @@ describe('authorization for api routes', () => {
       });
       it('should not allow deleting a comment for a deployment in an unauthorized project', async () => {
         // Arrange
-        const { server, authentication, api } = await arrangeCommentRemoval(false);
+        const { server, authentication, api } = await arrangeCommentRemoval(
+          false,
+        );
         // Act
         const response = await makeRequest(server, '/comments/1', 'DELETE');
         // Assert
@@ -350,7 +399,6 @@ describe('authorization for api routes', () => {
         // Assert
         expect(response.statusCode).to.eq(401);
       });
-
     });
 
     describe('postNotificationConfigurationHandler', () => {
@@ -374,12 +422,18 @@ describe('authorization for api routes', () => {
           'postNotificationConfigurationHandler',
         );
         // Act
-        const response = await makeRequest(server, '/notifications', 'POST', payload(1));
+        const response = await makeRequest(
+          server,
+          '/notifications',
+          'POST',
+          payload(1),
+        );
 
         // Assert
         expect(response).to.exist;
         expect(authentication.userHasAccessToTeam).to.have.been.calledOnce;
-        expect(api.postNotificationConfigurationHandler).to.have.been.calledOnce;
+        expect(api.postNotificationConfigurationHandler).to.have.been
+          .calledOnce;
       });
       it('should not allow creating a notification configuration for an unauthorized team', async () => {
         // Arrange
@@ -389,13 +443,18 @@ describe('authorization for api routes', () => {
           'postNotificationConfigurationHandler',
         );
         // Act
-        const response = await makeRequest(server, '/notifications', 'POST', payload(1));
+        const response = await makeRequest(
+          server,
+          '/notifications',
+          'POST',
+          payload(1),
+        );
 
         // Assert
         expect(response.statusCode).to.eq(401);
         expect(authentication.userHasAccessToTeam).to.have.been.calledOnce;
-        expect(api.postNotificationConfigurationHandler).to.not.have.been.called;
-
+        expect(api.postNotificationConfigurationHandler).to.not.have.been
+          .called;
       });
       it('should allow creating a notification configuration for an authorized project', async () => {
         // Arrange
@@ -405,12 +464,18 @@ describe('authorization for api routes', () => {
           'postNotificationConfigurationHandler',
         );
         // Act
-        const response = await makeRequest(server, '/notifications', 'POST', payload(undefined, 1));
+        const response = await makeRequest(
+          server,
+          '/notifications',
+          'POST',
+          payload(undefined, 1),
+        );
 
         // Assert
         expect(response).to.exist;
         expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
-        expect(api.postNotificationConfigurationHandler).to.have.been.calledOnce;
+        expect(api.postNotificationConfigurationHandler).to.have.been
+          .calledOnce;
       });
       it('should not allow creating a notification configuration for an unauthorized project', async () => {
         // Arrange
@@ -420,76 +485,123 @@ describe('authorization for api routes', () => {
           'postNotificationConfigurationHandler',
         );
         // Act
-        const response = await makeRequest(server, '/notifications', 'POST', payload(undefined, 1));
+        const response = await makeRequest(
+          server,
+          '/notifications',
+          'POST',
+          payload(undefined, 1),
+        );
 
         // Assert
         expect(response.statusCode).to.eq(401);
         expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
-        expect(api.postNotificationConfigurationHandler).to.not.have.been.called;
-
+        expect(api.postNotificationConfigurationHandler).to.not.have.been
+          .called;
       });
     });
     describe('deleteNotificationConfigurationHandler', () => {
-      function arrangeNotificationRemoval(hasAccess: boolean, teamId?: number, projectId?: number) {
+      function arrangeNotificationRemoval(
+        hasAccess: boolean,
+        teamId?: number,
+        projectId?: number,
+      ) {
         return getServer(
           p => [
-            stub(p, projectId ? 'userHasAccessToProject' : 'userHasAccessToTeam')
-              .returns(Promise.resolve(hasAccess)),
-            stub(p, 'isAdmin')
-              .returns(Promise.resolve(false)),
+            stub(
+              p,
+              projectId ? 'userHasAccessToProject' : 'userHasAccessToTeam',
+            ).returns(Promise.resolve(hasAccess)),
+            stub(p, 'isAdmin').returns(Promise.resolve(false)),
           ],
           p => [
             stub(p, 'deleteNotificationConfigurationHandler')
               .yields(200)
               .returns(Promise.resolve(true)),
-            stub(p, 'getNotificationConfiguration')
-              .returns(Promise.resolve({ teamId, projectId })),
+            stub(p, 'getNotificationConfiguration').returns(
+              Promise.resolve({ teamId, projectId }),
+            ),
           ],
         );
       }
       it('should allow deleting a notification configuration for an authorized team', async () => {
         // Arrange
-        const { server, authentication, api } = await arrangeNotificationRemoval(true, 1);
+        const {
+          server,
+          authentication,
+          api,
+        } = await arrangeNotificationRemoval(true, 1);
         // Act
-        const response = await makeRequest(server, '/notifications/1', 'DELETE');
+        const response = await makeRequest(
+          server,
+          '/notifications/1',
+          'DELETE',
+        );
         // Assert
         expect(response).to.exist;
         expect(api.getNotificationConfiguration).to.have.been.calledOnce;
         expect(authentication.userHasAccessToTeam).to.have.been.calledOnce;
-        expect(api.deleteNotificationConfigurationHandler).to.have.been.calledOnce;
+        expect(api.deleteNotificationConfigurationHandler).to.have.been
+          .calledOnce;
       });
       it('should not allow deleting a notification configuration for an unauthorized team', async () => {
         // Arrange
-        const { server, authentication, api } = await arrangeNotificationRemoval(false, 1);
+        const {
+          server,
+          authentication,
+          api,
+        } = await arrangeNotificationRemoval(false, 1);
         // Act
-        const response = await makeRequest(server, '/notifications/1', 'DELETE');
+        const response = await makeRequest(
+          server,
+          '/notifications/1',
+          'DELETE',
+        );
         // Assert
         expect(response.statusCode).to.eq(401);
         expect(api.getNotificationConfiguration).to.have.been.calledOnce;
         expect(authentication.userHasAccessToTeam).to.have.been.calledOnce;
-        expect(api.deleteNotificationConfigurationHandler).to.not.have.been.called;
+        expect(api.deleteNotificationConfigurationHandler).to.not.have.been
+          .called;
       });
       it('should allow deleting a notification configuration for an authorized project', async () => {
         // Arrange
-        const { server, authentication, api } = await arrangeNotificationRemoval(true, undefined, 1);
+        const {
+          server,
+          authentication,
+          api,
+        } = await arrangeNotificationRemoval(true, undefined, 1);
         // Act
-        const response = await makeRequest(server, '/notifications/1', 'DELETE');
+        const response = await makeRequest(
+          server,
+          '/notifications/1',
+          'DELETE',
+        );
         // Assert
         expect(response).to.exist;
         expect(api.getNotificationConfiguration).to.have.been.calledOnce;
         expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
-        expect(api.deleteNotificationConfigurationHandler).to.have.been.calledOnce;
+        expect(api.deleteNotificationConfigurationHandler).to.have.been
+          .calledOnce;
       });
       it('should not allow deleting a notification configuration for an unauthorized project', async () => {
         // Arrange
-        const { server, authentication, api } = await arrangeNotificationRemoval(false, undefined, 1);
+        const {
+          server,
+          authentication,
+          api,
+        } = await arrangeNotificationRemoval(false, undefined, 1);
         // Act
-        const response = await makeRequest(server, '/notifications/1', 'DELETE');
+        const response = await makeRequest(
+          server,
+          '/notifications/1',
+          'DELETE',
+        );
         // Assert
         expect(response.statusCode).to.eq(401);
         expect(api.getNotificationConfiguration).to.have.been.calledOnce;
         expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
-        expect(api.deleteNotificationConfigurationHandler).to.not.have.been.called;
+        expect(api.deleteNotificationConfigurationHandler).to.not.have.been
+          .called;
       });
     });
     describe('getActivityHandler', () => {
@@ -531,7 +643,10 @@ describe('authorization for api routes', () => {
           'getActivityHandler',
         );
         // Act
-        const response = await makeRequest(server, '/activity?filter=project[1]');
+        const response = await makeRequest(
+          server,
+          '/activity?filter=project[1]',
+        );
 
         // Assert
         expect(response).to.exist;
@@ -546,7 +661,10 @@ describe('authorization for api routes', () => {
           'getActivityHandler',
         );
         // Act
-        const response = await makeRequest(server, '/activity?filter=project[1]');
+        const response = await makeRequest(
+          server,
+          '/activity?filter=project[1]',
+        );
 
         // Assert
         expect(response.statusCode).to.eq(401);
@@ -580,7 +698,11 @@ describe('authorization for api routes', () => {
           );
           const token = tokenGenerator.deploymentToken(1, 1);
           // Act
-          const response = await makeRequest(server, `/preview/deployment/1-1/${token}`, 'GET');
+          const response = await makeRequest(
+            server,
+            `/preview/deployment/1-1/${token}`,
+            'GET',
+          );
 
           expect(response.statusCode).to.eq(401);
           expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
@@ -624,7 +746,8 @@ describe('authorization for api routes', () => {
 
           // Assert
           expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
-          expect(api.getLatestSuccessfulDeploymentIdForProject).to.have.been.calledOnce;
+          expect(api.getLatestSuccessfulDeploymentIdForProject).to.have.been
+            .calledOnce;
           expect(api.getPreviewHandler).to.have.been.calledOnce;
         });
         it('should not allow fetching the preview for a deployment in an unauthorized project', async () => {
@@ -640,10 +763,15 @@ describe('authorization for api routes', () => {
           const token = tokenGenerator.projectToken(1);
 
           // Act
-          const response = await makeRequest(server, `/preview/project/1/${token}`, 'GET');
+          const response = await makeRequest(
+            server,
+            `/preview/project/1/${token}`,
+            'GET',
+          );
 
           expect(response.statusCode).to.eq(401);
-          expect(api.getLatestSuccessfulDeploymentIdForProject).to.have.been.calledOnce;
+          expect(api.getLatestSuccessfulDeploymentIdForProject).to.have.been
+            .calledOnce;
           expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
           expect(api.getPreviewHandler).to.not.have.been.called;
         });
@@ -665,7 +793,8 @@ describe('authorization for api routes', () => {
           });
           // Assert
           expect(authentication.isOpenDeployment).to.have.been.calledOnce;
-          expect(api.getLatestSuccessfulDeploymentIdForProject).to.have.been.calledOnce;
+          expect(api.getLatestSuccessfulDeploymentIdForProject).to.have.been
+            .calledOnce;
           expect(api.getPreviewHandler).to.have.been.calledOnce;
         });
         it('should return 404 when deployment not found', async () => {
@@ -701,11 +830,16 @@ describe('authorization for api routes', () => {
           );
           const token = tokenGenerator.branchToken(1, 'foo-bar');
           // Act
-          await makeRequest(server, `/preview/branch/1-foo-bar/${token}`, 'GET');
+          await makeRequest(
+            server,
+            `/preview/branch/1-foo-bar/${token}`,
+            'GET',
+          );
 
           // Assert
           expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
-          expect(api.getLatestSuccessfulDeploymentIdForBranch).to.have.been.calledOnce;
+          expect(api.getLatestSuccessfulDeploymentIdForBranch).to.have.been
+            .calledOnce;
           expect(api.getPreviewHandler).to.have.been.calledOnce;
         });
         it('should not allow fetching the preview for a deployment in an unauthorized project', async () => {
@@ -721,10 +855,15 @@ describe('authorization for api routes', () => {
           const token = tokenGenerator.branchToken(1, 'foo-bar');
 
           // Act
-          const response = await makeRequest(server, `/preview/branch/1-foo-bar/${token}`, 'GET');
+          const response = await makeRequest(
+            server,
+            `/preview/branch/1-foo-bar/${token}`,
+            'GET',
+          );
 
           expect(response.statusCode).to.eq(401);
-          expect(api.getLatestSuccessfulDeploymentIdForBranch).to.have.been.calledOnce;
+          expect(api.getLatestSuccessfulDeploymentIdForBranch).to.have.been
+            .calledOnce;
           expect(authentication.userHasAccessToProject).to.have.been.calledOnce;
           expect(api.getPreviewHandler).to.not.have.been.called;
         });
@@ -746,7 +885,8 @@ describe('authorization for api routes', () => {
           });
           // Assert
           expect(authentication.isOpenDeployment).to.have.been.calledOnce;
-          expect(api.getLatestSuccessfulDeploymentIdForBranch).to.have.been.calledOnce;
+          expect(api.getLatestSuccessfulDeploymentIdForBranch).to.have.been
+            .calledOnce;
           expect(api.getPreviewHandler).to.have.been.calledOnce;
         });
         it('returns 404 when deployment is not found', async () => {
@@ -769,7 +909,6 @@ describe('authorization for api routes', () => {
           expect(response.statusCode).to.equal(404);
         });
       });
-
     });
   });
 });

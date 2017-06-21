@@ -2,11 +2,7 @@ import { badImplementation } from 'boom';
 import { merge, pickBy, values } from 'lodash';
 import { stringify } from 'yamljs';
 
-import {
-  GitlabSpec,
-  MinardJson,
-  MinardJsonBuildCommand,
-} from './types';
+import { GitlabSpec, MinardJson, MinardJsonBuildCommand } from './types';
 
 export function applyDefaults(spec: MinardJson) {
   const merged = merge({}, { publicRoot: '.' }, spec);
@@ -30,13 +26,19 @@ export function getValidationErrors(obj: any) {
     if (!obj.build.commands) {
       errors.push('build.commands should be defined');
     }
-    if (typeof obj.build.commands === 'object' && !Array.isArray(obj.build.commands)) {
+    if (
+      typeof obj.build.commands === 'object' &&
+      !Array.isArray(obj.build.commands)
+    ) {
       if (!obj.build.commands.command) {
         errors.push('build.commands.command should be defined');
       } else if (typeof obj.build.commands.command !== 'string') {
         errors.push(`build.commands.command should be a string`);
       }
-    } else if (typeof obj.build.commands === 'object' && Array.isArray(obj.build.commands)) {
+    } else if (
+      typeof obj.build.commands === 'object' &&
+      Array.isArray(obj.build.commands)
+    ) {
       let count = 0;
       obj.build.commands.forEach((item: MinardJsonBuildCommand | string) => {
         if (typeof item === 'object') {
@@ -89,20 +91,28 @@ export function getGitlabSpec(spec: MinardJson) {
     return getGitlabSpecNoAutoBuild();
   }
   const mergedSpec = applyDefaults(spec);
-  return spec.build ? getGitlabSpecWithBuild(mergedSpec) : getGitlabSpecNoBuild(mergedSpec);
+  return spec.build
+    ? getGitlabSpecWithBuild(mergedSpec)
+    : getGitlabSpecNoBuild(mergedSpec);
 }
 
-function getScripts(commands: MinardJsonBuildCommand[] | string[] | MinardJsonBuildCommand | string): string[] {
+function getScripts(
+  commands:
+    | MinardJsonBuildCommand[]
+    | string[]
+    | MinardJsonBuildCommand
+    | string,
+): string[] {
   if (typeof commands === 'string') {
     return [commands];
   }
   if (typeof commands === 'object' && !Array.isArray(commands)) {
-    return [(<MinardJsonBuildCommand> commands).command];
+    return [(commands as MinardJsonBuildCommand).command];
   }
   const cmds = commands as any[];
   const ret = cmds.map((item: MinardJsonBuildCommand | string) => {
     if (typeof item === 'object' && !Array.isArray(item)) {
-      return (<MinardJsonBuildCommand> item).command;
+      return (item as MinardJsonBuildCommand).command;
     }
     if (typeof item === 'string') {
       return item;
@@ -138,9 +148,7 @@ function getGitlabSpecWithBuild(spec: MinardJson): GitlabSpec {
       variables: spec.build.variables!,
       artifacts: {
         name: 'artifact-name',
-        paths: [
-          spec.publicRoot!,
-        ],
+        paths: [spec.publicRoot!],
       },
     },
     cache: spec.build.cache,
@@ -153,15 +161,13 @@ function getGitlabSpecWithBuild(spec: MinardJson): GitlabSpec {
  * minard.json specification.
  */
 function getGitlabSpecNoBuild(spec: MinardJson): GitlabSpec {
- return {
+  return {
     image: 'alpine:latest',
     build: {
       script: [`echo 'Nothing to build'`],
       artifacts: {
         name: 'artifact-name',
-        paths: [
-          spec.publicRoot!,
-        ],
+        paths: [spec.publicRoot!],
       },
     },
   };

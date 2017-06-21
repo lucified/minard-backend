@@ -3,36 +3,15 @@ import { inject, injectable } from 'inversify';
 import { isNil, omitBy } from 'lodash';
 import { Moment } from 'moment';
 
-import {
-  ActivityModule,
-  MinardActivity,
-} from '../activity';
-import {
-  CommentModule,
-  MinardComment,
-  NewMinardComment,
-} from '../comment';
-import {
-  DeploymentModule,
-  MinardDeployment,
-} from '../deployment/';
-import {
-  NotificationConfiguration,
-  NotificationModule,
-} from '../notification';
-import {
-  MinardBranch,
-  MinardProject,
-  ProjectModule,
-} from '../project/';
-import {
-  MinardCommit,
-} from '../shared/minard-commit';
+import { ActivityModule, MinardActivity } from '../activity';
+import { CommentModule, MinardComment, NewMinardComment } from '../comment';
+import { DeploymentModule, MinardDeployment } from '../deployment/';
+import { NotificationConfiguration, NotificationModule } from '../notification';
+import { MinardBranch, MinardProject, ProjectModule } from '../project/';
+import { MinardCommit } from '../shared/minard-commit';
 import { toGitlabTimestamp, toMoment } from '../shared/time-conversion';
 import TokenGenerator from '../shared/token-generator';
-import {
-  toApiDeploymentId,
-} from './conversions';
+import { toApiDeploymentId } from './conversions';
 import {
   ApiActivity,
   ApiActivityComment,
@@ -51,20 +30,31 @@ export class JsonApiModule {
   public static injectSymbol = Symbol('json-api-injectsymbol');
 
   constructor(
-    @inject(DeploymentModule.injectSymbol) private readonly deploymentModule: DeploymentModule,
-    @inject(ProjectModule.injectSymbol) private readonly projectModule: ProjectModule,
-    @inject(ActivityModule.injectSymbol) private readonly activityModule: ActivityModule,
-    @inject(NotificationModule.injectSymbol) private readonly notificationModule: NotificationModule,
-    @inject(CommentModule.injectSymbol) private readonly commentModule: CommentModule,
-    @inject(TokenGenerator.injectSymbol) private readonly tokenGenerator: TokenGenerator,
+    @inject(DeploymentModule.injectSymbol)
+    private readonly deploymentModule: DeploymentModule,
+    @inject(ProjectModule.injectSymbol)
+    private readonly projectModule: ProjectModule,
+    @inject(ActivityModule.injectSymbol)
+    private readonly activityModule: ActivityModule,
+    @inject(NotificationModule.injectSymbol)
+    private readonly notificationModule: NotificationModule,
+    @inject(CommentModule.injectSymbol)
+    private readonly commentModule: CommentModule,
+    @inject(TokenGenerator.injectSymbol)
+    private readonly tokenGenerator: TokenGenerator,
   ) {}
 
-  public async getCommit(projectId: number, hash: string): Promise<ApiCommit | null> {
+  public async getCommit(
+    projectId: number,
+    hash: string,
+  ): Promise<ApiCommit | null> {
     const commit = await this.projectModule.getCommit(projectId, hash);
     return commit ? this.toApiCommit(projectId, commit) : null;
   }
 
-  public async getProject(apiProjectId: string | number): Promise<ApiProject | null> {
+  public async getProject(
+    apiProjectId: string | number,
+  ): Promise<ApiProject | null> {
     const projectId = Number(apiProjectId);
     const project = await this.projectModule.getProject(projectId);
     return project ? this.toApiProject(project) : null;
@@ -76,7 +66,12 @@ export class JsonApiModule {
     description?: string,
     templateProjectId?: number,
   ): Promise<ApiProject> {
-    const id = await this.projectModule.createProject(teamId, name, description, templateProjectId);
+    const id = await this.projectModule.createProject(
+      teamId,
+      name,
+      description,
+      templateProjectId,
+    );
     const project = await this.getProject(id);
     if (!project) {
       // createProject in projectModule will throw
@@ -93,7 +88,7 @@ export class JsonApiModule {
 
   public async editProject(
     projectId: number,
-    attributes: { name?: string, description?: string },
+    attributes: { name?: string; description?: string },
   ): Promise<ApiProject> {
     await this.projectModule.editProject(projectId, attributes);
     const project = await this.getProject(projectId);
@@ -111,28 +106,40 @@ export class JsonApiModule {
     if (!projects) {
       return null;
     }
-    const promises = projects.map((project: MinardProject) => this.toApiProject(project));
+    const promises = projects.map((project: MinardProject) =>
+      this.toApiProject(project),
+    );
     return await Promise.all<ApiProject>(promises);
   }
 
-  public async getProjectBranches(projectId: number): Promise<ApiBranch[] | null> {
+  public async getProjectBranches(
+    projectId: number,
+  ): Promise<ApiBranch[] | null> {
     const project = await this.getProject(projectId);
     const branches = await this.projectModule.getProjectBranches(projectId);
     if (!branches || !project) {
       return null;
     }
-    return await Promise.all(branches.map(branch => this.toApiBranch(project, branch)));
+    return await Promise.all(
+      branches.map(branch => this.toApiBranch(project, branch)),
+    );
   }
 
-  public async getDeployment(projectId: number, deploymentId: number): Promise<ApiDeployment | null> {
-     const deployment = await this.deploymentModule.getDeployment(deploymentId);
-     if (!deployment) {
-       return null;
-     }
-     return await this.toApiDeployment(projectId, deployment);
+  public async getDeployment(
+    projectId: number,
+    deploymentId: number,
+  ): Promise<ApiDeployment | null> {
+    const deployment = await this.deploymentModule.getDeployment(deploymentId);
+    if (!deployment) {
+      return null;
+    }
+    return await this.toApiDeployment(projectId, deployment);
   }
 
-  public async getBranch(projectId: number, branchName: string): Promise<ApiBranch | null> {
+  public async getBranch(
+    projectId: number,
+    branchName: string,
+  ): Promise<ApiBranch | null> {
     if (!branchName) {
       throw badRequest('branchName is missing');
     }
@@ -152,13 +159,20 @@ export class JsonApiModule {
     until?: Moment,
     count: number = 10,
   ): Promise<ApiCommit[] | null> {
-    const minardCommits = await this.projectModule.getBranchCommits(projectId, branchName, until, count);
+    const minardCommits = await this.projectModule.getBranchCommits(
+      projectId,
+      branchName,
+      until,
+      count,
+    );
     if (!minardCommits) {
       throw notFound('branch not found');
     }
-    return Promise.all(minardCommits.map(commit => {
-      return this.toApiCommit(projectId, commit);
-    }));
+    return Promise.all(
+      minardCommits.map(commit => {
+        return this.toApiCommit(projectId, commit);
+      }),
+    );
   }
 
   public async getTeamActivity(
@@ -166,8 +180,14 @@ export class JsonApiModule {
     until?: string,
     count: number = 10,
   ): Promise<ApiActivity[] | null> {
-    const activity = await this.activityModule.getTeamActivity(teamId, until ? toMoment(until) : undefined, count);
-    return activity ? await Promise.all(activity.map(item => this.toApiActivity(item))) : null;
+    const activity = await this.activityModule.getTeamActivity(
+      teamId,
+      until ? toMoment(until) : undefined,
+      count,
+    );
+    return activity
+      ? await Promise.all(activity.map(item => this.toApiActivity(item)))
+      : null;
   }
 
   public async getProjectActivity(
@@ -176,8 +196,13 @@ export class JsonApiModule {
     count: number = 10,
   ): Promise<ApiActivity[] | null> {
     const activity = await this.activityModule.getProjectActivity(
-      projectId, until ? toMoment(until) : undefined, count);
-    return activity ? await Promise.all(activity.map(item => this.toApiActivity(item))) : null;
+      projectId,
+      until ? toMoment(until) : undefined,
+      count,
+    );
+    return activity
+      ? await Promise.all(activity.map(item => this.toApiActivity(item)))
+      : null;
   }
 
   public async toApiActivity(activity: MinardActivity): Promise<ApiActivity> {
@@ -198,7 +223,10 @@ export class JsonApiModule {
       ...activity.deployment,
       id: `${activity.projectId}-${activity.deployment.id}`,
       creator: activity.deployment.creator!,
-      token: this.tokenGenerator.deploymentToken(activity.projectId, activity.deployment.id),
+      token: this.tokenGenerator.deploymentToken(
+        activity.projectId,
+        activity.deployment.id,
+      ),
     };
     delete deployment.ref;
     delete deployment.commit;
@@ -206,13 +234,15 @@ export class JsonApiModule {
     delete deployment.teamId;
     const timestamp = toGitlabTimestamp(activity.timestamp);
 
-    const comment: ApiActivityComment | undefined = activity.activityType === 'comment' ?
-    {
-      name: activity.name,
-      email: activity.email!,
-      message: activity.message!,
-      id: String(activity.commentId!),
-    } : undefined;
+    const comment: ApiActivityComment | undefined = activity.activityType ===
+      'comment'
+      ? {
+          name: activity.name,
+          email: activity.email!,
+          message: activity.message!,
+          id: String(activity.commentId!),
+        }
+      : undefined;
 
     const id = String(activity.id!);
     const ret: ApiActivity = {
@@ -234,19 +264,24 @@ export class JsonApiModule {
     commit: MinardCommit,
     deployments?: ApiDeployment[],
   ): Promise<ApiCommit> {
-    const ret = deepcopy(commit) as MinardCommit as ApiCommit;
+    const ret = (deepcopy(commit) as MinardCommit) as ApiCommit;
     if (!commit) {
       throw badImplementation();
     }
     if (deployments) {
       ret.deployments = deployments;
     } else {
-      const minardDeployments = await this.deploymentModule.getCommitDeployments(projectId, commit.id);
+      const minardDeployments = await this.deploymentModule.getCommitDeployments(
+        projectId,
+        commit.id,
+      );
       if (!minardDeployments) {
         ret.deployments = [];
       } else {
         ret.deployments = await Promise.all<ApiDeployment>(
-          minardDeployments.map((deployment: MinardDeployment) => this.toApiDeployment(projectId, deployment)),
+          minardDeployments.map((deployment: MinardDeployment) =>
+            this.toApiDeployment(projectId, deployment),
+          ),
         );
       }
     }
@@ -259,7 +294,9 @@ export class JsonApiModule {
     projectId: number,
     deployment: MinardDeployment,
   ): Promise<ApiDeployment> {
-    const commentCount = await this.commentModule.getCommentCountForDeployment(deployment.id);
+    const commentCount = await this.commentModule.getCommentCountForDeployment(
+      deployment.id,
+    );
     return {
       id: `${projectId}-${deployment.id}`,
       commitHash: deployment.commitHash,
@@ -276,14 +313,22 @@ export class JsonApiModule {
     };
   }
 
-  public async toApiBranch(project: ApiProject, branch: MinardBranch): Promise<ApiBranch> {
-    const [ minardJson, latestCommit, minardDeployment ] = await Promise.all([
+  public async toApiBranch(
+    project: ApiProject,
+    branch: MinardBranch,
+  ): Promise<ApiBranch> {
+    const [minardJson, latestCommit, minardDeployment] = await Promise.all([
       this.deploymentModule.getMinardJsonInfo(Number(project.id), branch.name),
       this.toApiCommit(Number(project.id), branch.latestCommit),
-      this.deploymentModule.getLatestSuccessfulBranchDeployment(project.id, branch.name, branch.latestCommit.id),
+      this.deploymentModule.getLatestSuccessfulBranchDeployment(
+        project.id,
+        branch.name,
+        branch.latestCommit.id,
+      ),
     ]);
-    const latestSuccessfullyDeployedCommit = minardDeployment ?
-      await this.minardDeploymentToApiCommit(project.id, minardDeployment) : undefined;
+    const latestSuccessfullyDeployedCommit = minardDeployment
+      ? await this.minardDeploymentToApiCommit(project.id, minardDeployment)
+      : undefined;
     return {
       type: 'branch',
       id: `${project.id}-${branch.name}`,
@@ -297,10 +342,15 @@ export class JsonApiModule {
     };
   }
 
-  public async getLatestSuccessfulDeploymentIdForBranch(projectId: number, branchName: string) {
+  public async getLatestSuccessfulDeploymentIdForBranch(
+    projectId: number,
+    branchName: string,
+  ) {
     const branch = await this.projectModule.getBranch(projectId, branchName);
     if (!branch) {
-      throw new Error(`Unable to find branch ${branchName} for project ${projectId}`);
+      throw new Error(
+        `Unable to find branch ${branchName} for project ${projectId}`,
+      );
     }
     const deployment = await this.deploymentModule.getLatestSuccessfulBranchDeployment(
       projectId,
@@ -311,19 +361,29 @@ export class JsonApiModule {
   }
 
   public async getLatestSuccessfulDeploymentIdForProject(projectId: number) {
-    const deployment = await this.deploymentModule.getLatestSuccessfulProjectDeployment(projectId);
+    const deployment = await this.deploymentModule.getLatestSuccessfulProjectDeployment(
+      projectId,
+    );
     return deployment ? deployment.id : undefined;
   }
 
-  private async minardDeploymentToApiCommit(projectId: number, minardDeployment: MinardDeployment): Promise<ApiCommit> {
+  private async minardDeploymentToApiCommit(
+    projectId: number,
+    minardDeployment: MinardDeployment,
+  ): Promise<ApiCommit> {
     const deployment = await this.toApiDeployment(projectId, minardDeployment);
-    return await this.toApiCommit(projectId, minardDeployment.commit, [deployment]);
+    return await this.toApiCommit(projectId, minardDeployment.commit, [
+      deployment,
+    ]);
   }
 
   public async toApiProject(project: MinardProject): Promise<ApiProject> {
-    const minardDeployment = await this.deploymentModule.getLatestSuccessfulProjectDeployment(project.id);
-    const latestSuccessfullyDeployedCommit = minardDeployment ?
-      await this.minardDeploymentToApiCommit(project.id, minardDeployment) : undefined;
+    const minardDeployment = await this.deploymentModule.getLatestSuccessfulProjectDeployment(
+      project.id,
+    );
+    const latestSuccessfullyDeployedCommit = minardDeployment
+      ? await this.minardDeploymentToApiCommit(project.id, minardDeployment)
+      : undefined;
     return {
       type: 'project',
       id: project.id,
@@ -346,13 +406,17 @@ export class JsonApiModule {
     return this.notificationModule.getTeamConfigurations(teamId);
   }
 
-  public async createNotificationConfiguration(config: NotificationConfiguration) {
+  public async createNotificationConfiguration(
+    config: NotificationConfiguration,
+  ) {
     return this.notificationModule.addConfiguration(config);
   }
 
   public async getNotificationConfiguration(id: number) {
     const configuration = await this.notificationModule.getConfiguration(id);
-    return configuration ? this.toApiNotificationConfiguration(configuration) : undefined;
+    return configuration
+      ? this.toApiNotificationConfiguration(configuration)
+      : undefined;
   }
 
   public async deleteNotificationConfiguration(id: number) {
@@ -394,8 +458,12 @@ export class JsonApiModule {
   }
 
   public async getDeploymentComments(deploymentId: number) {
-    const comments = await this.commentModule.getCommentsForDeployment(deploymentId);
-    const ret = await Promise.all(comments.map(comment => this.toApiComment(comment)));
+    const comments = await this.commentModule.getCommentsForDeployment(
+      deploymentId,
+    );
+    const ret = await Promise.all(
+      comments.map(comment => this.toApiComment(comment)),
+    );
     return ret;
   }
 
@@ -411,7 +479,9 @@ export class JsonApiModule {
     };
   }
 
-  public toApiNotificationConfiguration(configuration: NotificationConfiguration): ApiNotificationConfiguration {
+  public toApiNotificationConfiguration(
+    configuration: NotificationConfiguration,
+  ): ApiNotificationConfiguration {
     return { ...configuration };
   }
 }

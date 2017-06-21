@@ -10,9 +10,8 @@ export default class OperationsHapiPlugin {
   public static injectSymbol = Symbol('operations-hapi-plugin');
 
   constructor(
-    @inject(
-      OperationsModule.injectSymbol,
-    ) public operationsModule: OperationsModule,
+    @inject(OperationsModule.injectSymbol)
+    public operationsModule: OperationsModule,
   ) {
     this.register.attributes = {
       name: 'operations-plugin',
@@ -59,7 +58,7 @@ export default class OperationsHapiPlugin {
     });
 
     next();
-  }
+  };
 
   public async checkScreenshotsHandler(
     _request: Hapi.Request,

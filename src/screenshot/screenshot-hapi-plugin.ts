@@ -8,11 +8,11 @@ import ScreenshotModule from './screenshot-module';
 
 @injectable()
 export default class ScreenshotHapiPlugin {
-
   public static injectSymbol = Symbol('screenshot-hapi-plugin');
 
   constructor(
-    @inject(ScreenshotModule.injectSymbol) private screenshotModule: ScreenshotModule,
+    @inject(ScreenshotModule.injectSymbol)
+    private screenshotModule: ScreenshotModule,
   ) {
     this.register.attributes = {
       name: 'screenshot-plugin',
@@ -42,20 +42,27 @@ export default class ScreenshotHapiPlugin {
       },
     });
     next();
-  }
+  };
 
-  public async screenshotHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
-    const projectId = (<any> request.params).projectId;
-    const deploymentId = (<any> request.params).deploymentId;
-    const token = (<any> request.query).token;
-    if (!this.screenshotModule.deploymentHasScreenshot(projectId, deploymentId)) {
+  public async screenshotHandler(
+    request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
+    const projectId = (request.params as any).projectId;
+    const deploymentId = (request.params as any).deploymentId;
+    const token = (request.query as any).token;
+    if (
+      !this.screenshotModule.deploymentHasScreenshot(projectId, deploymentId)
+    ) {
       throw notFound();
     }
     if (!this.screenshotModule.isValidToken(projectId, deploymentId, token)) {
       throw notFound();
     }
-    const path = this.screenshotModule.getScreenshotPath(projectId, deploymentId);
+    const path = this.screenshotModule.getScreenshotPath(
+      projectId,
+      deploymentId,
+    );
     return reply.file(path, { confine: false } as any);
   }
-
 }

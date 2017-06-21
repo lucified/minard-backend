@@ -1,4 +1,10 @@
-import { badGateway, badImplementation, badRequest, notFound, wrap } from 'boom';
+import {
+  badGateway,
+  badImplementation,
+  badRequest,
+  notFound,
+  wrap,
+} from 'boom';
 import { inject, injectable } from 'inversify';
 import { isNil, omitBy } from 'lodash';
 import * as moment from 'moment';
@@ -7,16 +13,10 @@ import { stringify } from 'querystring';
 import { AuthenticationModule } from '../authentication';
 import { EventBus, eventBusInjectSymbol } from '../event-bus/';
 import { Branch, Commit } from '../shared/gitlab';
-import {
-  Project,
-  ProjectHook,
-} from '../shared/gitlab';
+import { Project, ProjectHook } from '../shared/gitlab';
 import { gitBaseUrlInjectSymbol, GitlabClient } from '../shared/gitlab-client';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
-import {
-  MinardCommit,
-  toMinardCommit,
-} from '../shared/minard-commit';
+import { MinardCommit, toMinardCommit } from '../shared/minard-commit';
 import { MINARD_ERROR_CODE } from '../shared/minard-error';
 import { sleep } from '../shared/sleep';
 import { toGitlabTimestamp } from '../shared/time-conversion';
@@ -35,37 +35,48 @@ import {
 
 @injectable()
 export default class ProjectModule {
-
   public static injectSymbol = Symbol('project-module');
   public failSleepTime = 2000;
 
   constructor(
-    @inject(AuthenticationModule.injectSymbol) private readonly authenticationModule: AuthenticationModule,
-    @inject(SystemHookModule.injectSymbol) private readonly systemHookModule: SystemHookModule,
+    @inject(AuthenticationModule.injectSymbol)
+    private readonly authenticationModule: AuthenticationModule,
+    @inject(SystemHookModule.injectSymbol)
+    private readonly systemHookModule: SystemHookModule,
     @inject(eventBusInjectSymbol) private readonly eventBus: EventBus,
     @inject(GitlabClient.injectSymbol) private readonly gitlab: GitlabClient,
     @inject(loggerInjectSymbol) private readonly logger: Logger,
     @inject(gitBaseUrlInjectSymbol) private readonly gitBaseUrl: string,
   ) {}
 
-  public async getProjectContributors(projectId: number): Promise<MinardProjectContributor[] | null> {
+  public async getProjectContributors(
+    projectId: number,
+  ): Promise<MinardProjectContributor[] | null> {
     try {
-      return await this.gitlab.fetchJson<MinardProjectContributor[]>(`projects/${projectId}/repository/contributors`);
+      return await this.gitlab.fetchJson<MinardProjectContributor[]>(
+        `projects/${projectId}/repository/contributors`,
+      );
     } catch (err) {
       if (err.isBoom && err.output.statusCode === MINARD_ERROR_CODE.NOT_FOUND) {
         // gitlab returns NOT_FOUND when there are not contributors for
         // the project, even if the project exists
         return [];
       }
-      this.logger.error(`Unexpected response from GitLab when fetching project contributors for project ${projectId}`);
+      this.logger.error(
+        `Unexpected response from GitLab when fetching project contributors for project ${projectId}`,
+      );
       throw badGateway();
     }
   }
 
-  public async getCommit(projectId: number, hash: string): Promise<MinardCommit | null> {
+  public async getCommit(
+    projectId: number,
+    hash: string,
+  ): Promise<MinardCommit | null> {
     try {
       const commit = await this.gitlab.fetchJson<Commit>(
-        `projects/${projectId}/repository/commits/${encodeURIComponent(hash)}`);
+        `projects/${projectId}/repository/commits/${encodeURIComponent(hash)}`,
+      );
       return toMinardCommit(commit);
     } catch (err) {
       if (err.isBoom && err.output.statusCode === MINARD_ERROR_CODE.NOT_FOUND) {
@@ -92,7 +103,8 @@ export default class ProjectModule {
         until: until ? toGitlabTimestamp(until) : undefined,
       };
       let commits = await this.gitlab.fetchJson<any>(
-        `projects/${projectId}/repository/commits?${stringify(params)}`);
+        `projects/${projectId}/repository/commits?${stringify(params)}`,
+      );
       if (!(commits instanceof Array)) {
         commits = [commits];
       }
@@ -129,33 +141,49 @@ export default class ProjectModule {
     extraCount: number = 5,
   ): Promise<MinardCommit[] | null> {
     const fetchAmount = count + extraCount;
-    const commits = await this.fetchBranchCommits(projectId, branchName, until, fetchAmount);
+    const commits = await this.fetchBranchCommits(
+      projectId,
+      branchName,
+      until,
+      fetchAmount,
+    );
     if (!commits) {
       return null;
     }
     const atUntilCount = commits.filter((commit: Commit) => {
-     const createdAtMoment = moment(commit.created_at);
-     if (!createdAtMoment.isValid()) {
-       this.logger.error(`Commit had invalid created_at in getBranchCommits`, commit);
-       return true;
-     }
-     return until && createdAtMoment.isSame(until);
+      const createdAtMoment = moment(commit.created_at);
+      if (!createdAtMoment.isValid()) {
+        this.logger.error(
+          `Commit had invalid created_at in getBranchCommits`,
+          commit,
+        );
+        return true;
+      }
+      return until && createdAtMoment.isSame(until);
     }).length;
     const maxReturnedCount = commits.length - atUntilCount;
     if (commits.length >= fetchAmount && maxReturnedCount < count) {
       // If we get a lot of commits where the timestamp equal until
       // we try to fetch again, this time with more extra commits.
       // This should be rare.
-      return this.getBranchCommits(projectId, branchName, until, count, extraCount + 100);
+      return this.getBranchCommits(
+        projectId,
+        branchName,
+        until,
+        count,
+        extraCount + 100,
+      );
     }
-    return commits.slice(0, Math.min(commits.length, count + atUntilCount))
+    return commits
+      .slice(0, Math.min(commits.length, count + atUntilCount))
       .map((commit: Commit) => toMinardCommit(commit));
   }
 
   public toMinardBranch(projectId: number, branch: Branch): MinardBranch {
-    const latestActivityTimestamp = branch.commit.created_at
-      || branch.commit.committed_date
-      || branch.commit.authored_date;
+    const latestActivityTimestamp =
+      branch.commit.created_at ||
+      branch.commit.committed_date ||
+      branch.commit.authored_date;
     return {
       project: projectId,
       name: branch.name,
@@ -164,9 +192,14 @@ export default class ProjectModule {
     };
   }
 
-  public async getBranch(projectId: number, branchName: string): Promise<MinardBranch | null> {
+  public async getBranch(
+    projectId: number,
+    branchName: string,
+  ): Promise<MinardBranch | null> {
     try {
-      const branch = await this.gitlab.fetchJson<Branch>(`projects/${projectId}/repository/branches/${branchName}`);
+      const branch = await this.gitlab.fetchJson<Branch>(
+        `projects/${projectId}/repository/branches/${branchName}`,
+      );
       return this.toMinardBranch(projectId, branch);
     } catch (err) {
       if (err.isBoom && err.output.statusCode === MINARD_ERROR_CODE.NOT_FOUND) {
@@ -184,7 +217,9 @@ export default class ProjectModule {
     return projects.map(item => item.id);
   }
 
-  public async getProjectsUsingPath(path: string): Promise<MinardProject[] | null> {
+  public async getProjectsUsingPath(
+    path: string,
+  ): Promise<MinardProject[] | null> {
     try {
       const projects = await this.gitlab.fetchJson<Project[]>(path);
       if (!projects) {
@@ -194,8 +229,14 @@ export default class ProjectModule {
         project,
         contributorsPromise: this.getProjectContributors(project.id),
       }));
-      return Promise.all(jobs.map(async item =>
-        this.toMinardProject(item.project, await item.contributorsPromise || [])));
+      return Promise.all(
+        jobs.map(async item =>
+          this.toMinardProject(
+            item.project,
+            (await item.contributorsPromise) || [],
+          ),
+        ),
+      );
     } catch (err) {
       if (err.isBoom && err.output.statusCode === 404) {
         return null;
@@ -213,9 +254,13 @@ export default class ProjectModule {
     return this.getProjectsUsingPath(`groups/${teamId}/projects`);
   }
 
-  public async getProjectBranches(projectId: number): Promise<MinardBranch[] | null> {
+  public async getProjectBranches(
+    projectId: number,
+  ): Promise<MinardBranch[] | null> {
     try {
-      const branchesPromise = this.gitlab.fetchJson<Branch[]>(`projects/${projectId}/repository/branches`);
+      const branchesPromise = this.gitlab.fetchJson<Branch[]>(
+        `projects/${projectId}/repository/branches`,
+      );
       const gitlabBranches = await branchesPromise;
       return gitlabBranches.map((branch: Branch) => {
         return this.toMinardBranch(projectId, branch);
@@ -224,7 +269,10 @@ export default class ProjectModule {
       if (err.isBoom && err.output.statusCode === MINARD_ERROR_CODE.NOT_FOUND) {
         return null;
       }
-      this.logger.error(`Failed to fetch branches for project ${projectId}`, err);
+      this.logger.error(
+        `Failed to fetch branches for project ${projectId}`,
+        err,
+      );
       throw badGateway();
     }
   }
@@ -234,7 +282,10 @@ export default class ProjectModule {
     return `${this.gitBaseUrl}/${project.namespace.path}/${project.path}.git`;
   }
 
-  private toMinardProject(project: Project, activeCommitters: MinardProjectContributor[]): MinardProject {
+  private toMinardProject(
+    project: Project,
+    activeCommitters: MinardProjectContributor[],
+  ): MinardProject {
     const repoUrl = this.getRepoUrl(project);
     return {
       teamId: project.namespace.id,
@@ -252,7 +303,9 @@ export default class ProjectModule {
 
   public async getProject(projectId: number): Promise<MinardProject | null> {
     try {
-      const projectPromise = this.gitlab.fetchJson<Project>(`projects/${projectId}`);
+      const projectPromise = this.gitlab.fetchJson<Project>(
+        `projects/${projectId}`,
+      );
       const contributorsPromise = this.getProjectContributors(projectId);
       const project = await projectPromise;
       const activeCommitters = (await contributorsPromise) || [];
@@ -266,8 +319,9 @@ export default class ProjectModule {
   }
 
   public async assureSystemHookRegistered() {
-    return await this.systemHookModule
-      .assureSystemHookRegistered(this.getSystemHookPath());
+    return await this.systemHookModule.assureSystemHookRegistered(
+      this.getSystemHookPath(),
+    );
   }
 
   public receiveHook(_payload: any) {
@@ -288,16 +342,29 @@ export default class ProjectModule {
     await this.handlePushEvent(projectId, ref, payload);
   }
 
-  public async handlePushEvent(projectId: number, ref: string, payload: GitlabPushEvent) {
-    const [ after, before, mappedCommits, project ] = await Promise.all([
-      payload.after ? this.getCommit(projectId, payload.after) : Promise.resolve(null),
-      payload.before ? this.getCommit(projectId, payload.before) : Promise.resolve(null),
-      Promise.all(payload.commits.map(commit => this.getCommit(projectId, commit.id))),
+  public async handlePushEvent(
+    projectId: number,
+    ref: string,
+    payload: GitlabPushEvent,
+  ) {
+    const [after, before, mappedCommits, project] = await Promise.all([
+      payload.after
+        ? this.getCommit(projectId, payload.after)
+        : Promise.resolve(null),
+      payload.before
+        ? this.getCommit(projectId, payload.before)
+        : Promise.resolve(null),
+      Promise.all(
+        payload.commits.map(commit => this.getCommit(projectId, commit.id)),
+      ),
       this.getProject(projectId),
     ]);
 
     if (!project) {
-      this.logger.error(`Project ${projectId} not found for push event`, payload);
+      this.logger.error(
+        `Project ${projectId} not found for push event`,
+        payload,
+      );
       throw badImplementation();
     }
 
@@ -309,18 +376,22 @@ export default class ProjectModule {
     const commits = mappedCommits.filter(item => {
       if (!item) {
         this.logger.warn(
-          `getCommit called from receiveProjectHook returned null for parent commit ${item} in ${projectId}`);
+          `getCommit called from receiveProjectHook returned null for parent commit ${item} in ${projectId}`,
+        );
         return false;
       }
       return true;
     }) as MinardCommit[];
 
     const parentIds = (commits[0] && commits[0]!.parentIds) || [];
-    const mappedParents = await Promise.all(parentIds.map(id => this.getCommit(projectId, id)));
+    const mappedParents = await Promise.all(
+      parentIds.map(id => this.getCommit(projectId, id)),
+    );
     const parents = mappedParents.filter(item => {
       if (!item) {
         this.logger.warn(
-          `getCommit called from receiveProjectHook returned null for parent commit ${item} in ${projectId}`);
+          `getCommit called from receiveProjectHook returned null for parent commit ${item} in ${projectId}`,
+        );
         return false;
       }
       return true;
@@ -349,21 +420,30 @@ export default class ProjectModule {
     description?: string,
     importUrl?: string,
   ): Promise<Project> {
-    const params = omitBy({
-      name: path,
-      path,
-      public: false,
-      description,
-      // In GitLab, the namespace_id is either an user id or a group id
-      // those id's do not overlap. Here we set it as the teamId, which
-      // corresponds to GitLab teamId:s
-      namespace_id: teamId,
-      import_url: importUrl,
-    }, isNil);
+    const params = omitBy(
+      {
+        name: path,
+        path,
+        public: false,
+        description,
+        // In GitLab, the namespace_id is either an user id or a group id
+        // those id's do not overlap. Here we set it as the teamId, which
+        // corresponds to GitLab teamId:s
+        namespace_id: teamId,
+        import_url: importUrl,
+      },
+      isNil,
+    );
 
     const res = await this.gitlab.fetchJsonAnyStatus<any>(
-      `projects?${stringify(params)}`, { method: 'POST' });
-    if (res.json && res.json.message && res.json.message.path[0] === 'has already been taken') {
+      `projects?${stringify(params)}`,
+      { method: 'POST' },
+    );
+    if (
+      res.json &&
+      res.json.message &&
+      res.json.message.path[0] === 'has already been taken'
+    ) {
       throw badRequest('Name is already taken', 'name-already-taken');
     }
     if (res.status !== 201 || !res.json) {
@@ -372,11 +452,17 @@ export default class ProjectModule {
     }
     const project = res.json as Project;
     if (!project.id) {
-      this.logger.error('Unexpected response from Gitlab when creating project: id is missing.', project);
+      this.logger.error(
+        'Unexpected response from Gitlab when creating project: id is missing.',
+        project,
+      );
       throw badImplementation();
     }
     if (project.path !== path) {
-      this.logger.error('Unexpected response from Gitlab when creating project: project path is incorrect', project);
+      this.logger.error(
+        'Unexpected response from Gitlab when creating project: project path is incorrect',
+        project,
+      );
       throw badImplementation();
     }
     await this.assureProjectHookRegistered(project.id);
@@ -388,13 +474,19 @@ export default class ProjectModule {
     if (!project) {
       throw notFound('Project not found');
     }
-    const res = await this.gitlab.fetch(`projects/${projectId}`, { method: 'DELETE' });
+    const res = await this.gitlab.fetch(`projects/${projectId}`, {
+      method: 'DELETE',
+    });
     if (res.status === 404) {
-      this.logger.warn(`Attempted to delete project ${projectId} which does not exists (according to GitLab)`);
+      this.logger.warn(
+        `Attempted to delete project ${projectId} which does not exists (according to GitLab)`,
+      );
       throw notFound('Project not found');
     }
     if (res.status !== 200) {
-      this.logger.error(`Unexpected status code ${res.status} when deleting project ${projectId}`);
+      this.logger.error(
+        `Unexpected status code ${res.status} when deleting project ${projectId}`,
+      );
       throw badGateway();
     }
     // GitLab responds with status code 200 and text 'true' on success
@@ -402,7 +494,9 @@ export default class ProjectModule {
     // idea to check
     const text = await res.text();
     if (text !== 'true') {
-      this.logger.error(`Unexpected response from GitLab when deleting project ${projectId}: "${text}"`);
+      this.logger.error(
+        `Unexpected response from GitLab when deleting project ${projectId}: "${text}"`,
+      );
       throw badGateway();
     }
     return project;
@@ -410,35 +504,44 @@ export default class ProjectModule {
 
   public async editGitLabProject(
     projectId: number,
-    attributes: { name?: string, description?: string},
+    attributes: { name?: string; description?: string },
   ): Promise<Project> {
     const params = {
       name: attributes.name,
       path: attributes.name,
       description: attributes.description,
     };
-    const res = await this.gitlab.fetchJsonAnyStatus<any>(
-      `projects/${projectId}?${stringify(params)}`,
-      { method: 'PUT' },
-    );
+    const res = await this.gitlab.fetchJsonAnyStatus<
+      any
+    >(`projects/${projectId}?${stringify(params)}`, { method: 'PUT' });
     if (res.status === 404) {
-      this.logger.warn(`Attempted to edit project ${projectId} which does not exists (according to GitLab)`);
+      this.logger.warn(
+        `Attempted to edit project ${projectId} which does not exists (according to GitLab)`,
+      );
       throw notFound('Project not found');
     }
-    if (res.json && res.json.message && res.json.message.path[0] === 'has already been taken') {
+    if (
+      res.json &&
+      res.json.message &&
+      res.json.message.path[0] === 'has already been taken'
+    ) {
       throw badRequest('Name is already taken', 'name-already-taken');
     }
     if (res.status !== 200) {
-      this.logger.error(`Unexpected status code ${res.status} when editing project ${projectId}`);
+      this.logger.error(
+        `Unexpected status code ${res.status} when editing project ${projectId}`,
+      );
       throw badGateway();
     }
     const project = res.json as Project;
     // Note: we don't check that the description matches the edited description,
     // as GitLab might do some trimming of whitespace or other legit modifications
     // to the description
-    if (project.id !== projectId
-      || (attributes.name && project.path !== attributes.name)
-      || (attributes.name && project.name !== attributes.name)) {
+    if (
+      project.id !== projectId ||
+      (attributes.name && project.path !== attributes.name) ||
+      (attributes.name && project.name !== attributes.name)
+    ) {
       this.logger.error(
         `Unexpected response payload from gitlab when editing project ${projectId}`,
         { projectId, attributes, res },
@@ -450,10 +553,12 @@ export default class ProjectModule {
 
   public async deleteProject(id: number): Promise<void> {
     const project = await this.deleteGitLabProject(id);
-    this.eventBus.post(projectDeleted({
-      teamId: project.teamId,
-      id,
-    }));
+    this.eventBus.post(
+      projectDeleted({
+        teamId: project.teamId,
+        id,
+      }),
+    );
   }
 
   public createProject(
@@ -465,7 +570,12 @@ export default class ProjectModule {
     if (!templateProjectId) {
       return this.doCreateProject(teamId, name, description);
     }
-    return this.doCreateProjectFromTemplate(templateProjectId, teamId, name, description);
+    return this.doCreateProjectFromTemplate(
+      templateProjectId,
+      teamId,
+      name,
+      description,
+    );
   }
 
   // internal function
@@ -486,9 +596,15 @@ export default class ProjectModule {
     // note that this assumes that the internal port where gitlab listens on is port 80
     // if we need to use another port, we need to change this to support injecting
     // the port as another environment variable
-    const importUrl = `http://root:${this.authenticationModule.getRootPassword()}@` +
+    const importUrl =
+      `http://root:${this.authenticationModule.getRootPassword()}@` +
       `localhost/${templateProject.namespacePath}/${templateProject.path}.git`;
-    const gitlabProject = await this.createGitlabProject(teamId, name, description, importUrl);
+    const gitlabProject = await this.createGitlabProject(
+      teamId,
+      name,
+      description,
+      importUrl,
+    );
 
     // wait for project to get a default branch
     let project: MinardProject | null;
@@ -497,14 +613,16 @@ export default class ProjectModule {
       project = await this.getProject(gitlabProject.id);
       if (!project) {
         this.logger.error(
-          `Failed to get project ${gitlabProject.id} after creating it from template ${templateProjectId}`);
+          `Failed to get project ${gitlabProject.id} after creating it from template ${templateProjectId}`,
+        );
         throw badGateway();
       }
       if (!project.defaultBranch) {
         this.logger.info(
           `Project ${gitlabProject.id} does not yet have default branch ` +
-          `after creating it from template project ${templateProjectId}. ` +
-          `Waiting for two seconds.`);
+            `after creating it from template project ${templateProjectId}. ` +
+            `Waiting for two seconds.`,
+        );
       }
       count++;
       await sleep(this.failSleepTime);
@@ -512,43 +630,57 @@ export default class ProjectModule {
 
     if (!project.defaultBranch) {
       this.logger.error(
-        `Project ${project.id} created from template ${templateProjectId} did not acquire default branch`);
+        `Project ${project.id} created from template ${templateProjectId} did not acquire default branch`,
+      );
       // It might make sense to cleanup the project if this happens, but
       // this should really never happen and leaving the project there allows
       // us to investigate the problem, if this ever happens
       throw badImplementation('never-acquired-default-branch');
     }
 
-    this.eventBus.post(projectCreated({
-      id: project.id,
-      description,
-      name,
-      teamId,
-    }));
+    this.eventBus.post(
+      projectCreated({
+        id: project.id,
+        description,
+        name,
+        teamId,
+      }),
+    );
     return project.id;
   }
 
   // internal function
-  public async doCreateProject(teamId: number, name: string, description?: string): Promise<number> {
+  public async doCreateProject(
+    teamId: number,
+    name: string,
+    description?: string,
+  ): Promise<number> {
     const project = await this.createGitlabProject(teamId, name, description);
-    this.eventBus.post(projectCreated({
-      id: project.id,
-      description,
-      name,
-      teamId,
-    }));
+    this.eventBus.post(
+      projectCreated({
+        id: project.id,
+        description,
+        name,
+        teamId,
+      }),
+    );
     return project.id;
   }
 
-  public async editProject(id: number, attributes: { name?: string, description?: string}) {
+  public async editProject(
+    id: number,
+    attributes: { name?: string; description?: string },
+  ) {
     const project = await this.editGitLabProject(id, attributes);
-    this.eventBus.post(projectEdited({
-      teamId: project.namespace.id,
-      id,
-      name: project.name,
-      description: project.description,
-      repoUrl: this.getRepoUrl(project),
-    }));
+    this.eventBus.post(
+      projectEdited({
+        teamId: project.namespace.id,
+        id,
+        name: project.name,
+        description: project.description,
+        repoUrl: this.getRepoUrl(project),
+      }),
+    );
   }
 
   public async assureProjectHooksRegistered() {
@@ -562,21 +694,33 @@ export default class ProjectModule {
         this.logger.info('Project hooks registered for all projects.');
       } catch (err) {
         count++;
-        if (err.isBoom && err.output && err.output.statusCode === MINARD_ERROR_CODE.BAD_GATEWAY) {
+        if (
+          err.isBoom &&
+          err.output &&
+          err.output.statusCode === MINARD_ERROR_CODE.BAD_GATEWAY
+        ) {
           // When starting up in a dev environment, this can happen,
           // if GitLab is not yet properly running. To prevent annoying
           // verbose logging, we log this only if it fails 30 times
           if (count % 30 === 0) {
-            const msg = `Failed to register project hooks on for all projects ` +
-            `because we received "Bad Gateway" when trying to reach GitLab. ` +
-            `Sleeping for ${this.failSleepTime} ms.`;
+            const msg =
+              `Failed to register project hooks on for all projects ` +
+              `because we received "Bad Gateway" when trying to reach GitLab. ` +
+              `Sleeping for ${this.failSleepTime} ms.`;
             this.logger.error(msg);
           }
         } else {
-          const connectionErrors = ['ECONNREFUSED', 'ECONNRESET', 'EHOSTUNREACH'];
+          const connectionErrors = [
+            'ECONNREFUSED',
+            'ECONNRESET',
+            'EHOSTUNREACH',
+          ];
           if (!connectionErrors.find(code => code === err.code)) {
             this.logger.error(
-              `Failed to register project hook for all projects. Sleeping for ${this.failSleepTime} ms.`, err);
+              `Failed to register project hook for all projects. Sleeping for ${this
+                .failSleepTime} ms.`,
+              err,
+            );
           }
         }
         await sleep(this.failSleepTime);
@@ -586,7 +730,9 @@ export default class ProjectModule {
 
   // internal method
   public async fetchProjectHooks(projectId: number): Promise<ProjectHook[]> {
-    const hooks = await this.gitlab.fetchJson<ProjectHook[]>(`/projects/${projectId}/hooks`);
+    const hooks = await this.gitlab.fetchJson<ProjectHook[]>(
+      `/projects/${projectId}/hooks`,
+    );
     if (!Array.isArray(hooks)) {
       throw badGateway();
     }
@@ -602,15 +748,20 @@ export default class ProjectModule {
   public async assureProjectHookRegistered(projectId: number) {
     try {
       const hooks = await this.fetchProjectHooks(projectId);
-      const found = hooks.find(item =>
-        item.project_id === projectId
-        && item.url === this.getProjectHookUrl()
-        && item.push_events);
+      const found = hooks.find(
+        item =>
+          item.project_id === projectId &&
+          item.url === this.getProjectHookUrl() &&
+          item.push_events,
+      );
       if (!found) {
         this.registerProjectHook(projectId);
       }
     } catch (err) {
-      this.logger.error(`Failed to register project hook for project ${projectId}`, err);
+      this.logger.error(
+        `Failed to register project hook for project ${projectId}`,
+        err,
+      );
       throw err;
     }
   }
@@ -623,7 +774,8 @@ export default class ProjectModule {
     };
     const ret = await this.gitlab.fetchJsonAnyStatus(
       `projects/${projectId}/hooks?${stringify(params)}`,
-      { method: 'POST' });
+      { method: 'POST' },
+    );
     if (ret.status === 404) {
       throw notFound();
     }
@@ -631,5 +783,4 @@ export default class ProjectModule {
       throw badGateway();
     }
   }
-
 }

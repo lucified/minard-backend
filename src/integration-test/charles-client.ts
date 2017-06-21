@@ -10,12 +10,7 @@ import {
   OperationsResponse,
   SSE,
 } from './types';
-import {
-  assertResponseStatus,
-  log,
-  prettyUrl,
-  wrapResponse,
-} from './utils';
+import { assertResponseStatus, log, prettyUrl, wrapResponse } from './utils';
 
 const EventSource = require('eventsource');
 

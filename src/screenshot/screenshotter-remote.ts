@@ -4,18 +4,22 @@ import { inject, injectable } from 'inversify';
 import { IFetch } from '../shared/fetch';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
 import { fetchInjectSymbol } from '../shared/types';
-import { PageresOptions, Screenshotter, screenshotterBaseurlInjectSymbol } from './types';
+import {
+  PageresOptions,
+  Screenshotter,
+  screenshotterBaseurlInjectSymbol,
+} from './types';
 
 @injectable()
 export class RemoteScreenshotter implements Screenshotter {
-
   public static injectSymbol = Symbol('screenshotter-client');
 
   public constructor(
     @inject(screenshotterBaseurlInjectSymbol) private readonly host: string,
     @inject(fetchInjectSymbol) private readonly fetch: IFetch,
     @inject(loggerInjectSymbol) private readonly logger: Logger,
-    private readonly logging: boolean = false) {
+    private readonly logging: boolean = false,
+  ) {
     this.host = host.replace(/\/$/, '');
   }
 
@@ -28,7 +32,11 @@ export class RemoteScreenshotter implements Screenshotter {
   /**
    * Take a screenshot of a website and save to a file
    */
-  public async save(url: string, dest: string, options?: PageresOptions): Promise<boolean> {
+  public async save(
+    url: string,
+    dest: string,
+    options?: PageresOptions,
+  ): Promise<boolean> {
     this.log(`RemoteScreenshotter: sending a request to ${this.host}`);
     const body = {
       url,
@@ -65,7 +73,9 @@ export class RemoteScreenshotter implements Screenshotter {
     }
 
     if (response.status !== 200) {
-      throw new Error(`Unexpected status code ${response.status} for screenshotter`);
+      throw new Error(
+        `Unexpected status code ${response.status} for screenshotter`,
+      );
     }
 
     // Do some additional checks, so that we know that it

@@ -16,7 +16,6 @@ function getMockCommentModule(): CommentModule {
 const tokenGenerator = new TokenGenerator('secret');
 
 describe('view-endpoints', () => {
-
   // Arrange
   const projectName = 'foo-project-name';
   const deploymentId = 8;
@@ -78,13 +77,15 @@ describe('view-endpoints', () => {
 
     // Assert
     if (!view) {
-      throw new Error('View doesn\'t exist');
+      throw new Error("View doesn't exist");
     }
     expect(view.branch.name).to.equal(minardDeployment.ref);
     expect(view.branch.id).to.equal('9-foo');
     expect(view.project.id).to.equal('9');
     expect(view.project.name).to.equal(projectName);
     expect(view.deployment.attributes.status).to.equal(minardDeployment.status);
-    expect(view.commit.attributes.message).to.equal(minardDeployment.commit.message);
+    expect(view.commit.attributes.message).to.equal(
+      minardDeployment.commit.message,
+    );
   });
 });

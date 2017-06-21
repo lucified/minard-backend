@@ -11,8 +11,8 @@ const routes: Route[] = [
       return me.getProjects(other.teamId);
     },
     accessMatrix: {
-      regular:         { own: '1', closed: 'x', open: 'x', missing: 'x' },
-      admin:           { own: '1', closed: '1', open: '1', missing: 'x' },
+      regular: { own: '1', closed: 'x', open: 'x', missing: 'x' },
+      admin: { own: '1', closed: '1', open: '1', missing: 'x' },
       unauthenticated: { own: 'x', closed: 'x', open: 'x', missing: 'x' },
     },
   },
@@ -24,8 +24,8 @@ const routes: Route[] = [
       return me.getProject(other.lastCreatedProject!.id);
     },
     accessMatrix: {
-      regular:         { own: '1', closed: 'x', open: 'x', missing: 'x' },
-      admin:           { own: '1', closed: '1', open: '1', missing: 'x' },
+      regular: { own: '1', closed: 'x', open: 'x', missing: 'x' },
+      admin: { own: '1', closed: '1', open: '1', missing: 'x' },
       unauthenticated: { own: 'x', closed: 'x', open: 'x', missing: 'x' },
     },
   },
@@ -37,8 +37,8 @@ const routes: Route[] = [
       return me.fetch(other.lastDeployment!.url + '/index.html');
     },
     accessMatrix: {
-      regular:         { own: '1', closed: 'x', open: '1', missing: 'x' },
-      admin:           { own: '1', closed: '1', open: '1', missing: 'x' },
+      regular: { own: '1', closed: 'x', open: '1', missing: 'x' },
+      admin: { own: '1', closed: '1', open: '1', missing: 'x' },
       unauthenticated: { own: 'r', closed: 'r', open: '1', missing: 'r' },
     },
   },
@@ -50,8 +50,8 @@ const routes: Route[] = [
       return me.fetch(other.lastDeployment!.screenshot);
     },
     accessMatrix: {
-      regular:         { own: '1', closed: '1', open: '1', missing: 'x' },
-      admin:           { own: '1', closed: '1', open: '1', missing: 'x' },
+      regular: { own: '1', closed: '1', open: '1', missing: 'x' },
+      admin: { own: '1', closed: '1', open: '1', missing: 'x' },
       unauthenticated: { own: 'x', closed: '1', open: '1', missing: 'x' },
     },
   },
@@ -59,7 +59,7 @@ const routes: Route[] = [
 
 export const codes = {
   '1': 200,
-  'x': 404,
-  'r': 302,
+  x: 404,
+  r: 302,
 };
 export default routes;

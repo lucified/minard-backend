@@ -11,7 +11,10 @@ import { Screenshotter, screenshotterInjectSymbol } from '../screenshot/types';
 import { IFetch } from '../shared/fetch';
 import { GitlabClient } from '../shared/gitlab-client';
 import { fetchInjectSymbol } from '../shared/types';
-import { SYSTEM_HOOK_REGISTRATION_EVENT_TYPE, SystemHookRegistrationEvent } from '../system-hook';
+import {
+  SYSTEM_HOOK_REGISTRATION_EVENT_TYPE,
+  SystemHookRegistrationEvent,
+} from '../system-hook';
 
 const exists = promisify<boolean, string>(_exists);
 const readFile = promisify(_readFile);
@@ -71,17 +74,18 @@ interface DetailedRunnerStatus extends Status {
 
 @injectable()
 export default class StatusModule {
-
   public static injectSymbol = Symbol('status-module');
 
   private latestSystemHookRegistration: Event<SystemHookRegistrationEvent>;
-  private ip: string|undefined = undefined;
+  private ip: string | undefined = undefined;
 
   public constructor(
     @inject(GitlabClient.injectSymbol) private readonly gitlab: GitlabClient,
-    @inject(screenshotterInjectSymbol) private readonly screenshotter: Screenshotter,
+    @inject(screenshotterInjectSymbol)
+    private readonly screenshotter: Screenshotter,
     @inject(eventBusInjectSymbol) private readonly eventBus: EventBus,
-    @inject(AuthenticationModule.injectSymbol) private readonly authentication: AuthenticationModule,
+    @inject(AuthenticationModule.injectSymbol)
+    private readonly authentication: AuthenticationModule,
     @inject(fetchInjectSymbol) private fetch: IFetch,
   ) {
     this.subscribeToEvents();
@@ -89,7 +93,9 @@ export default class StatusModule {
 
   private subscribeToEvents() {
     this.eventBus
-      .filterEvents<SystemHookRegistrationEvent>(SYSTEM_HOOK_REGISTRATION_EVENT_TYPE)
+      .filterEvents<SystemHookRegistrationEvent>(
+        SYSTEM_HOOK_REGISTRATION_EVENT_TYPE,
+      )
       .subscribe(event => {
         this.latestSystemHookRegistration = event;
       });
@@ -107,18 +113,25 @@ export default class StatusModule {
     return {
       active: status === 'success',
       status: status === 'success' ? 'ok' : 'error',
-      message: status === 'success' ?
-        `Successfully verified ${this.latestSystemHookRegistration.created.fromNow()}` : undefined,
+      message: status === 'success'
+        ? `Successfully verified ${this.latestSystemHookRegistration.created.fromNow()}`
+        : undefined,
     };
   }
 
   private async getRunnersStatus(): Promise<Status> {
     try {
-      const runners = await this.gitlab.fetchJson<RunnerStatus[]>('runners/all/?scope=online');
+      const runners = await this.gitlab.fetchJson<RunnerStatus[]>(
+        'runners/all/?scope=online',
+      );
       const activeRunners = runners.filter(runner => runner.active);
-      const detailedRunners = await Promise.all<DetailedRunnerStatus>(activeRunners.map((runner: RunnerStatus) => {
-        return this.gitlab.fetchJson<DetailedRunnerStatus>(`runners/${runner.id}`);
-      }));
+      const detailedRunners = await Promise.all<DetailedRunnerStatus>(
+        activeRunners.map((runner: RunnerStatus) => {
+          return this.gitlab.fetchJson<DetailedRunnerStatus>(
+            `runners/${runner.id}`,
+          );
+        }),
+      );
 
       const timeDiffs = detailedRunners.map((runner: DetailedRunnerStatus) => {
         const diff = moment().diff(moment(runner.contacted_at), 'seconds');
@@ -131,7 +144,7 @@ export default class StatusModule {
       // request. with a working runner the diff seems to go at maximum
       // to around 80. Thus comparing to 240 should be a safe to way to
       // figure whether the runner is really OK
-      const filtered = timeDiffs.filter((runner) => runner.diff < 240);
+      const filtered = timeDiffs.filter(runner => runner.diff < 240);
 
       return {
         active: filtered.length > 0,
@@ -157,9 +170,9 @@ export default class StatusModule {
         message: 'Gitlab is responding',
       };
     } catch (err) {
-      const message = err.output ?
-        `Gitlab is responding with statusCode ${err.output.statusCode}` :
-        `GitLab is not responding`;
+      const message = err.output
+        ? `Gitlab is responding with statusCode ${err.output.statusCode}`
+        : `GitLab is not responding`;
       return {
         active: false,
         status: 'error',
@@ -188,7 +201,9 @@ export default class StatusModule {
 
   public async getPostgreSqlStatus(): Promise<Status> {
     try {
-      const privateKey = await this.authentication.getPrivateAuthenticationToken(1);
+      const privateKey = await this.authentication.getPrivateAuthenticationToken(
+        1,
+      );
       if (!privateKey) {
         return {
           active: false,
@@ -212,7 +227,8 @@ export default class StatusModule {
 
   public async getEC2IP() {
     if (!this.ip) {
-      const ec2IpUrl = 'http://169.254.169.254/latest/meta-data/public-hostname';
+      const ec2IpUrl =
+        'http://169.254.169.254/latest/meta-data/public-hostname';
       const response = await this.fetch(ec2IpUrl, { timeout: 500 });
       this.ip = await response.text();
     }
@@ -220,7 +236,13 @@ export default class StatusModule {
   }
 
   public async getStatus(withEcs = false) {
-    const [gitlab, runners, postgresql, screenshotter, charlesVersion] = await Promise.all([
+    const [
+      gitlab,
+      runners,
+      postgresql,
+      screenshotter,
+      charlesVersion,
+    ] = await Promise.all([
       this.getGitlabStatus(),
       this.getRunnersStatus(),
       this.getPostgreSqlStatus(),
@@ -231,7 +253,8 @@ export default class StatusModule {
     const response = {
       charles: {
         active: true,
-        version: charlesVersion || `Unknown (only available in production & staging)`,
+        version:
+          charlesVersion || `Unknown (only available in production & staging)`,
       },
       gitlab,
       screenshotter,
@@ -257,7 +280,7 @@ export default class StatusModule {
           response.gitlab.ecs = ecsStatus.gitlab;
         }
       } catch (err) {
-        this.gitlab.logger.info('Can\'t get ECS status: %s', err.message);
+        this.gitlab.logger.info("Can't get ECS status: %s", err.message);
       }
     }
     return response as SystemStatus;
@@ -267,7 +290,9 @@ export default class StatusModule {
 export async function getCharlesVersion(): Promise<string | undefined> {
   const filename = 'commit-sha';
   const fileExists = await exists(filename);
-  return fileExists ? (await readFile('commit-sha')).toString().trim() : undefined;
+  return fileExists
+    ? (await readFile('commit-sha')).toString().trim()
+    : undefined;
 }
 
 export async function getEcsStatus(_env?: string) {
@@ -278,37 +303,42 @@ export async function getEcsStatus(_env?: string) {
     throw new Error('ECS status can be fetched only in staging and production');
   }
   const services = ['charles', 'gitlab', 'runner', 'screenshotter'];
-  const servicesResponse = await ecs.describeServices({
-    services: services.map(service => `minard-${service}-${env}`),
-    cluster: 'minard',
-  }).promise();
-  const serviceData = await Promise.all(servicesResponse.services!.map(async (service: any, i: number) => {
-
-    const taskDefinition = await ecs.describeTaskDefinition({ taskDefinition: service.taskDefinition }).promise()
-      .then(x => x.taskDefinition);
-    const container = taskDefinition!.containerDefinitions!.find(_container => _container.name === services[i]);
-    let image = 'unknown';
-    if (container) {
-      const _image = container.image!.split('/').pop();
-      if (_image) {
-        image = _image;
+  const servicesResponse = await ecs
+    .describeServices({
+      services: services.map(service => `minard-${service}-${env}`),
+      cluster: 'minard',
+    })
+    .promise();
+  const serviceData = await Promise.all(
+    servicesResponse.services!.map(async (service: any, i: number) => {
+      const taskDefinition = await ecs
+        .describeTaskDefinition({ taskDefinition: service.taskDefinition })
+        .promise()
+        .then(x => x.taskDefinition);
+      const container = taskDefinition!.containerDefinitions!.find(
+        _container => _container.name === services[i],
+      );
+      let image = 'unknown';
+      if (container) {
+        const _image = container.image!.split('/').pop();
+        if (_image) {
+          image = _image;
+        }
       }
-    }
 
-    return {
-      ...pick<{ serviceName: string, status: string, runningCount: number }, any>(service, [
-        'serviceName',
-        'status',
-        'runningCount',
-      ]),
-      revision: parseInt(service.taskDefinition.split(':').pop(), 10),
-      image,
-      environment: env,
-    };
-  }));
+      return {
+        ...pick<
+          { serviceName: string; status: string; runningCount: number },
+          any
+        >(service, ['serviceName', 'status', 'runningCount']),
+        revision: parseInt(service.taskDefinition.split(':').pop(), 10),
+        image,
+        environment: env,
+      };
+    }),
+  );
 
   return serviceData.reduce((response: any, service: any, i: number) => {
     return { ...response, [services[i]]: service };
   }, {});
-
 }

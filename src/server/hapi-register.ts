@@ -16,5 +16,9 @@ export abstract class HapiPlugin {
   constructor(attributes: HapiPluginAttributes) {
     this.register = Object.assign(this.register.bind(this), { attributes });
   }
-  public abstract register(server: Hapi.Server, options: Hapi.ServerOptions, next: () => void): any;
+  public abstract register(
+    server: Hapi.Server,
+    options: Hapi.ServerOptions,
+    next: () => void,
+  ): any;
 }

@@ -155,9 +155,7 @@ const exampleComment: ApiComment = {
 };
 
 describe('json-api serialization', () => {
-
   describe('projectToJsonApi()', () => {
-
     it('should work with complex project', () => {
       const project = exampleProject;
       const converted = serializeApiEntity('project', project, apiBaseUrl);
@@ -169,50 +167,74 @@ describe('json-api serialization', () => {
 
       // attributes
       expect(data.attributes.name).to.equal('example-project');
-      expect(data.attributes['latest-activity-timestamp']).to.equal(project.latestActivityTimestamp);
+      expect(data.attributes['latest-activity-timestamp']).to.equal(
+        project.latestActivityTimestamp,
+      );
       expect(data.attributes['repo-url']).to.equal(project.repoUrl);
 
       // branches relationship
       expect(data.relationships).to.exist;
       expect(data.relationships.branches).to.exist;
       expect(data.relationships.branches.links).to.exist;
-      expect(data.relationships.branches.links.self).to.equal(`${apiBaseUrl}/projects/${project.id}/branches`);
+      expect(data.relationships.branches.links.self).to.equal(
+        `${apiBaseUrl}/projects/${project.id}/branches`,
+      );
       expect(data.relationships.branches.data).to.not.exist;
 
       // latest successfully deployed commit relationship
-      expect(data.relationships['latest-successfully-deployed-commit']).to.exist;
-      expect(data.relationships['latest-successfully-deployed-commit'].data).to.exist;
-      expect(data.relationships['latest-successfully-deployed-commit'].data.id)
-        .to.equal(exampleProject.latestSuccessfullyDeployedCommit!.id);
-      expect(data.relationships['latest-successfully-deployed-commit'].data.type).to.equal('commits');
+      expect(data.relationships['latest-successfully-deployed-commit']).to
+        .exist;
+      expect(data.relationships['latest-successfully-deployed-commit'].data).to
+        .exist;
+      expect(
+        data.relationships['latest-successfully-deployed-commit'].data.id,
+      ).to.equal(exampleProject.latestSuccessfullyDeployedCommit!.id);
+      expect(
+        data.relationships['latest-successfully-deployed-commit'].data.type,
+      ).to.equal('commits');
 
       // included deployment
       expect(converted.included).to.have.length(2);
-      const includedDeployment = (<any> converted.included).find((item: any) =>
-          item.id === project.latestSuccessfullyDeployedCommit!.deployments[0].id && item.type === 'deployments');
+      const includedDeployment = (converted.included as any).find(
+        (item: any) =>
+          item.id ===
+            project.latestSuccessfullyDeployedCommit!.deployments[0].id &&
+          item.type === 'deployments',
+      );
       expect(includedDeployment).to.exist;
-      expect(includedDeployment.id).to.equal(project.latestSuccessfullyDeployedCommit!.deployments[0].id);
-      expect(includedDeployment.attributes.url).to.equal(project.latestSuccessfullyDeployedCommit!.deployments[0].url);
+      expect(includedDeployment.id).to.equal(
+        project.latestSuccessfullyDeployedCommit!.deployments[0].id,
+      );
+      expect(includedDeployment.attributes.url).to.equal(
+        project.latestSuccessfullyDeployedCommit!.deployments[0].url,
+      );
 
       // included commit
-      const includedCommit = (<any> converted.included).find((item: any) =>
-          item.id === project.latestSuccessfullyDeployedCommit!.id && item.type === 'commits');
+      const includedCommit = (converted.included as any).find(
+        (item: any) =>
+          item.id === project.latestSuccessfullyDeployedCommit!.id &&
+          item.type === 'commits',
+      );
       expect(includedCommit).to.exist;
-      expect(includedCommit.id).to.equal(project.latestSuccessfullyDeployedCommit!.id);
-      expect(includedCommit.attributes.message).to.equal(project.latestSuccessfullyDeployedCommit!.message);
+      expect(includedCommit.id).to.equal(
+        project.latestSuccessfullyDeployedCommit!.id,
+      );
+      expect(includedCommit.attributes.message).to.equal(
+        project.latestSuccessfullyDeployedCommit!.message,
+      );
     });
 
     it('should work with minimal project', () => {
       const project: ApiProject = {
-        'type': 'project',
-        'id': 125,
-        'name': 'adsflsafhjl',
-        'path': 'adsflsafhjl',
-        'latestActivityTimestamp': '2016-09-01T13:12:32.521+05:30',
-        'activeCommitters': [],
-        'description': 'dsafjdsahfj',
-        'repoUrl': 'http://foo-bar.com/foo/bar.git',
-        'token': 'token',
+        type: 'project',
+        id: 125,
+        name: 'adsflsafhjl',
+        path: 'adsflsafhjl',
+        latestActivityTimestamp: '2016-09-01T13:12:32.521+05:30',
+        activeCommitters: [],
+        description: 'dsafjdsahfj',
+        repoUrl: 'http://foo-bar.com/foo/bar.git',
+        token: 'token',
       };
       const converted = serializeApiEntity('project', project, apiBaseUrl);
       const data = converted.data;
@@ -221,17 +243,22 @@ describe('json-api serialization', () => {
       expect(data.id).to.equal(String(project.id));
       expect(data.type).to.equal('projects');
       expect(data.attributes.name).to.equal(project.name);
-      expect(data.attributes['latest-activity-timestamp']).to.equal(project.latestActivityTimestamp);
+      expect(data.attributes['latest-activity-timestamp']).to.equal(
+        project.latestActivityTimestamp,
+      );
       expect(data.attributes.description).to.equal(project.description);
       expect(data.attributes['repo-url']).to.equal(project.repoUrl);
     });
-
   });
 
   describe('deploymentToJsonApi()', () => {
     it('should work with array of single deployment', () => {
       const deployments = [exampleDeploymentOne];
-      const converted = serializeApiEntity('deployment', deployments, apiBaseUrl) as any;
+      const converted = serializeApiEntity(
+        'deployment',
+        deployments,
+        apiBaseUrl,
+      ) as any;
 
       const data = converted.data;
       expect(data).to.have.length(1);
@@ -243,9 +270,15 @@ describe('json-api serialization', () => {
       // attributes
       expect(data[0].attributes.status).to.equal(exampleDeploymentOne.status);
       expect(data[0].attributes.url).to.equal(exampleDeploymentOne.url);
-      expect(data[0].attributes.creator).to.deep.equal(exampleDeploymentOne.creator);
-      expect(data[0].attributes.screenshot).to.equal(exampleDeploymentOne.screenshot);
-      expect(data[0].attributes['comment-count']).to.equal(exampleDeploymentOne.commentCount);
+      expect(data[0].attributes.creator).to.deep.equal(
+        exampleDeploymentOne.creator,
+      );
+      expect(data[0].attributes.screenshot).to.equal(
+        exampleDeploymentOne.screenshot,
+      );
+      expect(data[0].attributes['comment-count']).to.equal(
+        exampleDeploymentOne.commentCount,
+      );
 
       // no relationships or includes
       expect(data[0].relationships).to.not.exist;
@@ -256,7 +289,11 @@ describe('json-api serialization', () => {
   describe('branchToJsonApi()', () => {
     it('should work with a single branch', () => {
       const branch = exampleMasterBranch;
-      const converted = serializeApiEntity('branch', branch, apiBaseUrl) as JsonApiResponse;
+      const converted = serializeApiEntity(
+        'branch',
+        branch,
+        apiBaseUrl,
+      ) as JsonApiResponse;
       const data = converted.data as JsonApiEntity;
       expect(data).to.exist;
 
@@ -267,7 +304,9 @@ describe('json-api serialization', () => {
       // attributes
       expect(data.attributes).to.exist;
       expect(data.attributes.name).to.equal('master');
-      expect(data.attributes['latest-activity-timestamp']).to.equal(branch.latestActivityTimestamp);
+      expect(data.attributes['latest-activity-timestamp']).to.equal(
+        branch.latestActivityTimestamp,
+      );
 
       // project relationship
       expect(data.relationships).to.exist;
@@ -279,58 +318,93 @@ describe('json-api serialization', () => {
       // commits relationship
       expect(data.relationships.commits).to.exist;
       expect(data.relationships.commits.links).to.exist;
-      expect(data.relationships.commits.links.self).to.equal(`${apiBaseUrl}/branches/${branch.id}/commits`);
+      expect(data.relationships.commits.links.self).to.equal(
+        `${apiBaseUrl}/branches/${branch.id}/commits`,
+      );
       expect(data.relationships.commits.data).to.not.exist;
 
       // latestCommit relationship
       expect(data.relationships['latest-commit']).to.exist;
       expect(data.relationships['latest-commit'].data).to.exist;
-      expect(data.relationships['latest-commit'].data.id)
-        .to.equal(branch.latestCommit.id);
+      expect(data.relationships['latest-commit'].data.id).to.equal(
+        branch.latestCommit.id,
+      );
       expect(data.relationships['latest-commit'].data.type).to.equal('commits');
 
       // included latestCommit
-      const includedCommit = (<any> converted.included).find((item: any) =>
-        item.id === branch.latestCommit.id && item.type === 'commits');
+      const includedCommit = (converted.included as any).find(
+        (item: any) =>
+          item.id === branch.latestCommit.id && item.type === 'commits',
+      );
       expect(includedCommit).to.exist;
       expect(includedCommit.id).to.equal(`${branch.latestCommit.id}`);
       expect(includedCommit.attributes.hash).to.equal(branch.latestCommit.hash);
 
       // included deployment from latestCommit
-      const includedDeployment = (<any> converted.included).find((item: any) =>
-        item.id === branch.latestCommit.deployments[0].id && item.type === 'deployments');
+      const includedDeployment = (converted.included as any).find(
+        (item: any) =>
+          item.id === branch.latestCommit.deployments[0].id &&
+          item.type === 'deployments',
+      );
       expect(includedDeployment).to.exist;
-      expect(includedDeployment.id).to.equal(branch.latestCommit.deployments[0].id);
-      expect(includedDeployment.attributes.url).to.equal(branch.latestCommit.deployments[0].url);
+      expect(includedDeployment.id).to.equal(
+        branch.latestCommit.deployments[0].id,
+      );
+      expect(includedDeployment.attributes.url).to.equal(
+        branch.latestCommit.deployments[0].url,
+      );
 
       // latestSuccessfullyDeployedCommit relationship
-      expect(data.relationships['latest-successfully-deployed-commit']).to.exist;
-      expect(data.relationships['latest-successfully-deployed-commit'].data).to.exist;
-      expect(data.relationships['latest-successfully-deployed-commit'].data.id)
-        .to.equal(branch.latestSuccessfullyDeployedCommit!.id);
-      expect(data.relationships['latest-successfully-deployed-commit'].data.type).to.equal('commits');
+      expect(data.relationships['latest-successfully-deployed-commit']).to
+        .exist;
+      expect(data.relationships['latest-successfully-deployed-commit'].data).to
+        .exist;
+      expect(
+        data.relationships['latest-successfully-deployed-commit'].data.id,
+      ).to.equal(branch.latestSuccessfullyDeployedCommit!.id);
+      expect(
+        data.relationships['latest-successfully-deployed-commit'].data.type,
+      ).to.equal('commits');
 
       // included latestSuccessfullyDeployedCommit
-      const includedSuccessCommit = (<any> converted.included).find((item: any) =>
-        item.id === branch.latestSuccessfullyDeployedCommit!.id && item.type === 'commits');
+      const includedSuccessCommit = (converted.included as any).find(
+        (item: any) =>
+          item.id === branch.latestSuccessfullyDeployedCommit!.id &&
+          item.type === 'commits',
+      );
       expect(includedSuccessCommit).to.exist;
-      expect(includedSuccessCommit.id).to.equal(`${branch.latestSuccessfullyDeployedCommit!.id}`);
-      expect(includedSuccessCommit.attributes.hash).to.equal(branch.latestSuccessfullyDeployedCommit!.hash);
+      expect(includedSuccessCommit.id).to.equal(
+        `${branch.latestSuccessfullyDeployedCommit!.id}`,
+      );
+      expect(includedSuccessCommit.attributes.hash).to.equal(
+        branch.latestSuccessfullyDeployedCommit!.hash,
+      );
 
       // included deployment from latestSuccessfullyDeployedCommit
-      const includedSuccessDeployment = (<any> converted.included).find((item: any) =>
-        item.id === branch.latestSuccessfullyDeployedCommit!.deployments[0].id && item.type === 'deployments');
+      const includedSuccessDeployment = (converted.included as any).find(
+        (item: any) =>
+          item.id ===
+            branch.latestSuccessfullyDeployedCommit!.deployments[0].id &&
+          item.type === 'deployments',
+      );
       expect(includedSuccessDeployment).to.exist;
-      expect(includedSuccessDeployment.id).to.equal(branch.latestSuccessfullyDeployedCommit!.deployments[0].id);
-      expect(includedSuccessDeployment.attributes.creator)
-        .to.deep.equal(branch.latestSuccessfullyDeployedCommit!.deployments[0].creator);
+      expect(includedSuccessDeployment.id).to.equal(
+        branch.latestSuccessfullyDeployedCommit!.deployments[0].id,
+      );
+      expect(includedSuccessDeployment.attributes.creator).to.deep.equal(
+        branch.latestSuccessfullyDeployedCommit!.deployments[0].creator,
+      );
     });
   });
 
   describe('commitToJsonApi()', () => {
     it('should work with a single commit', () => {
       const commit = exampleCommitOne;
-      const converted = serializeApiEntity('commit', commit, apiBaseUrl) as JsonApiResponse;
+      const converted = serializeApiEntity(
+        'commit',
+        commit,
+        apiBaseUrl,
+      ) as JsonApiResponse;
       const data = converted.data as JsonApiEntity;
       expect(data).to.exist;
 
@@ -343,32 +417,46 @@ describe('json-api serialization', () => {
       expect(data.attributes.message).to.equal('Remove unnecessary logging');
       expect(data.attributes.author.name).to.equal('Fooman');
       expect(data.attributes.author.email).to.equal('fooman@gmail.com');
-      expect(data.attributes.author.timestamp).to.equal('2015-12-24T15:51:21.802Z');
+      expect(data.attributes.author.timestamp).to.equal(
+        '2015-12-24T15:51:21.802Z',
+      );
       expect(data.attributes.committer.name).to.equal('Barman');
       expect(data.attributes.committer.email).to.equal('barman@gmail.com');
-      expect(data.attributes.committer.timestamp).to.equal('2015-12-24T16:51:21.802Z');
+      expect(data.attributes.committer.timestamp).to.equal(
+        '2015-12-24T16:51:21.802Z',
+      );
 
       // deployments relationship
       expect(data.relationships.deployments).to.exist;
       expect(data.relationships.deployments.data).to.have.length(1);
-      expect(data.relationships.deployments.data[0].id).to.equal(commit.deployments[0].id);
+      expect(data.relationships.deployments.data[0].id).to.equal(
+        commit.deployments[0].id,
+      );
 
       // no extra stuff
       expect(values(data.relationships)).to.have.length(1);
       expect(values(converted.included)).to.have.length(1);
 
       // included deployment
-      const includedDeployment = (<any> converted.included).find((item: any) =>
-        item.id === commit.deployments[0].id && item.type === 'deployments');
+      const includedDeployment = (converted.included as any).find(
+        (item: any) =>
+          item.id === commit.deployments[0].id && item.type === 'deployments',
+      );
       expect(includedDeployment).to.exist;
       expect(includedDeployment.id).to.equal(commit.deployments[0].id);
-      expect(includedDeployment.attributes.url).to.equal(commit.deployments[0].url);
+      expect(includedDeployment.attributes.url).to.equal(
+        commit.deployments[0].url,
+      );
     });
   });
 
   describe('activityToJsonApi()', () => {
     function testActivity(activity: ApiActivity) {
-      const converted = serializeApiEntity('activity', activity, apiBaseUrl) as JsonApiResponse;
+      const converted = serializeApiEntity(
+        'activity',
+        activity,
+        apiBaseUrl,
+      ) as JsonApiResponse;
       const data = converted.data as JsonApiEntity;
       expect(data).to.exist;
 
@@ -381,9 +469,15 @@ describe('json-api serialization', () => {
       expect(data.attributes['activity-type']).to.equal(activity.activityType);
       expect(data.attributes.deployment.id).to.equal(activity.deployment.id);
       expect(data.attributes.deployment.url).to.equal(activity.deployment.url);
-      expect(data.attributes.deployment.screenshot).to.equal(activity.deployment.screenshot);
-      expect(data.attributes.deployment.status).to.equal(activity.deployment.status);
-      expect(data.attributes.deployment.creator).to.deep.equal(activity.deployment.creator);
+      expect(data.attributes.deployment.screenshot).to.equal(
+        activity.deployment.screenshot,
+      );
+      expect(data.attributes.deployment.status).to.equal(
+        activity.deployment.status,
+      );
+      expect(data.attributes.deployment.creator).to.deep.equal(
+        activity.deployment.creator,
+      );
       expect(data.attributes.project).to.deep.equal(activity.project);
       expect(data.attributes.branch).to.deep.equal(activity.branch);
       expect(data.attributes.commit).to.deep.equal(activity.commit);
@@ -410,7 +504,11 @@ describe('json-api serialization', () => {
   describe('commentToJsonApi()', () => {
     it('should work with a single comment', () => {
       const comment = exampleComment;
-      const converted = serializeApiEntity('comment', comment, apiBaseUrl) as JsonApiResponse;
+      const converted = serializeApiEntity(
+        'comment',
+        comment,
+        apiBaseUrl,
+      ) as JsonApiResponse;
       const data = converted.data as JsonApiEntity;
       expect(data).to.exist;
 
@@ -441,7 +539,11 @@ describe('json-api serialization', () => {
         type: 'flowdock',
       };
 
-      const converted: JsonApiResponse = serializeApiEntity('notification', notification, apiBaseUrl);
+      const converted: JsonApiResponse = serializeApiEntity(
+        'notification',
+        notification,
+        apiBaseUrl,
+      );
       const data = converted.data as JsonApiEntity;
       expect(data).to.exist;
 
@@ -465,7 +567,11 @@ describe('json-api serialization', () => {
         type: 'hipchat',
       } as any;
 
-      const converted: JsonApiResponse = serializeApiEntity('notification', notification, apiBaseUrl);
+      const converted: JsonApiResponse = serializeApiEntity(
+        'notification',
+        notification,
+        apiBaseUrl,
+      );
       const data = converted.data as JsonApiEntity;
       expect(data).to.exist;
 
@@ -474,8 +580,12 @@ describe('json-api serialization', () => {
       expect(data.type).to.equal('notifications');
 
       // attributes
-      expect(data.attributes['hipchat-room-id']).to.equal(notification.hipchatRoomId);
-      expect(data.attributes['hipchat-auth-token']).to.equal(notification.hipchatAuthToken);
+      expect(data.attributes['hipchat-room-id']).to.equal(
+        notification.hipchatRoomId,
+      );
+      expect(data.attributes['hipchat-auth-token']).to.equal(
+        notification.hipchatAuthToken,
+      );
       expect(data.attributes['team-id']).to.equal(notification.teamId);
       expect(data.attributes.type).to.equal(notification.type);
     });
@@ -489,7 +599,11 @@ describe('json-api serialization', () => {
         type: 'slack',
       };
 
-      const converted: JsonApiResponse = serializeApiEntity('notification', notification, apiBaseUrl);
+      const converted: JsonApiResponse = serializeApiEntity(
+        'notification',
+        notification,
+        apiBaseUrl,
+      );
       const data = converted.data as JsonApiEntity;
       expect(data).to.exist;
 
@@ -498,11 +612,11 @@ describe('json-api serialization', () => {
       expect(data.type).to.equal('notifications');
 
       // attributes
-      expect(data.attributes['slack-webhook-url']).to.equal(notification.slackWebhookUrl);
+      expect(data.attributes['slack-webhook-url']).to.equal(
+        notification.slackWebhookUrl,
+      );
       expect(data.attributes['team-id']).to.equal(notification.teamId);
       expect(data.attributes.type).to.equal(notification.type);
     });
-
   });
-
 });

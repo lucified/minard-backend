@@ -1,7 +1,6 @@
 import * as moment from 'moment';
 
-export interface EventPayload {
-}
+export interface EventPayload {}
 
 export interface Event<T extends EventPayload> {
   readonly type: string;
@@ -15,7 +14,9 @@ export interface StreamingEvent<T extends EventPayload> extends Event<T> {
 }
 
 // We only persist StreamingEvents
-export interface PersistedEvent<T extends EventPayload> extends StreamingEvent<T> {
+export interface PersistedEvent<T extends EventPayload> extends StreamingEvent<
+  T
+> {
   id: string;
   streamRevision: number;
 }
@@ -32,8 +33,10 @@ function copyIds(event: Event<any>) {
 }
 
 // Creates a constructor function that carries the type string in the type property
-export const eventCreator =
-  <T extends EventPayload>(type: string, callback?: (event: Event<T>) => boolean): EventCreator<T> => {
+export const eventCreator = <T extends EventPayload>(
+  type: string,
+  callback?: (event: Event<T>) => boolean,
+): EventCreator<T> => {
   const ret = (payload: T) => {
     const event = {
       type,
@@ -50,11 +53,14 @@ export const eventCreator =
     }
     return event;
   };
-  (<any> ret).type = type;
+  (ret as any).type = type;
   return ret as EventCreator<T>;
 };
 
-export function isType<T>(event: Event<any>, creator: EventCreator<T>): event is Event<T> {
+export function isType<T>(
+  event: Event<any>,
+  creator: EventCreator<T>,
+): event is Event<T> {
   return event.type === creator.type;
 }
 
@@ -62,6 +68,12 @@ export function isSSE<T>(event: Event<T>): event is StreamingEvent<T> {
   return event.type.substr(0, 4) === 'SSE_' && typeof event.teamId === 'number';
 }
 
-export function isPersistedEvent<T>(event: Event<T>): event is PersistedEvent<T> {
-  return isSSE(event) && typeof (<any> event).id === 'string' && typeof (<any> event).streamRevision === 'number';
+export function isPersistedEvent<T>(
+  event: Event<T>,
+): event is PersistedEvent<T> {
+  return (
+    isSSE(event) &&
+    typeof (event as any).id === 'string' &&
+    typeof (event as any).streamRevision === 'number'
+  );
 }

@@ -16,9 +16,7 @@ import {
   deploymentFolderInjectSymbol,
   deploymentUrlPatternInjectSymbol,
 } from '../deployment';
-import {
-  eventStoreConfigInjectSymbol,
-} from '../event-bus';
+import { eventStoreConfigInjectSymbol } from '../event-bus';
 import {
   screenshotFolderInjectSymbol,
   screenshotterBaseurlInjectSymbol,
@@ -32,9 +30,7 @@ import {
   minardUiBaseUrlInjectSymbol,
   portInjectSymbol,
 } from '../server';
-import {
-  cacheInjectSymbol,
-} from '../shared/cache';
+import { cacheInjectSymbol } from '../shared/cache';
 import {
   gitBaseUrlInjectSymbol,
   gitlabHostInjectSymbol,
@@ -42,9 +38,7 @@ import {
   gitVhostInjectSymbol,
 } from '../shared/gitlab-client';
 import Logger, { loggerInjectSymbol } from '../shared/logger';
-import {
-  tokenSecretInjectSymbol,
-} from '../shared/token-generator';
+import { tokenSecretInjectSymbol } from '../shared/token-generator';
 import {
   adminIdInjectSymbol,
   charlesDbNameInjectSymbol,
@@ -64,20 +58,26 @@ const redisStore = require('cache-manager-redis');
 
 function requestFilter(data: any) {
   // filter out runner's requests for new build jobs
-  if (data.path
-      && data.path.indexOf('/ci/api/v1/builds/register.json') !== -1
-      && data.statusCode === 404) {
+  if (
+    data.path &&
+    data.path.indexOf('/ci/api/v1/builds/register.json') !== -1 &&
+    data.statusCode === 404
+  ) {
     return false;
   }
   // filter out successful health checks
-  if (data.path
-      && data.path.indexOf('/status') === 0
-      && data.statusCode === 200) {
+  if (
+    data.path &&
+    data.path.indexOf('/status') === 0 &&
+    data.statusCode === 200
+  ) {
     return false;
   }
-  if (data.path
-      && data.path.indexOf('/health') === 0
-      && data.statusCode === 200) {
+  if (
+    data.path &&
+    data.path.indexOf('/health') === 0 &&
+    data.statusCode === 200
+  ) {
     return false;
   }
   return true;
@@ -100,7 +100,7 @@ const goodOptions = {
       },
       {
         module: 'good-console',
-        args: [{format: 'DD.MM HH:mm:ss', utc: false, color: true}],
+        args: [{ format: 'DD.MM HH:mm:ss', utc: false, color: true }],
       },
       'stdout',
     ],
@@ -137,16 +137,19 @@ const HOST_LOOPBACK_IP = process.env.HOST_LOOPBACK_IP;
 
 // Base URL for systemhooks registered to GitLab. This must be an URL from
 // which GitLab can reach charles.
-const SYSTEMHOOK_BASEURL = env.SYSTEMHOOK_BASEURL || `http://${HOST_LOOPBACK_IP}:${PORT}`;
+const SYSTEMHOOK_BASEURL =
+  env.SYSTEMHOOK_BASEURL || `http://${HOST_LOOPBACK_IP}:${PORT}`;
 
 // Base URL for the screenshotter service
-const SCREENSHOTTER_BASEURL = env.SCREENSHOTTER_BASEURL || 'http://localhost:8002';
+const SCREENSHOTTER_BASEURL =
+  env.SCREENSHOTTER_BASEURL || 'http://localhost:8002';
 
 // Generic external base URL for charles
 const EXTERNAL_BASEURL = env.EXTERNAL_BASEURL || `http://localhost:${PORT}`;
 
 // External baseUrl for git urls
-const EXTERNAL_GIT_BASEURL = env.EXTERNAL_GIT_BASEURL || `http://localhost:${GITLAB_PORT}`;
+const EXTERNAL_GIT_BASEURL =
+  env.EXTERNAL_GIT_BASEURL || `http://localhost:${GITLAB_PORT}`;
 
 // External hostname for git urls, e.g. git.minard.io
 const GIT_VHOST = env.GIT_VHOST || parseUrl(EXTERNAL_GIT_BASEURL).hostname;
@@ -158,12 +161,12 @@ const deploymentDomain = `deployment.localtest.me`;
 
 // URL pattern used for composing EXTERNAL deployment URLs
 // Users access deployments via urls matching this pattern
-const DEPLOYMENT_URL_PATTERN = env.DEPLOYMENT_URL_PATTERN ||
-  `http://%s.${deploymentDomain}:${PORT}`;
+const DEPLOYMENT_URL_PATTERN =
+  env.DEPLOYMENT_URL_PATTERN || `http://%s.${deploymentDomain}:${PORT}`;
 
 // URL pattern used for composing EXTERNAL URLs for screenshots
-const SCREENSHOT_URL_PATTERN = env.SCREENSHOT_URL_PATTERN ||
-  `http://%s.${deploymentDomain}:${PORT}`;
+const SCREENSHOT_URL_PATTERN =
+  env.SCREENSHOT_URL_PATTERN || `http://%s.${deploymentDomain}:${PORT}`;
 
 // Base URL for minard-ui
 const MINARD_UI_BASEURL = env.MINARD_UI_BASEURL || `http://localhost:3000`;
@@ -174,8 +177,9 @@ const MINARD_UI_BASEURL = env.MINARD_UI_BASEURL || `http://localhost:3000`;
 // (This is secure, when the load balancer uses host headers to
 //  route external traffic, preventing external clients from sending
 //  arbitrary host headers)
-const INTERNAL_HOST_SUFFIXES = env.INTERNAL_HOST_SUFFIXES
-  || 'charles,charles.internal,internal.localtest.me';
+const INTERNAL_HOST_SUFFIXES =
+  env.INTERNAL_HOST_SUFFIXES ||
+  'charles,charles.internal,internal.localtest.me';
 
 // Database configuration
 // ----------------------
@@ -192,10 +196,10 @@ function getKnex(dbName: string) {
   return Knex({
     client: DB_ADAPTER,
     connection: {
-      host     : DB_HOST,
-      user     : DB_USER,
-      password : DB_PASS,
-      database : dbName,
+      host: DB_HOST,
+      user: DB_USER,
+      password: DB_PASS,
+      database: dbName,
       port: DB_PORT,
     },
     pool: {
@@ -250,26 +254,31 @@ const eventStoreConfig = {
 // Filesystem configuration
 // ------------------------
 
-const DEPLOYMENT_FOLDER = env.DEPLOYMENT_FOLDER || 'gitlab-data/charles/deployments/';
-const SCREENSHOT_FOLDER = env.SCREENSHOT_FOLDER || 'gitlab-data/charles/screenshots/';
+const DEPLOYMENT_FOLDER =
+  env.DEPLOYMENT_FOLDER || 'gitlab-data/charles/deployments/';
+const SCREENSHOT_FOLDER =
+  env.SCREENSHOT_FOLDER || 'gitlab-data/charles/screenshots/';
 
 // Redis cache
 // -----------
 
-const cache = caching({
-  store: redisStore,
-  host: REDIS_HOST,
-  port: REDIS_PORT,
-  db: 1,
-  ttl: 60 * 60 * 24 * 30, // 30 days
-} as any);
+const cache = caching(
+  {
+    store: redisStore,
+    host: REDIS_HOST,
+    port: REDIS_PORT,
+    db: 1,
+    ttl: 60 * 60 * 24 * 30, // 30 days
+  } as any,
+);
 
 // Authentication
 // --------------
 
 const GITLAB_ROOT_PASSWORD = env.GITLAB_ROOT_PASSWORD || '12345678';
 const AUTH0_DOMAIN = env.AUTH0_DOMAIN || 'https://lucify-dev.eu.auth0.com';
-const AUTH0_CLIENT_ID = env.AUTH0_CLIENT_ID || 'ZaeiNyV7S7MpI69cKNHr8wXe5Bdr8tvW';
+const AUTH0_CLIENT_ID =
+  env.AUTH0_CLIENT_ID || 'ZaeiNyV7S7MpI69cKNHr8wXe5Bdr8tvW';
 const AUTH0_AUDIENCE = env.AUTH0_AUDIENCE || EXTERNAL_BASEURL;
 const AUTH_COOKIE_DOMAIN = env.AUTH_COOKIE_DOMAIN || AUTH0_AUDIENCE;
 
@@ -296,7 +305,8 @@ const ADMIN_ID = env.ADMIN_ID;
 // The names of teams that should have open (= no auth required) deployments
 // --------------
 
-const OPEN_TEAM_NAMES = env.OPEN_TEAM_NAMES && env.OPEN_TEAM_NAMES.toLowerCase().split(',');
+const OPEN_TEAM_NAMES =
+  env.OPEN_TEAM_NAMES && env.OPEN_TEAM_NAMES.toLowerCase().split(',');
 
 // Inversify kernel bindings
 // -------------------------
@@ -307,9 +317,13 @@ export default (kernel: Container) => {
   kernel.bind(loggerInjectSymbol).toConstantValue(Logger(winstonOptions));
   kernel.bind(hostInjectSymbol).toConstantValue(HOST);
   kernel.bind(portInjectSymbol).toConstantValue(PORT);
-  kernel.bind(gitlabHostInjectSymbol).toConstantValue(`http://${GITLAB_HOST}:${GITLAB_PORT}`);
+  kernel
+    .bind(gitlabHostInjectSymbol)
+    .toConstantValue(`http://${GITLAB_HOST}:${GITLAB_PORT}`);
   kernel.bind(gitVhostInjectSymbol).toConstantValue(GIT_VHOST);
-  kernel.bind(gitlabPasswordSecretInjectSymbol).toConstantValue(GITLAB_PASSWORD_SECRET);
+  kernel
+    .bind(gitlabPasswordSecretInjectSymbol)
+    .toConstantValue(GITLAB_PASSWORD_SECRET);
   kernel.bind(systemHookBaseUrlSymbol).toConstantValue(SYSTEMHOOK_BASEURL);
   kernel.bind(deploymentFolderInjectSymbol).toConstantValue(DEPLOYMENT_FOLDER);
   kernel.bind(gitlabKnexInjectSymbol).toConstantValue(gitlabKnex);
@@ -317,14 +331,20 @@ export default (kernel: Container) => {
   kernel.bind(charlesDbNameInjectSymbol).toConstantValue(CHARLES_DB_NAME);
   kernel.bind(postgresKnexInjectSymbol).toConstantValue(postgresKnex);
   kernel.bind(screenshotFolderInjectSymbol).toConstantValue(SCREENSHOT_FOLDER);
-  kernel.bind(screenshotterBaseurlInjectSymbol).toConstantValue(SCREENSHOTTER_BASEURL);
+  kernel
+    .bind(screenshotterBaseurlInjectSymbol)
+    .toConstantValue(SCREENSHOTTER_BASEURL);
   kernel.bind(externalBaseUrlInjectSymbol).toConstantValue(EXTERNAL_BASEURL);
-  kernel.bind(deploymentUrlPatternInjectSymbol).toConstantValue(DEPLOYMENT_URL_PATTERN);
+  kernel
+    .bind(deploymentUrlPatternInjectSymbol)
+    .toConstantValue(DEPLOYMENT_URL_PATTERN);
   kernel.bind(screenshotUrlPattern).toConstantValue(SCREENSHOT_URL_PATTERN);
   kernel.bind(gitBaseUrlInjectSymbol).toConstantValue(EXTERNAL_GIT_BASEURL);
   kernel.bind(cacheInjectSymbol).toConstantValue(cache);
   kernel.bind(minardUiBaseUrlInjectSymbol).toConstantValue(MINARD_UI_BASEURL);
-  kernel.bind(gitlabRootPasswordInjectSymbol).toConstantValue(GITLAB_ROOT_PASSWORD);
+  kernel
+    .bind(gitlabRootPasswordInjectSymbol)
+    .toConstantValue(GITLAB_ROOT_PASSWORD);
   kernel.bind(sentryDsnInjectSymbol).toConstantValue(SENTRY_DSN);
   kernel.bind(exitDelayInjectSymbol).toConstantValue(EXIT_DELAY);
   kernel.bind(tokenSecretInjectSymbol).toConstantValue(TOKEN_SECRET);
@@ -334,5 +354,7 @@ export default (kernel: Container) => {
   kernel.bind(authCookieDomainInjectSymbol).toConstantValue(AUTH_COOKIE_DOMAIN);
   kernel.bind(adminIdInjectSymbol).toConstantValue(ADMIN_ID);
   kernel.bind(openTeamNamesInjectSymbol).toConstantValue(OPEN_TEAM_NAMES);
-  kernel.bind(internalHostSuffixesInjectSymbol).toConstantValue(INTERNAL_HOST_SUFFIXES.split(','));
+  kernel
+    .bind(internalHostSuffixesInjectSymbol)
+    .toConstantValue(INTERNAL_HOST_SUFFIXES.split(','));
 };

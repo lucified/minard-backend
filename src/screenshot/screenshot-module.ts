@@ -9,7 +9,9 @@ import { externalBaseUrlInjectSymbol } from '../server/types';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
 import TokenGenerator from '../shared/token-generator';
 
-const readFile = promisify<string, string, { encoding: string; flag?: string; }>(_readFile);
+const readFile = promisify<string, string, { encoding: string; flag?: string }>(
+  _readFile,
+);
 
 import {
   PageresOptions,
@@ -24,29 +26,40 @@ const dataURI = require('datauri').promise;
 
 @injectable()
 export default class ScreenshotModule {
-
   public static injectSymbol = Symbol('screenshot-module');
 
   constructor(
     @inject(loggerInjectSymbol) private readonly logger: Logger,
     @inject(screenshotUrlPattern) private readonly urlPattern: string,
-    @inject(screenshotterInjectSymbol) private readonly screenshotter: Screenshotter,
+    @inject(screenshotterInjectSymbol)
+    private readonly screenshotter: Screenshotter,
     @inject(screenshotFolderInjectSymbol) private readonly folder: string,
-    @inject(externalBaseUrlInjectSymbol) private readonly externalBaseUrl: string,
-    @inject(TokenGenerator.injectSymbol) private readonly tokenGenerator: TokenGenerator,
-  ) { }
+    @inject(externalBaseUrlInjectSymbol)
+    private readonly externalBaseUrl: string,
+    @inject(TokenGenerator.injectSymbol)
+    private readonly tokenGenerator: TokenGenerator,
+  ) {}
 
   private getScreenshotDir(projectId: number, deploymentId: number) {
     return join(this.folder, String(projectId), String(deploymentId));
   }
 
   public getPublicUrl(projectId: number, deploymentId: number): string {
-    return urljoin(this.externalBaseUrl, 'screenshot', String(projectId), String(deploymentId))
-      + `?token=${this.tokenGenerator.deploymentToken(projectId, deploymentId)}`;
+    return (
+      urljoin(
+        this.externalBaseUrl,
+        'screenshot',
+        String(projectId),
+        String(deploymentId),
+      ) +
+      `?token=${this.tokenGenerator.deploymentToken(projectId, deploymentId)}`
+    );
   }
 
   public isValidToken(projectId: number, deploymentId: number, token: string) {
-    return this.tokenGenerator.deploymentToken(projectId, deploymentId) === token;
+    return (
+      this.tokenGenerator.deploymentToken(projectId, deploymentId) === token
+    );
   }
 
   public async getDataUrl(projectId: number, deploymentId: number) {
@@ -70,8 +83,13 @@ export default class ScreenshotModule {
     return 'screenshot.jpg';
   }
 
-  public async deploymentHasScreenshot(projectId: number, deploymentId: number) {
-    return await new Promise<boolean>(resolve => exists(this.getScreenshotPath(projectId, deploymentId), resolve));
+  public async deploymentHasScreenshot(
+    projectId: number,
+    deploymentId: number,
+  ) {
+    return await new Promise<boolean>(resolve =>
+      exists(this.getScreenshotPath(projectId, deploymentId), resolve),
+    );
   }
 
   private getRemoteDest(projectId: number, deploymentId: number) {
@@ -82,11 +100,20 @@ export default class ScreenshotModule {
   /*
    * Take a screenshot for given projectId and deploymentId
    */
-  public async takeScreenshot(projectId: number, deploymentId: number, shortId: string) {
-    const url = sprintf(this.urlPattern, `${shortId}-${projectId}-${deploymentId}`);
+  public async takeScreenshot(
+    projectId: number,
+    deploymentId: number,
+    shortId: string,
+  ) {
+    const url = sprintf(
+      this.urlPattern,
+      `${shortId}-${projectId}-${deploymentId}`,
+    );
     const dest = this.getRemoteDest(projectId, deploymentId);
     const options: PageresOptions = {
-      filename: stripExtension(this.getScreenshotFilename(projectId, deploymentId)),
+      filename: stripExtension(
+        this.getScreenshotFilename(projectId, deploymentId),
+      ),
       delay: 10,
       format: 'jpg',
     };
@@ -99,7 +126,6 @@ export default class ScreenshotModule {
       throw badImplementation();
     }
   }
-
 }
 
 export function stripExtension(filename: string) {

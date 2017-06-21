@@ -1,4 +1,3 @@
-
 import { createHmac } from 'crypto';
 import { inject, injectable } from 'inversify';
 
@@ -9,8 +8,7 @@ export default class TokenGenerator {
   public static injectSymbol = Symbol('token-generator');
   private readonly secret: string;
 
-  constructor(
-    @inject(tokenSecretInjectSymbol) secret: string) {
+  constructor(@inject(tokenSecretInjectSymbol) secret: string) {
     this.secret = secret;
   }
 

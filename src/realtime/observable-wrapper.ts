@@ -15,7 +15,9 @@ export class ObservableWrapper extends Readable {
     super();
 
     this.on('end', () => this.subscription && this.subscription.unsubscribe());
-    this.on('error', (err: any) => { throw err; });
+    this.on('error', (err: any) => {
+      throw err;
+    });
   }
 
   private sseEvent(event: PersistedEvent<any>) {
@@ -38,7 +40,9 @@ export class ObservableWrapper extends Readable {
         })
         .subscribe(
           event => this.push(event),
-          error => { throw error; },
+          error => {
+            throw error;
+          },
           () => this.push(null),
         );
     }

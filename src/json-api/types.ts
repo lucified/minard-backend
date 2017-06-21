@@ -1,20 +1,13 @@
+import { MinardCommit } from '../shared/minard-commit';
 
-import {
-  MinardCommit,
-} from '../shared/minard-commit';
-
-import {
-  MinardProjectPlain,
-} from '../project/';
+import { MinardProjectPlain } from '../project/';
 
 import {
   MinardDeploymentCreator,
   MinardDeploymentStatus,
 } from '../deployment/';
 
-import {
-  BaseNotificationConfiguration,
-} from '../notification';
+import { BaseNotificationConfiguration } from '../notification';
 
 export interface JsonApiEntity {
   type: 'commits' | 'deployments' | 'projects' | 'branches' | 'notifications';
@@ -131,17 +124,17 @@ export interface PreviewView {
     name: string;
   };
   previousDeployment?: string; // previous deployment id in branch
-  nextDeployment?: string;     // next deployment id in branch
+  nextDeployment?: string; // next deployment id in branch
 }
 
 export type ApiEntity =
-  ApiActivity |
-  ApiProject |
-  ApiCommit |
-  ApiDeployment |
-  ApiBranch |
-  ApiNotificationConfiguration |
-  ApiComment;
+  | ApiActivity
+  | ApiProject
+  | ApiCommit
+  | ApiDeployment
+  | ApiBranch
+  | ApiNotificationConfiguration
+  | ApiComment;
 
 export type ApiEntities = ApiEntity[];
 export enum PreviewType {

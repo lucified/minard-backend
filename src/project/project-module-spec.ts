@@ -38,146 +38,154 @@ const getClient = () => {
       return 'secret-token';
     }
   }
-  return new GitlabClient(host, 'secret', fetchMock.fetchMock,
-    new MockAuthModule() as AuthenticationModule, logger);
+  return new GitlabClient(
+    host,
+    'secret',
+    fetchMock.fetchMock,
+    new MockAuthModule() as AuthenticationModule,
+    logger,
+  );
 };
 
-function genericArrangeProjectModule(status: number, body: any, path: string, options?: any) {
-    const gitlabClient = getClient();
-    const projectModule = new ProjectModule(
-      {} as AuthenticationModule,
-      {} as SystemHookModule,
-      {} as LocalEventBus,
-      gitlabClient,
-      logger,
-      '',
-    );
-    fetchMock.restore();
-    fetchMock.mock(
-      `${host}${gitlabClient.apiPrefix}${path}`,
-      { status, body }, options);
-    return projectModule;
+function genericArrangeProjectModule(
+  status: number,
+  body: any,
+  path: string,
+  options?: any,
+) {
+  const gitlabClient = getClient();
+  const projectModule = new ProjectModule(
+    {} as AuthenticationModule,
+    {} as SystemHookModule,
+    {} as LocalEventBus,
+    gitlabClient,
+    logger,
+    '',
+  );
+  fetchMock.restore();
+  fetchMock.mock(
+    `${host}${gitlabClient.apiPrefix}${path}`,
+    { status, body },
+    options,
+  );
+  return projectModule;
 }
 
 async function expectServerError(functionToRun: () => any) {
-   let failed = false;
-   try {
-     await functionToRun();
-     failed = true;
-   } catch (err) {
-      expect((err as BoomError).isBoom).to.equal(true);
-      expect((err as BoomError).isServer).to.equal(true);
-   }
-   if (failed) {
-     expect.fail('should throw');
-   }
+  let failed = false;
+  try {
+    await functionToRun();
+    failed = true;
+  } catch (err) {
+    expect((err as BoomError).isBoom).to.equal(true);
+    expect((err as BoomError).isServer).to.equal(true);
+  }
+  if (failed) {
+    expect.fail('should throw');
+  }
 }
 
 const gitBaseUrl = 'http://foo.git.com';
 
 const gitlabProjectResponse = {
-  'id': 3,
-  'description': null,
-  'default_branch': 'master',
-  'public': false,
-  'visibility_level': 0,
-  'ssh_url_to_repo': 'git@example.com:diaspora/diaspora-project-site.git',
-  'http_url_to_repo': 'http://example.com/diaspora/diaspora-project-site.git',
-  'web_url': 'http://example.com/diaspora/diaspora-project-site',
-  'tag_list': [
-    'example',
-    'disapora project',
-  ],
-  'owner': {
-    'id': 3,
-    'name': 'Diaspora',
-    'created_at': '2013-09-30T13:46:02Z',
+  id: 3,
+  description: null,
+  default_branch: 'master',
+  public: false,
+  visibility_level: 0,
+  ssh_url_to_repo: 'git@example.com:diaspora/diaspora-project-site.git',
+  http_url_to_repo: 'http://example.com/diaspora/diaspora-project-site.git',
+  web_url: 'http://example.com/diaspora/diaspora-project-site',
+  tag_list: ['example', 'disapora project'],
+  owner: {
+    id: 3,
+    name: 'Diaspora',
+    created_at: '2013-09-30T13:46:02Z',
   },
-  'name': 'Diaspora Project Site',
-  'name_with_namespace': 'Diaspora / Diaspora Project Site',
-  'path': 'diaspora-project-site',
-  'path_with_namespace': 'diaspora/diaspora-project-site',
-  'issues_enabled': true,
-  'open_issues_count': 1,
-  'merge_requests_enabled': true,
-  'builds_enabled': true,
-  'wiki_enabled': true,
-  'snippets_enabled': false,
-  'container_registry_enabled': false,
-  'created_at': '2013-09-30T13:46:02Z',
-  'last_activity_at': '2013-09-30T13:46:02Z',
-  'creator_id': 3,
-  'namespace': {
-    'created_at': '2013-09-30T13:46:02Z',
-    'description': '',
-    'id': 3,
-    'name': 'Diaspora',
-    'owner_id': 1,
-    'path': 'diaspora',
-    'updated_at': '2013-09-30T13:46:02Z',
+  name: 'Diaspora Project Site',
+  name_with_namespace: 'Diaspora / Diaspora Project Site',
+  path: 'diaspora-project-site',
+  path_with_namespace: 'diaspora/diaspora-project-site',
+  issues_enabled: true,
+  open_issues_count: 1,
+  merge_requests_enabled: true,
+  builds_enabled: true,
+  wiki_enabled: true,
+  snippets_enabled: false,
+  container_registry_enabled: false,
+  created_at: '2013-09-30T13:46:02Z',
+  last_activity_at: '2013-09-30T13:46:02Z',
+  creator_id: 3,
+  namespace: {
+    created_at: '2013-09-30T13:46:02Z',
+    description: '',
+    id: 3,
+    name: 'Diaspora',
+    owner_id: 1,
+    path: 'diaspora',
+    updated_at: '2013-09-30T13:46:02Z',
   },
-  'permissions': {
-    'project_access': {
-      'access_level': 10,
-      'notification_level': 3,
+  permissions: {
+    project_access: {
+      access_level: 10,
+      notification_level: 3,
     },
-    'group_access': {
-      'access_level': 50,
-      'notification_level': 3,
+    group_access: {
+      access_level: 50,
+      notification_level: 3,
     },
   },
-  'archived': false,
-  'avatar_url': 'http://example.com/uploads/project/avatar/3/uploads/avatar.png',
-  'shared_runners_enabled': true,
-  'forks_count': 0,
-  'star_count': 0,
-  'runners_token': 'b8bc4a7a29eb76ea83cf79e4908c2b',
-  'public_builds': true,
-  'shared_with_groups': [
+  archived: false,
+  avatar_url: 'http://example.com/uploads/project/avatar/3/uploads/avatar.png',
+  shared_runners_enabled: true,
+  forks_count: 0,
+  star_count: 0,
+  runners_token: 'b8bc4a7a29eb76ea83cf79e4908c2b',
+  public_builds: true,
+  shared_with_groups: [
     {
-      'group_id': 4,
-      'group_name': 'Twitter',
-      'group_access_level': 30,
+      group_id: 4,
+      group_name: 'Twitter',
+      group_access_level: 30,
     },
     {
-      'group_id': 3,
-      'group_name': 'Gitlab Org',
-      'group_access_level': 10,
+      group_id: 3,
+      group_name: 'Gitlab Org',
+      group_access_level: 10,
     },
   ],
 };
 
 describe('project-module', () => {
-
   describe('getBranch()', () => {
-
     const projectId = 3;
     const branchName = 'master';
 
     const gitlabResponse = {
-      'name': 'master',
-      'protected': true,
-      'developers_can_push': false,
-      'developers_can_merge': false,
-      'commit': {
-        'author_email': 'john@example.com',
-        'author_name': 'John Smith',
-        'authored_date': '2012-06-27T05:51:39-07:00',
-        'committed_date': '2012-06-28T03:44:20-07:00',
-        'committer_email': 'john@example.com',
-        'committer_name': 'John Smith',
-        'id': '7b5c3cc8be40ee161ae89a06bba6229da1032a0c',
-        'message': 'add projects API',
-        'parent_ids': [
-          '4ad91d3c1144c406e50c7b33bae684bd6837faf8',
-        ],
+      name: 'master',
+      protected: true,
+      developers_can_push: false,
+      developers_can_merge: false,
+      commit: {
+        author_email: 'john@example.com',
+        author_name: 'John Smith',
+        authored_date: '2012-06-27T05:51:39-07:00',
+        committed_date: '2012-06-28T03:44:20-07:00',
+        committer_email: 'john@example.com',
+        committer_name: 'John Smith',
+        id: '7b5c3cc8be40ee161ae89a06bba6229da1032a0c',
+        message: 'add projects API',
+        parent_ids: ['4ad91d3c1144c406e50c7b33bae684bd6837faf8'],
       },
     };
 
     it('should work correcly gitlab responds with a branch', async () => {
       // Arrange
-      const projectModule = genericArrangeProjectModule(200, gitlabResponse,
-        `/projects/${projectId}/repository/branches/${branchName}`);
+      const projectModule = genericArrangeProjectModule(
+        200,
+        gitlabResponse,
+        `/projects/${projectId}/repository/branches/${branchName}`,
+      );
 
       // Act
       const branch = await projectModule.getBranch(projectId, branchName);
@@ -187,14 +195,21 @@ describe('project-module', () => {
       expect(branch!.name).to.equal(branchName);
       expect(branch!.latestCommit).to.exist;
       expect(branch!.latestCommit.id).to.equal(gitlabResponse.commit.id);
-      expect(branch!.latestCommit.author.email).to.equal(gitlabResponse.commit.author_email);
-      expect(branch!.latestActivityTimestamp).to.equal(gitlabResponse.commit.committed_date);
+      expect(branch!.latestCommit.author.email).to.equal(
+        gitlabResponse.commit.author_email,
+      );
+      expect(branch!.latestActivityTimestamp).to.equal(
+        gitlabResponse.commit.committed_date,
+      );
     });
 
     it('should return null when gitlab responds 404', async () => {
       // Arrange
-      const projectModule = genericArrangeProjectModule(404, { },
-        `/projects/${projectId}/repository/branches/${branchName}`);
+      const projectModule = genericArrangeProjectModule(
+        404,
+        {},
+        `/projects/${projectId}/repository/branches/${branchName}`,
+      );
 
       // Act
       const branch = await projectModule.getBranch(projectId, branchName);
@@ -205,21 +220,26 @@ describe('project-module', () => {
 
     it('should throw if gitlab responds 500', async () => {
       // Arrange
-      const projectModule = genericArrangeProjectModule(500, { },
-        `/projects/${projectId}/repository/branches/${branchName}`);
+      const projectModule = genericArrangeProjectModule(
+        500,
+        {},
+        `/projects/${projectId}/repository/branches/${branchName}`,
+      );
 
       // Act & Assert
-      await expectServerError(async () => await projectModule.getBranch(projectId, branchName));
+      await expectServerError(
+        async () => await projectModule.getBranch(projectId, branchName),
+      );
     });
-
   });
 
   describe('getProject()', () => {
-
-    const contributors = [{
-      name: 'foo',
-      email: 'foo@foomail.com',
-    }];
+    const contributors = [
+      {
+        name: 'foo',
+        email: 'foo@foomail.com',
+      },
+    ];
 
     function arrangeProjectModule(status: number, body: any) {
       const gitlabClient = getClient();
@@ -230,11 +250,12 @@ describe('project-module', () => {
         gitlabClient,
         logger,
         '',
-        );
+      );
       fetchMock.restore();
-      fetchMock.mock(
-        `${host}${gitlabClient.apiPrefix}/projects/3`,
-        { status, body });
+      fetchMock.mock(`${host}${gitlabClient.apiPrefix}/projects/3`, {
+        status,
+        body,
+      });
       projectModule.getProjectContributors = async (projectId: number) => {
         expect(projectId).to.equal(3);
         return contributors;
@@ -247,13 +268,15 @@ describe('project-module', () => {
       const projectModule = arrangeProjectModule(200, gitlabProjectResponse);
 
       // Act
-      const project = await projectModule.getProject(3) as MinardProject;
+      const project = (await projectModule.getProject(3)) as MinardProject;
 
       // Assert
       expect(project.id).to.equal(3);
       expect(project.name).to.equal('Diaspora Project Site');
       expect(project.description).to.equal(gitlabProjectResponse.description);
-      expect(project.latestActivityTimestamp).to.equal(gitlabProjectResponse.last_activity_at);
+      expect(project.latestActivityTimestamp).to.equal(
+        gitlabProjectResponse.last_activity_at,
+      );
       expect(project.activeCommitters).to.exist;
       expect(project.activeCommitters).to.have.length(1);
       expect(project.activeCommitters[0].name).to.equal(contributors[0].name);
@@ -261,7 +284,7 @@ describe('project-module', () => {
 
     it('should return null if gitlab responds with not found', async () => {
       // Arrange
-      const projectModule = arrangeProjectModule(404, { msg: 'not found'});
+      const projectModule = arrangeProjectModule(404, { msg: 'not found' });
 
       // Act
       const project = await projectModule.getProject(3);
@@ -272,12 +295,11 @@ describe('project-module', () => {
 
     it('should throw if gitlab responds with error code 500', async () => {
       // Arrange
-      const projectModule = arrangeProjectModule(500, { msg: 'not found'});
+      const projectModule = arrangeProjectModule(500, { msg: 'not found' });
 
       // Act & Assert
       await expectServerError(async () => await projectModule.getProject(3));
     });
-
   });
 
   describe('getProjects()', () => {
@@ -285,14 +307,20 @@ describe('project-module', () => {
     const gitlabResponse = [gitlabProjectResponse];
     const path = `/groups/${teamId}/projects`;
 
-    const contributors = [{
-      name: 'foo',
-      email: 'foo@foomail.com',
-    }];
+    const contributors = [
+      {
+        name: 'foo',
+        email: 'foo@foomail.com',
+      },
+    ];
 
     it('should work when gitlab returns a valid project', async () => {
       // Arrange
-      const projectModule = genericArrangeProjectModule(200, gitlabResponse, path);
+      const projectModule = genericArrangeProjectModule(
+        200,
+        gitlabResponse,
+        path,
+      );
       projectModule.getProjectContributors = async (_projectId: number) => {
         expect(_projectId).to.equal(gitlabProjectResponse.id);
         return contributors;
@@ -307,34 +335,52 @@ describe('project-module', () => {
       expect(projects![0].name).to.equal('Diaspora Project Site');
       expect(projects![0].activeCommitters).to.exist;
       expect(projects![0].activeCommitters).to.have.length(1);
-      expect(projects![0].activeCommitters[0].name).to.equal(contributors[0].name);
+      expect(projects![0].activeCommitters[0].name).to.equal(
+        contributors[0].name,
+      );
     });
 
     it('should throw if cannot fetch contributors', async () => {
       // Arrange
-      const projectModule = genericArrangeProjectModule(200, gitlabResponse, path);
+      const projectModule = genericArrangeProjectModule(
+        200,
+        gitlabResponse,
+        path,
+      );
       projectModule.getProjectContributors = async (_projectId: number) => {
         expect(_projectId).to.equal(gitlabProjectResponse.id);
         throw badGateway();
       };
       // Act && Assert
-      await expectServerError(async () => await projectModule.getProjects(teamId));
+      await expectServerError(
+        async () => await projectModule.getProjects(teamId),
+      );
     });
 
     it('should throw if gitlab returns status 500', async () => {
       // Arrange
-      const projectModule = genericArrangeProjectModule(500, gitlabResponse, path);
+      const projectModule = genericArrangeProjectModule(
+        500,
+        gitlabResponse,
+        path,
+      );
       projectModule.getProjectContributors = async (_projectId: number) => {
         expect(_projectId).to.equal(gitlabProjectResponse.id);
         return contributors;
       };
       // Act && Assert
-      await expectServerError(async () => await projectModule.getProjects(teamId));
+      await expectServerError(
+        async () => await projectModule.getProjects(teamId),
+      );
     });
 
     it('should return null if gitlab returns status 404', async () => {
       // Arrange
-      const projectModule = genericArrangeProjectModule(404, gitlabResponse, path);
+      const projectModule = genericArrangeProjectModule(
+        404,
+        gitlabResponse,
+        path,
+      );
 
       // Act
       const projects = await projectModule.getProjects(teamId);
@@ -342,63 +388,67 @@ describe('project-module', () => {
       // Assert
       expect(projects).to.equal(null);
     });
-
   });
 
   describe('getProjectBranches()', () => {
-
     const projectId = 5;
-    const gitlabBranchesResponse = [{
-      'name': 'async',
-      'commit': {
-        'id': 'a2b702edecdf41f07b42653eb1abe30ce98b9fca',
-        'parents': [
-          {
-            'id': '3f94fc7c85061973edc9906ae170cc269b07ca55',
+    const gitlabBranchesResponse = [
+      {
+        name: 'async',
+        commit: {
+          id: 'a2b702edecdf41f07b42653eb1abe30ce98b9fca',
+          parents: [
+            {
+              id: '3f94fc7c85061973edc9906ae170cc269b07ca55',
+            },
+          ],
+          tree: 'c68537c6534a02cc2b176ca1549f4ffa190b58ee',
+          message: "give Caolan credit where it's due (up top)",
+          author: {
+            name: 'Jeremy Ashkenas',
+            email: 'jashkenas@example.com',
           },
-        ],
-        'tree': 'c68537c6534a02cc2b176ca1549f4ffa190b58ee',
-        'message': "give Caolan credit where it's due (up top)",
-        'author': {
-          'name': 'Jeremy Ashkenas',
-          'email': 'jashkenas@example.com',
-        },
-        'committer': {
-          'name': 'Jeremy Ashkenas',
-          'email': 'jashkenas@example.com',
-        },
-        'authored_date': '2010-12-08T21:28:50+00:00',
-        'committed_date': '2010-12-08T21:28:50+00:00',
-      },
-      'protected': false,
-    },
-    {
-      'name': 'gh-pages',
-      'commit': {
-        'id': '101c10a60019fe870d21868835f65c25d64968fc',
-        'parents': [
-          {
-            'id': '9c15d2e26945a665131af5d7b6d30a06ba338aaa',
+          committer: {
+            name: 'Jeremy Ashkenas',
+            email: 'jashkenas@example.com',
           },
-        ],
-        'tree': 'fb5cc9d45da3014b17a876ad539976a0fb9b352a',
-        'message': 'Underscore.js 1.5.2',
-        'author': {
-          'name': 'Jeremy Ashkenas',
-          'email': 'jashkenas@example.com',
+          authored_date: '2010-12-08T21:28:50+00:00',
+          committed_date: '2010-12-08T21:28:50+00:00',
         },
-        'committer': {
-          'name': 'Jeremy Ashkenas',
-          'email': 'jashkenas@example.com',
-        },
-        'authored_date': '2013-09-07T12:58:21+00:00',
-        'committed_date': '2013-09-07T12:58:21+00:00',
+        protected: false,
       },
-      'protected': false,
-    }];
+      {
+        name: 'gh-pages',
+        commit: {
+          id: '101c10a60019fe870d21868835f65c25d64968fc',
+          parents: [
+            {
+              id: '9c15d2e26945a665131af5d7b6d30a06ba338aaa',
+            },
+          ],
+          tree: 'fb5cc9d45da3014b17a876ad539976a0fb9b352a',
+          message: 'Underscore.js 1.5.2',
+          author: {
+            name: 'Jeremy Ashkenas',
+            email: 'jashkenas@example.com',
+          },
+          committer: {
+            name: 'Jeremy Ashkenas',
+            email: 'jashkenas@example.com',
+          },
+          authored_date: '2013-09-07T12:58:21+00:00',
+          committed_date: '2013-09-07T12:58:21+00:00',
+        },
+        protected: false,
+      },
+    ];
 
     function arrangeProjectModule(status: number, body: any) {
-      return genericArrangeProjectModule(status, body, `/projects/${projectId}/repository/branches`);
+      return genericArrangeProjectModule(
+        status,
+        body,
+        `/projects/${projectId}/repository/branches`,
+      );
     }
 
     it('should provide valid branches when gitlab responds with two branches', async () => {
@@ -428,38 +478,40 @@ describe('project-module', () => {
 
     it('should throw if gitlab responds with status 500', async () => {
       // Arrange
-      const projectModule = arrangeProjectModule(500, { msg: 'internal server error' });
+      const projectModule = arrangeProjectModule(500, {
+        msg: 'internal server error',
+      });
 
       // Act & Assert
-      await expectServerError(async () => projectModule.getProjectBranches(projectId));
+      await expectServerError(async () =>
+        projectModule.getProjectBranches(projectId),
+      );
     });
-
   });
 
   describe('fetchBranchCommits', () => {
-
     const projectId = 5;
     const branchName = 'foo';
     const gitlabResponse = [
       {
-        'id': 'ed899a2f4b50b4370feeea94676502b42383c746',
-        'short_id': 'ed899a2f4b5',
-        'title': 'Replace sanitize with escape once',
-        'author_name': 'Dmitriy Zaporozhets',
-        'author_email': 'dzaporozhets@sphereconsultinginc.com',
-        'created_at': '2012-09-20T11:50:22+03:00',
-        'message': 'Replace sanitize with escape once',
-        'allow_failure': false,
+        id: 'ed899a2f4b50b4370feeea94676502b42383c746',
+        short_id: 'ed899a2f4b5',
+        title: 'Replace sanitize with escape once',
+        author_name: 'Dmitriy Zaporozhets',
+        author_email: 'dzaporozhets@sphereconsultinginc.com',
+        created_at: '2012-09-20T11:50:22+03:00',
+        message: 'Replace sanitize with escape once',
+        allow_failure: false,
       },
       {
-        'id': '6104942438c14ec7bd21c6cd5bd995272b3faff6',
-        'short_id': '6104942438c',
-        'title': 'Sanitize for network graph',
-        'author_name': 'randx',
-        'author_email': 'dmitriy.zaporozhets@gmail.com',
-        'created_at': '2012-09-20T09:06:12+03:00',
-        'message': 'Sanitize for network graph',
-        'allow_failure': false,
+        id: '6104942438c14ec7bd21c6cd5bd995272b3faff6',
+        short_id: '6104942438c',
+        title: 'Sanitize for network graph',
+        author_name: 'randx',
+        author_email: 'dmitriy.zaporozhets@gmail.com',
+        created_at: '2012-09-20T09:06:12+03:00',
+        message: 'Sanitize for network graph',
+        allow_failure: false,
       },
     ];
 
@@ -472,8 +524,11 @@ describe('project-module', () => {
     };
 
     function arrangeProjectModule(status: number, _body: any) {
-      return genericArrangeProjectModule(status, gitlabResponse,
-        `/projects/${projectId}/repository/commits?${stringify(params)}`);
+      return genericArrangeProjectModule(
+        status,
+        gitlabResponse,
+        `/projects/${projectId}/repository/commits?${stringify(params)}`,
+      );
     }
 
     it('should work when gitlab responds with two commits', async () => {
@@ -481,7 +536,12 @@ describe('project-module', () => {
       const projectModule = arrangeProjectModule(200, gitlabResponse);
 
       // Act
-      const commits = await projectModule.fetchBranchCommits(projectId, branchName, until, count);
+      const commits = await projectModule.fetchBranchCommits(
+        projectId,
+        branchName,
+        until,
+        count,
+      );
 
       // Assert
       expect(commits).to.exist;
@@ -491,10 +551,15 @@ describe('project-module', () => {
 
     it('should return null if gitlab responds 404', async () => {
       // Arrange
-      const projectModule = arrangeProjectModule(404, { msg: 'not found'} );
+      const projectModule = arrangeProjectModule(404, { msg: 'not found' });
 
       // Act
-      const commits = await projectModule.fetchBranchCommits(projectId, branchName, until, count);
+      const commits = await projectModule.fetchBranchCommits(
+        projectId,
+        branchName,
+        until,
+        count,
+      );
 
       // Assert
       expect(commits).to.equal(null);
@@ -502,16 +567,22 @@ describe('project-module', () => {
 
     it('should throw if gitlab responds 500', async () => {
       // Arrange
-      const projectModule = arrangeProjectModule(500, { msg: 'not found'} );
+      const projectModule = arrangeProjectModule(500, { msg: 'not found' });
 
       // Act & Assert
-      await expectServerError(async () => await projectModule.fetchBranchCommits(projectId, branchName, until, count));
+      await expectServerError(
+        async () =>
+          await projectModule.fetchBranchCommits(
+            projectId,
+            branchName,
+            until,
+            count,
+          ),
+      );
     });
-
   });
 
   describe('getBranchCommits', () => {
-
     const projectId = 5;
     const branchName = 'foo';
     const count = 2;
@@ -526,12 +597,19 @@ describe('project-module', () => {
         {} as any,
         {} as any,
         '',
-        );
+      );
       let called = false;
 
       projectModule.fetchBranchCommits = async (
-        _projectId: number, _branchName: string, _until: moment.Moment, _count: number) => {
-        expect(called).to.equal(false, 'fetchBranchCommits should only be called once');
+        _projectId: number,
+        _branchName: string,
+        _until: moment.Moment,
+        _count: number,
+      ) => {
+        expect(called).to.equal(
+          false,
+          'fetchBranchCommits should only be called once',
+        );
         expect(_projectId).to.equal(projectId);
         expect(_branchName).to.equal(branchName);
         expect(_count).to.equal(count + extraCount);
@@ -560,7 +638,13 @@ describe('project-module', () => {
       const projectModule = arrangeProjectModule(fetchResult);
 
       // Act
-      const commits = await projectModule.getBranchCommits(projectId, branchName, until, count, extraCount);
+      const commits = await projectModule.getBranchCommits(
+        projectId,
+        branchName,
+        until,
+        count,
+        extraCount,
+      );
 
       expect(commits).to.exist;
       expect(commits).to.have.length(3);
@@ -568,23 +652,29 @@ describe('project-module', () => {
 
     it('should work when fetch returns two commits with a matching timestamp and 2 others', async () => {
       const fetchResult = [
-          {
-            created_at: until,
-          },
-          {
-            created_at: until,
-          },
-          {
-            created_at: moment().add(1, 'days'),
-          },
-          {
-            created_at: moment().add(2, 'days'),
-          },
-        ];
+        {
+          created_at: until,
+        },
+        {
+          created_at: until,
+        },
+        {
+          created_at: moment().add(1, 'days'),
+        },
+        {
+          created_at: moment().add(2, 'days'),
+        },
+      ];
       const projectModule = arrangeProjectModule(fetchResult);
 
       // Act
-      const commits = await projectModule.getBranchCommits(projectId, branchName, until, count, extraCount);
+      const commits = await projectModule.getBranchCommits(
+        projectId,
+        branchName,
+        until,
+        count,
+        extraCount,
+      );
 
       expect(commits).to.exist;
       expect(commits).to.have.length(4);
@@ -592,20 +682,26 @@ describe('project-module', () => {
 
     it('should work when fetch returns only one extra commit', async () => {
       const fetchResult = [
-          {
-            created_at: until,
-          },
-          {
-            created_at: until,
-          },
-          {
-            created_at: moment().add(1, 'days'),
-          },
-        ];
+        {
+          created_at: until,
+        },
+        {
+          created_at: until,
+        },
+        {
+          created_at: moment().add(1, 'days'),
+        },
+      ];
       const projectModule = arrangeProjectModule(fetchResult);
 
       // Act
-      const commits = await projectModule.getBranchCommits(projectId, branchName, until, count, extraCount);
+      const commits = await projectModule.getBranchCommits(
+        projectId,
+        branchName,
+        until,
+        count,
+        extraCount,
+      );
 
       expect(commits).to.exist;
       expect(commits).to.have.length(3);
@@ -613,42 +709,42 @@ describe('project-module', () => {
 
     it('should work when first fetch has three commit with timestamp matching until and one extra', async () => {
       const fetchResult1 = ([
-          {
-            created_at: until,
-          },
-          {
-            created_at: until,
-          },
-          {
-            created_at: until,
-          },
-          {
-            created_at: moment().add(1, 'days'),
-          },
-        ] as any ) as Commit[];
+        {
+          created_at: until,
+        },
+        {
+          created_at: until,
+        },
+        {
+          created_at: until,
+        },
+        {
+          created_at: moment().add(1, 'days'),
+        },
+      ] as any) as Commit[];
       const fetchResult2 = ([
-          {
-            created_at: until,
-          },
-          {
-            created_at: until,
-          },
-          {
-            created_at: until,
-          },
-          {
-            created_at: moment().add(1, 'days'),
-          },
-          {
-            created_at: moment().add(2, 'days'),
-          },
-          {
-            created_at: moment().add(3, 'days'),
-          },
-          {
-            created_at: moment().add(4, 'days'),
-          },
-        ] as any) as Commit[];
+        {
+          created_at: until,
+        },
+        {
+          created_at: until,
+        },
+        {
+          created_at: until,
+        },
+        {
+          created_at: moment().add(1, 'days'),
+        },
+        {
+          created_at: moment().add(2, 'days'),
+        },
+        {
+          created_at: moment().add(3, 'days'),
+        },
+        {
+          created_at: moment().add(4, 'days'),
+        },
+      ] as any) as Commit[];
       const projectModule = new ProjectModule(
         {} as any,
         {} as any,
@@ -656,9 +752,13 @@ describe('project-module', () => {
         {} as any,
         {} as any,
         '',
-        );
+      );
       projectModule.fetchBranchCommits = async (
-        _projectId: number, _branchName: string, _until: moment.Moment, _count: number) => {
+        _projectId: number,
+        _branchName: string,
+        _until: moment.Moment,
+        _count: number,
+      ) => {
         expect(_projectId).to.equal(projectId);
         expect(_branchName).to.equal(branchName);
         if (_count === count + extraCount) {
@@ -667,46 +767,53 @@ describe('project-module', () => {
         if (_count === count + extraCount + 100) {
           return fetchResult2;
         }
-        throw Error(`Unexpected _count in call to fetchBranchCommits: ${_count}`);
+        throw Error(
+          `Unexpected _count in call to fetchBranchCommits: ${_count}`,
+        );
       };
 
       // Act
-      const commits = await projectModule.getBranchCommits(projectId, branchName, until, count, extraCount);
+      const commits = await projectModule.getBranchCommits(
+        projectId,
+        branchName,
+        until,
+        count,
+        extraCount,
+      );
 
       expect(commits).to.exist;
       expect(commits).to.have.length(5);
     });
-
   });
 
   describe('getCommit()', () => {
-
     const gitlabCommitResponse = {
-      'id': '6104942438c14ec7bd21c6cd5bd995272b3faff6',
-      'short_id': '6104942438c',
-      'title': 'Sanitize for network graph',
-      'author_name': 'randx',
-      'author_email': 'dmitriy.zaporozhets@gmail.com',
-      'created_at': '2012-09-20T09:06:12+03:00',
-      'message': 'Sanitize for network graph',
-      'committed_date': '2012-09-20T09:08:12+03:00',
-      'authored_date': '2012-09-20T09:06:12+03:00',
-      'committer_name': 'fooman',
-      'committer_email': 'fooman@gmail.com',
-      'parent_ids': [
-        'ae1d9fb46aa2b07ee9836d49862ec4e2c46fbbba',
-      ],
-      'stats': {
-        'additions': 15,
-        'deletions': 10,
-        'total': 25,
+      id: '6104942438c14ec7bd21c6cd5bd995272b3faff6',
+      short_id: '6104942438c',
+      title: 'Sanitize for network graph',
+      author_name: 'randx',
+      author_email: 'dmitriy.zaporozhets@gmail.com',
+      created_at: '2012-09-20T09:06:12+03:00',
+      message: 'Sanitize for network graph',
+      committed_date: '2012-09-20T09:08:12+03:00',
+      authored_date: '2012-09-20T09:06:12+03:00',
+      committer_name: 'fooman',
+      committer_email: 'fooman@gmail.com',
+      parent_ids: ['ae1d9fb46aa2b07ee9836d49862ec4e2c46fbbba'],
+      stats: {
+        additions: 15,
+        deletions: 10,
+        total: 25,
       },
-      'status': 'running',
+      status: 'running',
     };
 
     function arrangeProjectModule(status: number, body: any) {
-      return genericArrangeProjectModule(status, body,
-        `/projects/3/repository/commits/6104942438c14ec7bd21c6cd5bd995272b3faff6`);
+      return genericArrangeProjectModule(
+        status,
+        body,
+        `/projects/3/repository/commits/6104942438c14ec7bd21c6cd5bd995272b3faff6`,
+      );
     }
 
     it('should return valid commit when receiving valid response from GitLab', async () => {
@@ -714,7 +821,10 @@ describe('project-module', () => {
       const projectModule = arrangeProjectModule(200, gitlabCommitResponse);
 
       // Act
-      const commit = await projectModule.getCommit(3, '6104942438c14ec7bd21c6cd5bd995272b3faff6') as MinardCommit;
+      const commit = (await projectModule.getCommit(
+        3,
+        '6104942438c14ec7bd21c6cd5bd995272b3faff6',
+      )) as MinardCommit;
 
       // Assert
       expect(commit).to.exist;
@@ -730,10 +840,13 @@ describe('project-module', () => {
 
     it('should return null when gitlab responds 404', async () => {
       // Arrange
-      const projectModule = arrangeProjectModule(404, { });
+      const projectModule = arrangeProjectModule(404, {});
 
       // Act
-      const commit = await projectModule.getCommit(3, '6104942438c14ec7bd21c6cd5bd995272b3faff6') as MinardCommit;
+      const commit = (await projectModule.getCommit(
+        3,
+        '6104942438c14ec7bd21c6cd5bd995272b3faff6',
+      )) as MinardCommit;
 
       // Assert
       expect(commit).to.equal(null);
@@ -741,32 +854,36 @@ describe('project-module', () => {
 
     it('should throw when gitlab responds 500', async () => {
       // Arrange
-      const projectModule = arrangeProjectModule(500, { });
+      const projectModule = arrangeProjectModule(500, {});
 
       // Act && Assert
-      await expectServerError(async () => await projectModule.getCommit(3, '6104942438c14ec7bd21c6cd5bd995272b3faff6'));
+      await expectServerError(
+        async () =>
+          await projectModule.getCommit(
+            3,
+            '6104942438c14ec7bd21c6cd5bd995272b3faff6',
+          ),
+      );
     });
-
   });
 
   describe('getProjectContributors()', () => {
-
     const projectId = 5;
 
     const gitlabResponse = [
       {
-        'name': 'Dmitriy Zaporozhets',
-        'email': 'dmitriy.zaporozhets@gmail.com',
-        'commits': 117,
-        'additions': 2097,
-        'deletions': 517,
+        name: 'Dmitriy Zaporozhets',
+        email: 'dmitriy.zaporozhets@gmail.com',
+        commits: 117,
+        additions: 2097,
+        deletions: 517,
       },
       {
-        'name': 'Jacob Vosmaer',
-        'email': 'contact@jacobvosmaer.nl',
-        'commits': 33,
-        'additions': 338,
-        'deletions': 244,
+        name: 'Jacob Vosmaer',
+        email: 'contact@jacobvosmaer.nl',
+        commits: 33,
+        additions: 338,
+        deletions: 244,
       },
     ];
 
@@ -779,10 +896,13 @@ describe('project-module', () => {
         gitlabClient,
         logger,
         '',
+      );
+      fetchMock
+        .restore()
+        .mock(
+          `${host}${gitlabClient.apiPrefix}/projects/${projectId}/repository/contributors`,
+          { status, body },
         );
-      fetchMock.restore().mock(
-        `${host}${gitlabClient.apiPrefix}/projects/${projectId}/repository/contributors`,
-        { status, body });
       return projectModule;
     }
 
@@ -811,17 +931,24 @@ describe('project-module', () => {
       expect(committers).to.have.length(0);
     });
 
-    it('should throw when gitlab returns 500', async() => {
+    it('should throw when gitlab returns 500', async () => {
       // Arrange
       const projectModule = arrangeProjectModule(500, gitlabResponse);
 
       // Act & Assert
-      await expectServerError(async () => await projectModule.getProjectContributors(projectId));
+      await expectServerError(
+        async () => await projectModule.getProjectContributors(projectId),
+      );
     });
-
   });
 
-  function prepareProjectModule(status: number, body: any, url: string, method: string, eventBus?: EventBus) {
+  function prepareProjectModule(
+    status: number,
+    body: any,
+    url: string,
+    method: string,
+    eventBus?: EventBus,
+  ) {
     const bus = eventBus || new LocalEventBus();
     const client = getClient();
     const projectModule = new ProjectModule(
@@ -863,8 +990,12 @@ describe('project-module', () => {
         {} as any,
         {} as any,
         {} as any,
-        false);
-      const authenticationModule = new AuthenticationModule({} as any, rootPassword);
+        false,
+      );
+      const authenticationModule = new AuthenticationModule(
+        {} as any,
+        rootPassword,
+      );
       const projectModule = new ProjectModule(
         authenticationModule,
         {} as any,
@@ -875,11 +1006,17 @@ describe('project-module', () => {
       );
       projectModule.failSleepTime = 0;
       projectModule.createGitlabProject = async (
-        _teamId: number, _path: string, _description: string, _importUrl: string) => {
+        _teamId: number,
+        _path: string,
+        _description: string,
+        _importUrl: string,
+      ) => {
         expect(_teamId).to.equal(teamId);
         expect(_path).to.equal(_path);
         expect(_description).to.equal(description);
-        expect(_importUrl).to.equal('http://root:foo-password@localhost/foo-namespace/bar-project-name.git');
+        expect(_importUrl).to.equal(
+          'http://root:foo-password@localhost/foo-namespace/bar-project-name.git',
+        );
         return {
           id: projectId,
         } as Project;
@@ -918,14 +1055,19 @@ describe('project-module', () => {
         throw Error('callCount should not go over 2');
       };
 
-      const promise = bus.filterEvents<ProjectCreatedEvent>(PROJECT_CREATED_EVENT_TYPE)
+      const promise = bus
+        .filterEvents<ProjectCreatedEvent>(PROJECT_CREATED_EVENT_TYPE)
         .map(event => event.payload)
         .take(1)
         .toPromise();
 
       // Act
       const createdProjectId = await projectModule.doCreateProjectFromTemplate(
-        templateProjectId, teamId, projectName, description);
+        templateProjectId,
+        teamId,
+        projectName,
+        description,
+      );
 
       // Assert
       const payload = await promise;
@@ -958,9 +1100,14 @@ describe('project-module', () => {
 
       // Act
       let error: BoomError | undefined;
-      await projectModule.doCreateProjectFromTemplate(
-        templateProjectId, teamId, projectName, description)
-        .catch((err) => error = err as BoomError);
+      await projectModule
+        .doCreateProjectFromTemplate(
+          templateProjectId,
+          teamId,
+          projectName,
+          description,
+        )
+        .catch(err => (error = err as BoomError));
 
       // Assert
       expect(error).to.exist;
@@ -983,15 +1130,22 @@ describe('project-module', () => {
 
       // Act
       let error: BoomError | undefined;
-      await projectModule.doCreateProjectFromTemplate(
-        templateProjectId, teamId, projectName, description)
-        .catch((err) => error = err as BoomError);
+      await projectModule
+        .doCreateProjectFromTemplate(
+          templateProjectId,
+          teamId,
+          projectName,
+          description,
+        )
+        .catch(err => (error = err as BoomError));
 
       // Assert
       expect(error).to.exist;
       expect(error!.isBoom).to.equal(true);
       expect(error!.output.statusCode).to.equal(MINARD_ERROR_CODE.BAD_REQUEST);
-      expect(error!.message).to.equal('Cannot use an empty project as template');
+      expect(error!.message).to.equal(
+        'Cannot use an empty project as template',
+      );
     });
   });
 
@@ -1002,7 +1156,11 @@ describe('project-module', () => {
     const path = name;
     const description = 'my foo project';
 
-    function arrangeProjectModule(status: number, body: any, eventBus?: EventBus) {
+    function arrangeProjectModule(
+      status: number,
+      body: any,
+      eventBus?: EventBus,
+    ) {
       const params = {
         name,
         path: name,
@@ -1017,14 +1175,21 @@ describe('project-module', () => {
     it('should work when gitlab project creation is successful', async () => {
       // Arrange
       const bus = new LocalEventBus();
-      const promise = bus.filterEvents<ProjectCreatedEvent>(PROJECT_CREATED_EVENT_TYPE)
+      const promise = bus
+        .filterEvents<ProjectCreatedEvent>(PROJECT_CREATED_EVENT_TYPE)
         .map(event => event.payload)
         .take(1)
         .toPromise();
-      const projectModule = arrangeProjectModule(201, { id: projectId, path }, bus);
+      const projectModule = arrangeProjectModule(
+        201,
+        { id: projectId, path },
+        bus,
+      );
 
       const projectHookPromise = new Promise((resolve, _reject) => {
-        projectModule.assureProjectHookRegistered = async (_projectId: number) => {
+        projectModule.assureProjectHookRegistered = async (
+          _projectId: number,
+        ) => {
           resolve(_projectId);
         };
       });
@@ -1047,20 +1212,19 @@ describe('project-module', () => {
       const projectModule = arrangeProjectModule(200, { id: projectId, path });
 
       // Act & Assert
-      await expectServerError(async () => await projectModule.doCreateProject(teamId, name, description));
+      await expectServerError(
+        async () =>
+          await projectModule.doCreateProject(teamId, name, description),
+      );
     });
 
     it('should throw correct error when project name already exists', async () => {
       // Arrange
       const response = {
-        'message': {
-          'name': [
-            'has already been taken',
-          ],
-          'path': [
-            'has already been taken',
-          ],
-          'limit_reached': [],
+        message: {
+          name: ['has already been taken'],
+          path: ['has already been taken'],
+          limit_reached: [],
         },
       };
       const projectModule = arrangeProjectModule(400, response);
@@ -1081,22 +1245,35 @@ describe('project-module', () => {
       const projectModule = arrangeProjectModule(201, { foo: 'bar', path });
 
       // Act & Assert
-      await expectServerError(async () => await projectModule.doCreateProject(teamId, name, description));
+      await expectServerError(
+        async () =>
+          await projectModule.doCreateProject(teamId, name, description),
+      );
     });
 
     it('should throw if gitlab response has invalid project path', async () => {
       // Arrange
-      const projectModule = arrangeProjectModule(201, { foo: 'bar', path: 'foo' });
+      const projectModule = arrangeProjectModule(201, {
+        foo: 'bar',
+        path: 'foo',
+      });
 
       // Act & Assert
-      await expectServerError(async () => await projectModule.doCreateProject(teamId, name, description));
+      await expectServerError(
+        async () =>
+          await projectModule.doCreateProject(teamId, name, description),
+      );
     });
   });
 
   describe('deleteProject()', () => {
     const projectId = 10;
     const teamId = 5;
-    function arrangeProjectModule(status: number, body: any, eventBus?: EventBus) {
+    function arrangeProjectModule(
+      status: number,
+      body: any,
+      eventBus?: EventBus,
+    ) {
       const bus = eventBus || new LocalEventBus();
       const client = getClient();
       const projectModule = new ProjectModule(
@@ -1130,7 +1307,8 @@ describe('project-module', () => {
     it('should create deleted event when gitlab project deletion is successful', async () => {
       // Arrange
       const bus = new LocalEventBus();
-      const promise = bus.filterEvents<ProjectDeletedEvent>(PROJECT_DELETED_EVENT_TYPE)
+      const promise = bus
+        .filterEvents<ProjectDeletedEvent>(PROJECT_DELETED_EVENT_TYPE)
         .take(1)
         .toPromise();
       const projectModule = arrangeProjectModule(200, 'true', bus);
@@ -1146,7 +1324,7 @@ describe('project-module', () => {
 
     it('should throw when gitlab responds with invalid status code', async () => {
       const projectModule = arrangeProjectModule(201, 'true');
-     // Act & Assert
+      // Act & Assert
       try {
         await projectModule.deleteProject(projectId);
         expect.fail('should throw');
@@ -1158,7 +1336,7 @@ describe('project-module', () => {
 
     it('should throw when gitlab responds with invalid response body', async () => {
       const projectModule = arrangeProjectModule(200, 'foo');
-     // Act & Assert
+      // Act & Assert
       try {
         await projectModule.deleteProject(projectId);
         expect.fail('should throw');
@@ -1169,11 +1347,9 @@ describe('project-module', () => {
     });
 
     it('should throw 404 when gitlab responds that project was not found', async () => {
-      const projectModule = arrangeProjectModule(404,
-        {
-          message: '404 Project Not Found',
-        },
-      );
+      const projectModule = arrangeProjectModule(404, {
+        message: '404 Project Not Found',
+      });
       // Act & Assert
       try {
         await projectModule.deleteProject(projectId);
@@ -1184,11 +1360,9 @@ describe('project-module', () => {
         expect((err as BoomError).output.statusCode).to.equal(404);
       }
     });
-
   });
 
   describe('editProject()', () => {
-
     const teamId = 5;
     const projectId = 10;
     const name = 'foo-project';
@@ -1201,16 +1375,20 @@ describe('project-module', () => {
       status: number,
       params: any,
       eventBus?: EventBus,
-      body?: any) {
+      body?: any,
+    ) {
       const url = `/projects/${projectId}?${stringify(params)}`;
       return prepareProjectModule(status, body, url, 'PUT', eventBus);
     }
 
     async function shouldSucceed(
-      attributes: { name?: string, description?: string },
-      resultingName: string, resultingDescription: string) {
+      attributes: { name?: string; description?: string },
+      resultingName: string,
+      resultingDescription: string,
+    ) {
       const bus = new LocalEventBus();
-      const promise = bus.filterEvents<ProjectEditedEvent>(PROJECT_EDITED_EVENT_TYPE)
+      const promise = bus
+        .filterEvents<ProjectEditedEvent>(PROJECT_EDITED_EVENT_TYPE)
         .map(event => event.payload)
         .take(1)
         .toPromise();
@@ -1224,7 +1402,7 @@ describe('project-module', () => {
         name: resultingName,
         path: resultingName,
         description: resultingDescription,
-        'namespace': {
+        namespace: {
           id: teamId,
           path: 'foo-path',
         },
@@ -1241,7 +1419,9 @@ describe('project-module', () => {
       expect(payload.id).to.equal(projectId);
       expect(payload.name).to.equal(resultingName);
       expect(payload.teamId).to.equal(teamId);
-      expect(payload.repoUrl).to.equal(`${gitBaseUrl}/foo-path/${resultingName}.git`);
+      expect(payload.repoUrl).to.equal(
+        `${gitBaseUrl}/foo-path/${resultingName}.git`,
+      );
     }
 
     it('should work when editing all editable fields', async () => {
@@ -1259,18 +1439,19 @@ describe('project-module', () => {
     it('should throw correct error when project name already exists', async () => {
       // Arrange
       const response = {
-        'message': {
-          'name': [
-            'has already been taken',
-          ],
-          'path': [
-            'has already been taken',
-          ],
-          'limit_reached': [],
+        message: {
+          name: ['has already been taken'],
+          path: ['has already been taken'],
+          limit_reached: [],
         },
       };
       const params = { name, path, description };
-      const projectModule = arrangeProjectModule(400, params, undefined, response);
+      const projectModule = arrangeProjectModule(
+        400,
+        params,
+        undefined,
+        response,
+      );
       // Act & Assert
       try {
         await projectModule.editProject(projectId, { name, description });
@@ -1282,7 +1463,10 @@ describe('project-module', () => {
       }
     });
 
-    async function shouldThrowIfInvalid(status: number, invalidFieldName?: string) {
+    async function shouldThrowIfInvalid(
+      status: number,
+      invalidFieldName?: string,
+    ) {
       const bus = new LocalEventBus();
       // Arrange
       const response = {
@@ -1322,11 +1506,14 @@ describe('project-module', () => {
     it('should throw if gitlab response has invalid project path', async () => {
       await shouldThrowIfInvalid(200, 'path');
     });
-
   });
 
   function arrangeProjectModuleForProjectHookTest(
-    status: number, body: any, path: string, options?: any) {
+    status: number,
+    body: any,
+    path: string,
+    options?: any,
+  ) {
     const gitlabClient = getClient();
     const systemHookModule = {} as SystemHookModule;
     systemHookModule.getUrl = (_path: string) => `http://foo-bar.com${_path}`;
@@ -1353,17 +1540,17 @@ describe('project-module', () => {
   describe('registerProjectHook', () => {
     const projectId = 5;
     const gitlabResponse = {
-      'id': 41,
-      'url': 'http://foo-bar.com/project/project-hook',
-      'created_at': '2016-09-13T17:38:15.494+05:30',
-      'project_id': projectId,
-      'push_events': true,
-      'issues_events': false,
-      'merge_requests_events': false,
-      'tag_push_events': false,
-      'note_events': false,
-      'build_events': true,
-      'enable_ssl_verification': true,
+      id: 41,
+      url: 'http://foo-bar.com/project/project-hook',
+      created_at: '2016-09-13T17:38:15.494+05:30',
+      project_id: projectId,
+      push_events: true,
+      issues_events: false,
+      merge_requests_events: false,
+      tag_push_events: false,
+      note_events: false,
+      build_events: true,
+      enable_ssl_verification: true,
     };
 
     function arrangeProjectModule(status: number) {
@@ -1372,7 +1559,12 @@ describe('project-module', () => {
         push_events: true,
       };
       const path = `/projects/${projectId}/hooks?${stringify(params)}`;
-      return arrangeProjectModuleForProjectHookTest(status, gitlabResponse, path, { method: 'POST' });
+      return arrangeProjectModuleForProjectHookTest(
+        status,
+        gitlabResponse,
+        path,
+        { method: 'POST' },
+      );
     }
 
     it('should succeed', async () => {
@@ -1391,10 +1583,11 @@ describe('project-module', () => {
       const projectModule = arrangeProjectModule(404);
       await projectModule.registerProjectHook(projectId).then(
         () => expect.fail('should throw'),
-        (err) => {
+        err => {
           expect((err as BoomError).isBoom).to.equal(true);
           expect((err as BoomError).isServer).to.equal(false);
-        });
+        },
+      );
     });
 
     it('should throw if gitlab responds 500', async () => {
@@ -1402,10 +1595,11 @@ describe('project-module', () => {
       const projectModule = arrangeProjectModule(500);
       await projectModule.registerProjectHook(projectId).then(
         () => expect.fail('should throw'),
-        (err) => {
+        err => {
           expect((err as BoomError).isBoom).to.equal(true);
           expect((err as BoomError).isServer).to.equal(true);
-        });
+        },
+      );
     });
   });
 
@@ -1413,30 +1607,30 @@ describe('project-module', () => {
     const projectId = 5;
     const gitlabResponse = [
       {
-        'id': 41,
-        'url': 'http://foobar.com',
-        'created_at': '2016-09-13T17:38:15.494+05:30',
-        'project_id': 2,
-        'push_events': true,
-        'issues_events': false,
-        'merge_requests_events': false,
-        'tag_push_events': false,
-        'note_events': false,
-        'build_events': true,
-        'enable_ssl_verification': true,
+        id: 41,
+        url: 'http://foobar.com',
+        created_at: '2016-09-13T17:38:15.494+05:30',
+        project_id: 2,
+        push_events: true,
+        issues_events: false,
+        merge_requests_events: false,
+        tag_push_events: false,
+        note_events: false,
+        build_events: true,
+        enable_ssl_verification: true,
       },
       {
-        'id': 40,
-        'url': 'http://foobar.com',
-        'created_at': '2016-09-13T17:26:42.043+05:30',
-        'project_id': 2,
-        'push_events': true,
-        'issues_events': false,
-        'merge_requests_events': false,
-        'tag_push_events': false,
-        'note_events': false,
-        'build_events': true,
-        'enable_ssl_verification': true,
+        id: 40,
+        url: 'http://foobar.com',
+        created_at: '2016-09-13T17:26:42.043+05:30',
+        project_id: 2,
+        push_events: true,
+        issues_events: false,
+        merge_requests_events: false,
+        tag_push_events: false,
+        note_events: false,
+        build_events: true,
+        enable_ssl_verification: true,
       },
     ];
 
@@ -1465,10 +1659,11 @@ describe('project-module', () => {
       // Act & Assert
       await projectModule.fetchProjectHooks(projectId).then(
         () => expect.fail('should throw'),
-        (err) => {
+        err => {
           expect((err as BoomError).isBoom).to.equal(true);
           expect((err as BoomError).isServer).to.equal(true);
-        });
+        },
+      );
     });
 
     it('should throw if gitlab responds 404', async () => {
@@ -1478,10 +1673,11 @@ describe('project-module', () => {
       // Act & Assert
       await projectModule.fetchProjectHooks(projectId).then(
         () => expect.fail('should throw'),
-        (err) => {
+        err => {
           expect((err as BoomError).isBoom).to.equal(true);
           expect((err as BoomError).isServer).to.equal(false);
-        });
+        },
+      );
     });
 
     it('should throw if gitlab responds 500', async () => {
@@ -1491,36 +1687,40 @@ describe('project-module', () => {
       // Act & Assert
       await projectModule.fetchProjectHooks(projectId).then(
         () => expect.fail('should throw'),
-        (err) => {
+        err => {
           expect((err as BoomError).isBoom).to.equal(true);
           expect((err as BoomError).isServer).to.equal(true);
-        });
+        },
+      );
     });
-
   });
 
   describe('assureProjectHookRegistered', () => {
     const projectId = 5;
-    const gitlabResponse = [{
-      'id': 41,
-      'url': 'http://foo-bar.com/project/project-hook',
-      'created_at': '2016-09-13T17:38:15.494+05:30',
-      'project_id': projectId,
-      'push_events': true,
-      'issues_events': false,
-      'merge_requests_events': false,
-      'tag_push_events': false,
-      'note_events': false,
-      'build_events': true,
-      'enable_ssl_verification': true,
-    }];
+    const gitlabResponse = [
+      {
+        id: 41,
+        url: 'http://foo-bar.com/project/project-hook',
+        created_at: '2016-09-13T17:38:15.494+05:30',
+        project_id: projectId,
+        push_events: true,
+        issues_events: false,
+        merge_requests_events: false,
+        tag_push_events: false,
+        note_events: false,
+        build_events: true,
+        enable_ssl_verification: true,
+      },
+    ];
 
-    it(
-      'should not register project hook if one does already exists for this project and correct url',
-      async () => {
+    it('should not register project hook if one does already exists for this project and correct url', async () => {
       // Arrange
       const path = `/projects/${projectId}/hooks`;
-      const projectModule = arrangeProjectModuleForProjectHookTest(200, gitlabResponse, path);
+      const projectModule = arrangeProjectModuleForProjectHookTest(
+        200,
+        gitlabResponse,
+        path,
+      );
 
       // Act & Assert
       let called = false;
@@ -1535,7 +1735,11 @@ describe('project-module', () => {
       // Arrange
       const path = `/projects/${projectId}/hooks`;
       const body = gitlabResponse.map(item => ({ ...item, url: 'foo' }));
-      const projectModule = arrangeProjectModuleForProjectHookTest(200, body, path);
+      const projectModule = arrangeProjectModuleForProjectHookTest(
+        200,
+        body,
+        path,
+      );
 
       // Act & Assert
       const promise = new Promise((resolve, _reject) => {
@@ -1601,22 +1805,21 @@ describe('project-module', () => {
   });
 
   describe('receiveProjectHook', () => {
-
     const gitlabPayload = {
-      'object_kind': 'push',
-      'before': 'before-commit-hash',
-      'after': 'after-commit-hash',
-      'ref': 'refs/heads/master',
-      'project_id': 15,
-      'commits': [
+      object_kind: 'push',
+      before: 'before-commit-hash',
+      after: 'after-commit-hash',
+      ref: 'refs/heads/master',
+      project_id: 15,
+      commits: [
         {
-          'id': 'first-commit-hash',
+          id: 'first-commit-hash',
         },
         {
-          'id': 'second-commit-hash',
+          id: 'second-commit-hash',
         },
         {
-          'id': 'null-commit-hash',
+          id: 'null-commit-hash',
         },
       ],
     } as GitlabPushEvent;
@@ -1643,7 +1846,11 @@ describe('project-module', () => {
         if (sha === 'first-commit-hash') {
           return {
             id: sha,
-            parentIds: ['first-parent-hash', 'second-parent-hash', 'null-commit-hash'],
+            parentIds: [
+              'first-parent-hash',
+              'second-parent-hash',
+              'null-commit-hash',
+            ],
           } as MinardCommit;
         }
         return {
@@ -1658,7 +1865,8 @@ describe('project-module', () => {
         } as MinardProject;
       };
 
-      const promise = bus.filterEvents<CodePushedEvent>(CODE_PUSHED_EVENT_TYPE)
+      const promise = bus
+        .filterEvents<CodePushedEvent>(CODE_PUSHED_EVENT_TYPE)
         .map(event => event.payload)
         .take(1)
         .toPromise();
@@ -1680,7 +1888,5 @@ describe('project-module', () => {
       expect(event.parents![0]!.id).to.equal('first-parent-hash');
       expect(event.parents![1]!.id).to.equal('second-parent-hash');
     });
-
   });
-
 });

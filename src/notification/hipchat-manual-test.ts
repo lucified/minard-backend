@@ -10,8 +10,12 @@ import { HipchatNotify } from './hipchat-notify';
 
 const hipchatNotify = new HipchatNotify(fetch);
 
-const hipchatRoomId = process.env.HIPCHAT_ROOM_ID ? process.env.HIPCHAT_ROOM_ID : 3140019;
-const hipchatAuthToken = process.env.HIPCHAT_AUTH_TOKEN ? process.env.HIPCHAT_AUTH_TOKEN : undefined;
+const hipchatRoomId = process.env.HIPCHAT_ROOM_ID
+  ? process.env.HIPCHAT_ROOM_ID
+  : 3140019;
+const hipchatAuthToken = process.env.HIPCHAT_AUTH_TOKEN
+  ? process.env.HIPCHAT_AUTH_TOKEN
+  : undefined;
 
 const projectUrl = 'http://www.foo.com';
 const branchUrl = 'http://www.bar.com';
@@ -43,24 +47,26 @@ const comment = {
 };
 
 async function test() {
- await hipchatNotify.notify(
-   deployment,
-   hipchatRoomId,
-   hipchatAuthToken,
-   projectUrl,
-   branchUrl,
-   previewUrl,
-   undefined,
-   undefined);
- await hipchatNotify.notify(
-   deployment,
-   hipchatRoomId,
-   hipchatAuthToken,
-   projectUrl,
-   branchUrl,
-   previewUrl,
-   commentUrl,
-   comment);
+  await hipchatNotify.notify(
+    deployment,
+    hipchatRoomId,
+    hipchatAuthToken,
+    projectUrl,
+    branchUrl,
+    previewUrl,
+    undefined,
+    undefined,
+  );
+  await hipchatNotify.notify(
+    deployment,
+    hipchatRoomId,
+    hipchatAuthToken,
+    projectUrl,
+    branchUrl,
+    previewUrl,
+    commentUrl,
+    comment,
+  );
 }
 
 test().catch(err => console.log(err));

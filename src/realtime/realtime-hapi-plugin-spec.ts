@@ -5,19 +5,14 @@ import { createClient } from 'redis';
 import 'reflect-metadata';
 import { promisify } from 'util';
 
-import {
-  CommentModule,
-} from '../comment';
+import { CommentModule } from '../comment';
 import {
   CommentAddedEvent,
   CommentDeletedEvent,
   createCommentAddedEvent,
   createCommentDeletedEvent,
 } from '../comment';
-import {
-  createDeploymentEvent,
-  DeploymentEvent,
-} from '../deployment';
+import { createDeploymentEvent, DeploymentEvent } from '../deployment';
 import { PersistentEventBus } from '../event-bus';
 import {
   ApiBranch,
@@ -47,13 +42,20 @@ import {
 } from './types';
 
 function getModule(bus: PersistentEventBus, jsonApiModule: JsonApiModule) {
-  const jsonApi = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any, {} as any);
+  const jsonApi = new JsonApiHapiPlugin(
+    jsonApiModule,
+    baseUrl,
+    {} as any,
+    {} as any,
+  );
   return new RealtimeModule(jsonApi, bus, logger(undefined, true));
 }
 
 function getMockCommentModule() {
   const commentModule = {} as CommentModule;
-  commentModule.getCommentCountForDeployment = async (_deploymentId: number) => {
+  commentModule.getCommentCountForDeployment = async (
+    _deploymentId: number,
+  ) => {
     return 2;
   };
   return commentModule;
@@ -93,7 +95,6 @@ async function clearDb() {
 const baseUrl = 'http://localhost:8000';
 
 describe('realtime-hapi-sseModule', () => {
-
   describe('project events', () => {
     beforeEach(clearDb);
 
@@ -105,7 +106,6 @@ describe('realtime-hapi-sseModule', () => {
       const eventConstructors = [projectCreated, projectEdited, projectDeleted];
       const results = await Observable.from(eventConstructors)
         .flatMap(async eventConstructor => {
-
           // Arrange
           await clearDb();
 
@@ -118,18 +118,20 @@ describe('realtime-hapi-sseModule', () => {
           const event = eventConstructor(payload);
           const jsonApiModule = {
             getProject: async (_projectId: number): Promise<ApiProject> => ({
-                type: 'project',
-                id: _projectId,
-                name,
-                description,
-                path: 'foo',
-                latestActivityTimestamp: 'foo',
-                activeCommitters: [{
+              type: 'project',
+              id: _projectId,
+              name,
+              description,
+              path: 'foo',
+              latestActivityTimestamp: 'foo',
+              activeCommitters: [
+                {
                   name: 'foo',
                   email: 'foo',
-                }],
-                repoUrl: 'foo',
-                token: 'token',
+                },
+              ],
+              repoUrl: 'foo',
+              token: 'token',
             }),
           } as JsonApiModule;
           const eventBus = getEventBus();
@@ -138,7 +140,6 @@ describe('realtime-hapi-sseModule', () => {
           // Act
           await eventBus.post(event);
           return promise;
-
         }, 1)
         .toArray()
         .toPromise();
@@ -154,7 +155,9 @@ describe('realtime-hapi-sseModule', () => {
           expect(sseEvent.payload.data.type).to.equal('projects');
           expect(sseEvent.payload.data.id).to.equal(String(id));
           expect(sseEvent.payload.data.attributes.name).to.equal(name);
-          expect(sseEvent.payload.data.attributes.description).to.equal(description);
+          expect(sseEvent.payload.data.attributes.description).to.equal(
+            description,
+          );
         } else {
           expect(sseEvent.payload.id).to.equal(id);
         }
@@ -195,12 +198,16 @@ describe('realtime-hapi-sseModule', () => {
 
     async function testCodePushed(_payload: CodePushedEvent) {
       const jsonApiModule = {
-        getBranch: async (_projectId: number, _branchName: string): Promise<ApiBranch> => ({
-          type: 'branch',
-          name: _branchName,
-          project: projectId,
-          id: `5-branch`,
-        } as any),
+        getBranch: async (
+          _projectId: number,
+          _branchName: string,
+        ): Promise<ApiBranch> =>
+          ({
+            type: 'branch',
+            name: _branchName,
+            project: projectId,
+            id: `5-branch`,
+          } as any),
         toApiCommit: JsonApiModule.prototype.toApiCommit,
       } as JsonApiModule;
       const eventBus = getEventBus();
@@ -220,14 +227,24 @@ describe('realtime-hapi-sseModule', () => {
       // Assert
       const createdPayload = created.payload as StreamingCodePushedEvent;
       expect(createdPayload.teamId).to.equal(payload.teamId);
-      expect(createdPayload.after).to.equal(toApiCommitId(projectId, payload.after!.id));
-      expect(createdPayload.before).to.equal(toApiCommitId(projectId, payload.before!.id));
+      expect(createdPayload.after).to.equal(
+        toApiCommitId(projectId, payload.after!.id),
+      );
+      expect(createdPayload.before).to.equal(
+        toApiCommitId(projectId, payload.before!.id),
+      );
       expect(createdPayload.parents).to.have.length(1);
-      expect(createdPayload.parents[0]).to.equal(toApiCommitId(projectId, payload.parents[0].id));
+      expect(createdPayload.parents[0]).to.equal(
+        toApiCommitId(projectId, payload.parents[0].id),
+      );
       expect(createdPayload.commits).to.have.length(2);
-      expect(createdPayload.commits[0].id).to.equal(toApiCommitId(projectId, payload.commits[0].id));
+      expect(createdPayload.commits[0].id).to.equal(
+        toApiCommitId(projectId, payload.commits[0].id),
+      );
       expect(createdPayload.commits[0].type).to.equal('commits');
-      expect(createdPayload.commits[0].attributes.message).to.equal(payload.commits[0].message);
+      expect(createdPayload.commits[0].attributes.message).to.equal(
+        payload.commits[0].message,
+      );
     });
 
     it('is transformed correctly when commits is an empty array', async () => {
@@ -285,10 +302,16 @@ describe('realtime-hapi-sseModule', () => {
       const createdPayload = created.payload as StreamingDeploymentEvent;
       expect(createdPayload.teamId).to.equal(payload.teamId);
       expect(createdPayload.project).to.equal(String(projectId));
-      expect(createdPayload.branch).to.equal(toApiBranchId(projectId, branchName));
-      expect(createdPayload.deployment.id).to.equal(toApiDeploymentId(projectId, 6));
+      expect(createdPayload.branch).to.equal(
+        toApiBranchId(projectId, branchName),
+      );
+      expect(createdPayload.deployment.id).to.equal(
+        toApiDeploymentId(projectId, 6),
+      );
       expect(createdPayload.deployment.type).to.equal('deployments');
-      expect(createdPayload.commit).to.equal(toApiCommitId(projectId, payload.deployment.commitHash));
+      expect(createdPayload.commit).to.equal(
+        toApiCommitId(projectId, payload.deployment.commitHash),
+      );
     });
   });
 
@@ -343,17 +366,20 @@ describe('realtime-hapi-sseModule', () => {
         message: 'foo msg',
         name: 'foo name',
       };
-      const promise = sseModule.getSSEStream()
+      const promise = sseModule
+        .getSSEStream()
         .filter(deploymentEventFilter(1, 2, 3))
         .take(1)
         .toPromise();
-      eventBus.post(projectEdited({
-        description: 'foo',
-        name: 'bar',
-        id: 6,
-        repoUrl: 'foo',
-        teamId: 1,
-      }));
+      eventBus.post(
+        projectEdited({
+          description: 'foo',
+          name: 'bar',
+          id: 6,
+          repoUrl: 'foo',
+          teamId: 1,
+        }),
+      );
       const event = createCommentAddedEvent(payload);
       eventBus.post(event);
 
@@ -408,17 +434,20 @@ describe('realtime-hapi-sseModule', () => {
         deploymentId: 3,
         commentId: 4,
       };
-      const promise = sseModule.getSSEStream()
+      const promise = sseModule
+        .getSSEStream()
         .filter(deploymentEventFilter(1, 2, 3))
         .take(1)
         .toPromise();
-      eventBus.post(projectEdited({
-        description: 'foo',
-        name: 'bar',
-        id: 6,
-        repoUrl: 'foo',
-        teamId: 1,
-      }));
+      eventBus.post(
+        projectEdited({
+          description: 'foo',
+          name: 'bar',
+          id: 6,
+          repoUrl: 'foo',
+          teamId: 1,
+        }),
+      );
       const event = createCommentDeletedEvent(payload);
       eventBus.post(event);
 
@@ -431,7 +460,5 @@ describe('realtime-hapi-sseModule', () => {
       expect(createdPayload.comment).to.equal(String(payload.commentId));
       expect(created.teamId).to.equal(payload.teamId);
     });
-
   });
-
 });

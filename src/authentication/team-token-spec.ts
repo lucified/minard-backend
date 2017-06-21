@@ -41,7 +41,7 @@ const validTokens: TeamToken[] = [
 
 export async function initializeTeamTokenTable(db: Knex) {
   await db.schema.dropTableIfExists('teamtoken');
-  await db.schema.createTable('teamtoken', (table) => {
+  await db.schema.createTable('teamtoken', table => {
     table.increments('id').primary();
     table.integer('teamId').index();
     table.string('token').index();
@@ -56,7 +56,6 @@ export async function insertTeamToken(db: Knex, token: TeamToken) {
 }
 
 describe('getTeamIdWithToken', () => {
-
   it('should return the latest token per team', async () => {
     const db = await initializeTeamTokenTable(knex);
     await Promise.all(validTokens.map(insertTeamToken.bind(undefined, db)));
@@ -99,7 +98,6 @@ describe('generateTeamToken', () => {
 });
 
 describe('generateAndSaveTeamToken', () => {
-
   it('should invalidate the previous token for the same team', async () => {
     // Arrange
     const db = await initializeTeamTokenTable(knex);
@@ -129,7 +127,5 @@ describe('generateAndSaveTeamToken', () => {
     expect(check3).to.be.false;
     expect(check4).to.eq(teamId2);
     expect(check5).to.eq(teamId1);
-
   });
-
 });

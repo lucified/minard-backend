@@ -1,4 +1,3 @@
-
 export const enum MINARD_ERROR_CODE {
   CONTINUE = 100,
   SWITCHING_PROTOCOLS = 101,

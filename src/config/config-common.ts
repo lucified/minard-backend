@@ -10,23 +10,10 @@ import {
   AuthenticationModule,
   CachedAuthenticationHapiPlugin,
 } from '../authentication';
-import {
-  CommentModule,
-} from '../comment';
-import {
-  CIProxy,
-  DeploymentHapiPlugin,
-  DeploymentModule,
-} from '../deployment';
-import {
-  eventBusInjectSymbol,
-  PersistentEventBus,
-} from '../event-bus';
-import {
-  JsonApiHapiPlugin,
-  JsonApiModule,
-  ViewEndpoints,
-} from '../json-api';
+import { CommentModule } from '../comment';
+import { CIProxy, DeploymentHapiPlugin, DeploymentModule } from '../deployment';
+import { eventBusInjectSymbol, PersistentEventBus } from '../event-bus';
+import { JsonApiHapiPlugin, JsonApiModule, ViewEndpoints } from '../json-api';
 import Migrations from '../migrations';
 import {
   FlowdockNotify,
@@ -34,53 +21,39 @@ import {
   NotificationModule,
   SlackNotify,
 } from '../notification';
-import {
-  OperationsHapiPlugin,
-  OperationsModule,
-} from '../operations';
+import { OperationsHapiPlugin, OperationsModule } from '../operations';
 import {
   CachedProjectModule,
   ProjectHapiPlugin,
   ProjectModule,
 } from '../project';
-import {
-  RealtimeHapiPlugin,
-  RealtimeModule,
-} from '../realtime';
+import { RealtimeHapiPlugin, RealtimeModule } from '../realtime';
 import {
   ScreenshotHapiPlugin,
   ScreenshotModule,
   screenshotterInjectSymbol,
 } from '../screenshot';
-import {
-  RemoteScreenshotter,
-} from '../screenshot/screenshotter-remote';
+import { RemoteScreenshotter } from '../screenshot/screenshotter-remote';
 import { MinardServer } from '../server';
-import {
-  GitlabClient,
-} from '../shared/gitlab-client';
+import { GitlabClient } from '../shared/gitlab-client';
 import TokenGenerator from '../shared/token-generator';
-import {
-  fetchInjectSymbol,
-} from '../shared/types';
-import {
-  StatusHapiPlugin,
-  StatusModule,
-} from '../status';
+import { fetchInjectSymbol } from '../shared/types';
+import { StatusHapiPlugin, StatusModule } from '../status';
 import { SystemHookModule } from '../system-hook';
 import { UserModule } from '../user';
 
 import { GitProxy } from '../gitproxy/gitproxy-hapi-plugin';
 
 export default new ContainerModule((bind, _unbind, _isBound, _rebind) => {
-
   // Bindings for modules
   bind(ActivityModule.injectSymbol).to(ActivityModule).inSingletonScope();
   bind(AuthenticationModule.injectSymbol).to(AuthenticationModule);
   bind(CommentModule.injectSymbol).to(CommentModule);
   bind(DeploymentModule.injectSymbol).to(DeploymentModule).inSingletonScope();
   bind(JsonApiModule.injectSymbol).to(JsonApiModule);
-  bind(NotificationModule.injectSymbol).to(NotificationModule).inSingletonScope();
+  bind(NotificationModule.injectSymbol)
+    .to(NotificationModule)
+    .inSingletonScope();
   bind(OperationsModule.injectSymbol).to(OperationsModule);
   bind(ProjectModule.injectSymbol).to(CachedProjectModule).inSingletonScope();
   bind(ScreenshotModule.injectSymbol).to(ScreenshotModule).inSingletonScope();
@@ -98,7 +71,9 @@ export default new ContainerModule((bind, _unbind, _isBound, _rebind) => {
   bind(ScreenshotHapiPlugin.injectSymbol).to(ScreenshotHapiPlugin);
   bind(StatusHapiPlugin.injectSymbol).to(StatusHapiPlugin);
   bind(RealtimeHapiPlugin.injectSymbol).to(RealtimeHapiPlugin);
-  bind(AuthenticationHapiPlugin.injectSymbol).to(CachedAuthenticationHapiPlugin);
+  bind(AuthenticationHapiPlugin.injectSymbol).to(
+    CachedAuthenticationHapiPlugin,
+  );
 
   // Other bindings
   bind(eventBusInjectSymbol).to(PersistentEventBus).inSingletonScope();
@@ -110,7 +85,9 @@ export default new ContainerModule((bind, _unbind, _isBound, _rebind) => {
   bind(HipchatNotify.injectSymbol).to(HipchatNotify);
   bind(SlackNotify.injectSymbol).to(SlackNotify);
   bind(MinardServer.injectSymbol).to(MinardServer).inSingletonScope();
-  bind(RemoteScreenshotter.injectSymbol).to(RemoteScreenshotter).inSingletonScope();
+  bind(RemoteScreenshotter.injectSymbol)
+    .to(RemoteScreenshotter)
+    .inSingletonScope();
   bind(Migrations.injectSymbol).to(Migrations);
   bind(screenshotterInjectSymbol).to(RemoteScreenshotter);
   bind(TokenGenerator.injectSymbol).to(TokenGenerator);

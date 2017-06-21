@@ -75,7 +75,6 @@ const TEAM_OR_PROJECT_PRE_KEY = 'teamOrProject';
 const DEPLOYMENT_PRE_KEY = 'deployment';
 @injectable()
 export class JsonApiHapiPlugin extends HapiPlugin {
-
   public static injectSymbol = Symbol('json-api-hapi-plugin');
 
   private baseUrl: string;
@@ -83,8 +82,10 @@ export class JsonApiHapiPlugin extends HapiPlugin {
   constructor(
     @inject(JsonApiModule.injectSymbol) private readonly jsonApi: JsonApiModule,
     @inject(externalBaseUrlInjectSymbol) baseUrl: string,
-    @inject(ViewEndpoints.injectSymbol) private readonly viewEndpoints: ViewEndpoints,
-    @inject(TokenGenerator.injectSymbol) private readonly tokenGenerator: TokenGenerator,
+    @inject(ViewEndpoints.injectSymbol)
+    private readonly viewEndpoints: ViewEndpoints,
+    @inject(TokenGenerator.injectSymbol)
+    private readonly tokenGenerator: TokenGenerator,
   ) {
     super({
       name: 'json-api-plugin',
@@ -95,8 +96,11 @@ export class JsonApiHapiPlugin extends HapiPlugin {
     this.validatePreviewToken = this.validatePreviewToken.bind(this);
   }
 
-  public register(server: Hapi.Server, _options: Hapi.ServerOptions, next: () => void) {
-
+  public register(
+    server: Hapi.Server,
+    _options: Hapi.ServerOptions,
+    next: () => void,
+  ) {
     server.ext('onPreResponse', onPreResponse.bind(undefined, server));
 
     // Open auth can only be used if the request contains a project, branch or
@@ -106,22 +110,24 @@ export class JsonApiHapiPlugin extends HapiPlugin {
       strategies: [STRATEGY_TOPLEVEL_USER_HEADER],
     };
 
-    const deployment: Hapi.RouteConfiguration[] = [{
-      method: 'GET',
-      path: '/deployments/{projectId}-{deploymentId}',
-      handler: {
-        async: this.getDeploymentHandler,
-      },
-      config: {
-        bind: this,
-        validate: {
-          params: {
-            projectId: Joi.number().required(),
-            deploymentId: Joi.number().required(),
+    const deployment: Hapi.RouteConfiguration[] = [
+      {
+        method: 'GET',
+        path: '/deployments/{projectId}-{deploymentId}',
+        handler: {
+          async: this.getDeploymentHandler,
+        },
+        config: {
+          bind: this,
+          validate: {
+            params: {
+              projectId: Joi.number().required(),
+              deploymentId: Joi.number().required(),
+            },
           },
         },
       },
-    }];
+    ];
 
     const preview: Hapi.RouteConfiguration[] = [
       {
@@ -202,384 +208,411 @@ export class JsonApiHapiPlugin extends HapiPlugin {
       },
     ];
 
-    const project: Hapi.RouteConfiguration[] = [{
-      method: 'GET',
-      path: '/projects/{projectId}',
-      handler: {
-        async: this.getProjectHandler,
-      },
-      config: {
-        bind: this,
-        validate: {
-          params: {
-            projectId: Joi.number().required(),
+    const project: Hapi.RouteConfiguration[] = [
+      {
+        method: 'GET',
+        path: '/projects/{projectId}',
+        handler: {
+          async: this.getProjectHandler,
+        },
+        config: {
+          bind: this,
+          validate: {
+            params: {
+              projectId: Joi.number().required(),
+            },
           },
         },
       },
-    }, {
-      method: 'POST',
-      path: '/projects',
-      handler: {
-        async: this.postProjectHandler,
-      },
-      config: {
-        auth: STRATEGY_ROUTELEVEL_USER_HEADER,
-        bind: this,
-        pre: [
-          {
-            method: this.authorizeProjectCreation,
-            assign: 'teamId',
-          },
-        ],
-        validate: {
-          payload: {
-            data: Joi.object({
-              type: Joi.string().equal('projects').required(),
-              attributes: Joi.object({
-                name: Joi.string().regex(projectNameRegex).max(220).required(),
-                description: Joi.string().allow('').max(2000),
-                templateProjectId: Joi.number(),
-              }).required(),
-              relationships: Joi.object({
-                team: Joi.object({
-                  data: Joi.object({
-                    type: Joi.string().equal('teams').required(),
-                    id: Joi.number().required(),
+      {
+        method: 'POST',
+        path: '/projects',
+        handler: {
+          async: this.postProjectHandler,
+        },
+        config: {
+          auth: STRATEGY_ROUTELEVEL_USER_HEADER,
+          bind: this,
+          pre: [
+            {
+              method: this.authorizeProjectCreation,
+              assign: 'teamId',
+            },
+          ],
+          validate: {
+            payload: {
+              data: Joi.object({
+                type: Joi.string().equal('projects').required(),
+                attributes: Joi.object({
+                  name: Joi.string()
+                    .regex(projectNameRegex)
+                    .max(220)
+                    .required(),
+                  description: Joi.string().allow('').max(2000),
+                  templateProjectId: Joi.number(),
+                }).required(),
+                relationships: Joi.object({
+                  team: Joi.object({
+                    data: Joi.object({
+                      type: Joi.string().equal('teams').required(),
+                      id: Joi.number().required(),
+                    }).required(),
                   }).required(),
                 }).required(),
               }).required(),
-            }).required(),
+            },
           },
         },
       },
-    }, {
-      method: 'DELETE',
-      path: '/projects/{projectId}',
-      handler: {
-        async: this.deleteProjectHandler,
-      },
-      config: {
-        bind: this,
-        validate: {
-          params: {
-            projectId: Joi.number().required(),
+      {
+        method: 'DELETE',
+        path: '/projects/{projectId}',
+        handler: {
+          async: this.deleteProjectHandler,
+        },
+        config: {
+          bind: this,
+          validate: {
+            params: {
+              projectId: Joi.number().required(),
+            },
           },
         },
       },
-    }, {
-      method: 'PATCH',
-      path: '/projects/{projectId}',
-      handler: {
-        async: this.patchProjectHandler,
-      },
-      config: {
-        bind: this,
-        validate: {
-          params: {
-            projectId: Joi.number().required(),
-          },
-          payload: {
-            data: Joi.object({
-              id: Joi.number(),
-              type: Joi.string().equal('projects').required(),
-              attributes: Joi.object({
-                name: Joi.string().regex(projectNameRegex).max(220),
-                description: Joi.string().allow('').max(2000),
+      {
+        method: 'PATCH',
+        path: '/projects/{projectId}',
+        handler: {
+          async: this.patchProjectHandler,
+        },
+        config: {
+          bind: this,
+          validate: {
+            params: {
+              projectId: Joi.number().required(),
+            },
+            payload: {
+              data: Joi.object({
+                id: Joi.number(),
+                type: Joi.string().equal('projects').required(),
+                attributes: Joi.object({
+                  name: Joi.string().regex(projectNameRegex).max(220),
+                  description: Joi.string().allow('').max(2000),
+                }).required(),
               }).required(),
-            }).required(),
+            },
           },
         },
       },
-    }, {
-      method: 'GET',
-      path: '/projects/{projectId}/relationships/branches',
-      handler: {
-        async: this.getProjectBranchesHandler,
-      },
-      config: {
-        bind: this,
-        validate: {
-          params: {
-            projectId: Joi.number().required(),
+      {
+        method: 'GET',
+        path: '/projects/{projectId}/relationships/branches',
+        handler: {
+          async: this.getProjectBranchesHandler,
+        },
+        config: {
+          bind: this,
+          validate: {
+            params: {
+              projectId: Joi.number().required(),
+            },
           },
         },
       },
-    }];
+    ];
 
-    const team: Hapi.RouteConfiguration[] = [{
-      method: 'GET',
-      path: '/teams/{teamId}/relationships/projects',
-      handler: {
-        async: this.getProjectsHandler,
-      },
-      config: {
-        bind: this,
-        validate: {
-          params: {
-            teamId: Joi.number().required(),
+    const team: Hapi.RouteConfiguration[] = [
+      {
+        method: 'GET',
+        path: '/teams/{teamId}/relationships/projects',
+        handler: {
+          async: this.getProjectsHandler,
+        },
+        config: {
+          bind: this,
+          validate: {
+            params: {
+              teamId: Joi.number().required(),
+            },
           },
         },
       },
-    }];
+    ];
 
-    const branch: Hapi.RouteConfiguration[] = [{
-      method: 'GET',
-      path: '/branches/{branchId}',
-      handler: {
-        async: this.getBranchHandler,
-      },
-      config: {
-        bind: this,
-        validate: {
-          params: {
-            branchId: Joi.string().required(),
+    const branch: Hapi.RouteConfiguration[] = [
+      {
+        method: 'GET',
+        path: '/branches/{branchId}',
+        handler: {
+          async: this.getBranchHandler,
+        },
+        config: {
+          bind: this,
+          validate: {
+            params: {
+              branchId: Joi.string().required(),
+            },
           },
         },
       },
-    }, {
-      method: 'GET',
-      path: '/branches/{branchId}/relationships/commits',
-      handler: {
-        async: this.getBranchCommitsHandler,
-      },
-      config: {
-        bind: this,
-        validate: {
-          params: {
-            branchId: Joi.string().required(),
-          },
-          query: {
-            until: Joi.date(),
-            count: Joi.number(),
+      {
+        method: 'GET',
+        path: '/branches/{branchId}/relationships/commits',
+        handler: {
+          async: this.getBranchCommitsHandler,
+        },
+        config: {
+          bind: this,
+          validate: {
+            params: {
+              branchId: Joi.string().required(),
+            },
+            query: {
+              until: Joi.date(),
+              count: Joi.number(),
+            },
           },
         },
       },
-    }];
+    ];
 
-    const commit: Hapi.RouteConfiguration[] = [{
-      method: 'GET',
-      path: '/commits/{projectId}-{hash}',
-      handler: {
-        async: this.getCommitHandler,
-      },
-      config: {
-        bind: this,
-        validate: {
-          params: {
-            projectId: Joi.number().required(),
-            hash: Joi.string().alphanum().min(8).required(),
+    const commit: Hapi.RouteConfiguration[] = [
+      {
+        method: 'GET',
+        path: '/commits/{projectId}-{hash}',
+        handler: {
+          async: this.getCommitHandler,
+        },
+        config: {
+          bind: this,
+          validate: {
+            params: {
+              projectId: Joi.number().required(),
+              hash: Joi.string().alphanum().min(8).required(),
+            },
           },
         },
       },
-    }];
+    ];
 
-    const activity: Hapi.RouteConfiguration[] = [{
-      method: 'GET',
-      path: '/activity',
-      handler: {
-        async: this.getActivityHandler,
-      },
-      config: {
-        bind: this,
-        auth: STRATEGY_ROUTELEVEL_USER_HEADER,
-        pre: [
-          {
-            method: this.parseActivityFilter,
-            assign: TEAM_OR_PROJECT_PRE_KEY,
-          },
-          {
-            method: this.authorizeTeamOrProjectAccess,
-            assign: 'filter',
-          },
-        ],
-        validate: {
-          query: {
-            until: Joi.date(),
-            count: Joi.number(),
-            filter: Joi.string(),
+    const activity: Hapi.RouteConfiguration[] = [
+      {
+        method: 'GET',
+        path: '/activity',
+        handler: {
+          async: this.getActivityHandler,
+        },
+        config: {
+          bind: this,
+          auth: STRATEGY_ROUTELEVEL_USER_HEADER,
+          pre: [
+            {
+              method: this.parseActivityFilter,
+              assign: TEAM_OR_PROJECT_PRE_KEY,
+            },
+            {
+              method: this.authorizeTeamOrProjectAccess,
+              assign: 'filter',
+            },
+          ],
+          validate: {
+            query: {
+              until: Joi.date(),
+              count: Joi.number(),
+              filter: Joi.string(),
+            },
           },
         },
       },
-    }];
+    ];
 
-    const notification: Hapi.RouteConfiguration[] = [{
-      method: 'GET',
-      path: '/projects/{projectId}/relationships/notification',
-      handler: {
-        async: this.getProjectNotificationConfigurationsHandler,
-      },
-      config: {
-        bind: this,
-        validate: {
-          params: {
-            projectId: Joi.number().required(),
+    const notification: Hapi.RouteConfiguration[] = [
+      {
+        method: 'GET',
+        path: '/projects/{projectId}/relationships/notification',
+        handler: {
+          async: this.getProjectNotificationConfigurationsHandler,
+        },
+        config: {
+          bind: this,
+          validate: {
+            params: {
+              projectId: Joi.number().required(),
+            },
           },
         },
       },
-    }, {
-      method: 'GET',
-      path: '/teams/{teamId}/relationships/notification',
-      handler: {
-        async: this.getTeamNotificationConfigurationsHandler,
-      },
-      config: {
-        bind: this,
-        validate: {
-          params: {
-            teamId: Joi.number().required(),
+      {
+        method: 'GET',
+        path: '/teams/{teamId}/relationships/notification',
+        handler: {
+          async: this.getTeamNotificationConfigurationsHandler,
+        },
+        config: {
+          bind: this,
+          validate: {
+            params: {
+              teamId: Joi.number().required(),
+            },
           },
         },
       },
-    }, {
-      method: 'DELETE',
-      path: '/notifications/{id}',
-      handler: {
-        async: this.deleteNotificationConfigurationHandler,
-      },
-      config: {
-        bind: this,
-        auth: STRATEGY_ROUTELEVEL_USER_HEADER,
-        pre: [
-          {
-            method: this.authorizeNotificationRemoval,
-            assign: 'notificationId',
-          },
-        ],
-        validate: {
-          params: {
-            id: Joi.number().required(),
+      {
+        method: 'DELETE',
+        path: '/notifications/{id}',
+        handler: {
+          async: this.deleteNotificationConfigurationHandler,
+        },
+        config: {
+          bind: this,
+          auth: STRATEGY_ROUTELEVEL_USER_HEADER,
+          pre: [
+            {
+              method: this.authorizeNotificationRemoval,
+              assign: 'notificationId',
+            },
+          ],
+          validate: {
+            params: {
+              id: Joi.number().required(),
+            },
           },
         },
       },
-    }, {
-      method: 'POST',
-      path: '/notifications',
-      handler: {
-        async: this.postNotificationConfigurationHandler,
+      {
+        method: 'POST',
+        path: '/notifications',
+        handler: {
+          async: this.postNotificationConfigurationHandler,
+        },
+        config: {
+          bind: this,
+          auth: STRATEGY_ROUTELEVEL_USER_HEADER,
+          pre: [
+            {
+              method: this.tryGetNotificationConfiguration,
+              assign: TEAM_OR_PROJECT_PRE_KEY,
+            },
+            {
+              method: this.authorizeTeamOrProjectAccess,
+              assign: 'config',
+            },
+          ],
+          validate: {
+            payload: {
+              data: Joi.object({
+                type: Joi.string().equal('notifications').required(),
+                attributes: Joi.alternatives(
+                  Joi.object({
+                    type: Joi.string().equal('flowdock').required(),
+                    teamId: Joi.number(),
+                    projectId: Joi.number(),
+                    flowToken: Joi.string().alphanum().required(),
+                  }),
+                  Joi.object({
+                    type: Joi.string().equal('hipchat').required(),
+                    projectId: Joi.number(),
+                    teamId: Joi.number(),
+                    hipchatRoomId: Joi.number().required(),
+                    hipchatAuthToken: Joi.string().required(),
+                  }),
+                  Joi.object({
+                    type: Joi.string().equal('slack').required(),
+                    teamId: Joi.number(),
+                    projectId: Joi.number(),
+                    slackWebhookUrl: Joi.string().required(),
+                  }),
+                ),
+              }).required(),
+            },
+          },
+        },
       },
-      config: {
-        bind: this,
-        auth: STRATEGY_ROUTELEVEL_USER_HEADER,
-        pre: [
-          {
-            method: this.tryGetNotificationConfiguration,
-            assign: TEAM_OR_PROJECT_PRE_KEY,
+    ];
+
+    const comment: Hapi.RouteConfiguration[] = [
+      {
+        method: 'DELETE',
+        path: '/comments/{id}',
+        handler: {
+          async: this.deleteCommentHandler,
+        },
+        config: {
+          bind: this,
+          auth: STRATEGY_ROUTELEVEL_USER_HEADER,
+          pre: [
+            {
+              method: this.authorizeCommentRemoval,
+              assign: 'commentId',
+            },
+          ],
+          validate: {
+            params: {
+              id: Joi.number().required(),
+            },
           },
-          {
-            method: this.authorizeTeamOrProjectAccess,
-            assign: 'config',
+        },
+      },
+      {
+        method: 'POST',
+        path: '/comments',
+        handler: {
+          async: this.postCommentHandler,
+        },
+        config: {
+          bind: this,
+          // Open auth cannot be used here because the request does not contain
+          // a deployment, branch or team ID.
+          auth: {
+            mode: 'try',
+            strategies: [STRATEGY_ROUTELEVEL_USER_HEADER],
           },
-        ],
-        validate: {
-          payload: {
-            data: Joi.object({
-              type: Joi.string().equal('notifications').required(),
-              attributes: Joi.alternatives(
-                Joi.object({
-                  type: Joi.string().equal('flowdock').required(),
-                  teamId: Joi.number(),
-                  projectId: Joi.number(),
-                  flowToken: Joi.string().alphanum().required(),
+          pre: [
+            {
+              method: this.authorizeCommentCreation,
+              assign: 'deploymentId',
+            },
+          ],
+          validate: {
+            payload: {
+              data: Joi.object({
+                type: Joi.string().equal('comments').required(),
+                attributes: Joi.object({
+                  email: Joi.string().email().required(),
+                  message: Joi.string().required(),
+                  name: Joi.string().allow('').max(50),
+                  deployment: Joi.string().required(),
                 }),
-                Joi.object({
-                  type: Joi.string().equal('hipchat').required(),
-                  projectId: Joi.number(),
-                  teamId: Joi.number(),
-                  hipchatRoomId: Joi.number().required(),
-                  hipchatAuthToken: Joi.string().required(),
-                }),
-                Joi.object({
-                  type: Joi.string().equal('slack').required(),
-                  teamId: Joi.number(),
-                  projectId: Joi.number(),
-                  slackWebhookUrl: Joi.string().required(),
-                }),
-              ),
-            }).required(),
+              }).required(),
+            },
           },
         },
       },
-    }];
-
-    const comment: Hapi.RouteConfiguration[] = [{
-      method: 'DELETE',
-      path: '/comments/{id}',
-      handler: {
-        async: this.deleteCommentHandler,
-      },
-      config: {
-        bind: this,
-        auth: STRATEGY_ROUTELEVEL_USER_HEADER,
-        pre: [
-          {
-            method: this.authorizeCommentRemoval,
-            assign: 'commentId',
-          },
-        ],
-        validate: {
-          params: {
-            id: Joi.number().required(),
+      {
+        method: 'GET',
+        path: '/comments/deployment/{projectId}-{deploymentId}',
+        handler: {
+          async: this.getDeploymentCommentsHandler,
+        },
+        config: {
+          bind: this,
+          auth: openAuth,
+          pre: [
+            {
+              method: this.getDeploymentId(PreviewType.DEPLOYMENT),
+              assign: DEPLOYMENT_PRE_KEY,
+            },
+            this.authorizeOpenDeployment,
+          ],
+          validate: {
+            params: {
+              projectId: Joi.number().required(),
+              deploymentId: Joi.number().required(),
+            },
           },
         },
       },
-    }, {
-      method: 'POST',
-      path: '/comments',
-      handler: {
-        async: this.postCommentHandler,
-      },
-      config: {
-        bind: this,
-        // Open auth cannot be used here because the request does not contain
-        // a deployment, branch or team ID.
-        auth: {
-          mode: 'try',
-          strategies: [STRATEGY_ROUTELEVEL_USER_HEADER],
-        },
-        pre: [
-          {
-            method: this.authorizeCommentCreation,
-            assign: 'deploymentId',
-          },
-        ],
-        validate: {
-          payload: {
-            data: Joi.object({
-              type: Joi.string().equal('comments').required(),
-              attributes: Joi.object({
-                email: Joi.string().email().required(),
-                message: Joi.string().required(),
-                name: Joi.string().allow('').max(50),
-                deployment: Joi.string().required(),
-              }),
-            }).required(),
-          },
-        },
-      },
-    }, {
-      method: 'GET',
-      path: '/comments/deployment/{projectId}-{deploymentId}',
-      handler: {
-        async: this.getDeploymentCommentsHandler,
-      },
-      config: {
-        bind: this,
-        auth: openAuth,
-        pre: [
-          {
-            method: this.getDeploymentId(PreviewType.DEPLOYMENT),
-            assign: DEPLOYMENT_PRE_KEY,
-          },
-          this.authorizeOpenDeployment,
-        ],
-        validate: {
-          params: {
-            projectId: Joi.number().required(),
-            deploymentId: Joi.number().required(),
-          },
-        },
-      },
-    }];
+    ];
     const routes = deployment.concat(
       comment,
       notification,
@@ -598,7 +631,10 @@ export class JsonApiHapiPlugin extends HapiPlugin {
     return serializeApiEntity(type, entity, this.baseUrl);
   }
 
-  public async getEntity(type: string, entityFetcher: (api: JsonApiModule) => apiReturn) {
+  public async getEntity(
+    type: string,
+    entityFetcher: (api: JsonApiModule) => apiReturn,
+  ) {
     const entity = await entityFetcher(this.jsonApi);
     if (!entity) {
       throw notFound(`${type} not found`);
@@ -606,24 +642,41 @@ export class JsonApiHapiPlugin extends HapiPlugin {
     return this.serializeApiEntity(type, entity);
   }
 
-  public async getProjectHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
+  public async getProjectHandler(
+    request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
     const projectId = Number(request.params.projectId);
     return reply(this.getEntity('project', api => api.getProject(projectId)));
   }
 
-  public async getProjectBranchesHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
+  public async getProjectBranchesHandler(
+    request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
     const projectId = Number(request.params.projectId);
-    return reply(this.getEntity('branch', api => api.getProjectBranches(projectId)));
+    return reply(
+      this.getEntity('branch', api => api.getProjectBranches(projectId)),
+    );
   }
 
-  public async getProjectsHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
+  public async getProjectsHandler(
+    request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
     const teamId = Number(request.params.teamId);
     return reply(this.getEntity('project', api => api.getProjects(teamId)));
   }
 
-  public async authorizeProjectCreation(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
+  public async authorizeProjectCreation(
+    request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
     try {
-      const teamId = parseInt(request.payload.data.relationships.team.data.id, 10);
+      const teamId = parseInt(
+        request.payload.data.relationships.team.data.id,
+        10,
+      );
       if (await request.userHasAccessToTeam(teamId)) {
         return reply(teamId);
       }
@@ -633,15 +686,31 @@ export class JsonApiHapiPlugin extends HapiPlugin {
     return reply(unauthorized());
   }
 
-  public async postProjectHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
-    const { name, description, templateProjectId } = request.payload.data.attributes;
+  public async postProjectHandler(
+    request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
+    const {
+      name,
+      description,
+      templateProjectId,
+    } = request.payload.data.attributes;
     const teamId = getPre(request).teamId;
-    const project = await this.jsonApi.createProject(teamId, name, description, templateProjectId);
-    return reply(this.serializeApiEntity('project', project))
-      .created(`/api/projects/${project.id}`);
+    const project = await this.jsonApi.createProject(
+      teamId,
+      name,
+      description,
+      templateProjectId,
+    );
+    return reply(this.serializeApiEntity('project', project)).created(
+      `/api/projects/${project.id}`,
+    );
   }
 
-  public async patchProjectHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
+  public async patchProjectHandler(
+    request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
     const attributes = request.payload.data.attributes;
     const projectId = Number(request.params.projectId);
     if (!attributes.name && !attributes.description) {
@@ -652,27 +721,44 @@ export class JsonApiHapiPlugin extends HapiPlugin {
     return reply(this.serializeApiEntity('project', project));
   }
 
-  public async deleteProjectHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
+  public async deleteProjectHandler(
+    request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
     const projectId = Number(request.params.projectId);
     await this.jsonApi.deleteProject(projectId);
     return reply({});
   }
 
-  public async getDeploymentHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
+  public async getDeploymentHandler(
+    request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
     const projectId = Number(request.params.projectId);
     const deploymentId = Number(request.params.deploymentId);
-    return reply(this.getEntity('deployment', api => api.getDeployment(projectId, deploymentId)));
+    return reply(
+      this.getEntity('deployment', api =>
+        api.getDeployment(projectId, deploymentId),
+      ),
+    );
   }
 
   public validatePreviewToken(previewType: PreviewType) {
     return (request: Hapi.Request, reply: Hapi.ReplyNoContinue) => {
-      const { token, branchId, deploymentId: deploymentIdString, projectId: projectIdString } = request.params;
+      const {
+        token,
+        branchId,
+        deploymentId: deploymentIdString,
+        projectId: projectIdString,
+      } = request.params;
       const deploymentId = Number(deploymentIdString);
       let correctToken;
 
       switch (previewType) {
         case PreviewType.PROJECT:
-          correctToken = this.tokenGenerator.projectToken(Number(projectIdString));
+          correctToken = this.tokenGenerator.projectToken(
+            Number(projectIdString),
+          );
           break;
         case PreviewType.BRANCH:
           const matches = parseApiBranchId(branchId);
@@ -683,7 +769,10 @@ export class JsonApiHapiPlugin extends HapiPlugin {
           correctToken = this.tokenGenerator.branchToken(projectId, branchName);
           break;
         case PreviewType.DEPLOYMENT:
-          correctToken = this.tokenGenerator.deploymentToken(Number(projectIdString), deploymentId);
+          correctToken = this.tokenGenerator.deploymentToken(
+            Number(projectIdString),
+            deploymentId,
+          );
           break;
         default:
           return reply(badRequest('Invalid token data'));
@@ -697,11 +786,19 @@ export class JsonApiHapiPlugin extends HapiPlugin {
     };
   }
 
-  public async getPreviewHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
+  public async getPreviewHandler(
+    request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
     try {
       const projectId = Number(getPre(request)[DEPLOYMENT_PRE_KEY].projectId);
-      const deploymentId = Number(getPre(request)[DEPLOYMENT_PRE_KEY].deploymentId);
-      const preview = await this.viewEndpoints.getPreview(projectId, deploymentId);
+      const deploymentId = Number(
+        getPre(request)[DEPLOYMENT_PRE_KEY].deploymentId,
+      );
+      const preview = await this.viewEndpoints.getPreview(
+        projectId,
+        deploymentId,
+      );
       if (preview) {
         return reply(preview);
       }
@@ -712,16 +809,24 @@ export class JsonApiHapiPlugin extends HapiPlugin {
     return reply(notFound());
   }
 
-  public async getBranchHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
+  public async getBranchHandler(
+    request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
     const matches = parseApiBranchId(request.params.branchId);
     if (!matches) {
       throw badRequest('Invalid branch id');
     }
     const { projectId, branchName } = matches;
-    return reply(this.getEntity('branch', api => api.getBranch(projectId, branchName)));
+    return reply(
+      this.getEntity('branch', api => api.getBranch(projectId, branchName)),
+    );
   }
 
-  public async getBranchCommitsHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
+  public async getBranchCommitsHandler(
+    request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
     const matches = parseApiBranchId(request.params.branchId);
     if (!matches) {
       throw badRequest('Invalid branch id');
@@ -732,16 +837,28 @@ export class JsonApiHapiPlugin extends HapiPlugin {
     if (!untilMoment.isValid) {
       throw badRequest('Until is not in valid format');
     }
-    return reply(this.getEntity('commit', api => api.getBranchCommits(projectId, branchName, untilMoment, count)));
+    return reply(
+      this.getEntity('commit', api =>
+        api.getBranchCommits(projectId, branchName, untilMoment, count),
+      ),
+    );
   }
 
-  public async getCommitHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
+  public async getCommitHandler(
+    request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
     const projectId = Number(request.params.projectId);
     const hash = request.params.hash;
-    return reply(this.getEntity('commit', api => api.getCommit(projectId, hash)));
+    return reply(
+      this.getEntity('commit', api => api.getCommit(projectId, hash)),
+    );
   }
 
-  public parseActivityFilter(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
+  public parseActivityFilter(
+    request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
     try {
       const filter: string = getQuery(request).filter;
       return reply(parseActivityFilter(filter));
@@ -750,14 +867,25 @@ export class JsonApiHapiPlugin extends HapiPlugin {
     }
   }
 
-  public async getActivityHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
+  public async getActivityHandler(
+    request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
     const filter = getPre(request).filter;
     const { until, count } = getQuery(request);
     if (filter.projectId) {
-      return reply(this.getEntity('activity', api => api.getProjectActivity(filter.projectId, until, count)));
+      return reply(
+        this.getEntity('activity', api =>
+          api.getProjectActivity(filter.projectId, until, count),
+        ),
+      );
     }
     if (filter.teamId) {
-      return reply(this.getEntity('activity', api => api.getTeamActivity(filter.teamId, until, count)));
+      return reply(
+        this.getEntity('activity', api =>
+          api.getTeamActivity(filter.teamId, until, count),
+        ),
+      );
     }
     throw badRequest('team or project filter must be specified');
   }
@@ -766,17 +894,34 @@ export class JsonApiHapiPlugin extends HapiPlugin {
     return this.jsonApi;
   }
 
-  public async getProjectNotificationConfigurationsHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
+  public async getProjectNotificationConfigurationsHandler(
+    request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
     const projectId = Number(request.params.projectId);
-    return reply(this.getEntity('notification', api => api.getProjectNotificationConfigurations(projectId)));
+    return reply(
+      this.getEntity('notification', api =>
+        api.getProjectNotificationConfigurations(projectId),
+      ),
+    );
   }
 
-  public async getTeamNotificationConfigurationsHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
+  public async getTeamNotificationConfigurationsHandler(
+    request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
     const teamId = Number(request.params.teamId);
-    return reply(this.getEntity('notification', api => api.getTeamNotificationConfigurations(teamId)));
+    return reply(
+      this.getEntity('notification', api =>
+        api.getTeamNotificationConfigurations(teamId),
+      ),
+    );
   }
 
-  public async tryGetNotificationConfiguration(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
+  public async tryGetNotificationConfiguration(
+    request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
     try {
       reply(request.payload.data.attributes);
     } catch (error) {
@@ -795,12 +940,14 @@ export class JsonApiHapiPlugin extends HapiPlugin {
         return reply(badRequest('teamId or projectId should be defined'));
       }
       if (teamId && projectId) {
-        return reply(badRequest('teamId and projectId should not both be defined'));
+        return reply(
+          badRequest('teamId and projectId should not both be defined'),
+        );
       }
-      if (projectId && await request.userHasAccessToProject(projectId)) {
+      if (projectId && (await request.userHasAccessToProject(projectId))) {
         return reply(pre);
       }
-      if (teamId && await request.userHasAccessToTeam(teamId)) {
+      if (teamId && (await request.userHasAccessToTeam(teamId))) {
         return reply(pre);
       }
     } catch (exception) {
@@ -809,22 +956,31 @@ export class JsonApiHapiPlugin extends HapiPlugin {
     return reply(unauthorized());
   }
 
-  public async getNotificationConfiguration(notificationConfigurationId: number) {
-    return this.jsonApi.getNotificationConfiguration(notificationConfigurationId);
+  public async getNotificationConfiguration(
+    notificationConfigurationId: number,
+  ) {
+    return this.jsonApi.getNotificationConfiguration(
+      notificationConfigurationId,
+    );
   }
 
-  public async authorizeNotificationRemoval(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
+  public async authorizeNotificationRemoval(
+    request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
     try {
       const id = Number(request.params.id);
       const configuration = await this.getNotificationConfiguration(id);
       if (!configuration) {
-        throw new Error(`Tried to remove a nonexistent notification configuration ${id}`);
+        throw new Error(
+          `Tried to remove a nonexistent notification configuration ${id}`,
+        );
       }
       const { projectId, teamId } = configuration;
-      if (projectId && await request.userHasAccessToProject(projectId)) {
+      if (projectId && (await request.userHasAccessToProject(projectId))) {
         return reply(id);
       }
-      if (teamId && await request.userHasAccessToTeam(teamId)) {
+      if (teamId && (await request.userHasAccessToTeam(teamId))) {
         return reply(id);
       }
     } catch (exception) {
@@ -833,28 +989,47 @@ export class JsonApiHapiPlugin extends HapiPlugin {
     return reply(unauthorized());
   }
 
-  public async postNotificationConfigurationHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
-    const id = await this.jsonApi.createNotificationConfiguration(getPre(request).config);
-    return reply(this.getEntity('notification', async (api) => {
-      const configuration = await api.getNotificationConfiguration(id);
-      return configuration!;
-    })).created('');
+  public async postNotificationConfigurationHandler(
+    request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
+    const id = await this.jsonApi.createNotificationConfiguration(
+      getPre(request).config,
+    );
+    return reply(
+      this.getEntity('notification', async api => {
+        const configuration = await api.getNotificationConfiguration(id);
+        return configuration!;
+      }),
+    ).created('');
   }
 
-  public async deleteNotificationConfigurationHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
+  public async deleteNotificationConfigurationHandler(
+    request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
     const id = request.params.id;
     await this.jsonApi.deleteNotificationConfiguration(Number(id));
     return reply({});
   }
 
-  public async authorizeCommentCreation(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
+  public async authorizeCommentCreation(
+    request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
     try {
       const deploymentId = request.payload.data.attributes.deployment;
       const parsed = parseApiDeploymentId(deploymentId);
       if (!parsed) {
         return reply(badRequest('Invalid deployment id'));
       }
-      if (await request.userHasAccessToDeployment(parsed.projectId, deploymentId, request.auth.credentials)) {
+      if (
+        await request.userHasAccessToDeployment(
+          parsed.projectId,
+          deploymentId,
+          request.auth.credentials,
+        )
+      ) {
         return reply(parsed.deploymentId);
       }
     } catch (exception) {
@@ -864,10 +1039,13 @@ export class JsonApiHapiPlugin extends HapiPlugin {
   }
 
   public async getComment(commentId: number) {
-    return (await this.jsonApi.getComment(commentId));
+    return await this.jsonApi.getComment(commentId);
   }
 
-  public async authorizeCommentRemoval(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
+  public async authorizeCommentRemoval(
+    request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
     try {
       const commentId = Number(request.params.id);
       const comment = await this.getComment(commentId);
@@ -876,7 +1054,13 @@ export class JsonApiHapiPlugin extends HapiPlugin {
         return reply(badRequest('Invalid deployment id'));
       }
       const { projectId, deploymentId } = parsed;
-      if (await request.userHasAccessToDeployment(projectId, deploymentId, request.auth.credentials)) {
+      if (
+        await request.userHasAccessToDeployment(
+          projectId,
+          deploymentId,
+          request.auth.credentials,
+        )
+      ) {
         return reply(commentId);
       }
     } catch (exception) {
@@ -885,26 +1069,49 @@ export class JsonApiHapiPlugin extends HapiPlugin {
     return reply(unauthorized());
   }
 
-  public async postCommentHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
+  public async postCommentHandler(
+    request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
     const { name, email, message } = request.payload.data.attributes;
-    const comment = await this.jsonApi.addComment(getPre(request).deploymentId, email, message, name || undefined);
-    return reply(this.serializeApiEntity('comment', comment))
-      .created(`/api/comments/${comment.id}`);
+    const comment = await this.jsonApi.addComment(
+      getPre(request).deploymentId,
+      email,
+      message,
+      name || undefined,
+    );
+    return reply(this.serializeApiEntity('comment', comment)).created(
+      `/api/comments/${comment.id}`,
+    );
   }
 
-  public async deleteCommentHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
+  public async deleteCommentHandler(
+    request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
     await this.jsonApi.deleteComment(getPre(request).commentId);
     return reply({});
   }
 
-  public async getDeploymentCommentsHandler(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
+  public async getDeploymentCommentsHandler(
+    request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
     const { deploymentId } = request.params;
-    return reply(this.getEntity('comment', api => api.getDeploymentComments(Number(deploymentId))));
+    return reply(
+      this.getEntity('comment', api =>
+        api.getDeploymentComments(Number(deploymentId)),
+      ),
+    );
   }
 
   public getDeploymentId(previewType: PreviewType) {
     return async (request: Hapi.Request, reply: Hapi.ReplyNoContinue) => {
-      const { branchId, deploymentId: deploymentIdString, projectId: projectIdString } = request.params;
+      const {
+        branchId,
+        deploymentId: deploymentIdString,
+        projectId: projectIdString,
+      } = request.params;
 
       let deploymentId;
       let projectId;
@@ -927,13 +1134,18 @@ export class JsonApiHapiPlugin extends HapiPlugin {
 
       switch (previewType) {
         case PreviewType.PROJECT:
-          deploymentId = await this.getLatestSuccessfulDeploymentIdForProject(projectId);
+          deploymentId = await this.getLatestSuccessfulDeploymentIdForProject(
+            projectId,
+          );
           break;
         case PreviewType.BRANCH:
           if (!branchName) {
             return reply(badRequest('Invalid branch name'));
           }
-          deploymentId = await this.getLatestSuccessfulDeploymentIdForBranch(projectId, branchName);
+          deploymentId = await this.getLatestSuccessfulDeploymentIdForBranch(
+            projectId,
+            branchName,
+          );
           break;
         case PreviewType.DEPLOYMENT:
           deploymentId = Number(deploymentIdString);
@@ -953,14 +1165,24 @@ export class JsonApiHapiPlugin extends HapiPlugin {
     };
   }
 
-  public async authorizeOpenDeployment(request: Hapi.Request, reply: Hapi.ReplyNoContinue) {
+  public async authorizeOpenDeployment(
+    request: Hapi.Request,
+    reply: Hapi.ReplyNoContinue,
+  ) {
     try {
       const projectId = Number(getPre(request)[DEPLOYMENT_PRE_KEY].projectId);
-      const deploymentId = Number(getPre(request)[DEPLOYMENT_PRE_KEY].deploymentId);
-      if (await request.userHasAccessToDeployment(projectId, deploymentId, request.auth.credentials)) {
+      const deploymentId = Number(
+        getPre(request)[DEPLOYMENT_PRE_KEY].deploymentId,
+      );
+      if (
+        await request.userHasAccessToDeployment(
+          projectId,
+          deploymentId,
+          request.auth.credentials,
+        )
+      ) {
         return reply('ok');
       }
-
     } catch (err) {
       // Nothing to be done
     }
@@ -968,13 +1190,18 @@ export class JsonApiHapiPlugin extends HapiPlugin {
   }
 
   // These are public and wrapped mainly to ease mocking in unit testing
-  public getLatestSuccessfulDeploymentIdForBranch(projectId: number, branch: string) {
-    return this.jsonApi.getLatestSuccessfulDeploymentIdForBranch(projectId, branch);
+  public getLatestSuccessfulDeploymentIdForBranch(
+    projectId: number,
+    branch: string,
+  ) {
+    return this.jsonApi.getLatestSuccessfulDeploymentIdForBranch(
+      projectId,
+      branch,
+    );
   }
   public getLatestSuccessfulDeploymentIdForProject(projectId: number) {
     return this.jsonApi.getLatestSuccessfulDeploymentIdForProject(projectId);
   }
-
 }
 
 function getPre(request: Hapi.Request) {

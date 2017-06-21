@@ -13,7 +13,10 @@ import {
 import AuthenticationModule from '../authentication/authentication-module';
 import { eventStoreConfigInjectSymbol } from '../event-bus';
 import { JsonApiHapiPlugin } from '../json-api';
-import { externalBaseUrlInjectSymbol, goodOptionsInjectSymbol } from '../server';
+import {
+  externalBaseUrlInjectSymbol,
+  goodOptionsInjectSymbol,
+} from '../server';
 import { cacheInjectSymbol } from '../shared/cache';
 import { GitlabClient } from '../shared/gitlab-client';
 import Logger, { loggerInjectSymbol } from '../shared/logger';
@@ -72,7 +75,11 @@ function getJwtOptions(log = false) {
   };
 }
 
-export function getAccessToken(sub: string, teamToken?: string, email?: string): AccessToken {
+export function getAccessToken(
+  sub: string,
+  teamToken?: string,
+  email?: string,
+): AccessToken {
   let payload = {
     iss: issuer,
     sub,
@@ -89,7 +96,11 @@ export function getAccessToken(sub: string, teamToken?: string, email?: string):
   return payload;
 }
 
-export function getSignedAccessToken(sub: string, teamToken?: string, email?: string) {
+export function getSignedAccessToken(
+  sub: string,
+  teamToken?: string,
+  email?: string,
+) {
   return sign(getAccessToken(sub, teamToken, email), secretKey);
 }
 
@@ -106,7 +117,9 @@ export default (kernel: Container) => {
   kernel.rebind(charlesKnexInjectSymbol).toConstantValue(charlesKnex);
   kernel.rebind(loggerInjectSymbol).toConstantValue(logger);
   kernel.bind(jwtOptionsInjectSymbol).toConstantValue(getJwtOptions());
-  kernel.rebind(authCookieDomainInjectSymbol).toConstantValue(AUTH_COOKIE_DOMAIN);
+  kernel
+    .rebind(authCookieDomainInjectSymbol)
+    .toConstantValue(AUTH_COOKIE_DOMAIN);
   kernel.rebind(externalBaseUrlInjectSymbol).toConstantValue(EXTERNAL_BASEURL);
 
   const cache = caching({
@@ -115,6 +128,11 @@ export default (kernel: Container) => {
     ttl: 0,
   });
   kernel.rebind(cacheInjectSymbol).toConstantValue(cache);
-  kernel.rebind(JsonApiHapiPlugin.injectSymbol).to(JsonApiHapiPlugin).inTransientScope();
-  kernel.rebind(eventStoreConfigInjectSymbol).toConstantValue({type: 'inmemory'});
+  kernel
+    .rebind(JsonApiHapiPlugin.injectSymbol)
+    .to(JsonApiHapiPlugin)
+    .inTransientScope();
+  kernel
+    .rebind(eventStoreConfigInjectSymbol)
+    .toConstantValue({ type: 'inmemory' });
 };

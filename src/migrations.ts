@@ -11,7 +11,6 @@ import {
 
 @injectable()
 export default class Migrations {
-
   public static injectSymbol = Symbol('migrations');
 
   public constructor(
@@ -19,7 +18,7 @@ export default class Migrations {
     @inject(postgresKnexInjectSymbol) private readonly postgresKnex: Knex,
     @inject(loggerInjectSymbol) private readonly logger: Logger,
     @inject(charlesDbNameInjectSymbol) private readonly charlesDbName: string,
-  ) { }
+  ) {}
 
   public async prepareDatabase() {
     this.logger.info('Preparing charles database');
@@ -70,8 +69,9 @@ export default class Migrations {
       } catch (err) {
         this.logger.info(
           `Failed to assure that charles database exists. ` +
-          `Postgres is probably not (yet) running. ` +
-          `Waiting for 2 seconds. Message was: ${err.message}`);
+            `Postgres is probably not (yet) running. ` +
+            `Waiting for 2 seconds. Message was: ${err.message}`,
+        );
         await sleep(2000);
       }
     }
@@ -90,5 +90,4 @@ export default class Migrations {
     }
     this.postgresKnex.destroy();
   }
-
 }

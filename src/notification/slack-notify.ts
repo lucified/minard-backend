@@ -14,7 +14,8 @@ export function getMessage(
   comment?: NotificationComment,
 ): SlackMessage {
   const author = comment || deployment.commit.author;
-  const fallback = `New ${comment ? 'comment' : 'preview'} in ` +
+  const fallback =
+    `New ${comment ? 'comment' : 'preview'} in ` +
     `${deployment.projectName}/${deployment.ref}: ${previewUrl}`;
   const message: SlackAttachment = {
     fallback,
@@ -83,7 +84,13 @@ export class SlackNotify {
     }
 
     const fullPreviewUrl = commentUrl || previewUrl;
-    const body = getMessage(deployment, fullPreviewUrl, projectUrl, branchUrl, comment);
+    const body = getMessage(
+      deployment,
+      fullPreviewUrl,
+      projectUrl,
+      branchUrl,
+      comment,
+    );
 
     const options = {
       method: 'POST',
@@ -95,7 +102,12 @@ export class SlackNotify {
     };
 
     const ret = await this.fetch(webhookUrl, options);
-    if (ret.status === 202 || ret.status === 200 || ret.status === 201 || ret.status === 204) {
+    if (
+      ret.status === 202 ||
+      ret.status === 200 ||
+      ret.status === 201 ||
+      ret.status === 204
+    ) {
       return;
     }
 
@@ -103,10 +115,12 @@ export class SlackNotify {
       const json = await ret.json();
       throw Error(
         `Unexpected status ${ret.status} when posting Slack notification. ` +
-        `Response was ${JSON.stringify(json, null, 2)}`,
+          `Response was ${JSON.stringify(json, null, 2)}`,
       );
     } catch (error) {
-      throw Error(`Unexpected status ${ret.status} when posting Slack notification.`);
+      throw Error(
+        `Unexpected status ${ret.status} when posting Slack notification.`,
+      );
     }
   }
 }

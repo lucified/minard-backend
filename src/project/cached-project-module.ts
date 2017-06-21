@@ -16,9 +16,9 @@ function getProjectContributorsCacheKey(projectId: number) {
 
 @injectable()
 export default class CachedProjectModule extends ProjectModule {
-
   constructor(
-    @inject(AuthenticationModule.injectSymbol) authenticationModule: AuthenticationModule,
+    @inject(AuthenticationModule.injectSymbol)
+    authenticationModule: AuthenticationModule,
     @inject(SystemHookModule.injectSymbol) systemHookModule: SystemHookModule,
     @inject(eventBusInjectSymbol) eventBus: EventBus,
     @inject(GitlabClient.injectSymbol) gitlab: GitlabClient,
@@ -36,13 +36,19 @@ export default class CachedProjectModule extends ProjectModule {
     );
   }
 
-  public async getProjectContributors(projectId: number): Promise<MinardProjectContributor[] | null> {
+  public async getProjectContributors(
+    projectId: number,
+  ): Promise<MinardProjectContributor[] | null> {
     const key = getProjectContributorsCacheKey(projectId);
     const wrapper = () => this._getProjectContributors(projectId);
     return this.cache.wrap<MinardProjectContributor[] | null>(key, wrapper);
   }
 
-  public async handlePushEvent(projectId: number, ref: string, payload: GitlabPushEvent) {
+  public async handlePushEvent(
+    projectId: number,
+    ref: string,
+    payload: GitlabPushEvent,
+  ) {
     await this.cache.del(getProjectContributorsCacheKey(projectId));
     return this._handlePushEvent(projectId, ref, payload);
   }
@@ -54,8 +60,11 @@ export default class CachedProjectModule extends ProjectModule {
     return super.getProjectContributors(projectId);
   }
 
-  public async _handlePushEvent(projectId: number, ref: string, payload: GitlabPushEvent) {
+  public async _handlePushEvent(
+    projectId: number,
+    ref: string,
+    payload: GitlabPushEvent,
+  ) {
     return super.handlePushEvent(projectId, ref, payload);
   }
-
 }

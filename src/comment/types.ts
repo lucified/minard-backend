@@ -2,8 +2,7 @@ import { Moment } from 'moment';
 
 import { eventCreator } from '../shared/events';
 
-export interface NewMinardComment extends BaseComment {
-}
+export interface NewMinardComment extends BaseComment {}
 
 export interface DbComment extends BaseComment {
   id: number;
@@ -26,16 +25,18 @@ export interface BaseComment {
 }
 
 export const COMMENT_ADDED_EVENT_TYPE = 'COMMENT_ADDED';
-export const createCommentAddedEvent =
-  eventCreator<CommentAddedEvent>(COMMENT_ADDED_EVENT_TYPE);
+export const createCommentAddedEvent = eventCreator<CommentAddedEvent>(
+  COMMENT_ADDED_EVENT_TYPE,
+);
 
 export interface CommentAddedEvent extends MinardComment {
   teamId: number;
 }
 
 export const COMMENT_DELETED_EVENT_TYPE = 'COMMENT_DELETED';
-export const createCommentDeletedEvent =
-  eventCreator<CommentDeletedEvent>(COMMENT_DELETED_EVENT_TYPE);
+export const createCommentDeletedEvent = eventCreator<CommentDeletedEvent>(
+  COMMENT_DELETED_EVENT_TYPE,
+);
 
 export interface CommentDeletedEvent {
   teamId: number;

@@ -25,9 +25,9 @@ export interface BaseNotificationConfiguration {
 }
 
 export type NotificationConfiguration =
-  HipChatNotificationConfiguration |
-  FlowdockNotificationConfiguration |
-  SlackNotificationConfiguration;
+  | HipChatNotificationConfiguration
+  | FlowdockNotificationConfiguration
+  | SlackNotificationConfiguration;
 
 export interface NotificationComment {
   name?: string;
@@ -49,7 +49,7 @@ export interface SlackAttachment {
   title?: string;
   title_link?: string;
   text?: string; // "Optional text that appears within the attachment",
-  fields: { title: string; value: string; short?: boolean; }[];
+  fields: { title: string; value: string; short?: boolean }[];
   // Large images will be resized to a maximum width of 400px or a maximum height of 500px,
   // while still maintaining the original aspect ratio.
   image_url?: string;

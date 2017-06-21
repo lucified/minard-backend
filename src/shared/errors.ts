@@ -1,9 +1,7 @@
 import { BoomError } from 'boom';
-import { Response} from 'hapi';
+import { Response } from 'hapi';
 
-export function maskErrors(
-  response: Response,
-) {
+export function maskErrors(response: Response) {
   if (response.isBoom) {
     const boomError = (response as any) as BoomError;
     const { output } = boomError;

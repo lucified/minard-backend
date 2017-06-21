@@ -3,13 +3,8 @@ import * as Knex from 'knex';
 import * as moment from 'moment';
 import 'reflect-metadata';
 
-import {
-  EventBus,
-  LocalEventBus,
-} from '../event-bus';
-import {
-  CommentModule,
-} from './comment-module';
+import { EventBus, LocalEventBus } from '../event-bus';
+import { CommentModule } from './comment-module';
 import {
   COMMENT_ADDED_EVENT_TYPE,
   COMMENT_DELETED_EVENT_TYPE,
@@ -24,7 +19,6 @@ function getEventBus() {
 }
 
 describe('comment-module', () => {
-
   async function setupKnex() {
     const knex = Knex({
       client: 'sqlite3',
@@ -94,7 +88,8 @@ describe('comment-module', () => {
       const bus = getEventBus();
       const commentModule = await arrangeCommentModule(bus);
 
-      const promise = bus.filterEvents<CommentAddedEvent>(COMMENT_ADDED_EVENT_TYPE)
+      const promise = bus
+        .filterEvents<CommentAddedEvent>(COMMENT_ADDED_EVENT_TYPE)
         .take(1)
         .toPromise();
 
@@ -186,5 +181,4 @@ describe('comment-module', () => {
       expect(comment!.createdAt.valueOf()).to.equal(dbComments[1].createdAt);
     });
   });
-
 });

@@ -1,6 +1,8 @@
 import { Request } from '../server/hapi';
 
-export const internalHostSuffixesInjectSymbol = Symbol('internal-host-suffixes');
+export const internalHostSuffixesInjectSymbol = Symbol(
+  'internal-host-suffixes',
+);
 export const auth0DomainInjectSymbol = Symbol('auth0-domain');
 export const auth0ClientIdInjectSymbol = Symbol('auth0-client');
 export const auth0AudienceInjectSymbol = Symbol('auth0-audience');
@@ -31,9 +33,14 @@ export const enum AuthorizationStatus {
   NOT_CHECKED,
 }
 
-export type Authorizer = (userName: string, request: Request) => Promise<AuthorizationStatus>;
+export type Authorizer = (
+  userName: string,
+  request: Request,
+) => Promise<AuthorizationStatus>;
 
-export type RequestCredentials = undefined | (AccessToken & { authorizationStatus: AuthorizationStatus });
+export type RequestCredentials =
+  | undefined
+  | (AccessToken & { authorizationStatus: AuthorizationStatus });
 
 export const STRATEGY_TOPLEVEL_USER_HEADER = 'jwt-user-header';
 export const STRATEGY_TOPLEVEL_USER_URL = 'jwt-user-url';

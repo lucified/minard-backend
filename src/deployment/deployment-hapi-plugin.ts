@@ -33,9 +33,8 @@ class DeploymentHapiPlugin extends HapiPlugin {
   public static injectSymbol = Symbol('deployment-hapi-plugin');
 
   constructor(
-    @inject(
-      DeploymentModule.injectSymbol,
-    ) protected readonly deploymentModule: DeploymentModule,
+    @inject(DeploymentModule.injectSymbol)
+    protected readonly deploymentModule: DeploymentModule,
     @inject(minardUiBaseUrlInjectSymbol) private readonly uiBaseUrl: string,
     @inject(loggerInjectSymbol) private readonly logger: Logger,
   ) {
@@ -85,7 +84,7 @@ class DeploymentHapiPlugin extends HapiPlugin {
   ) {
     // Redirect to login page, if user didn't pass
     const { response } = request;
-    if (!response || !response.isBoom || !response.output) {
+    if (!response || !response.isBoom || !response.output) {
       return reply.continue();
     }
     const { statusCode } = response.output;
@@ -93,10 +92,7 @@ class DeploymentHapiPlugin extends HapiPlugin {
     if (request.info.hostname === deploymentVhost && hasForbiddenStatusCode) {
       maskErrors(response);
 
-      if (
-        !request.auth.isAuthenticated &&
-        !request.isInternal
-      ) {
+      if (!request.auth.isAuthenticated && !request.isInternal) {
         return reply.redirect(
           `${this.uiBaseUrl}/login/${getEncodedUri(request)}`,
         );

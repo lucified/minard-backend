@@ -1,10 +1,9 @@
-
 import { inject, injectable } from 'inversify';
 
 import { EventBus, eventBusInjectSymbol } from '../event-bus';
 import { SystemHook } from '../shared/gitlab';
 import { GitlabClient } from '../shared/gitlab-client';
-import { Logger, loggerInjectSymbol} from '../shared/logger';
+import { Logger, loggerInjectSymbol } from '../shared/logger';
 import { createSystemHookRegistrationEvent } from './types';
 
 const urljoin = require('url-join');
@@ -13,7 +12,6 @@ export const systemHookBaseUrlSymbol = Symbol('system-hook-base-url');
 
 @injectable()
 export default class SystemHookModule {
-
   public static injectSymbol = Symbol('system-hook-module');
 
   private gitlabClient: GitlabClient;
@@ -25,7 +23,8 @@ export default class SystemHookModule {
     @inject(GitlabClient.injectSymbol) gitlabClient: GitlabClient,
     @inject(systemHookBaseUrlSymbol) baseUrl: string,
     @inject(eventBusInjectSymbol) bus: EventBus,
-    @inject(loggerInjectSymbol) logger: Logger) {
+    @inject(loggerInjectSymbol) logger: Logger,
+  ) {
     this.gitlabClient = gitlabClient;
     this.baseUrl = baseUrl;
     this.bus = bus;
@@ -44,22 +43,25 @@ export default class SystemHookModule {
     while (!registered) {
       try {
         registered = await this.tryAssureSystemHookRegistered(path);
-        this.bus.post(createSystemHookRegistrationEvent({ status: 'success', path }));
+        this.bus.post(
+          createSystemHookRegistrationEvent({ status: 'success', path }),
+        );
         this.logger.info(`Registered system hook for path "${path}"`);
-
-    } catch (err) {
-        this.bus.post(createSystemHookRegistrationEvent({
+      } catch (err) {
+        this.bus.post(
+          createSystemHookRegistrationEvent({
             status: 'failed',
             path,
             message: err.message,
-          }));
+          }),
+        );
         await sleep(3000);
       }
     }
   }
 
   public async tryAssureSystemHookRegistered(path: string) {
-    if (!(await this.hasSystemHookRegistered(path))) {
+    if (!await this.hasSystemHookRegistered(path)) {
       return await this.registerSystemHook(path);
     }
     return true;
@@ -82,5 +84,4 @@ export default class SystemHookModule {
     const res = await this.gitlabClient.fetch(url, { method: 'POST' });
     return res.status === 200;
   }
-
 }

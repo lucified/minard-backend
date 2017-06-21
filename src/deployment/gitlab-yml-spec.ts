@@ -1,19 +1,10 @@
 import { expect } from 'chai';
 
-import {
-  getGitlabSpec,
-  gitlabSpecToYml,
-} from './gitlab-yml';
-import {
-  GitlabSpec,
-  MinardJsonBuild,
-  MinardJsonBuildCommand,
-} from './types';
+import { getGitlabSpec, gitlabSpecToYml } from './gitlab-yml';
+import { GitlabSpec, MinardJsonBuild, MinardJsonBuildCommand } from './types';
 
 describe('gitlab-yml', () => {
-
   describe('getGitLabSpec', () => {
-
     const defaultImage = 'node:latest';
     const command = 'npm-run-script-build';
 
@@ -30,8 +21,11 @@ describe('gitlab-yml', () => {
     });
 
     function expectCorrectBuildSpec(
-      spec: GitlabSpec, expectedPublicRoot: string,
-      expectedImage: string, expectedScript: string) {
+      spec: GitlabSpec,
+      expectedPublicRoot: string,
+      expectedImage: string,
+      expectedScript: string,
+    ) {
       expect(spec.build.artifacts).to.exist;
       expect(spec.build.artifacts!.paths).to.have.length(1);
       expect(spec.build.artifacts!.paths[0]).to.equal(expectedPublicRoot);
@@ -40,7 +34,7 @@ describe('gitlab-yml', () => {
       expect(spec.build.script[0]).to.equal(expectedScript);
     }
 
-    it ('should return correct spec when there is a build with no image specified', () => {
+    it('should return correct spec when there is a build with no image specified', () => {
       const minardJson = {
         publicRoot: 'foo',
         build: {
@@ -56,7 +50,7 @@ describe('gitlab-yml', () => {
       expect(spec.build.script[0]).to.equal(minardJson.build.commands);
     });
 
-    it ('should return correct spec when commands is a string', () => {
+    it('should return correct spec when commands is a string', () => {
       const minardJson = {
         publicRoot: 'foo',
         build: {
@@ -64,10 +58,15 @@ describe('gitlab-yml', () => {
         },
       };
       const spec = getGitlabSpec(minardJson);
-      expectCorrectBuildSpec(spec, minardJson.publicRoot, defaultImage, command);
+      expectCorrectBuildSpec(
+        spec,
+        minardJson.publicRoot,
+        defaultImage,
+        command,
+      );
     });
 
-    it ('should return correct spec when commands is an object', () => {
+    it('should return correct spec when commands is an object', () => {
       const minardJson = {
         publicRoot: 'foo',
         build: {
@@ -78,10 +77,15 @@ describe('gitlab-yml', () => {
         },
       };
       const spec = getGitlabSpec(minardJson);
-      expectCorrectBuildSpec(spec, minardJson.publicRoot, defaultImage, command);
+      expectCorrectBuildSpec(
+        spec,
+        minardJson.publicRoot,
+        defaultImage,
+        command,
+      );
     });
 
-    it ('should return correct spec when commands is an an array of strings', () => {
+    it('should return correct spec when commands is an an array of strings', () => {
       const minardJson = {
         publicRoot: 'foo',
         build: {
@@ -89,38 +93,57 @@ describe('gitlab-yml', () => {
         },
       };
       const spec = getGitlabSpec(minardJson);
-      expectCorrectBuildSpec(spec, minardJson.publicRoot, defaultImage, command);
+      expectCorrectBuildSpec(
+        spec,
+        minardJson.publicRoot,
+        defaultImage,
+        command,
+      );
     });
 
-    it ('should return correct spec when commands is an array of objects', () => {
+    it('should return correct spec when commands is an array of objects', () => {
       const minardJson = {
         publicRoot: 'foo',
         build: {
-          commands: [{
-            name: 'build',
-            command,
-          }],
+          commands: [
+            {
+              name: 'build',
+              command,
+            },
+          ],
         },
       };
       const spec = getGitlabSpec(minardJson);
-      expectCorrectBuildSpec(spec, minardJson.publicRoot, defaultImage, command);
+      expectCorrectBuildSpec(
+        spec,
+        minardJson.publicRoot,
+        defaultImage,
+        command,
+      );
     });
 
-    it ('should return correct spec when cache settings are included', () => {
+    it('should return correct spec when cache settings are included', () => {
       const minardJson = {
         publicRoot: 'foo',
         build: {
-          commands: [{
-            name: 'build',
-            command,
-          }],
+          commands: [
+            {
+              name: 'build',
+              command,
+            },
+          ],
           cache: {
-          paths: 'node_modules',
+            paths: 'node_modules',
           },
         },
       };
       const spec = getGitlabSpec(minardJson);
-      expectCorrectBuildSpec(spec, minardJson.publicRoot, defaultImage, command);
+      expectCorrectBuildSpec(
+        spec,
+        minardJson.publicRoot,
+        defaultImage,
+        command,
+      );
       expect(spec.cache).to.deep.equal(minardJson.build.cache);
     });
 
@@ -155,18 +178,17 @@ describe('gitlab-yml', () => {
       const minardJson = {
         publicRoot: 'foo',
         build: {
-          commands: { name: 'foo' } as {} as MinardJsonBuildCommand,
+          commands: ({ name: 'foo' } as {}) as MinardJsonBuildCommand,
         },
       };
       expectDoNotBuildSpec(getGitlabSpec(minardJson));
     });
 
-    it('should return do-not-build spec when build commands in an array with an object with no command attribute',
-      () => {
+    it('should return do-not-build spec when build commands in an array with an object with no command attribute', () => {
       const minardJson = {
         publicRoot: 'foo',
         build: {
-          commands: [{ name: 'foo' } as {} as MinardJsonBuildCommand],
+          commands: [({ name: 'foo' } as {}) as MinardJsonBuildCommand],
         },
       };
       expectDoNotBuildSpec(getGitlabSpec(minardJson));
@@ -176,23 +198,26 @@ describe('gitlab-yml', () => {
       const minardJson = {
         publicRoot: 'foo',
         build: {
-          commands: { name: 'foo', command: {} } as {} as MinardJsonBuildCommand,
+          commands: ({
+            name: 'foo',
+            command: {},
+          } as {}) as MinardJsonBuildCommand,
         },
       };
       expectDoNotBuildSpec(getGitlabSpec(minardJson));
     });
 
-    it('should return do-not-build spec when build commands in an array with an object with invalid command attribute',
-      () => {
+    it('should return do-not-build spec when build commands in an array with an object with invalid command attribute', () => {
       const minardJson = {
         publicRoot: 'foo',
         build: {
-          commands: [{ name: 'foo', command: {} } as {} as MinardJsonBuildCommand],
+          commands: [
+            ({ name: 'foo', command: {} } as {}) as MinardJsonBuildCommand,
+          ],
         },
       };
       expectDoNotBuildSpec(getGitlabSpec(minardJson));
     });
-
   });
 
   describe('gitlabSpecToYaml', () => {
@@ -202,15 +227,10 @@ describe('gitlab-yml', () => {
       const spec: GitlabSpec = {
         image: 'node:latest',
         build: {
-          script: [
-            'npm install',
-            'npm run-script build',
-          ],
+          script: ['npm install', 'npm run-script build'],
           artifacts: {
             name: 'artifact-name',
-            paths: [
-              'dist',
-            ],
+            paths: ['dist'],
           },
         },
         cache: {
@@ -218,8 +238,7 @@ describe('gitlab-yml', () => {
         },
       };
       const yaml = gitlabSpecToYml(spec);
-      const expectedYaml =
-`image: 'node:latest'
+      const expectedYaml = `image: 'node:latest'
 build:
   script:
     - 'npm install'
@@ -239,17 +258,13 @@ cache:
       const spec = {
         image: 'node:latest',
         build: {
-          script: [
-            'npm install',
-            'npm run-script build',
-          ],
+          script: ['npm install', 'npm run-script build'],
         },
         artifacts: undefined,
         cache: undefined,
       };
       const yaml = gitlabSpecToYml(spec);
-      const expectedYaml =
-`image: 'node:latest'
+      const expectedYaml = `image: 'node:latest'
 build:
   script:
     - 'npm install'
@@ -257,7 +272,5 @@ build:
 `;
       expect(yaml).to.equal(expectedYaml);
     });
-
   });
-
 });

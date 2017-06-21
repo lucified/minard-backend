@@ -13,21 +13,24 @@ export default class AuthenticationModule {
   constructor(
     @inject(gitlabKnexInjectSymbol) private gitlabKnex: Knex,
     @inject(gitlabRootPasswordInjectSymbol) private rootPassword: string,
-  ) { }
+  ) {}
 
   public async getPrivateAuthenticationToken(userId: number): Promise<string> {
-    const row = await this.gitlabKnex.select('authentication_token')
-      .from('users').where('id', userId).first();
+    const row = await this.gitlabKnex
+      .select('authentication_token')
+      .from('users')
+      .where('id', userId)
+      .first();
     return row.authentication_token;
   }
 
   public async getRootAuthenticationToken() {
-    this.rootToken = this.rootToken || await this.getPrivateAuthenticationToken(1);
+    this.rootToken =
+      this.rootToken || (await this.getPrivateAuthenticationToken(1));
     return this.rootToken;
   }
 
   public getRootPassword() {
     return this.rootPassword;
   }
-
 }

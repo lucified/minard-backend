@@ -4,7 +4,9 @@ import { eventCreator } from '../shared/events';
 import { BuildStatus } from '../shared/gitlab';
 import { MinardCommit } from '../shared/minard-commit';
 
-export const deploymentUrlPatternInjectSymbol = Symbol('deployment-url-pattern');
+export const deploymentUrlPatternInjectSymbol = Symbol(
+  'deployment-url-pattern',
+);
 
 export interface DeploymentStatusUpdate {
   buildStatus?: MinardDeploymentStatus;
@@ -25,23 +27,31 @@ export interface DeploymentEvent {
 }
 
 export const BUILD_STATUS_EVENT_TYPE = 'BUILD_STATUS_EVENT';
-export const createBuildStatusEvent =
-  eventCreator<BuildStatusEvent>(BUILD_STATUS_EVENT_TYPE);
+export const createBuildStatusEvent = eventCreator<BuildStatusEvent>(
+  BUILD_STATUS_EVENT_TYPE,
+);
 
 export const DEPLOYMENT_EVENT_TYPE = 'DEPLOYMENT_UPDATED';
-export const createDeploymentEvent =
-  eventCreator<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE);
+export const createDeploymentEvent = eventCreator<DeploymentEvent>(
+  DEPLOYMENT_EVENT_TYPE,
+);
 
 export const BUILD_CREATED_EVENT = 'BUILD_CREATED_EVENT';
-export const createBuildCreatedEvent =
-  eventCreator<BuildCreatedEvent>(BUILD_CREATED_EVENT);
+export const createBuildCreatedEvent = eventCreator<BuildCreatedEvent>(
+  BUILD_CREATED_EVENT,
+);
 
 export interface DeploymentKey {
   projectId: number;
   deploymentId: number;
 }
 
-export type MinardDeploymentStatus = 'pending' | 'running' | 'success' | 'failed' | 'canceled';
+export type MinardDeploymentStatus =
+  | 'pending'
+  | 'running'
+  | 'success'
+  | 'failed'
+  | 'canceled';
 
 export interface MinardDeploymentCreator {
   name: string;
@@ -63,9 +73,9 @@ interface PlainDeployment {
 }
 
 export interface DbDeployment extends PlainDeployment {
-  commit: string | MinardCommit; // type depends on the DB driver
-  finishedAt?: number | string; // type depends on the DB driver
-  createdAt: number | string; // type depends on the DB driver
+  commit: string | MinardCommit; // type depends on the DB driver
+  finishedAt?: number | string; // type depends on the DB driver
+  createdAt: number | string; // type depends on the DB driver
 }
 
 export interface MinardDeployment extends PlainDeployment {
@@ -83,10 +93,14 @@ export interface MinardJsonBuildCommand {
 }
 
 export interface MinardJsonBuild {
-  commands: MinardJsonBuildCommand[] | string[] | MinardJsonBuildCommand | string;
+  commands:
+    | MinardJsonBuildCommand[]
+    | string[]
+    | MinardJsonBuildCommand
+    | string;
   image?: string;
   variables?: {
-  [key: string]: string;
+    [key: string]: string;
   };
   cache?: any;
 }
@@ -107,16 +121,16 @@ export interface MinardJsonInfo {
 export interface GitlabSpec {
   image: string;
   build: {
-    script: string[],
-    when?: string,
-    variables?: {[key: string]: string}
+    script: string[];
+    when?: string;
+    variables?: { [key: string]: string };
     artifacts?: {
-      name: string,
-      paths: string[],
+      name: string;
+      paths: string[];
     };
   };
   cache?: {
-    paths: string[],
+    paths: string[];
   };
 }
 

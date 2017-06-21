@@ -25,7 +25,6 @@ import {
 
 @injectable()
 class CachedAuthenticationHapiPlugin extends AuthenticationHapiPlugin {
-
   constructor(
     @inject(GitlabClient.injectSymbol) gitlab: GitlabClient,
     @inject(authCookieDomainInjectSymbol) authCookieDomain: string,
@@ -38,7 +37,9 @@ class CachedAuthenticationHapiPlugin extends AuthenticationHapiPlugin {
     @inject(openTeamNamesInjectSymbol) openTeamNames: string[],
     @inject(fetchInjectSymbol) fetch: IFetch,
     @inject(internalHostSuffixesInjectSymbol) internalHostSuffixes: string[],
-    @inject(jwtOptionsInjectSymbol) @optional() defaultJWTOptions?: auth.JWTStrategyOptions,
+    @inject(jwtOptionsInjectSymbol)
+    @optional()
+    defaultJWTOptions?: auth.JWTStrategyOptions,
   ) {
     super(
       gitlab,
@@ -58,28 +59,35 @@ class CachedAuthenticationHapiPlugin extends AuthenticationHapiPlugin {
       this.userHasAccessToProjectAsync,
       { primitive: true, promise: false, async: true },
     );
-    this.userHasAccessToTeamAsync = memoizee(
-      this.userHasAccessToTeamAsync,
-      { primitive: true, promise: false, async: true },
-    );
-    this.isAdminAsync = memoizee(
-      this.isAdminAsync,
-      { primitive: true, promise: false, async: true },
-    );
-    this.getProjectTeamAsync = memoizee(
-      this.getProjectTeamAsync,
-      { primitive: true, promise: false, async: true },
-    );
+    this.userHasAccessToTeamAsync = memoizee(this.userHasAccessToTeamAsync, {
+      primitive: true,
+      promise: false,
+      async: true,
+    });
+    this.isAdminAsync = memoizee(this.isAdminAsync, {
+      primitive: true,
+      promise: false,
+      async: true,
+    });
+    this.getProjectTeamAsync = memoizee(this.getProjectTeamAsync, {
+      primitive: true,
+      promise: false,
+      async: true,
+    });
   }
 
   public userHasAccessToTeam(userName: string, teamId: number) {
     return new Promise<boolean>((resolve, _reject) => {
-      this.userHasAccessToTeamAsync(userName, teamId, (error: any, result: boolean) => {
-        if (error) {
-          return resolve(false);
-        }
-        return resolve(result);
-      });
+      this.userHasAccessToTeamAsync(
+        userName,
+        teamId,
+        (error: any, result: boolean) => {
+          if (error) {
+            return resolve(false);
+          }
+          return resolve(result);
+        },
+      );
     });
   }
   protected userHasAccessToTeamAsync(
@@ -87,8 +95,7 @@ class CachedAuthenticationHapiPlugin extends AuthenticationHapiPlugin {
     teamId: number,
     done: (err: any, result: boolean) => void,
   ) {
-    return this._userHasAccessToTeam(userName, teamId)
-      .then(
+    return this._userHasAccessToTeam(userName, teamId).then(
       result => {
         if (result) {
           return done(undefined, result);
@@ -101,12 +108,16 @@ class CachedAuthenticationHapiPlugin extends AuthenticationHapiPlugin {
 
   public userHasAccessToProject(userName: string, projectId: number) {
     return new Promise<boolean>((resolve, _reject) => {
-      this.userHasAccessToProjectAsync(userName, projectId, (error: any, result: boolean) => {
-        if (error) {
-          return resolve(false);
-        }
-        return resolve(result);
-      });
+      this.userHasAccessToProjectAsync(
+        userName,
+        projectId,
+        (error: any, result: boolean) => {
+          if (error) {
+            return resolve(false);
+          }
+          return resolve(result);
+        },
+      );
     });
   }
 
@@ -115,8 +126,7 @@ class CachedAuthenticationHapiPlugin extends AuthenticationHapiPlugin {
     projectId: number,
     done: (err: any, result: boolean) => void,
   ) {
-    return this._userHasAccessToProject(userName, projectId)
-      .then(
+    return this._userHasAccessToProject(userName, projectId).then(
       result => {
         if (result) {
           return done(undefined, result);
@@ -142,33 +152,36 @@ class CachedAuthenticationHapiPlugin extends AuthenticationHapiPlugin {
     userName: string,
     done: (err: any, result: boolean) => void,
   ) {
-    return this._isAdmin(userName)
-      .then(
-        result => done(undefined, result), // Cache falses
-        error => done(error, false),
-      );
+    return this._isAdmin(userName).then(
+      result => done(undefined, result), // Cache falses
+      error => done(error, false),
+    );
   }
 
-  public getProjectTeam(projectId: number): Promise<{id: number, name: string}> {
+  public getProjectTeam(
+    projectId: number,
+  ): Promise<{ id: number; name: string }> {
     return new Promise((resolve, reject) => {
-      this.getProjectTeamAsync(projectId, (error?: any, result?: {id: number, name: string}) => {
-        if (error) {
-          return reject(error);
-        }
-        return resolve(result);
-      });
+      this.getProjectTeamAsync(
+        projectId,
+        (error?: any, result?: { id: number; name: string }) => {
+          if (error) {
+            return reject(error);
+          }
+          return resolve(result);
+        },
+      );
     });
   }
 
   protected getProjectTeamAsync(
     projectId: number,
-    done: (err: any, result?: {id: number, name: string}) => void,
+    done: (err: any, result?: { id: number; name: string }) => void,
   ) {
-    return this._getProjectTeam(projectId)
-      .then(
-        result => done(undefined, result),
-        error => done(error),
-      );
+    return this._getProjectTeam(projectId).then(
+      result => done(undefined, result),
+      error => done(error),
+    );
   }
 }
 

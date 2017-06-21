@@ -19,7 +19,9 @@ const TEST_EVENT_TYPE = 'TEST_EVENT_TYPE';
 const testEventCreator = eventCreator<Payload>(TEST_EVENT_TYPE);
 
 const ANOTHER_TEST_EVENT_TYPE = 'ANOTHER_TEST_EVENT_TYPE';
-const anotherTestEventCreator = eventCreator<AnotherPayload>(ANOTHER_TEST_EVENT_TYPE);
+const anotherTestEventCreator = eventCreator<AnotherPayload>(
+  ANOTHER_TEST_EVENT_TYPE,
+);
 
 describe('event-creator', () => {
   it('creates events with expected type', () => {
@@ -41,17 +43,16 @@ describe('event-creator', () => {
     testEvent = testEventCreator({ status: 'bar', foo: 'foo', teamId });
     expect(testEvent.teamId).to.equal(teamId);
   });
-
 });
 
 describe('event-bus', () => {
-
   // TODO: implement this and then enable the test
   it.skip('should not crash if flatMap throws', async () => {
     const bus = new EventBus();
     let count = 0;
     const promise = new Promise((resolve, _reject) => {
-      bus.filterEvents<Payload>(TEST_EVENT_TYPE)
+      bus
+        .filterEvents<Payload>(TEST_EVENT_TYPE)
         .flatMap(_event => {
           count++;
           if (count === 1) {
@@ -70,10 +71,7 @@ describe('event-bus', () => {
 
   it('should work with single event', async () => {
     const bus = new EventBus();
-    const promise = bus
-      .getStream()
-      .take(1)
-      .toPromise();
+    const promise = bus.getStream().take(1).toPromise();
 
     bus.post(testEventCreator({ status: 'bar' }));
     const event = await promise;
@@ -94,46 +92,49 @@ describe('event-bus', () => {
 
     expect(event.type).to.equal(TEST_EVENT_TYPE);
     expect(event.payload.status).to.equal('bar');
-
   });
 
   it('should allow filtering by multiple types', async () => {
     const bus = new EventBus();
     let counter = 0;
     const promise = bus
-      .filterEvents<Payload | AnotherPayload>(TEST_EVENT_TYPE, ANOTHER_TEST_EVENT_TYPE)
+      .filterEvents<Payload | AnotherPayload>(
+        TEST_EVENT_TYPE,
+        ANOTHER_TEST_EVENT_TYPE,
+      )
       .take(2)
       .toArray()
       .toPromise();
 
     const testEvent = testEventCreator({ status: 'bar', foo: 'foo' });
-    const anotherTestEvent = anotherTestEventCreator({ status: 'foo', bar: 'bar' });
+    const anotherTestEvent = anotherTestEventCreator({
+      status: 'foo',
+      bar: 'bar',
+    });
 
     await Promise.all([bus.post(testEvent), bus.post(anotherTestEvent)]);
     const events = await promise;
 
     events.forEach(event => {
-        const payload = event.payload;
-        // Type narrowing
-        switch (payload.status) {
-          case 'bar':
-            expect(event.type).to.equal(TEST_EVENT_TYPE);
-            expect(payload.foo).to.equal('foo');
+      const payload = event.payload;
+      // Type narrowing
+      switch (payload.status) {
+        case 'bar':
+          expect(event.type).to.equal(TEST_EVENT_TYPE);
+          expect(payload.foo).to.equal('foo');
 
-            break;
-          case 'foo':
-            expect(event.type).to.equal(ANOTHER_TEST_EVENT_TYPE);
-            expect(payload.bar).to.equal('bar');
+          break;
+        case 'foo':
+          expect(event.type).to.equal(ANOTHER_TEST_EVENT_TYPE);
+          expect(payload.bar).to.equal('bar');
 
-            break;
+          break;
 
-          default:
-            throw new Error('Unknown type');
-        }
-        counter++;
+        default:
+          throw new Error('Unknown type');
+      }
+      counter++;
     });
     expect(counter).to.eq(2);
-
   });
-
 });

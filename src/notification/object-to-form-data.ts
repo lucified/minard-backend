@@ -8,7 +8,10 @@ function objectToFormData(obj: any, form?: FormData, _namespace?: string) {
     if (obj.hasOwnProperty(property)) {
       formKey = _namespace ? _namespace + '[' + property + ']' : property;
 
-      if (typeof obj[property] === 'object' && !(obj[property].constructor === 'File')) {
+      if (
+        typeof obj[property] === 'object' &&
+        !(obj[property].constructor === 'File')
+      ) {
         objectToFormData(obj[property], fd, formKey);
       } else {
         fd.append(formKey, obj[property]);

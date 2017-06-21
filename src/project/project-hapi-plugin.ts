@@ -6,12 +6,13 @@ import ProjectModule from './project-module';
 
 @injectable()
 export default class ProjectHapiPlugin {
-
   public static injectSymbol = Symbol('project-hapi-plugin');
 
   private projectModule: ProjectModule;
 
-  constructor(@inject(ProjectModule.injectSymbol) projectModule: ProjectModule) {
+  constructor(
+    @inject(ProjectModule.injectSymbol) projectModule: ProjectModule,
+  ) {
     this.projectModule = projectModule;
     this.register.attributes = {
       name: 'project-plugin',
@@ -56,5 +57,5 @@ export default class ProjectHapiPlugin {
     });
 
     next();
-  }
+  };
 }

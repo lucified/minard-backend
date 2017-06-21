@@ -13,10 +13,10 @@
     "object-literal-key-quotes": [false, "as-needed"],
     "variable-name": [true, "ban-keywords", "check-format", "allow-leading-underscore", "allow-pascal-case"],
     "space-before-function-paren": false,
-    "no-angle-bracket-type-assertion": false,
     "no-empty-interface": false,
     "no-unused-expression": false,
-    "no-object-literal-type-assertion": [false]
+    "no-object-literal-type-assertion": [false],
+    "semicolon": [true, "always", "ignore-bound-class-methods"]
   },
   "jsRules": {
     "arrow-parens": false,

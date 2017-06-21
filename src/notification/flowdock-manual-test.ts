@@ -42,8 +42,24 @@ const comment = {
 };
 
 async function test() {
- await flowdockNotify.notify(deployment, flowToken, projectUrl, branchUrl, previewUrl, undefined, undefined);
- await flowdockNotify.notify(deployment, flowToken, projectUrl, branchUrl, previewUrl, commentUrl, comment);
+  await flowdockNotify.notify(
+    deployment,
+    flowToken,
+    projectUrl,
+    branchUrl,
+    previewUrl,
+    undefined,
+    undefined,
+  );
+  await flowdockNotify.notify(
+    deployment,
+    flowToken,
+    projectUrl,
+    branchUrl,
+    previewUrl,
+    commentUrl,
+    comment,
+  );
 }
 
 test().catch(err => console.log(err));

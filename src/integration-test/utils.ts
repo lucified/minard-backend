@@ -58,7 +58,10 @@ export function getResponseJson<T>(response: Response) {
   };
 }
 
-export async function runCommand(command: string, ...args: string[]): Promise<boolean> {
+export async function runCommand(
+  command: string,
+  ...args: string[]
+): Promise<boolean> {
   return await new Promise<boolean>((resolve, reject) => {
     const stdio = isDebug() ? 'inherit' : 'pipe';
     const child = spawn(command, args, { stdio });
@@ -97,12 +100,19 @@ export function assertResponseStatus(response: Response, requiredStatus = 200) {
       response.url,
     ];
     const status = response.status >= 400 ? response.status : 500;
-    throw create(status, msgParts.join(`\n\n`), { originalStatus: response.status });
+    throw create(status, msgParts.join(`\n\n`), {
+      originalStatus: response.status,
+    });
   }
 }
 
 export async function getAccessToken(config: Auth0) {
-  const { domain, audience, nonInteractiveClientId, nonInteractiveClientSecret } = config;
+  const {
+    domain,
+    audience,
+    nonInteractiveClientId,
+    nonInteractiveClientSecret,
+  } = config;
   const body = {
     audience,
     client_id: nonInteractiveClientId,
@@ -131,10 +141,13 @@ export function parseS3Url(url: string) {
   return { bucket, key };
 }
 
-export async function getConfiguration(env?: ENV, silent = false): Promise<Config> {
+export async function getConfiguration(
+  env?: ENV,
+  silent = false,
+): Promise<Config> {
   // Load bindings that represent configuration
   const _env: ENV = env || process.env.NODE_ENV || 'development';
-  let config: Config | string;
+  let config: Config | string;
   switch (_env) {
     case 'staging':
       config = require('./configuration.staging').default;
@@ -148,31 +161,44 @@ export async function getConfiguration(env?: ENV, silent = false): Promise<Confi
     default:
       throw new Error(`Unsupported environment '${_env}''`);
   }
-  if (typeof config === 'string') { // assume it's an S3 URL
+  if (typeof config === 'string') {
+    // assume it's an S3 URL
     const { bucket, key } = parseS3Url(config);
-    const s3 = new S3({region: process.env.AWS_DEFAULT_REGION || 'eu-west-1'});
-    const { Body } = await s3.getObject({
-      Bucket: bucket,
-      Key: key,
-      ResponseContentType: 'application/json',
-    }).promise();
+    const s3 = new S3({
+      region: process.env.AWS_DEFAULT_REGION || 'eu-west-1',
+    });
+    const { Body } = await s3
+      .getObject({
+        Bucket: bucket,
+        Key: key,
+        ResponseContentType: 'application/json',
+      })
+      .promise();
     let body: string = Body as string;
     if (Buffer.isBuffer(Body)) {
       body = Body.toString();
     }
     if (typeof body !== 'string') {
-      throw new Error('[getConfiguration] Unable to parse body of type ' + typeof body);
+      throw new Error(
+        '[getConfiguration] Unable to parse body of type ' + typeof body,
+      );
     }
     config = JSON.parse(body);
   }
   config = config as Config;
   if (!silent) {
-    console.log(`Loaded configuration for environment '${_env}': ${config.charles}`);
+    console.log(
+      `Loaded configuration for environment '${_env}': ${config.charles}`,
+    );
   }
   return config;
 }
 
-export function withPing<T extends object>(stream: Observable<T>, interval = 1000, msg = 'Waiting...') {
+export function withPing<T extends object>(
+  stream: Observable<T>,
+  interval = 1000,
+  msg = 'Waiting...',
+) {
   const ping = Observable.timer(interval, interval);
   return Observable.merge(stream, ping)
     .do(event => {
@@ -197,7 +223,10 @@ export function saveToCache(cacheDir: string, cacheFileName: string) {
   };
 }
 
-export function loadFromCache(cacheDir: string, cacheFileName: string): Partial<CharlesClients> {
+export function loadFromCache(
+  cacheDir: string,
+  cacheFileName: string,
+): Partial<CharlesClients> {
   const cacheFile = join(cacheDir, cacheFileName);
   const clientDtos = JSON.parse(readFileSync(cacheFile).toString());
   return mapValues(clientDtos, dto => CharlesClient.load(dto));
@@ -211,8 +240,10 @@ export function getAnonymousClient(client: CharlesClient) {
     repoUrl: client.lastCreatedProject!.repoUrl,
     token: client.lastCreatedProject!.token,
   };
-  const anonymousUrl = client.lastDeployment!.url
-    .replace(/^(https?:\/\/)\w+-\w+-\w+-\w+/, '$1master-abc-123-123');
+  const anonymousUrl = client.lastDeployment!.url.replace(
+    /^(https?:\/\/)\w+-\w+-\w+-\w+/,
+    '$1master-abc-123-123',
+  );
   anonymous.lastDeployment = {
     id: '9999999',
     url: anonymousUrl,
@@ -223,10 +254,13 @@ export function getAnonymousClient(client: CharlesClient) {
 }
 
 export function isDebug() {
- return process.env.DEBUG === 'system-integration-tests';
+  return process.env.DEBUG === 'system-integration-tests';
 }
 
-export function cloneCharlesClient(client: CharlesClient, throwOnUnsuccessful = false) {
+export function cloneCharlesClient(
+  client: CharlesClient,
+  throwOnUnsuccessful = false,
+) {
   const clone = new CharlesClient(
     client.url,
     client.accessToken,

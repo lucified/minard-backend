@@ -3,15 +3,9 @@ import * as fetchMock from 'fetch-mock';
 import * as moment from 'moment';
 import 'reflect-metadata';
 
-import {
-  MinardComment,
-} from '../comment';
-import {
-  MinardDeployment,
-} from '../deployment';
-import {
-  FlowdockNotify,
-} from './flowdock-notify';
+import { MinardComment } from '../comment';
+import { MinardDeployment } from '../deployment';
+import { FlowdockNotify } from './flowdock-notify';
 
 describe('flowdock-notify', () => {
   const baseDeployment: MinardDeployment = {
@@ -55,8 +49,24 @@ describe('flowdock-notify', () => {
     });
 
     // Act
-    const body = notifier.getBody(deployment, flowToken, projectUrl, branchUrl, previewUrl, commentUrl, comment);
-    notifier.notify(deployment, flowToken, projectUrl, branchUrl, previewUrl, commentUrl, comment);
+    const body = notifier.getBody(
+      deployment,
+      flowToken,
+      projectUrl,
+      branchUrl,
+      previewUrl,
+      commentUrl,
+      comment,
+    );
+    notifier.notify(
+      deployment,
+      flowToken,
+      projectUrl,
+      branchUrl,
+      previewUrl,
+      commentUrl,
+      comment,
+    );
 
     // Assert
     expect(body.flow_token).to.equal(flowToken);
@@ -71,11 +81,15 @@ describe('flowdock-notify', () => {
 
   it('should send correct notification for deployment with screenshot', async () => {
     const deployment = baseDeployment;
-    const body = await shouldSendCorrectNotification(deployment,
-      'Created preview for foo-project-name/foo-branch');
+    const body = await shouldSendCorrectNotification(
+      deployment,
+      'Created preview for foo-project-name/foo-branch',
+    );
     expect(body.event).to.equal('activity');
     expect(body.thread.status.color).to.equal('green');
-    expect(body.author.avatar).to.equal('//www.gravatar.com/avatar/79f0c978a0b5b6db64cb1484f3d05c74');
+    expect(body.author.avatar).to.equal(
+      '//www.gravatar.com/avatar/79f0c978a0b5b6db64cb1484f3d05c74',
+    );
     expect(body.thread.external_url).to.equal(previewUrl);
     expect(body.author.name).to.equal(deployment.commit.committer.name);
     expect(body.author.email).to.equal(deployment.commit.committer.email);
@@ -87,8 +101,10 @@ describe('flowdock-notify', () => {
       ...baseDeployment,
       screenshot: undefined,
     };
-    const body = await shouldSendCorrectNotification(deployment,
-      'Created preview for foo-project-name/foo-branch');
+    const body = await shouldSendCorrectNotification(
+      deployment,
+      'Created preview for foo-project-name/foo-branch',
+    );
     expect(body.thread.status.color).to.equal('green');
     expect(body.thread.external_url).to.equal(previewUrl);
   });
@@ -99,8 +115,10 @@ describe('flowdock-notify', () => {
       screenshot: undefined,
       status: 'running',
     };
-    const body = await shouldSendCorrectNotification(deployment,
-      'Generating preview for foo-project-name/foo-branch');
+    const body = await shouldSendCorrectNotification(
+      deployment,
+      'Generating preview for foo-project-name/foo-branch',
+    );
     expect(body.thread.status.color).to.equal('yellow');
   });
 
@@ -110,8 +128,10 @@ describe('flowdock-notify', () => {
       screenshot: undefined,
       status: 'pending',
     };
-    const body = await shouldSendCorrectNotification(deployment,
-      'Generating preview for foo-project-name/foo-branch');
+    const body = await shouldSendCorrectNotification(
+      deployment,
+      'Generating preview for foo-project-name/foo-branch',
+    );
     expect(body.thread.status.color).to.equal('yellow');
   });
 
@@ -121,14 +141,17 @@ describe('flowdock-notify', () => {
       screenshot: undefined,
       status: 'failed',
     };
-    const body = await shouldSendCorrectNotification(deployment,
-      'Error creating preview for foo-project-name/foo-branch');
+    const body = await shouldSendCorrectNotification(
+      deployment,
+      'Error creating preview for foo-project-name/foo-branch',
+    );
     expect(body.thread.status.color).to.equal('red');
   });
 
   it('should send correct notification for comment', async () => {
     const deployment = baseDeployment;
-    const commentUrl = 'http://foo-bar-ui.com/preview/deployment/43/foobartoken/comment/5';
+    const commentUrl =
+      'http://foo-bar-ui.com/preview/deployment/43/foobartoken/comment/5';
     const comment: MinardComment = {
       name: 'foo commenter',
       message: 'foo comment msg',
@@ -143,14 +166,19 @@ describe('flowdock-notify', () => {
       deployment,
       `<a href="${commentUrl}">commented</a>`,
       commentUrl,
-      comment);
+      comment,
+    );
     expect(body.event).to.equal('discussion');
     expect(body.thread.status.color).to.equal('green');
     expect(body.thread.external_url).to.equal(previewUrl);
     expect(body.body).to.equal(comment.message);
     expect(body.author.name).to.equal(comment.name);
     expect(body.author.email).to.equal(comment.email);
-    expect(body.author.avatar).to.equal('//www.gravatar.com/avatar/861227e75daf58bebbe4801c806be963');
-    expect(body.thread.title).to.equal('Created preview for foo-project-name/foo-branch');
+    expect(body.author.avatar).to.equal(
+      '//www.gravatar.com/avatar/861227e75daf58bebbe4801c806be963',
+    );
+    expect(body.thread.title).to.equal(
+      'Created preview for foo-project-name/foo-branch',
+    );
   });
 });

@@ -73,7 +73,6 @@ describe('git-authentication', () => {
       // Assert
       expect(username).to.eq(correctUsername);
       expect(password).to.eq(correctPassword);
-
     });
     it('should throw if separator is not found', () => {
       // Arrange
@@ -93,7 +92,7 @@ describe('git-authentication', () => {
   for (const { idPromise, secretPromise, description } of credentialsList) {
     (idPromise && secretPromise ? describe : describe.skip)(description, () => {
       // tslint:disable-next-line:only-arrow-functions
-      it('should be able to get the accessToken with correct credentials', async function () {
+      it('should be able to get the accessToken with correct credentials', async function() {
         // Arrange
         this.timeout(5000);
         const id = await idPromise!;

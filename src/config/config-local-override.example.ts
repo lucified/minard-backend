@@ -11,9 +11,11 @@ function requestFilter(data: any) {
   // if (data.statusCode === 200) {
   //   return false;
   // }
-  if (data.path
-      && data.path.indexOf('/ci/api/v1/builds/register.json') !== -1
-      && data.statusCode === 404) {
+  if (
+    data.path &&
+    data.path.indexOf('/ci/api/v1/builds/register.json') !== -1 &&
+    data.statusCode === 404
+  ) {
     return false;
   }
   return true;

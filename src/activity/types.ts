@@ -16,7 +16,9 @@ export interface MinardDeploymentActivity extends MinardActivity {
   activityType: 'deployment';
 }
 
-export function isCommentActivity(activity: any): activity is MinardCommentActivity {
+export function isCommentActivity(
+  activity: any,
+): activity is MinardCommentActivity {
   return (
     activity &&
     activity.deployment &&
@@ -48,5 +50,4 @@ export interface MinardActivityBranch {
 }
 
 export const NEW_ACTIVITY = 'NEW_ACTIVITY';
-export const createActivityEvent =
-  eventCreator<MinardActivity>(NEW_ACTIVITY);
+export const createActivityEvent = eventCreator<MinardActivity>(NEW_ACTIVITY);

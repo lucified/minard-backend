@@ -37,14 +37,20 @@ function run() {
     const fn = async () => {
       cliArgs.pop();
       const methodName = cliArgs.shift();
-      debug(`Calling '%s' with args %s`, methodName, cliArgs.map(a => `'${a}'`).join(', '));
+      debug(
+        `Calling '%s' with args %s`,
+        methodName,
+        cliArgs.map(a => `'${a}'`).join(', '),
+      );
       try {
         const config = await getConfiguration(
           process.env.NODE_ENV || 'development',
         );
         const accessToken = await getAccessToken(config.auth0.admin);
         const client = new CharlesClient(config.charles, accessToken);
-        const response: CharlesResponse<any> = await (client as any)[methodName](cliArgs);
+        const response: CharlesResponse<any> = await (client as any)[
+          methodName
+        ](cliArgs);
         const json = await response.toJson();
         return console.log(json);
       } catch (error) {

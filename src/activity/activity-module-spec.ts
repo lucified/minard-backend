@@ -3,10 +3,7 @@ import * as Knex from 'knex';
 import * as moment from 'moment';
 import 'reflect-metadata';
 
-import {
-  CommentAddedEvent,
-  createCommentAddedEvent,
-} from '../comment';
+import { CommentAddedEvent, createCommentAddedEvent } from '../comment';
 import {
   createDeploymentEvent,
   DeploymentEvent,
@@ -15,16 +12,9 @@ import {
 } from '../deployment';
 import { Event, LocalEventBus } from '../event-bus';
 import Logger from '../shared/logger';
-import {
-  MinardCommit,
-} from '../shared/minard-commit';
-import ActivityModule, {
-  toDbActivity,
-} from './activity-module';
-import {
-  MinardActivity,
-  NEW_ACTIVITY,
-} from './types';
+import { MinardCommit } from '../shared/minard-commit';
+import ActivityModule, { toDbActivity } from './activity-module';
+import { MinardActivity, NEW_ACTIVITY } from './types';
 
 function getEventBus() {
   return new LocalEventBus();
@@ -33,7 +23,6 @@ function getEventBus() {
 const logger = Logger(undefined, true);
 
 describe('activity-module', () => {
-
   async function setupKnex() {
     const knex = Knex({
       client: 'sqlite3',
@@ -140,14 +129,20 @@ describe('activity-module', () => {
 
   async function arrangeActivityModule(eventBus = getEventBus()) {
     const knex = await setupKnex();
-    await Promise.all(activities.map(item => knex('activity').insert(toDbActivity(item))));
+    await Promise.all(
+      activities.map(item => knex('activity').insert(toDbActivity(item))),
+    );
     const deploymentModule = {} as DeploymentModule;
-    deploymentModule.toMinardDeployment = (_deployment: any) => ({ ..._deployment, url: deploymentUrl });
+    deploymentModule.toMinardDeployment = (_deployment: any) => ({
+      ..._deployment,
+      url: deploymentUrl,
+    });
     const activityModule = new ActivityModule(
       deploymentModule,
       {} as any,
       eventBus,
-      knex);
+      knex,
+    );
     return activityModule;
   }
 
@@ -161,14 +156,24 @@ describe('activity-module', () => {
 
       // Assert
       expect(projectActivity[0].branch).to.equal(activities[2].branch);
-      expect(projectActivity[0].timestamp.isSame(activities[2].timestamp)).to.equal(true);
+      expect(
+        projectActivity[0].timestamp.isSame(activities[2].timestamp),
+      ).to.equal(true);
       expect(projectActivity[0].commit).to.deep.equal(activities[2].commit);
-      expect(projectActivity[0].deployment.id).to.equal(activities[2].deployment.id);
-      expect(projectActivity[0].deployment.status).to.equal(activities[2].deployment.status);
+      expect(projectActivity[0].deployment.id).to.equal(
+        activities[2].deployment.id,
+      );
+      expect(projectActivity[0].deployment.status).to.equal(
+        activities[2].deployment.status,
+      );
       expect(projectActivity[0].deployment.url).to.equal(deploymentUrl);
-      expect(projectActivity[0].activityType).to.equal(activities[2].activityType);
+      expect(projectActivity[0].activityType).to.equal(
+        activities[2].activityType,
+      );
       expect(projectActivity[0].teamId).to.equal(activities[2].teamId);
-      expect(projectActivity[0].projectName).to.equal(activities[2].projectName);
+      expect(projectActivity[0].projectName).to.equal(
+        activities[2].projectName,
+      );
       expect(projectActivity[0].id).to.exist;
     });
 
@@ -186,12 +191,16 @@ describe('activity-module', () => {
       expect(projectActivity[1].branch).to.equal(activities[0].branch);
     });
 
-    it('should consider count correctly', async() => {
+    it('should consider count correctly', async () => {
       // Arrange
       const activityModule = await arrangeActivityModule();
 
       // Act
-      const projectActivity = await activityModule.getProjectActivity(14, undefined, 1);
+      const projectActivity = await activityModule.getProjectActivity(
+        14,
+        undefined,
+        1,
+      );
 
       // Assert
       expect(projectActivity).to.exist;
@@ -199,12 +208,16 @@ describe('activity-module', () => {
       expect(projectActivity[0].branch).to.equal(activities[1].branch);
     });
 
-    it('should consider until parameter correctly', async() => {
+    it('should consider until parameter correctly', async () => {
       // Arrange
       const projectActivity = await arrangeActivityModule();
 
       // Act
-      const teamActivity = await projectActivity.getProjectActivity(14, activities[0].timestamp, 1);
+      const teamActivity = await projectActivity.getProjectActivity(
+        14,
+        activities[0].timestamp,
+        1,
+      );
 
       // Assert
       expect(teamActivity).to.exist;
@@ -240,12 +253,16 @@ describe('activity-module', () => {
       expect(teamActivity[2].branch).to.equal(activities[0].branch);
     });
 
-    it('should consider count correctly', async() => {
+    it('should consider count correctly', async () => {
       // Arrange
       const activityModule = await arrangeActivityModule();
 
       // Act
-      const teamActivity = await activityModule.getTeamActivity(4, undefined, 2);
+      const teamActivity = await activityModule.getTeamActivity(
+        4,
+        undefined,
+        2,
+      );
 
       // Assert
       expect(teamActivity).to.exist;
@@ -254,12 +271,15 @@ describe('activity-module', () => {
       expect(teamActivity[1].branch).to.equal(activities[2].branch);
     });
 
-    it('should consider until parameter correctly', async() => {
+    it('should consider until parameter correctly', async () => {
       // Arrange
       const activityModule = await arrangeActivityModule();
 
       // Act
-      const teamActivity = await activityModule.getTeamActivity(4, activities[2].timestamp);
+      const teamActivity = await activityModule.getTeamActivity(
+        4,
+        activities[2].timestamp,
+      );
 
       // Assert
       expect(teamActivity).to.exist;
@@ -292,7 +312,8 @@ describe('activity-module', () => {
         {} as any,
         {} as any,
         bus,
-        {} as any);
+        {} as any,
+      );
 
       const promise = new Promise((resolve, reject) => {
         activityModule.addActivity = async (_activity: MinardActivity) => {
@@ -326,7 +347,7 @@ describe('activity-module', () => {
     }
 
     it('should create activity for failed deployment', async () => {
-     await shouldCreateActivity('failed');
+      await shouldCreateActivity('failed');
     });
 
     it('should create activity for succesful deployment', async () => {
@@ -340,7 +361,8 @@ describe('activity-module', () => {
         {} as any,
         {} as any,
         bus,
-        {} as any);
+        {} as any,
+      );
 
       let called = false;
       activityModule.addActivity = async (_activity: MinardActivity) => {
@@ -374,7 +396,7 @@ describe('activity-module', () => {
         id: 'foo-commit-id',
         message: 'foo-message',
       } as MinardCommit;
-      const deployment = {
+      const deployment = ({
         deploymentId,
         ref: branch,
         commit: _commit,
@@ -382,13 +404,14 @@ describe('activity-module', () => {
         finishedAt: timestamp,
         projectId,
         projectName,
-      } as {} as MinardDeployment;
+      } as {}) as MinardDeployment;
 
       const activityModule = new ActivityModule(
         {} as any,
         logger,
         new LocalEventBus(),
-        {} as any);
+        {} as any,
+      );
 
       // Act
       const event: DeploymentEvent = {
@@ -435,7 +458,8 @@ describe('activity-module', () => {
         deploymentModule,
         logger,
         bus,
-        {} as any);
+        {} as any,
+      );
 
       // Act
       const ret = await activityModule.createCommentActivity(event);
@@ -460,10 +484,13 @@ describe('activity-module', () => {
         {} as any,
         {} as any,
         bus,
-        {} as any);
+        {} as any,
+      );
 
       const promise = new Promise<CommentAddedEvent>((resolve, _reject) => {
-        activityModule.handleCommentAdded = async (event: Event<CommentAddedEvent>) => {
+        activityModule.handleCommentAdded = async (
+          event: Event<CommentAddedEvent>,
+        ) => {
           resolve(event.payload);
         };
       });
@@ -482,7 +509,10 @@ describe('activity-module', () => {
     it('should assign id correctly', async () => {
       const bus = getEventBus();
       const activityModule = await arrangeActivityModule(bus);
-      const promise = bus.filterEvents<MinardActivity>(NEW_ACTIVITY).take(1).toPromise();
+      const promise = bus
+        .filterEvents<MinardActivity>(NEW_ACTIVITY)
+        .take(1)
+        .toPromise();
 
       // Act
       activityModule.addActivity(activities[0]);
@@ -491,8 +521,7 @@ describe('activity-module', () => {
       // Assert
       expect(event.payload.id).to.exist;
       expect(typeof event.payload.id).equals('number');
-      expect(event.payload.id! > 0 ).is.true;
+      expect(event.payload.id! > 0).is.true;
     });
   });
-
 });

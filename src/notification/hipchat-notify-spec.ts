@@ -1,20 +1,13 @@
 import { expect } from 'chai';
 import 'reflect-metadata';
 
-import {
-  MinardDeployment,
-} from '../deployment';
-import {
-  HipchatNotify,
-} from './hipchat-notify';
-import {
-  NotificationComment,
-} from './types';
+import { MinardDeployment } from '../deployment';
+import { HipchatNotify } from './hipchat-notify';
+import { NotificationComment } from './types';
 
 import * as fetchMock from 'fetch-mock';
 
 describe('hipchat-notify', () => {
-
   const baseDeployment: MinardDeployment = {
     id: 6,
     projectId: 5,
@@ -39,7 +32,7 @@ describe('hipchat-notify', () => {
   const branchUrl = 'http://foo-bar.com/branches/1-5';
   const previewUrl = 'http://foo-bar-ui.com/preview/branch/1-5/foobartoken';
 
-  function arrange(): { notifier: HipchatNotify, promise: Promise<any> } {
+  function arrange(): { notifier: HipchatNotify; promise: Promise<any> } {
     const notifier = new HipchatNotify((fetchMock as any).fetchMock);
     const mockUrl = `https://api.hipchat.com/v2/room/${roomId}/notification?auth_token=${authToken}`;
     const promise = new Promise<any>((resolve, _reject) => {
@@ -57,7 +50,16 @@ describe('hipchat-notify', () => {
     const { notifier, promise } = arrange();
 
     // Act
-    await notifier.notify(deployment, roomId, authToken, projectUrl, branchUrl, previewUrl, undefined, undefined);
+    await notifier.notify(
+      deployment,
+      roomId,
+      authToken,
+      projectUrl,
+      branchUrl,
+      previewUrl,
+      undefined,
+      undefined,
+    );
 
     // Assert
     const options = await promise;
@@ -87,13 +89,24 @@ describe('hipchat-notify', () => {
     };
 
     // Act
-    await notifier.notify(deployment, roomId, authToken, projectUrl, branchUrl, previewUrl, commentUrl, comment);
+    await notifier.notify(
+      deployment,
+      roomId,
+      authToken,
+      projectUrl,
+      branchUrl,
+      previewUrl,
+      commentUrl,
+      comment,
+    );
 
     // Assert
     const options = await promise;
     const body = JSON.parse(options.body);
     expect(body.color).equal('green');
-    expect(body.card.description.value).equals(`<b>${comment.name}</b> added a new comment: <i>${comment.message}</i>`);
+    expect(body.card.description.value).equals(
+      `<b>${comment.name}</b> added a new comment: <i>${comment.message}</i>`,
+    );
     expect(body.card.url).equals(commentUrl);
 
     // (just do some basic checks for message)
@@ -102,5 +115,4 @@ describe('hipchat-notify', () => {
     expect(body.message).contains(commentUrl);
     return body;
   });
-
 });

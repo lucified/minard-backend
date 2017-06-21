@@ -14,12 +14,16 @@ import { JsonApiHapiPlugin, parseActivityFilter } from './json-api-hapi-plugin';
 import { JsonApiModule } from './json-api-module';
 
 const provisionServer = async (plugin?: JsonApiHapiPlugin) => {
-  const server = await getTestServer(true,
+  const server = await getTestServer(
+    true,
     {
-      register: kernel.get<AuthenticationHapiPlugin>(AuthenticationHapiPlugin.injectSymbol).registerNoOp,
+      register: kernel.get<AuthenticationHapiPlugin>(
+        AuthenticationHapiPlugin.injectSymbol,
+      ).registerNoOp,
     },
     {
-      register: (plugin || kernel.get<JsonApiHapiPlugin>(JsonApiHapiPlugin.injectSymbol)).register,
+      register: (plugin ||
+        kernel.get<JsonApiHapiPlugin>(JsonApiHapiPlugin.injectSymbol)).register,
       routes: {
         prefix: '/api',
       },
@@ -32,10 +36,11 @@ const baseUrl = 'http://localhost:8000';
 const kernel = bootstrap('test');
 
 describe('json-api-hapi-plugin', () => {
-
   let stubs: SinonStub[];
 
-  const stubJsonApi = (stubber: (api: JsonApiModule) => SinonStub | SinonStub[]) => {
+  const stubJsonApi = (
+    stubber: (api: JsonApiModule) => SinonStub | SinonStub[],
+  ) => {
     const jsonApiModule = kernel.get<JsonApiModule>(JsonApiModule.injectSymbol);
     stubs = stubs.concat(stubber(jsonApiModule));
     kernel.rebind(JsonApiModule.injectSymbol).toConstantValue(jsonApiModule);
@@ -52,15 +57,18 @@ describe('json-api-hapi-plugin', () => {
     it('should correctly get project activity', async () => {
       // Arrange
       const projectId = 2;
-      const jsonApi = stubJsonApi(api => stub(api, 'getProjectActivity')
-        .returns(Promise.resolve([
-          {
-            id: 'foo',
-          },
-          {
-            id: 'bar',
-          },
-        ])));
+      const jsonApi = stubJsonApi(api =>
+        stub(api, 'getProjectActivity').returns(
+          Promise.resolve([
+            {
+              id: 'foo',
+            },
+            {
+              id: 'bar',
+            },
+          ]),
+        ),
+      );
 
       const server = await provisionServer();
 
@@ -83,15 +91,18 @@ describe('json-api-hapi-plugin', () => {
     it('should correctly get team activity', async () => {
       // Arrange
       const teamId = 6;
-      const jsonApi = stubJsonApi(api => stub(api, 'getTeamActivity')
-        .returns(Promise.resolve([
-          {
-            id: 'foo',
-          },
-          {
-            id: 'bar',
-          },
-        ])));
+      const jsonApi = stubJsonApi(api =>
+        stub(api, 'getTeamActivity').returns(
+          Promise.resolve([
+            {
+              id: 'foo',
+            },
+            {
+              id: 'bar',
+            },
+          ]),
+        ),
+      );
 
       const server = await provisionServer();
 
@@ -141,20 +152,27 @@ describe('json-api-hapi-plugin', () => {
 
   describe('POST "/projects"', () => {
     const projectId = 4;
-    async function injectRequest(teamId: any, name: string, description: string | undefined) {
-      stubJsonApi(api => stub(api, 'createProject')
-        .returns(Promise.resolve({
-          id: projectId,
-          teamId,
-          name,
-          description,
-        })));
+    async function injectRequest(
+      teamId: any,
+      name: string,
+      description: string | undefined,
+    ) {
+      stubJsonApi(api =>
+        stub(api, 'createProject').returns(
+          Promise.resolve({
+            id: projectId,
+            teamId,
+            name,
+            description,
+          }),
+        ),
+      );
       const server = await provisionServer();
       const options: InjectedRequestOptions = {
         method: 'POST',
         url: 'http://foo.com/api/projects',
         headers: {
-          'Origin': 'foo.com',
+          Origin: 'foo.com',
           'Access-Control-Request-Method': 'POST',
         },
         payload: {
@@ -233,9 +251,13 @@ describe('json-api-hapi-plugin', () => {
     async function injectRequest(
       projectId: number,
       name: string | undefined,
-      description: string | undefined) {
+      description: string | undefined,
+    ) {
       const jsonApiModule = {
-        editProject: async (_projectId: number, attributes: { name: string, description: string }) => {
+        editProject: async (
+          _projectId: number,
+          attributes: { name: string; description: string },
+        ) => {
           return {
             id: _projectId,
             name: attributes.name,
@@ -243,7 +265,12 @@ describe('json-api-hapi-plugin', () => {
           };
         },
       } as JsonApiModule;
-      const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any, {} as any);
+      const plugin = new JsonApiHapiPlugin(
+        jsonApiModule,
+        baseUrl,
+        {} as any,
+        {} as any,
+      );
       const server = await provisionServer(plugin);
       const options: InjectedRequestOptions = {
         method: 'PATCH',
@@ -263,7 +290,9 @@ describe('json-api-hapi-plugin', () => {
     }
 
     async function shouldSucceed(
-      name: string | undefined, description: string | undefined) {
+      name: string | undefined,
+      description: string | undefined,
+    ) {
       // Arrange & Act
       const projectId = 4;
       const ret = await injectRequest(projectId, name, description);
@@ -315,9 +344,15 @@ describe('json-api-hapi-plugin', () => {
     async function injectRequest(
       projectId: number,
       branchName: string,
-      params: { until?: string, count?: number }) {
+      params: { until?: string; count?: number },
+    ) {
       const jsonApiModule = {
-        getBranchCommits: async (_projectId: number, _branchName: string, _until: moment.Moment, _count: number) => {
+        getBranchCommits: async (
+          _projectId: number,
+          _branchName: string,
+          _until: moment.Moment,
+          _count: number,
+        ) => {
           try {
             expect(_projectId).to.equal(projectId);
             expect(_branchName).to.equal(branchName);
@@ -336,12 +371,18 @@ describe('json-api-hapi-plugin', () => {
           return [{}, {}];
         },
       } as JsonApiModule;
-      const plugin = new JsonApiHapiPlugin(jsonApiModule, baseUrl, {} as any, {} as any);
+      const plugin = new JsonApiHapiPlugin(
+        jsonApiModule,
+        baseUrl,
+        {} as any,
+        {} as any,
+      );
       const server = await provisionServer(plugin);
       const options: InjectedRequestOptions = {
         method: 'GET',
-        url: `http://foo.com/api/branches/${projectId}-${branchName}/relationships/commits` +
-        `?${stringify(params)}`,
+        url:
+          `http://foo.com/api/branches/${projectId}-${branchName}/relationships/commits` +
+            `?${stringify(params)}`,
       };
       return await server.inject(options);
     }
@@ -379,7 +420,5 @@ describe('json-api-hapi-plugin', () => {
       const ret = await injectRequest(projectId, 'foo', { until, count });
       expect(ret.statusCode).to.equal(MINARD_ERROR_CODE.BAD_REQUEST);
     });
-
   });
-
 });

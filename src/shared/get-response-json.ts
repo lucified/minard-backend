@@ -1,7 +1,10 @@
 import { create } from 'boom';
 import { Response } from 'node-fetch';
 
-export default async function getResponseJson<T>(response: Response, requiredStatus = 200): Promise<T> {
+export default async function getResponseJson<T>(
+  response: Response,
+  requiredStatus = 200,
+): Promise<T> {
   const responseBody = await response.text();
   let json: any;
   try {

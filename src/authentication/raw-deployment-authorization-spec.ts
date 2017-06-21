@@ -13,7 +13,11 @@ import { MethodStubber, stubber } from '../shared/test';
 import AuthenticationHapiPlugin from './authentication-hapi-plugin';
 import { generateTeamToken } from './team-token';
 
-const validAccessToken = getSignedAccessToken('auth0|12345678', generateTeamToken(), 'foo@bar.com');
+const validAccessToken = getSignedAccessToken(
+  'auth0|12345678',
+  generateTeamToken(),
+  'foo@bar.com',
+);
 const deploymentDomain = 'deployment.foo.com';
 const validDeploymentUrl = `http://master-abcdef-1-1.${deploymentDomain}`;
 async function getServer(
@@ -21,10 +25,20 @@ async function getServer(
   plugin: MethodStubber<DeploymentHapiPlugin>,
 ) {
   const kernel = bootstrap('test');
-  kernel.rebind(AuthenticationHapiPlugin.injectSymbol).to(AuthenticationHapiPlugin);
+  kernel
+    .rebind(AuthenticationHapiPlugin.injectSymbol)
+    .to(AuthenticationHapiPlugin);
   kernel.rebind(DeploymentHapiPlugin.injectSymbol).to(DeploymentHapiPlugin);
-  const authenticationPlugin = stubber(authenticationStubber, AuthenticationHapiPlugin.injectSymbol, kernel);
-  const deploymentPlugin = stubber(plugin, DeploymentHapiPlugin.injectSymbol, kernel);
+  const authenticationPlugin = stubber(
+    authenticationStubber,
+    AuthenticationHapiPlugin.injectSymbol,
+    kernel,
+  );
+  const deploymentPlugin = stubber(
+    plugin,
+    DeploymentHapiPlugin.injectSymbol,
+    kernel,
+  );
   const server = await getTestServer(false, authenticationPlugin.instance);
   const handlerStub = stub().yields(200);
   server.handler('directory', (_route, _options) => handlerStub);
@@ -38,20 +52,18 @@ async function getServer(
   };
 }
 
-function arrange(
-  hasAccess: boolean,
-  isOpenDeployment = false,
-) {
+function arrange(hasAccess: boolean, isOpenDeployment = false) {
   return getServer(
     (p: AuthenticationHapiPlugin) => {
-        return [
-          stub(p, p.userHasAccessToDeployment.name)
-            .returns(Promise.resolve(hasAccess)),
-          stub(p, p.isAdmin.name)
-            .returns(Promise.resolve(false)),
-          stub(p, p.isOpenDeployment.name)
-            .returns(Promise.resolve(isOpenDeployment)),
-        ];
+      return [
+        stub(p, p.userHasAccessToDeployment.name).returns(
+          Promise.resolve(hasAccess),
+        ),
+        stub(p, p.isAdmin.name).returns(Promise.resolve(false)),
+        stub(p, p.isOpenDeployment.name).returns(
+          Promise.resolve(isOpenDeployment),
+        ),
+      ];
     },
     (p: DeploymentHapiPlugin) => [
       stub(p, p.checkDeploymentPre.name)
@@ -66,7 +78,7 @@ function makeRequest(server: Server) {
     method: 'GET',
     url: validDeploymentUrl,
     headers: {
-      'Cookie': `token=${validAccessToken}`,
+      Cookie: `token=${validAccessToken}`,
     },
   });
 }
@@ -90,7 +102,6 @@ describe('authorization for raw deployments', () => {
     expect(response.statusCode).to.eq(404);
     expect(authentication.userHasAccessToDeployment).to.have.been.calledOnce;
     expect(handlerStub).to.not.have.been.called;
-
   });
   it('should redirect to login screen for unauthenticated deployment requests', async () => {
     // Arrange

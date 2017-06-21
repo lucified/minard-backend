@@ -1,4 +1,3 @@
-
 import { Commit } from './gitlab';
 
 export interface MinardCommitAuthor {

@@ -2,36 +2,21 @@ import { expect } from 'chai';
 import * as moment from 'moment';
 import 'reflect-metadata';
 
-import {
-  MinardActivity,
-} from '../activity';
-import {
-  CommentModule,
-} from '../comment';
-import {
-  DeploymentModule,
-  MinardDeployment,
-} from '../deployment';
-import {
-  MinardProject,
-  ProjectModule,
-} from '../project/';
-import {
-  MinardCommit,
-} from '../shared/minard-commit';
-import {
-  ApiCommit,
-  ApiDeployment,
-  ApiProject,
-  JsonApiModule,
-} from './';
+import { MinardActivity } from '../activity';
+import { CommentModule } from '../comment';
+import { DeploymentModule, MinardDeployment } from '../deployment';
+import { MinardProject, ProjectModule } from '../project/';
+import { MinardCommit } from '../shared/minard-commit';
+import { ApiCommit, ApiDeployment, ApiProject, JsonApiModule } from './';
 
 import { toGitlabTimestamp } from '../shared/time-conversion';
 import TokenGenerator from '../shared/token-generator';
 
 function getMockCommentModule() {
   const commentModule = {} as CommentModule;
-  commentModule.getCommentCountForDeployment = async (_deploymentId: number) => {
+  commentModule.getCommentCountForDeployment = async (
+    _deploymentId: number,
+  ) => {
     return 2;
   };
   return commentModule;
@@ -40,9 +25,7 @@ function getMockCommentModule() {
 const tokenGenerator = new TokenGenerator('secret');
 
 describe('json-api-module', () => {
-
   describe('toApiCommit', () => {
-
     const projectId = 5;
     const minardCommit: MinardCommit = {
       id: 'foo-commit-id',
@@ -59,14 +42,14 @@ describe('json-api-module', () => {
         timestamp: '',
       },
     };
-    const deployments = [
+    const deployments = ([
       {
         id: 'foo-deployment-id',
       },
       {
         id: 'bar-deployment-id',
       },
-    ] as {} as ApiDeployment[];
+    ] as {}) as ApiDeployment[];
 
     it('should work when deployments are passed as parameter', async () => {
       const jsonApiModule = new JsonApiModule(
@@ -79,7 +62,11 @@ describe('json-api-module', () => {
       );
 
       // Act
-      const commit = await jsonApiModule.toApiCommit(projectId, minardCommit, deployments);
+      const commit = await jsonApiModule.toApiCommit(
+        projectId,
+        minardCommit,
+        deployments,
+      );
 
       // Assert
       expect(commit.id).to.equal(`${projectId}-${minardCommit.id}`);
@@ -92,10 +79,13 @@ describe('json-api-module', () => {
 
     it('should work when deployments are not passed as parameter', async () => {
       const deploymentModule = {} as DeploymentModule;
-      deploymentModule.getCommitDeployments = async (_projectId: number, sha: string) => {
+      deploymentModule.getCommitDeployments = async (
+        _projectId: number,
+        sha: string,
+      ) => {
         expect(projectId).to.equal(projectId);
         expect(sha).to.equal(minardCommit.id);
-        return deployments as {} as MinardDeployment[];
+        return (deployments as {}) as MinardDeployment[];
       };
       const jsonApiModule = new JsonApiModule(
         deploymentModule,
@@ -106,7 +96,10 @@ describe('json-api-module', () => {
         tokenGenerator,
       );
 
-      jsonApiModule.toApiDeployment = async (_projectId: number, deployment: MinardDeployment) => {
+      jsonApiModule.toApiDeployment = async (
+        _projectId: number,
+        deployment: MinardDeployment,
+      ) => {
         // rewrite the ids to chech that this was called, with correct parameters
         return {
           id: `${projectId}-${deployment.id}`,
@@ -123,8 +116,12 @@ describe('json-api-module', () => {
       expect(commit.hash).to.equal(minardCommit.id);
       expect(commit.message).to.equal(minardCommit.message);
       expect(commit.deployments).have.length(2);
-      expect(commit.deployments[0].id).to.equal(`${projectId}-${deployments[0].id}`);
-      expect(commit.deployments[1].id).to.equal(`${projectId}-${deployments[1].id}`);
+      expect(commit.deployments[0].id).to.equal(
+        `${projectId}-${deployments[0].id}`,
+      );
+      expect(commit.deployments[1].id).to.equal(
+        `${projectId}-${deployments[1].id}`,
+      );
     });
   });
 
@@ -183,15 +180,27 @@ describe('json-api-module', () => {
       // Assert
       expect(activity.id).to.equal(String(minardActivity.id));
       expect(activity.activityType).to.equal('deployment');
-      expect(activity.branch.id).to.equal(`${minardActivity.projectId}-${minardActivity.branch}`);
+      expect(activity.branch.id).to.equal(
+        `${minardActivity.projectId}-${minardActivity.branch}`,
+      );
       expect(activity.branch.name).to.equal(minardActivity.branch);
       expect(activity.project.id).to.equal(String(minardActivity.projectId));
       expect(activity.project.name).to.equal(minardActivity.projectName);
-      expect(activity.timestamp).to.equal(toGitlabTimestamp(minardActivity.timestamp));
-      expect(activity.commit.id).to.equal(`${minardActivity.projectId}-${minardActivity.commit.id}`);
-      expect(activity.commit.author).to.deep.equal(minardActivity.commit.author);
-      expect(activity.deployment.id).to.equal(`${minardActivity.projectId}-${minardActivity.deployment.id}`);
-      expect(activity.deployment.status).to.equal(minardActivity.deployment.status);
+      expect(activity.timestamp).to.equal(
+        toGitlabTimestamp(minardActivity.timestamp),
+      );
+      expect(activity.commit.id).to.equal(
+        `${minardActivity.projectId}-${minardActivity.commit.id}`,
+      );
+      expect(activity.commit.author).to.deep.equal(
+        minardActivity.commit.author,
+      );
+      expect(activity.deployment.id).to.equal(
+        `${minardActivity.projectId}-${minardActivity.deployment.id}`,
+      );
+      expect(activity.deployment.status).to.equal(
+        minardActivity.deployment.status,
+      );
     });
 
     it('should work with activity of type comment', async () => {
@@ -244,7 +253,9 @@ describe('json-api-module', () => {
       } as MinardDeployment;
 
       const commentModule = {} as CommentModule;
-      commentModule.getCommentCountForDeployment = async (deploymentId: number) => {
+      commentModule.getCommentCountForDeployment = async (
+        deploymentId: number,
+      ) => {
         expect(deploymentId).to.equal(minardDeployment.id);
         return commentCount;
       };
@@ -258,7 +269,10 @@ describe('json-api-module', () => {
       );
 
       // Act
-      const deployment = await jsonApiModule.toApiDeployment(projectId, minardDeployment);
+      const deployment = await jsonApiModule.toApiDeployment(
+        projectId,
+        minardDeployment,
+      );
 
       // Assert
       expect(deployment).to.exist;
@@ -284,15 +298,21 @@ describe('json-api-module', () => {
     it('should return commits correctly with two branches having three deployments', async () => {
       // Arrange
       const projectModule = {} as ProjectModule;
-      projectModule.getBranchCommits = async (_projectId: number, _branchName: string) => {
+      projectModule.getBranchCommits = async (
+        _projectId: number,
+        _branchName: string,
+      ) => {
         expect(_projectId).to.equal(projectId);
         expect(_branchName).to.equal(branchName);
         return minardCommits;
       };
       const deploymentModule = {} as DeploymentModule;
-      deploymentModule.getCommitDeployments = async (_projectId: number, _sha: string) => {
+      deploymentModule.getCommitDeployments = async (
+        _projectId: number,
+        _sha: string,
+      ) => {
         if (_sha === minardCommits[0].id) {
-          return [
+          return ([
             {
               id: 'foo-deployment',
               commitHash: minardCommits[0].id,
@@ -301,14 +321,14 @@ describe('json-api-module', () => {
               id: 'foo-two-deployment',
               commitHash: minardCommits[0].id,
             },
-          ] as {} as MinardDeployment[];
+          ] as {}) as MinardDeployment[];
         }
         if (_sha === minardCommits[1].id) {
           return [
-            {
+            ({
               id: 'bar-deployment',
               commitHash: minardCommits[1].id,
-           } as {} as MinardDeployment,
+            } as {}) as MinardDeployment,
           ];
         }
         throw new Error('invalid hash');
@@ -323,7 +343,10 @@ describe('json-api-module', () => {
       );
 
       // Act
-      const commits = await jsonApiModule.getBranchCommits(projectId, branchName);
+      const commits = await jsonApiModule.getBranchCommits(
+        projectId,
+        branchName,
+      );
 
       // Assert
       expect(commits).to.exist;
@@ -331,24 +354,29 @@ describe('json-api-module', () => {
       expect(commits![0].deployments).to.have.length(2);
       expect(commits![0].id).to.equal(`${projectId}-${minardCommits[0].id}`);
       expect(commits![0].hash).to.equal(minardCommits[0].id);
-      expect(commits![0].deployments[0].id).to.equal(`${projectId}-foo-deployment`);
-      expect(commits![0].deployments[1].id).to.equal(`${projectId}-foo-two-deployment`);
+      expect(commits![0].deployments[0].id).to.equal(
+        `${projectId}-foo-deployment`,
+      );
+      expect(commits![0].deployments[1].id).to.equal(
+        `${projectId}-foo-two-deployment`,
+      );
       expect(commits![1].deployments).to.have.length(1);
       expect(commits![1].id).to.equal(`${projectId}-${minardCommits[1].id}`);
-      expect(commits![1].deployments[0].id).to.equal(`${projectId}-bar-deployment`);
+      expect(commits![1].deployments[0].id).to.equal(
+        `${projectId}-bar-deployment`,
+      );
     });
   });
 
   describe('toApiBranch', () => {
-
     const minardJsonInfo = { foo: 'bar' };
     const project = { id: 5 } as ApiProject;
     const minardBranch = {
       project: project.id,
       name: 'foo-branch-name',
-      latestCommit: {
+      latestCommit: ({
         id: 'foo-commit-id',
-      } as {} as MinardCommit,
+      } as {}) as MinardCommit,
       latestActivityTimestamp: 'fake-timestamp',
       token: 'token',
     };
@@ -370,10 +398,15 @@ describe('json-api-module', () => {
     it('should return valid ApiBranch when fetching of related data succeeds', async () => {
       // Arrange
       const deploymentModule = {} as DeploymentModule;
-      deploymentModule.getMinardJsonInfo = async (_projectId: number, _branchName: string) => {
+      deploymentModule.getMinardJsonInfo = async (
+        _projectId: number,
+        _branchName: string,
+      ) => {
         return minardJsonInfo as any;
       };
-      deploymentModule.getLatestSuccessfulBranchDeployment = async (_projectId: number) => {
+      deploymentModule.getLatestSuccessfulBranchDeployment = async (
+        _projectId: number,
+      ) => {
         return minardDeployment as any;
       };
       const projectModule = {} as ProjectModule;
@@ -386,7 +419,11 @@ describe('json-api-module', () => {
         getMockCommentModule(),
         tokenGenerator,
       );
-      jsonApiModule.toApiCommit = async(_projectId: number, commit: MinardCommit, _deployments?: ApiDeployment[]) => {
+      jsonApiModule.toApiCommit = async (
+        _projectId: number,
+        commit: MinardCommit,
+        _deployments?: ApiDeployment[],
+      ) => {
         expect(commit).to.exist;
         if (commit.id === minardBranch.latestCommit.id) {
           return latestCommitReturnedFromToApiCommit;
@@ -404,13 +441,18 @@ describe('json-api-module', () => {
       expect(branch).to.exist;
       expect(branch.id).to.equal(`${project.id}-${minardBranch.name}`);
       expect(branch.minardJson).to.deep.equal(minardJsonInfo);
-      expect(branch.latestCommit).to.deep.equal(latestCommitReturnedFromToApiCommit);
+      expect(branch.latestCommit).to.deep.equal(
+        latestCommitReturnedFromToApiCommit,
+      );
       expect(branch.name).to.equal(minardBranch.name);
       expect(branch.project).to.equal(project.id);
-      expect(branch.latestActivityTimestamp).to.equal(minardBranch.latestActivityTimestamp);
-      expect(branch.latestSuccessfullyDeployedCommit).to.deep.equal(latestDeployedCommitFromToApiCommit);
+      expect(branch.latestActivityTimestamp).to.equal(
+        minardBranch.latestActivityTimestamp,
+      );
+      expect(branch.latestSuccessfullyDeployedCommit).to.deep.equal(
+        latestDeployedCommitFromToApiCommit,
+      );
     });
-
   });
 
   describe('toApiProject()', () => {
@@ -429,7 +471,9 @@ describe('json-api-module', () => {
       } as MinardDeployment;
 
       const deploymentModule = {} as DeploymentModule;
-      deploymentModule.getLatestSuccessfulProjectDeployment = async (_projectId: number) => {
+      deploymentModule.getLatestSuccessfulProjectDeployment = async (
+        _projectId: number,
+      ) => {
         return minardDeployment;
       };
       const projectModule = {} as ProjectModule;
@@ -448,15 +492,20 @@ describe('json-api-module', () => {
 
       // Assert
       expect(project.id).to.equal(1);
-      expect(project.latestActivityTimestamp).to.equal(minardProject.latestActivityTimestamp);
+      expect(project.latestActivityTimestamp).to.equal(
+        minardProject.latestActivityTimestamp,
+      );
       expect(project.latestSuccessfullyDeployedCommit).to.exist;
-      expect(project.latestSuccessfullyDeployedCommit!.id)
-        .to.equal(`${minardProject.id}-${minardDeployment.commit.id}`);
-      expect(project.latestSuccessfullyDeployedCommit!.deployments).to.have.length(1);
-      expect(project.latestSuccessfullyDeployedCommit!.deployments[0].id)
-        .to.equal(`${minardProject.id}-${minardDeployment.id}`);
+      expect(project.latestSuccessfullyDeployedCommit!.id).to.equal(
+        `${minardProject.id}-${minardDeployment.commit.id}`,
+      );
+      expect(
+        project.latestSuccessfullyDeployedCommit!.deployments,
+      ).to.have.length(1);
+      expect(
+        project.latestSuccessfullyDeployedCommit!.deployments[0].id,
+      ).to.equal(`${minardProject.id}-${minardDeployment.id}`);
       expect(project.repoUrl).to.equal(minardProject.repoUrl);
     });
   });
-
 });

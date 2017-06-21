@@ -10,11 +10,7 @@ import { stringify } from 'querystring';
 import { sprintf } from 'sprintf-js';
 
 import { promisify } from 'util';
-import {
-  Event,
-  EventBus,
-  eventBusInjectSymbol,
-} from '../event-bus';
+import { Event, EventBus, eventBusInjectSymbol } from '../event-bus';
 import { ProjectModule } from '../project';
 import { ScreenshotModule } from '../screenshot';
 import { GitlabClient } from '../shared/gitlab-client';
@@ -109,18 +105,21 @@ export function toDbDeployment(deployment: MinardDeployment): DbDeployment {
 
 @injectable()
 export default class DeploymentModule {
-
   public static injectSymbol = Symbol('deployment-module');
   private readonly prepareQueue: any;
 
   public constructor(
     @inject(GitlabClient.injectSymbol) private readonly gitlab: GitlabClient,
-    @inject(deploymentFolderInjectSymbol) private readonly deploymentFolder: string,
+    @inject(deploymentFolderInjectSymbol)
+    private readonly deploymentFolder: string,
     @inject(eventBusInjectSymbol) private readonly eventBus: EventBus,
     @inject(loggerInjectSymbol) private readonly logger: Logger,
-    @inject(deploymentUrlPatternInjectSymbol) private readonly urlPattern: string,
-    @inject(ScreenshotModule.injectSymbol) private readonly screenshotModule: ScreenshotModule,
-    @inject(ProjectModule.injectSymbol) private readonly projectModule: ProjectModule,
+    @inject(deploymentUrlPatternInjectSymbol)
+    private readonly urlPattern: string,
+    @inject(ScreenshotModule.injectSymbol)
+    private readonly screenshotModule: ScreenshotModule,
+    @inject(ProjectModule.injectSymbol)
+    private readonly projectModule: ProjectModule,
     @inject(charlesKnexInjectSymbol) private readonly knex: Knex,
   ) {
     this.prepareQueue = new Queue(1, Infinity);
@@ -130,59 +129,93 @@ export default class DeploymentModule {
 
   private subscribeToEvents() {
     // subscribe for build created events
-    this.eventBus.filterEvents<BuildCreatedEvent>(BUILD_CREATED_EVENT)
+    this.eventBus
+      .filterEvents<BuildCreatedEvent>(BUILD_CREATED_EVENT)
       .flatMap(async event => {
         try {
           await this.createDeployment(event);
         } catch (error) {
-          this.logger.error(`Failed to create deployment based on BuildCreatedEvent`, { event, error });
+          this.logger.error(
+            `Failed to create deployment based on BuildCreatedEvent`,
+            { event, error },
+          );
         }
       })
       .subscribe();
 
     // subscribe on build status updates
-    this.eventBus.filterEvents<BuildStatusEvent>(BUILD_STATUS_EVENT_TYPE)
+    this.eventBus
+      .filterEvents<BuildStatusEvent>(BUILD_STATUS_EVENT_TYPE)
       .flatMap(async event => {
         try {
-          await this.updateDeploymentStatus(
-            event.payload.deploymentId, { buildStatus: event.payload.status });
+          await this.updateDeploymentStatus(event.payload.deploymentId, {
+            buildStatus: event.payload.status,
+          });
         } catch (error) {
-          this.logger.error(`Failed to update deployment status based on BuildStatusEvent`, { event, error });
+          this.logger.error(
+            `Failed to update deployment status based on BuildStatusEvent`,
+            { event, error },
+          );
         }
       })
       .subscribe();
 
     // subscribe on finished builds
-    this.eventBus.filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
+    this.eventBus
+      .filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
       .filter(event => event.payload.statusUpdate.buildStatus === 'success')
       .flatMap(async event => {
         const { projectId, id } = event.payload.deployment;
         try {
           await this.prepareDeploymentForServing(projectId, id, false);
         } catch (error) {
-          this.logger.error(`Failed to prepare deployment ${id} for serving`, error);
+          this.logger.error(
+            `Failed to prepare deployment ${id} for serving`,
+            error,
+          );
         }
       })
       .subscribe();
 
     // subscribe on extracted builds
-    this.eventBus.filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
-      .filter(event => event.payload.statusUpdate.extractionStatus === 'success')
+    this.eventBus
+      .filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
+      .filter(
+        event => event.payload.statusUpdate.extractionStatus === 'success',
+      )
       .flatMap(event => {
         const { projectId, id } = event.payload.deployment;
-        return this.takeScreenshot(projectId, id, event.payload.deployment.commit.shortId);
+        return this.takeScreenshot(
+          projectId,
+          id,
+          event.payload.deployment.commit.shortId,
+        );
       }, 1)
       .subscribe();
   }
 
   // internal method
-  public async takeScreenshot(projectId: number, deploymentId: number, shortId: string) {
+  public async takeScreenshot(
+    projectId: number,
+    deploymentId: number,
+    shortId: string,
+  ) {
     try {
-      await this.updateDeploymentStatus(deploymentId, { screenshotStatus: 'running' });
-      await this.screenshotModule.takeScreenshot(projectId, deploymentId, shortId);
-      await this.updateDeploymentStatus(deploymentId, { screenshotStatus: 'success' });
+      await this.updateDeploymentStatus(deploymentId, {
+        screenshotStatus: 'running',
+      });
+      await this.screenshotModule.takeScreenshot(
+        projectId,
+        deploymentId,
+        shortId,
+      );
+      await this.updateDeploymentStatus(deploymentId, {
+        screenshotStatus: 'success',
+      });
     } catch (err) {
-      await this.updateDeploymentStatus(deploymentId, { screenshotStatus: 'failed' });
+      await this.updateDeploymentStatus(deploymentId, {
+        screenshotStatus: 'failed',
+      });
     }
   }
 
@@ -193,11 +226,15 @@ export default class DeploymentModule {
       this.projectModule.getProject(payload.project_id),
     ]);
     if (!commit) {
-      this.logger.error(`Commit ${payload.sha} in project ${payload.project_id} not found while in createDeployment`);
+      this.logger.error(
+        `Commit ${payload.sha} in project ${payload.project_id} not found while in createDeployment`,
+      );
       return;
     }
     if (!project) {
-      this.logger.error(`Project ${payload.project_id} not found while in createDeployment`);
+      this.logger.error(
+        `Project ${payload.project_id} not found while in createDeployment`,
+      );
       return;
     }
 
@@ -221,16 +258,22 @@ export default class DeploymentModule {
     });
   }
 
-  public async getProjectDeployments(projectId: number): Promise<MinardDeployment[]> {
-    const select = this.knex.select('*')
+  public async getProjectDeployments(
+    projectId: number,
+  ): Promise<MinardDeployment[]> {
+    const select = this.knex
+      .select('*')
       .from('deployment')
       .where('projectId', projectId)
       .orderBy('id', 'DESC');
     return (await select).map(this.toMinardDeployment);
   }
 
-  public async getLatestSuccessfulProjectDeployment(projectId: number): Promise<MinardDeployment | undefined> {
-    const select = this.knex.select('*')
+  public async getLatestSuccessfulProjectDeployment(
+    projectId: number,
+  ): Promise<MinardDeployment | undefined> {
+    const select = this.knex
+      .select('*')
       .from('deployment')
       .where('projectId', projectId)
       .andWhere('status', 'success')
@@ -242,8 +285,12 @@ export default class DeploymentModule {
   }
 
   public async getLatestSuccessfulBranchDeployment(
-    projectId: number, branchName: string, latestSha: string): Promise<MinardDeployment | undefined> {
-    const select = this.knex.select('*')
+    projectId: number,
+    branchName: string,
+    latestSha: string,
+  ): Promise<MinardDeployment | undefined> {
+    const select = this.knex
+      .select('*')
       .from('deployment')
       .where('projectId', projectId)
       .andWhere('status', 'success')
@@ -267,7 +314,8 @@ export default class DeploymentModule {
     // would search through all commits in the branch for deployments.
     //
     if (!ret) {
-      ret = await this.knex.select('*')
+      ret = await this.knex
+        .select('*')
         .from('deployment')
         .where('projectId', projectId)
         .andWhere('status', 'success')
@@ -279,8 +327,12 @@ export default class DeploymentModule {
     return ret ? this.toMinardDeployment(ret) : undefined;
   }
 
-  public async getCommitDeployments(projectId: number, sha: string): Promise<MinardDeployment[]> {
-    const select = this.knex.select('*')
+  public async getCommitDeployments(
+    projectId: number,
+    sha: string,
+  ): Promise<MinardDeployment[]> {
+    const select = this.knex
+      .select('*')
       .from('deployment')
       .where('projectId', projectId)
       .andWhere('commitHash', sha)
@@ -288,16 +340,22 @@ export default class DeploymentModule {
     return (await select).map(this.toMinardDeployment);
   }
 
-  public async getDeploymentsByStatus(status: MinardDeploymentStatus): Promise<MinardDeployment[]> {
-    const select = this.knex.select('*')
+  public async getDeploymentsByStatus(
+    status: MinardDeploymentStatus,
+  ): Promise<MinardDeployment[]> {
+    const select = this.knex
+      .select('*')
       .from('deployment')
       .where('status', status)
       .orderBy('id', 'DESC');
     return (await select).map(this.toMinardDeployment);
   }
 
-  public async getDeployment(deploymentId: number): Promise<MinardDeployment | undefined> {
-    const select = this.knex.select('*')
+  public async getDeployment(
+    deploymentId: number,
+  ): Promise<MinardDeployment | undefined> {
+    const select = this.knex
+      .select('*')
       .from('deployment')
       .where('id', deploymentId)
       .limit(1)
@@ -315,7 +373,9 @@ export default class DeploymentModule {
     // The type of 'commit' here unfortunataly depends on the database driver.
     // Sqlite's doesn't parse JSONB, PostgeSQL's does
     const _commit = dbDeployment.commit;
-    const commit: MinardCommit = typeof _commit === 'string' ? JSON.parse(_commit) : _commit;
+    const commit: MinardCommit = typeof _commit === 'string'
+      ? JSON.parse(_commit)
+      : _commit;
     const {
       id,
       commitHash,
@@ -354,11 +414,15 @@ export default class DeploymentModule {
     if (deployment.extractionStatus === 'success') {
       deployment.url = sprintf(
         this.urlPattern,
-        `${deployment.ref}-${deployment.commit.shortId}-${deployment.projectId}-${deployment.id}`,
+        `${deployment.ref}-${deployment.commit
+          .shortId}-${deployment.projectId}-${deployment.id}`,
       );
     }
     if (deployment.screenshotStatus === 'success') {
-      deployment.screenshot = this.screenshotModule.getPublicUrl(deployment.projectId, deployment.id);
+      deployment.screenshot = this.screenshotModule.getPublicUrl(
+        deployment.projectId,
+        deployment.id,
+      );
     }
     return deployment;
   }
@@ -372,18 +436,28 @@ export default class DeploymentModule {
     return existsSync(path);
   }
 
-  public async filesAtPath(projectId: number, _shaOrBranchName: string, path: string) {
+  public async filesAtPath(
+    projectId: number,
+    _shaOrBranchName: string,
+    path: string,
+  ) {
     const url = `/projects/${projectId}/repository/tree?path=${path}`;
     const ret = await this.gitlab.fetchJsonAnyStatus<RepositoryObject[]>(url);
     if (ret.status === 404) {
       throw notFound();
     }
     if (!ret.json) {
-      this.logger.error(`Unexpected non-json response from Gitlab for ${url}`, ret);
+      this.logger.error(
+        `Unexpected non-json response from Gitlab for ${url}`,
+        ret,
+      );
       throw badGateway();
     }
     if (!Array.isArray(ret.json)) {
-      this.logger.error(`Unexpected non-array response from Gitlab for ${url}`, ret);
+      this.logger.error(
+        `Unexpected non-array response from Gitlab for ${url}`,
+        ret,
+      );
       throw badImplementation();
     }
     return ret.json.map(item => ({
@@ -392,7 +466,10 @@ export default class DeploymentModule {
     }));
   }
 
-  public async getRawMinardJson(projectId: number, shaOrBranchName: string): Promise<any> {
+  public async getRawMinardJson(
+    projectId: number,
+    shaOrBranchName: string,
+  ): Promise<any> {
     const query = stringify({
       filepath: 'minard.json',
     });
@@ -402,26 +479,36 @@ export default class DeploymentModule {
       return undefined;
     }
     if (ret.status !== 200) {
-      this.logger.warn(`Unexpected response from GitLab when fetching minard.json from ${url}`);
+      this.logger.warn(
+        `Unexpected response from GitLab when fetching minard.json from ${url}`,
+      );
       throw badGateway();
     }
     return await ret.text();
   }
 
-  public async getBuildTrace(projectId: number, deploymentId: number): Promise<any> {
+  public async getBuildTrace(
+    projectId: number,
+    deploymentId: number,
+  ): Promise<any> {
     const url = `/projects/${projectId}/builds/${deploymentId}/trace`;
     const ret = await this.gitlab.fetch(url);
     if (ret.status === 404) {
       throw create(404);
     }
     if (ret.status !== 200) {
-      this.logger.warn(`Unexpected response from GitLab when fetching build trace from ${url}`);
+      this.logger.warn(
+        `Unexpected response from GitLab when fetching build trace from ${url}`,
+      );
       throw create(ret.status);
     }
     return ret.text();
   }
 
-  public async getParsedMinardJson(projectId: number, shaOrBranchName: string): Promise<any> {
+  public async getParsedMinardJson(
+    projectId: number,
+    shaOrBranchName: string,
+  ): Promise<any> {
     const raw = await this.getRawMinardJson(projectId, shaOrBranchName);
     if (!raw) {
       return null;
@@ -429,16 +516,24 @@ export default class DeploymentModule {
     return JSON.parse(raw);
   }
 
-  public async getGitlabYml(projectId: number, shaOrBranchName: string, sha: string): Promise<string> {
+  public async getGitlabYml(
+    projectId: number,
+    shaOrBranchName: string,
+    sha: string,
+  ): Promise<string> {
     console.log(`sha or branch name ${shaOrBranchName}, ${sha}`);
     try {
       const deployments = await this.getCommitDeployments(projectId, sha);
-      const filtered = deployments.filter(item => item.buildStatus === 'success' || item.buildStatus === 'failed');
+      const filtered = deployments.filter(
+        item => item.buildStatus === 'success' || item.buildStatus === 'failed',
+      );
       if (filtered.length > 0) {
         return getGitlabYmlNoAutoBuild();
       }
     } catch (err) {
-      this.logger.error(`Failed to check deployments for commit ${sha} of project ${projectId}`);
+      this.logger.error(
+        `Failed to check deployments for commit ${sha} of project ${projectId}`,
+      );
       return getGitlabYmlNoAutoBuild();
     }
     try {
@@ -453,7 +548,9 @@ export default class DeploymentModule {
   }
 
   public async getMinardJsonInfo(
-    projectId: number, shaOrBranchName: string): Promise<MinardJsonInfo> {
+    projectId: number,
+    shaOrBranchName: string,
+  ): Promise<MinardJsonInfo> {
     const content = await this.getRawMinardJson(projectId, shaOrBranchName);
     if (!content) {
       return {
@@ -476,7 +573,12 @@ export default class DeploymentModule {
 
     // if the project does not have a built, we additionally
     // check that the publicRoot exists
-    if (effective && errors.length === 0 && effective.publicRoot !== '.' && !effective.build) {
+    if (
+      effective &&
+      errors.length === 0 &&
+      effective.publicRoot !== '.' &&
+      !effective.build
+    ) {
       const path = effective.publicRoot;
       const files = await this.filesAtPath(projectId, shaOrBranchName, path!);
       if (files.length === 0) {
@@ -495,8 +597,13 @@ export default class DeploymentModule {
    * with preparing the deployment.
    */
   public prepareDeploymentForServing(
-    projectId: number, deploymentId: number, checkStatus: boolean = true): Promise<void> {
-    return this.prepareQueue.add(() => this.doPrepareDeploymentForServing(projectId, deploymentId, checkStatus));
+    projectId: number,
+    deploymentId: number,
+    checkStatus: boolean = true,
+  ): Promise<void> {
+    return this.prepareQueue.add(() =>
+      this.doPrepareDeploymentForServing(projectId, deploymentId, checkStatus),
+    );
   }
 
   /**
@@ -510,26 +617,34 @@ export default class DeploymentModule {
     if (checkStatus) {
       const deployment = await this.getDeployment(deploymentId);
       if (!deployment) {
-        this.logger.error(`No deployment ${deploymentId} found when trying to prepare it for serving`);
+        this.logger.error(
+          `No deployment ${deploymentId} found when trying to prepare it for serving`,
+        );
         return false;
       }
       // GitLab will return status === 'running' for a while also after
       // deployment has succeeded. if we know that the deployment is OK,
       // it is okay to skip the status check
       if (deployment.buildStatus !== 'success') {
-        this.logger.error(`Tried to prepare deployment for serving while deployment build status is ` +
-          `"${deployment.buildStatus}", projectId: ${projectId}, deploymentId: ${deploymentId}`);
+        this.logger.error(
+          `Tried to prepare deployment for serving while deployment build status is ` +
+            `"${deployment.buildStatus}", projectId: ${projectId}, deploymentId: ${deploymentId}`,
+        );
         return false;
       }
     }
 
-    await this.updateDeploymentStatus(deploymentId, { extractionStatus: 'running' });
+    await this.updateDeploymentStatus(deploymentId, {
+      extractionStatus: 'running',
+    });
 
     try {
       await this.downloadAndExtractDeployment(projectId, deploymentId);
     } catch (err) {
       this.logger.error('Failed to download and extract deployment', err);
-      await this.updateDeploymentStatus(deploymentId, { extractionStatus: 'failed' });
+      await this.updateDeploymentStatus(deploymentId, {
+        extractionStatus: 'failed',
+      });
       return false;
     }
 
@@ -539,17 +654,31 @@ export default class DeploymentModule {
       await this.updateDeploymentStatus(deploymentId, { extractionStatus });
       return extractionStatus === 'success';
     } catch (err) {
-      this.logger.error(`Failed to prepare deployment ${projectId}_${deploymentId} for serving`, err);
-      await this.updateDeploymentStatus(deploymentId, { extractionStatus: 'failed' });
+      this.logger.error(
+        `Failed to prepare deployment ${projectId}_${deploymentId} for serving`,
+        err,
+      );
+      await this.updateDeploymentStatus(deploymentId, {
+        extractionStatus: 'failed',
+      });
       return false;
     }
   }
 
-  public async updateDeploymentStatus(deploymentId: number, updates: DeploymentStatusUpdate) {
+  public async updateDeploymentStatus(
+    deploymentId: number,
+    updates: DeploymentStatusUpdate,
+  ) {
     let newStatus: MinardDeploymentStatus | undefined;
-    if (updates.screenshotStatus === 'success' || updates.screenshotStatus === 'failed') {
+    if (
+      updates.screenshotStatus === 'success' ||
+      updates.screenshotStatus === 'failed'
+    ) {
       newStatus = 'success'; // SIC
-    } else if (values(updates).indexOf('failed') !== -1 || values(updates).indexOf('canceled') !== -1) {
+    } else if (
+      values(updates).indexOf('failed') !== -1 ||
+      values(updates).indexOf('canceled') !== -1
+    ) {
       newStatus = 'failed';
     } else if (values(updates).indexOf('running') !== -1) {
       newStatus = 'running';
@@ -557,31 +686,51 @@ export default class DeploymentModule {
 
     let deployment = await this.getDeployment(deploymentId);
     if (!deployment) {
-      this.logger.error(`Failed to fetch deployment when updating deployment status. Dropping DeploymentEvent`);
+      this.logger.error(
+        `Failed to fetch deployment when updating deployment status. Dropping DeploymentEvent`,
+      );
       return;
     }
 
-    function updatedStatus(updated: MinardDeploymentStatus | undefined, curr: MinardDeploymentStatus) {
+    function updatedStatus(
+      updated: MinardDeploymentStatus | undefined,
+      curr: MinardDeploymentStatus,
+    ) {
       return updated && updated !== curr ? updated : undefined;
     }
 
     const status = updatedStatus(newStatus, deployment.status);
-    const realUpdates = omitBy({
-      status,
-      buildStatus: updatedStatus(updates.buildStatus, deployment.buildStatus),
-      extractionStatus: updatedStatus(updates.extractionStatus, deployment.extractionStatus),
-      screenshotStatus: updatedStatus(updates.screenshotStatus, deployment.screenshotStatus),
-      finishedAt: (status === 'success' || status === 'failed') ? moment().valueOf() : undefined,
-    }, isNil);
+    const realUpdates = omitBy(
+      {
+        status,
+        buildStatus: updatedStatus(updates.buildStatus, deployment.buildStatus),
+        extractionStatus: updatedStatus(
+          updates.extractionStatus,
+          deployment.extractionStatus,
+        ),
+        screenshotStatus: updatedStatus(
+          updates.screenshotStatus,
+          deployment.screenshotStatus,
+        ),
+        finishedAt: status === 'success' || status === 'failed'
+          ? moment().valueOf()
+          : undefined,
+      },
+      isNil,
+    );
 
     if (values(realUpdates).length > 0) {
-      await this.knex('deployment').update(realUpdates).where('id', deploymentId);
+      await this.knex('deployment')
+        .update(realUpdates)
+        .where('id', deploymentId);
       // this is a bit clumsy, but we need to fetch the deployment again
       // after performing the updates, as otherwise the deployment will
       // not have correct url and screenshot urls set
       deployment = await this.getDeployment(deploymentId);
       if (!deployment) {
-        this.logger.error(`Failed to fetch deployment after updating deployment status. Dropping DeploymentEvent`);
+        this.logger.error(
+          `Failed to fetch deployment after updating deployment status. Dropping DeploymentEvent`,
+        );
         throw badImplementation();
       }
       const payload: DeploymentEvent = {
@@ -597,14 +746,20 @@ export default class DeploymentModule {
    * Download artifact zip for a deployment from
    * GitLab and extract it into a a temporary path
    */
-  public async downloadAndExtractDeployment(projectId: number, deploymentId: number) {
+  public async downloadAndExtractDeployment(
+    projectId: number,
+    deploymentId: number,
+  ) {
     const url = `/projects/${projectId}/builds/${deploymentId}/artifacts`;
 
     const response = await this.gitlab.fetch(url);
     const tempDir = join(tmpdir(), 'minard');
     await mkpath(tempDir);
     const readableStream = response.body;
-    const tempFileName = join(tempDir, `minard-${projectId}-${deploymentId}.zip`);
+    const tempFileName = join(
+      tempDir,
+      `minard-${projectId}-${deploymentId}.zip`,
+    );
     const writeStream = createWriteStream(tempFileName);
 
     await new Promise<void>((resolve, reject) => {
@@ -614,7 +769,10 @@ export default class DeploymentModule {
       readableStream.resume();
     });
 
-    const extractedTempPath = this.getTempArtifactsPath(projectId, deploymentId);
+    const extractedTempPath = this.getTempArtifactsPath(
+      projectId,
+      deploymentId,
+    );
     await mkpath(extractedTempPath);
     await extract(tempFileName, { dir: extractedTempPath });
     return extractedTempPath;
@@ -625,11 +783,16 @@ export default class DeploymentModule {
     return join(tempDir, `minard-${projectId}-${deploymentId}`);
   }
 
-  public async moveExtractedDeployment(projectId: number, deploymentId: number) {
+  public async moveExtractedDeployment(
+    projectId: number,
+    deploymentId: number,
+  ) {
     // fetch minard.json
     const deployment = await this.getDeployment(deploymentId);
     if (!deployment) {
-      this.logger.error('Could not get deployment in downloadAndExtractDeployment');
+      this.logger.error(
+        'Could not get deployment in downloadAndExtractDeployment',
+      );
       throw badImplementation();
     }
     const minardJson = await this.getMinardJsonInfo(projectId, deployment.ref);
@@ -637,20 +800,28 @@ export default class DeploymentModule {
     if (!minardJson.effective) {
       // this should never happen as projects are not build if they don't
       // have an effective minard.json
-      this.logger.error(`Detected invalid minard.json when moving extracted deployment.`);
+      this.logger.error(
+        `Detected invalid minard.json when moving extracted deployment.`,
+      );
       throw badImplementation();
     }
 
     // move to final directory
-    const extractedTempPath = this.getTempArtifactsPath(projectId, deploymentId);
+    const extractedTempPath = this.getTempArtifactsPath(
+      projectId,
+      deploymentId,
+    );
     const finalPath = this.getDeploymentPath(projectId, deploymentId);
     const publicRoot = minardJson.effective.publicRoot;
-    const sourcePath = !publicRoot || publicRoot === '.' ? extractedTempPath :
-      join(extractedTempPath, publicRoot);
+    const sourcePath = !publicRoot || publicRoot === '.'
+      ? extractedTempPath
+      : join(extractedTempPath, publicRoot);
     const exists = existsSync(sourcePath);
     if (!exists) {
-      const msg = `Deployment "${projectId}_${deploymentId}" did not have directory at repo path ` +
-        `"${minardJson.effective.publicRoot}". Local sourcePath was ${sourcePath}`;
+      const msg =
+        `Deployment "${projectId}_${deploymentId}" did not have directory at repo path ` +
+        `"${minardJson.effective
+          .publicRoot}". Local sourcePath was ${sourcePath}`;
       // This should be caused by an user error, so just log this as an info message
       this.logger.info(msg);
       return undefined;
@@ -664,12 +835,14 @@ export default class DeploymentModule {
     try {
       await ncp(sourcePath, finalPath);
     } catch (err) {
-      this.logger.error(`Could not copy extracted deployment from ${sourcePath} to  `, err);
+      this.logger.error(
+        `Could not copy extracted deployment from ${sourcePath} to  `,
+        err,
+      );
       throw badImplementation();
     }
     return finalPath;
   }
-
 }
 
 export function toMoment(date: string | number) {

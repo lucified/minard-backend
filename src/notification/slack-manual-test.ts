@@ -56,23 +56,23 @@ const comment = {
 };
 
 async function test() {
- await slackNotify.notify(
-   deployment,
-   slackWebhookUrl,
-   projectUrl,
-   branchUrl,
-   previewUrl,
-   undefined,
-   undefined,
- );
- await slackNotify.notify(
-   deployment,
-   slackWebhookUrl,
-   projectUrl,
-   branchUrl,
-   previewUrl,
-   commentUrl,
-   comment,
+  await slackNotify.notify(
+    deployment,
+    slackWebhookUrl,
+    projectUrl,
+    branchUrl,
+    previewUrl,
+    undefined,
+    undefined,
+  );
+  await slackNotify.notify(
+    deployment,
+    slackWebhookUrl,
+    projectUrl,
+    branchUrl,
+    previewUrl,
+    commentUrl,
+    comment,
   );
 }
 

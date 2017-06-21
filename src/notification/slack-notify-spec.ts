@@ -40,12 +40,13 @@ describe('slack-notify', () => {
   };
 
   const deployment = baseDeployment;
-  const slackWebhookUrl = 'https://hooks.slack.com/services/FAKE/SLACK/WEBHOOKURL';
+  const slackWebhookUrl =
+    'https://hooks.slack.com/services/FAKE/SLACK/WEBHOOKURL';
   const projectUrl = 'http://foo-bar.com/projects/5';
   const branchUrl = 'http://foo-bar.com/branches/1-5';
   const previewUrl = 'http://foo-bar-ui.com/preview/deployment/1-5/foobartoken';
 
-  function arrange(): { notifier: SlackNotify, promise: Promise<any> } {
+  function arrange(): { notifier: SlackNotify; promise: Promise<any> } {
     const notifier = new SlackNotify((fetchMock as any).fetchMock);
     const promise = new Promise<any>((resolve, _reject) => {
       const response = (_url: string, options: any) => {
@@ -62,7 +63,15 @@ describe('slack-notify', () => {
     const { notifier, promise } = arrange();
 
     // Act
-    await notifier.notify(deployment, slackWebhookUrl, projectUrl, branchUrl, previewUrl, undefined, undefined);
+    await notifier.notify(
+      deployment,
+      slackWebhookUrl,
+      projectUrl,
+      branchUrl,
+      previewUrl,
+      undefined,
+      undefined,
+    );
 
     // Assert
     const options = await promise;
@@ -86,7 +95,8 @@ describe('slack-notify', () => {
   it('should send correct notification for comment', async () => {
     // Arrange
     const { notifier, promise } = arrange();
-    const commentUrl = 'http://foo-bar-ui.com/preview/deployment/1-5/foobartoken/comment/6';
+    const commentUrl =
+      'http://foo-bar-ui.com/preview/deployment/1-5/foobartoken/comment/6';
     const comment: NotificationComment = {
       email: 'foo@foomail.com',
       name: 'foo woman',
@@ -94,7 +104,15 @@ describe('slack-notify', () => {
     };
 
     // Act
-    await notifier.notify(deployment, slackWebhookUrl, projectUrl, branchUrl, previewUrl, commentUrl, comment);
+    await notifier.notify(
+      deployment,
+      slackWebhookUrl,
+      projectUrl,
+      branchUrl,
+      previewUrl,
+      commentUrl,
+      comment,
+    );
 
     // Assert
     const options = await promise;
@@ -113,5 +131,4 @@ describe('slack-notify', () => {
     expect(attachment.image_url).equal(deployment.screenshot);
     // TODO: check timestamp?
   });
-
 });

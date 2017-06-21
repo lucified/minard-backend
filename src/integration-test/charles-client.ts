@@ -438,8 +438,7 @@ export default class CharlesClient {
     const url = path.match(/^http/) ? path : `${this.url}${path}`;
     const response = wrapResponse<T>(await this.rawFetch(url, options));
     if (this.verbose) {
-      log(`\u21e2 ${prettyUrl(url)}`);
-      log(`\u21e0 ${response.status}`);
+      log(`\u21e0 ${response.status} ${prettyUrl(url)}`);
     }
 
     if (this.throwOnUnsuccessful) {

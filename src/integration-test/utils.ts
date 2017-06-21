@@ -79,11 +79,11 @@ export async function runCommand(command: string, ...args: string[]): Promise<bo
 }
 
 export function log(text: string) {
-  debug(`    ${cyan(text)}`);
+  debug(`${cyan(text)}`);
 }
 
 export function logTitle(text: string) {
-  debug(`   ${magenta(text)}`);
+  debug(`${magenta(text)}`);
 }
 
 export function prettyUrl(url: string) {
@@ -216,7 +216,7 @@ export function getAnonymousClient(client: CharlesClient) {
   anonymous.lastDeployment = {
     id: '9999999',
     url: anonymousUrl,
-    screenshot: client.lastDeployment!.screenshot + '_',
+    screenshot: client.lastDeployment!.screenshot + 'X',
     token: '9999999',
   };
   return anonymous;
@@ -231,6 +231,7 @@ export function cloneCharlesClient(client: CharlesClient, throwOnUnsuccessful = 
     client.url,
     client.accessToken,
     throwOnUnsuccessful,
+    client.verbose,
   );
   clone.teamId = client.teamId;
   clone.lastCreatedProject = client.lastCreatedProject;

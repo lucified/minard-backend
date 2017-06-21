@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import routes, { codes } from './routes';
 import { CharlesClients, EntityType, UserType } from './types';
-import { runCommand } from './utils';
+import { isDebug, runCommand } from './utils';
 
 export default (
   clientsFactory: () => Promise<CharlesClients>,
@@ -28,7 +28,10 @@ export default (
                   requestor,
                   getOwnerClient(userType, entityType, clients),
                 );
-                expect(response.status).to.eq(expectedCode);
+                expect(
+                  response.status,
+                  isDebug() ? await response.text() : '',
+                ).to.eq(expectedCode);
               });
             });
           }

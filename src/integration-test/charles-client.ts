@@ -10,7 +10,12 @@ import {
   OperationsResponse,
   SSE,
 } from './types';
-import { assertResponseStatus, wrapResponse } from './utils';
+import {
+  assertResponseStatus,
+  log,
+  prettyUrl,
+  wrapResponse,
+} from './utils';
 
 const EventSource = require('eventsource');
 
@@ -33,6 +38,7 @@ export default class CharlesClient {
     public readonly url: string,
     public readonly accessToken: string,
     public readonly throwOnUnsuccessful = false,
+    public readonly verbose = false,
   ) {
     this.fetchOptions = {
       method: 'GET',
@@ -364,7 +370,7 @@ export default class CharlesClient {
   }
 
   public getRepoUrlWithCredentials(
-    credentials?: { username: string, password: string},
+    credentials?: { username: string; password: string },
     plainUrl?: string,
   ) {
     let repoUrl: string | undefined;
@@ -391,10 +397,7 @@ export default class CharlesClient {
     const basic = `${encodeURIComponent(username)}:${encodeURIComponent(
       password,
     )}`;
-    const gitServerWithCredentials = gitserver.replace(
-      '//',
-      `//${basic}@`,
-    );
+    const gitServerWithCredentials = gitserver.replace('//', `//${basic}@`);
     return repoUrl.replace(gitserver, gitServerWithCredentials);
   }
 
@@ -405,6 +408,8 @@ export default class CharlesClient {
       lastProject: this.lastCreatedProject,
       lastDeployment: this.lastDeployment,
       teamId: this.teamId,
+      throwOnUnsuccessful: this.throwOnUnsuccessful,
+      verbose: this.verbose,
     };
   }
 
@@ -413,6 +418,7 @@ export default class CharlesClient {
       dto.url,
       dto.accessToken,
       dto.throwOnUnsuccessful,
+      dto.verbose,
     );
     instance.lastCreatedProject = dto.lastProject;
     instance.lastDeployment = dto.lastDeployment;
@@ -431,6 +437,11 @@ export default class CharlesClient {
   ) {
     const url = path.match(/^http/) ? path : `${this.url}${path}`;
     const response = wrapResponse<T>(await this.rawFetch(url, options));
+    if (this.verbose) {
+      log(`\u21e2 ${prettyUrl(url)}`);
+      log(`\u21e0 ${response.status}`);
+    }
+
     if (this.throwOnUnsuccessful) {
       assertResponseStatus(response, requiredStatus);
     }

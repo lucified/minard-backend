@@ -55,6 +55,7 @@ describe('system-integration', () => {
               config.charles,
               accessToken,
               true,
+              isDebug(),
             );
           });
         });

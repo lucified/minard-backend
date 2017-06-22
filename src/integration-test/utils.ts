@@ -148,20 +148,21 @@ export async function getConfiguration(
 ): Promise<Config> {
   // Load bindings that represent configuration
   const _env: ENV = env || process.env.NODE_ENV || 'development';
-  let config: Config | string;
+  let contents: any;
   switch (_env) {
     case 'staging':
-      config = require('./configuration.staging').default;
+      contents = require('./configuration.staging');
       break;
     case 'development':
-      config = require('./configuration.development').default;
+      contents = require('./configuration.development');
       break;
     case 'production':
-      config = require('./configuration.production').default;
+      contents = require('./configuration.production');
       break;
     default:
       throw new Error(`Unsupported environment '${_env}''`);
   }
+  let config: Config | string = contents.default || contents;
   if (typeof config === 'string') {
     // assume it's an S3 URL
     const { bucket, key } = parseS3Url(config);

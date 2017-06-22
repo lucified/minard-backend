@@ -17,42 +17,54 @@ files are located in the same directory as the code to be tested.
 The integration tests require a configuration file, `src/integration-test/configuration.{environment}.ts` for each environment
 you want to run the tests against. The
 environment can be 'development' (default), 'staging' or 'production' and it is determined by the `NODE_ENV` environment variable.
+The configuration file is executed normally, but it has to default export a json object or a S3 URL pointing to a json file.
 
-The configuration file should conform to:
+Here's an example:
 ```typescript
-interface Config {
-  charles: string;
-  notifications: {
-    flowdock?: {
-      type: 'flowdock';
-      flowToken: string;
+const config = {
+  "charles": "http://localtest.me:8000",
+  "notifications": {
+    "flowdock": {
+      "type": "flowdock",
+      "flowToken": "xxx"
     },
-    hipchat?: {
-      type: 'hipchat';
-      hipchatRoomId: number;
-      hipchatAuthToken: string;
+    "hipchat": {
+      "type": "hipchat",
+      "hipchatRoomId": 123,
+      "hipchatAuthToken": "xxx"
     },
-    slack?: {
-      type: 'slack';
-      slackWebhookUrl: string;
+    "slack": {
+      "type": "slack",
+      "slackWebhookUrl": "https://hooks.slack.com/services/xxx"
+    }
+  },
+  "auth0": {
+    "regular": {
+      "audience": "http://localtest.me:8000",
+      "domain": "https://company.eu.auth0.com",
+      "clientId": "123",
+      "clientSecret": "xxx"
     },
-  };
-  auth0: {
-    regular: Auth0;
-    open: Auth0;
-    admin: Auth0;
-  };
+    "open": {
+      "audience": "http://localtest.me:8000",
+      "domain": "https://company.eu.auth0.com",
+      "clientId": "456",
+      "clientSecret": "xxx"
+    },
+    "admin": {
+      "audience": "http://localtest.me:8000",
+      "domain": "https://company.eu.auth0.com",
+      "clientId": "789",
+      "clientSecret": "xxx"
+    }
+  }
 }
-interface Auth0 {
-  domain: string;
-  clientId: string;
-  clientSecret: string;
-  audience: string;
-}
+export default config;
 ```
-
-An example file can be found from `src/integration-test/configuration.example.ts`.
-
+or
+```typescript
+export default "s3://mybucket/configuration.staging.json"
+```
 The integration tests assume that a predefined set of "users" have been created in Auth0 and linked with
 corresponding user accounts and groups in GitLab.  To be able to get up and running from scratch remains a TODO.
 
@@ -84,6 +96,7 @@ charles-client regenerateGitlabPasswords
 
 ## Charles's configuration
 
+# Prerequisites
 Make sure the following environment variables have been set when starting charles:
 
 ```shell
@@ -100,6 +113,6 @@ If running against a local backend, start it with
 
 Run system integration tests with
 ```shell
-NODE_ENV={env} npm run-script system-test
+NODE_ENV={env} yarn run system-test
 ```
 where `env` is 'development', 'staging' or 'production'.

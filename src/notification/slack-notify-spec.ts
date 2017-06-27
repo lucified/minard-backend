@@ -20,7 +20,6 @@ describe('slack-notify', () => {
     buildStatus: 'success',
     extractionStatus: 'success',
     screenshotStatus: 'failed',
-    screenshot: 'http://foo-deployentm.com/screenshot.jpg',
     createdAt: moment(),
     commit: {
       id: 'foo-id',
@@ -58,7 +57,7 @@ describe('slack-notify', () => {
     return { notifier, promise };
   }
 
-  it('should send correct notification for deployment with screenshot', async () => {
+  it('should send correct notification for deployment', async () => {
     // Arrange
     const { notifier, promise } = arrange();
 
@@ -86,9 +85,8 @@ describe('slack-notify', () => {
     expect(attachment.fallback).contains('preview');
     expect(attachment.color).equal('#40C1AC');
     expect(attachment.author_name).equal(deployment.commit.committer.name);
-    expect(attachment.title).equal('New preview');
+    expect(attachment.title).equal('New preview in ' + deployment.projectName + '/' + deployment.ref);
     expect(attachment.title_link).equal(previewUrl);
-    expect(attachment.image_url).equal(deployment.screenshot);
     expect(attachment.ts).equal(deployment.createdAt.unix());
   });
 
@@ -126,7 +124,7 @@ describe('slack-notify', () => {
     expect(attachment.fallback).contains('comment');
     expect(attachment.color).equal('#40C1AC');
     expect(attachment.author_name).equal(comment.name);
-    expect(attachment.title).equal('New comment');
+    expect(attachment.title).equal('New comment in ' + deployment.projectName + '/' + deployment.ref);
     expect(attachment.title_link).equal(commentUrl);
     expect(attachment.image_url).equal(deployment.screenshot);
     // TODO: check timestamp?

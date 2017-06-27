@@ -29,7 +29,6 @@ together with [minard-ui](https://github.com/lucified/minard-ui).
 
 - [Motivation](docs/motivation.md)
 - [Architecture](docs/architecture.md)
-- [Authentication and Authorization](docs/auth.md)
 - [Development](docs/development.md)
 - [Testing](docs/testing.md)
 - [Charles API](docs/api/README.md)

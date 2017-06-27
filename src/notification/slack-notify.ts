@@ -9,51 +9,43 @@ import { NotificationComment, SlackAttachment, SlackMessage } from './types';
 export function getMessage(
   deployment: MinardDeployment,
   previewUrl: string,
-  projectUrl: string,
-  branchUrl: string,
+  _projectUrl: string, // leaving in to have a similar structure to Flowdock notifications
+  _branchUrl: string, // same ^
   comment?: NotificationComment,
 ): SlackMessage {
   const author = comment || deployment.commit.author;
   const fallback =
     `New ${comment ? 'comment' : 'preview'} in ` +
     `${deployment.projectName}/${deployment.ref}: ${previewUrl}`;
+  const previewTitle =
+    'New ' +
+    (comment ? 'comment' : 'preview') +
+    ' in ' +
+    deployment.projectName +
+    '/' +
+    deployment.ref;
   const message: SlackAttachment = {
     fallback,
     color: '#40C1AC',
     author_name: author.name || author.email,
     author_icon: gravatarUrl(author.email, undefined, false),
-    title: comment ? 'New comment' : 'New preview',
+    title: previewTitle,
     title_link: previewUrl,
     text: comment ? comment.message : deployment.commit.message,
-    fields: [
-      {
-        title: 'Project',
-        value: `<${projectUrl}|${deployment.projectName}>`,
-        short: true,
-      },
-      {
-        title: 'Branch',
-        value: `<${branchUrl}|${deployment.ref}>`,
-        short: true,
-      },
-    ],
+    fields: comment
+      ? [
+          {
+            title: 'Preview:',
+            value: deployment.commit.message,
+            short: false,
+          },
+        ]
+      : undefined,
     // For some reason the footer icon doesn't work. It might require HTTP?
     footer_icon: 'https://minard.io/favicon-16x16.png',
     // TODO: Can a comment's timestamp be fetched from somewhere?
     ts: comment ? Date.now() / 1000 : deployment.createdAt.unix(),
   };
-
-  if (deployment.screenshot) {
-    message.image_url = deployment.screenshot;
-  }
-
-  if (comment) {
-    message.fields.unshift({
-      title: 'Commit',
-      value: deployment.commit.message,
-      short: false,
-    });
-  }
 
   return {
     attachments: [message],

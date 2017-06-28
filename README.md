@@ -29,10 +29,12 @@ together with [minard-ui](https://github.com/lucified/minard-ui).
 
 - [Motivation](docs/motivation.md)
 - [Architecture](docs/architecture.md)
+- [Authentication](docs/auth.md)
+- [User and team administration](docs/user-and-team-admin.md)
+- [Administration](docs/admin.md)
 - [Development](docs/development.md)
 - [Testing](docs/testing.md)
 - [Charles API](docs/api/README.md)
-- [User and team administration](docs/user-and-team-admin.md)
 - [Contributing](docs/contributing.md)
 
 ## Acknowledgements

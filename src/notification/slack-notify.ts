@@ -6,7 +6,7 @@ import { IFetch } from '../shared/fetch';
 import { fetchInjectSymbol } from '../shared/types';
 import { NotificationComment, SlackAttachment, SlackMessage } from './types';
 
-export function getMessage(
+function getMessage(
   deployment: MinardDeployment,
   previewUrl: string,
   _projectUrl: string, // leaving in to have a similar structure to Flowdock notifications
@@ -18,12 +18,9 @@ export function getMessage(
     `New ${comment ? 'comment' : 'preview'} in ` +
     `${deployment.projectName}/${deployment.ref}: ${previewUrl}`;
   const previewTitle =
-    'New ' +
-    (comment ? 'comment' : 'preview') +
-    ' in ' +
-    deployment.projectName +
-    '/' +
-    deployment.ref;
+    `New ${comment ? 'comment' : 'preview'} in ` +
+    `${deployment.projectName}/${deployment.ref}`;
+
   const message: SlackAttachment = {
     fallback,
     color: '#40C1AC',

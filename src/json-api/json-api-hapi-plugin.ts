@@ -38,7 +38,15 @@ function onPreResponse(
   }
 
   if (response.isBoom && response.output) {
-    maskErrors(response);
+    // let 401's through to be able to redirect
+    if (
+      request.auth.isAuthenticated ||
+      request.auth.credentials ||
+      response.output.statusCode !== 401 ||
+      !request.path.startsWith('/api/preview')
+    ) {
+      maskErrors(response);
+    }
     applyHeaders(response.output.headers);
   } else {
     applyHeaders(response.headers);

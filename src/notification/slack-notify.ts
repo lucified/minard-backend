@@ -71,11 +71,7 @@ export class SlackNotify {
     }
 
     const fullPreviewUrl = commentUrl || previewUrl;
-    const body = getMessage(
-      deployment,
-      fullPreviewUrl,
-      comment,
-    );
+    const body = getMessage(deployment, fullPreviewUrl, comment);
 
     const options = {
       method: 'POST',

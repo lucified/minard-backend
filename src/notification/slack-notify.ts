@@ -9,8 +9,6 @@ import { NotificationComment, SlackAttachment, SlackMessage } from './types';
 function getMessage(
   deployment: MinardDeployment,
   previewUrl: string,
-  _projectUrl: string, // leaving in to have a similar structure to Flowdock notifications
-  _branchUrl: string, // same ^
   comment?: NotificationComment,
 ): SlackMessage {
   const author = comment || deployment.commit.author;
@@ -61,8 +59,8 @@ export class SlackNotify {
   public async notify(
     deployment: MinardDeployment,
     webhookUrl: string,
-    projectUrl: string,
-    branchUrl: string,
+    _projectUrl: string,
+    _branchUrl: string,
     previewUrl: string,
     commentUrl?: string,
     comment?: NotificationComment,
@@ -76,8 +74,6 @@ export class SlackNotify {
     const body = getMessage(
       deployment,
       fullPreviewUrl,
-      projectUrl,
-      branchUrl,
       comment,
     );
 

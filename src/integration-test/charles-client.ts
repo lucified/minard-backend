@@ -125,6 +125,30 @@ export default class CharlesClient {
   }
 
   /**
+   * PREVIEW
+   *
+   * All of the project-related functions either perform actions on the project
+   * for the supplied project ID or then on the last project that was created by
+   * CharlesClient.
+   */
+
+  public getPreview(deploymentId?: string, deploymentToken?: string) {
+    const _deploymentId =
+      deploymentId || (this.lastDeployment && this.lastDeployment.id);
+    if (!_deploymentId) {
+      throw new Error('No deploymentId available');
+    }
+    const _deploymentToken =
+      deploymentToken || (this.lastDeployment && this.lastDeployment.token);
+    if (!_deploymentToken) {
+      throw new Error('No deploymentToken available');
+    }
+    return this.fetch<ResponseSingle>(
+      `/api/preview/deployment/${_deploymentId}/${deploymentToken}`,
+    );
+  }
+
+  /**
    * Calling this sets this.lastProject.
    */
   public async createProject(

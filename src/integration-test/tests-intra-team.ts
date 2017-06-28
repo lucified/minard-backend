@@ -100,84 +100,6 @@ export default (
       expect(project.attributes.description).to.equal(newDescription);
     });
   });
-
-  describe('deployments', () => {
-    it('should be able to create a successful deployment by pushing code', async function() {
-      const client = await clientFactory();
-      const {
-        nonInteractiveClientId,
-        nonInteractiveClientSecret,
-      } = await credentialsFactory();
-      this.timeout(1000 * 60 * 5);
-      debug('Pushing code');
-      const repoFolder = `src/integration-test/blank`;
-      const repoUrl = client.getRepoUrlWithCredentials({
-        username: nonInteractiveClientId,
-        password: nonInteractiveClientSecret,
-      });
-      await runCommand('src/integration-test/setup-repo');
-      await runCommand(
-        'git',
-        '-C',
-        repoFolder,
-        'remote',
-        'add',
-        'minard',
-        repoUrl,
-      );
-      await runCommand('git', '-C', repoFolder, 'push', 'minard', 'master');
-
-      const eventStream = await client.teamEvents('DEPLOYMENT_UPDATED');
-      const deployment = await withPing(eventStream, 1000, 'Building...')
-        .map(event => JSON.parse(event.data).deployment as JsonApiEntity)
-        .filter(d => d.attributes.status === 'success')
-        .take(1)
-        .toPromise();
-
-      expect(deployment!.attributes['build-status']).to.eq('success');
-      expect(deployment!.attributes['extraction-status']).to.eq('success');
-      expect(deployment!.attributes['screenshot-status']).to.eq('success');
-      // Store the deployment in the client
-      client.lastDeployment = {
-        ...deployment!.attributes,
-        id: deployment!.id,
-      };
-    });
-
-    it('should be able to fetch the raw deployment webpage', async function() {
-      const client = await clientFactory();
-      this.timeout(1000 * 30);
-      const url = client.lastDeployment!.url + '/index.html';
-      const response = await client.fetch(url);
-      expect(response.status).to.eq(200);
-    });
-
-    it("should be able to fetch deployment's screenshot", async function() {
-      const client = await clientFactory();
-      this.timeout(1000 * 60);
-      const response = await client.fetch(client.lastDeployment!.screenshot);
-      expect(response.status).to.eq(200);
-    });
-
-    it("should be able to fetch project's activity", async function() {
-      const client = await clientFactory();
-      this.timeout(1000 * 10);
-      const activities = await client
-        .getProjectActivity()
-        .then(x => x.getEntities());
-      expect(activities).to.exist;
-      expect(activities).to.have.length(1);
-      expect(activities[0].attributes['activity-type']).to.equal('deployment');
-      expect(activities[0].attributes.deployment.status).to.equal('success');
-      expect(Number(activities[0].attributes.project.id)).to.equal(
-        await client.lastCreatedProject!.id,
-      );
-      expect(activities[0].attributes.project.name).to.equal(projectName);
-      expect(activities[0].attributes.commit).to.exist;
-      expect(activities[0].attributes.branch.name).to.equal('master');
-    });
-  });
-
   describe('configuring notifications', () => {
     function testNotificationConfiguration(
       configuration: NotificationConfiguration,
@@ -287,6 +209,83 @@ export default (
           responseJson,
         );
       }
+    });
+  });
+
+  describe('deployments', () => {
+    it('should be able to create a successful deployment by pushing code', async function() {
+      const client = await clientFactory();
+      const {
+        nonInteractiveClientId,
+        nonInteractiveClientSecret,
+      } = await credentialsFactory();
+      this.timeout(1000 * 60 * 5);
+      debug('Pushing code');
+      const repoFolder = `src/integration-test/blank`;
+      const repoUrl = client.getRepoUrlWithCredentials({
+        username: nonInteractiveClientId,
+        password: nonInteractiveClientSecret,
+      });
+      await runCommand('src/integration-test/setup-repo');
+      await runCommand(
+        'git',
+        '-C',
+        repoFolder,
+        'remote',
+        'add',
+        'minard',
+        repoUrl,
+      );
+      await runCommand('git', '-C', repoFolder, 'push', 'minard', 'master');
+
+      const eventStream = await client.teamEvents('DEPLOYMENT_UPDATED');
+      const deployment = await withPing(eventStream, 1000, 'Building...')
+        .map(event => JSON.parse(event.data).deployment as JsonApiEntity)
+        .filter(d => d.attributes.status === 'success')
+        .take(1)
+        .toPromise();
+
+      expect(deployment!.attributes['build-status']).to.eq('success');
+      expect(deployment!.attributes['extraction-status']).to.eq('success');
+      expect(deployment!.attributes['screenshot-status']).to.eq('success');
+      // Store the deployment in the client
+      client.lastDeployment = {
+        ...deployment!.attributes,
+        id: deployment!.id,
+      };
+    });
+
+    it('should be able to fetch the raw deployment webpage', async function() {
+      const client = await clientFactory();
+      this.timeout(1000 * 30);
+      const url = client.lastDeployment!.url + '/index.html';
+      const response = await client.fetch(url);
+      expect(response.status).to.eq(200);
+    });
+
+    it("should be able to fetch deployment's screenshot", async function() {
+      const client = await clientFactory();
+      this.timeout(1000 * 60);
+      const response = await client.fetch(client.lastDeployment!.screenshot);
+      expect(response.status).to.eq(200);
+    });
+
+    it("should be able to fetch project's activity", async function() {
+      const client = await clientFactory();
+      this.timeout(1000 * 10);
+      const activities = await client
+        .getProjectActivity()
+        .then(x => x.getEntities());
+      expect(activities).to.exist;
+      expect(activities).to.have.length(1);
+      expect(activities[0].attributes['activity-type']).to.equal('deployment');
+      expect(activities[0].attributes.deployment.status).to.equal('success');
+      expect(Number(activities[0].attributes.project.id)).to.equal(
+        await client.lastCreatedProject!.id,
+      );
+      expect(activities[0].attributes.project.name).to.equal(projectName);
+      expect(activities[0].attributes.commit).to.exist;
+      expect(activities[0].attributes.branch.name).to.equal('master');
     });
   });
 

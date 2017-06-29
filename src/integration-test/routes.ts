@@ -43,6 +43,22 @@ const routes: Route[] = [
     },
   },
   {
+    description: 'view preview',
+    request: (me: CharlesClient, other: CharlesClient) => {
+      expect(me.lastDeployment).to.exist;
+      expect(other.lastDeployment).to.exist;
+      return me.getPreview(
+        other.lastDeployment!.id,
+        other.lastDeployment!.token,
+      );
+    },
+    accessMatrix: {
+      regular: { own: '1', closed: 'x', open: '1', missing: 'x' },
+      admin: { own: '1', closed: '1', open: '1', missing: 'x' },
+      unauthenticated: { own: 'x', closed: '0', open: '1', missing: 'x' },
+    },
+  },
+  {
     description: 'view screenshot',
     request: (me: CharlesClient, other: CharlesClient) => {
       expect(me.lastDeployment).to.exist;
@@ -61,5 +77,6 @@ export const codes = {
   '1': 200,
   x: 404,
   r: 302,
+  '0': 401,
 };
 export default routes;

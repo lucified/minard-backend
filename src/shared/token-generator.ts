@@ -37,5 +37,4 @@ export default class TokenGenerator {
       .digest('hex');
     return hash;
   }
-
 }

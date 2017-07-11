@@ -235,6 +235,7 @@ describe('json-api serialization', () => {
         description: 'dsafjdsahfj',
         repoUrl: 'http://foo-bar.com/foo/bar.git',
         token: 'token',
+        webhookUrl: 'foo-webhook-url',
       };
       const converted = serializeApiEntity('project', project, apiBaseUrl);
       const data = converted.data;
@@ -248,6 +249,7 @@ describe('json-api serialization', () => {
       );
       expect(data.attributes.description).to.equal(project.description);
       expect(data.attributes['repo-url']).to.equal(project.repoUrl);
+      expect(data.attributes['webhook-url']).to.equal(project.webhookUrl);
     });
   });
 

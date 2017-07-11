@@ -65,6 +65,7 @@ describe('view-endpoints', () => {
       {} as any,
       getMockCommentModule(),
       tokenGenerator,
+      '',
     );
     return new ViewEndpoints(jsonApiModule, deploymentModule, 'foo-base-url');
   }

@@ -132,6 +132,7 @@ describe('realtime-hapi-sseModule', () => {
               ],
               repoUrl: 'foo',
               token: 'token',
+              webhookUrl: 'bar',
             }),
           } as JsonApiModule;
           const eventBus = getEventBus();
@@ -270,6 +271,7 @@ describe('realtime-hapi-sseModule', () => {
         {} as any,
         getMockCommentModule(),
         tokenGenerator,
+        '',
       );
 
       const eventBus = getEventBus();

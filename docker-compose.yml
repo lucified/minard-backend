@@ -169,6 +169,14 @@ services:
     environment:
       - PORT=80
 
+  gitsyncer:
+    image: 366857391347.dkr.ecr.eu-west-1.amazonaws.com/git-syncer:f2990b
+    environment:
+      - DEBUG=1
+      - PORT=80
+    ports:
+      - "8006:80"
+
   charles:
     build: .
     depends_on:
@@ -204,5 +212,7 @@ services:
       - SENTRY_DSN=$SENTRY_DSN
       - ADMIN_ID=9A0cjUjLPIAIP52xTTWvuakblphA8EYu
       - OPEN_TEAM_NAMES=integrationtestopenteam
+      - GIT_SYNCER_BASEURL=http://gitsyncer
+      - GITHUB_TOKENS=${GITHUB_TOKENS}
       - EXIT_DELAY=0
       - DEBUG=1

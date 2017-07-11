@@ -59,6 +59,7 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         {} as any,
+        '',
       );
 
       // Act
@@ -94,6 +95,7 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         tokenGenerator,
+        '',
       );
 
       jsonApiModule.toApiDeployment = async (
@@ -172,6 +174,7 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         tokenGenerator,
+        '',
       );
 
       // Act
@@ -223,6 +226,7 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         tokenGenerator,
+        '',
       );
 
       // Act
@@ -266,6 +270,7 @@ describe('json-api-module', () => {
         {} as any,
         commentModule,
         tokenGenerator,
+        '',
       );
 
       // Act
@@ -340,6 +345,7 @@ describe('json-api-module', () => {
         {} as any,
         getMockCommentModule(),
         tokenGenerator,
+        '',
       );
 
       // Act
@@ -418,6 +424,7 @@ describe('json-api-module', () => {
         {} as any,
         getMockCommentModule(),
         tokenGenerator,
+        '',
       );
       jsonApiModule.toApiCommit = async (
         _projectId: number,
@@ -485,6 +492,7 @@ describe('json-api-module', () => {
         {} as any,
         getMockCommentModule(),
         tokenGenerator,
+        '',
       );
 
       // Act

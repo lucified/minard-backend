@@ -6,8 +6,10 @@ import { Moment } from 'moment';
 import { ActivityModule, MinardActivity } from '../activity';
 import { CommentModule, MinardComment, NewMinardComment } from '../comment';
 import { DeploymentModule, MinardDeployment } from '../deployment/';
+import { webhookUrl } from '../github-sync';
 import { NotificationConfiguration, NotificationModule } from '../notification';
 import { MinardBranch, MinardProject, ProjectModule } from '../project/';
+import { externalBaseUrlInjectSymbol } from '../server/types';
 import { MinardCommit } from '../shared/minard-commit';
 import { toGitlabTimestamp, toMoment } from '../shared/time-conversion';
 import TokenGenerator from '../shared/token-generator';
@@ -42,6 +44,8 @@ export class JsonApiModule {
     private readonly commentModule: CommentModule,
     @inject(TokenGenerator.injectSymbol)
     private readonly tokenGenerator: TokenGenerator,
+    @inject(externalBaseUrlInjectSymbol)
+    private readonly externalBaseUrl: string,
   ) {}
 
   public async getCommit(
@@ -395,6 +399,11 @@ export class JsonApiModule {
       description: project.description,
       repoUrl: project.repoUrl,
       token: this.tokenGenerator.projectToken(project.id),
+      webhookUrl: webhookUrl(
+        project.id,
+        this.tokenGenerator,
+        this.externalBaseUrl,
+      ),
     };
   }
 

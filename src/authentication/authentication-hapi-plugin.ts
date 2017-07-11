@@ -22,7 +22,6 @@ import {
   adminIdInjectSymbol,
   charlesKnexInjectSymbol,
   fetchInjectSymbol,
-  openTeamNamesInjectSymbol,
 } from '../shared/types';
 import { GitAuthScheme } from './git-auth-scheme';
 import {
@@ -68,7 +67,6 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     @inject(charlesKnexInjectSymbol) private readonly db: Knex,
     @inject(loggerInjectSymbol) private readonly logger: Logger,
     @inject(adminIdInjectSymbol) private readonly adminId: string,
-    @inject(openTeamNamesInjectSymbol) private readonly openTeamNames: string[],
     @inject(fetchInjectSymbol) private readonly fetch: IFetch,
     @inject(internalHostSuffixesInjectSymbol)
     private readonly internalHostSuffixes: string[],
@@ -732,12 +730,9 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   }
 
   public async isOpenProject(projectId: number) {
-    const team = await this.getProjectTeam(projectId);
-    if (
-      team &&
-      this.openTeamNames &&
-      this.openTeamNames.indexOf(team.name.toLowerCase()) > -1
-    ) {
+    const project = await this._getProject(projectId);
+    if (project && project.visibility_level === 20) {
+      // 0 => private, 10 => internal, 20 => public
       return true;
     }
     return false;

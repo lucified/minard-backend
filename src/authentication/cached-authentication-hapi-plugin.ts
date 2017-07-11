@@ -11,7 +11,6 @@ import {
   adminIdInjectSymbol,
   charlesKnexInjectSymbol,
   fetchInjectSymbol,
-  openTeamNamesInjectSymbol,
 } from '../shared/types';
 import AuthenticationHapiPlugin from './authentication-hapi-plugin';
 import {
@@ -34,7 +33,6 @@ class CachedAuthenticationHapiPlugin extends AuthenticationHapiPlugin {
     @inject(charlesKnexInjectSymbol) db: Knex,
     @inject(loggerInjectSymbol) logger: Logger,
     @inject(adminIdInjectSymbol) adminTeamName: string,
-    @inject(openTeamNamesInjectSymbol) openTeamNames: string[],
     @inject(fetchInjectSymbol) fetch: IFetch,
     @inject(internalHostSuffixesInjectSymbol) internalHostSuffixes: string[],
     @inject(jwtOptionsInjectSymbol)
@@ -50,7 +48,6 @@ class CachedAuthenticationHapiPlugin extends AuthenticationHapiPlugin {
       db,
       logger,
       adminTeamName,
-      openTeamNames,
       fetch,
       internalHostSuffixes,
       defaultJWTOptions,

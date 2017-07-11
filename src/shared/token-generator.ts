@@ -30,4 +30,12 @@ export default class TokenGenerator {
       .digest('hex');
     return hash;
   }
+
+  public projectWebhookToken(projectId: number) {
+    const hash = createHmac('sha256', this.secret)
+      .update(`P${projectId}-webhook`)
+      .digest('hex');
+    return hash;
+  }
+
 }

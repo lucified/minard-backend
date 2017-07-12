@@ -6,6 +6,7 @@ export interface ProjectCreatedEvent {
   teamId: number;
   name: string;
   description?: string;
+  isPublic?: boolean;
 }
 
 export interface ProjectDeletedEvent {
@@ -19,6 +20,7 @@ export interface ProjectEditedEvent {
   description?: string;
   repoUrl?: string;
   teamId: number;
+  isPublic?: boolean;
 }
 
 export interface CodePushedEvent {

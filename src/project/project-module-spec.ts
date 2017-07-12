@@ -1155,6 +1155,7 @@ describe('project-module', () => {
     const name = 'foo-project';
     const path = name;
     const description = 'my foo project';
+    const isPublic = false;
 
     function arrangeProjectModule(
       status: number,
@@ -1196,6 +1197,7 @@ describe('project-module', () => {
       expect(payload.id).to.equal(projectId);
       expect(payload.teamId).to.equal(teamId);
       expect(payload.name).to.equal(name);
+      expect(payload.isPublic).to.equal(isPublic);
       expect(await projectHookPromise).to.equal(projectId);
     });
 
@@ -1360,12 +1362,13 @@ describe('project-module', () => {
     const name = 'foo-project';
     const path = name;
     const description = 'my foo project';
+    const isPublic = true;
     const oldName = 'old-foo-project';
     const oldDescription = 'old-foo-project-description';
+    const oldIsPublic = false;
 
     function arrangeProjectModule(
       status: number,
-      _params: any,
       eventBus?: EventBus,
       body?: any,
     ) {
@@ -1374,9 +1377,10 @@ describe('project-module', () => {
     }
 
     async function shouldSucceed(
-      attributes: { name?: string; description?: string },
+      attributes: { name?: string; description?: string, isPublic?: boolean },
       resultingName: string,
       resultingDescription: string,
+      resultingPublicity: boolean,
     ) {
       const bus = new LocalEventBus();
       const promise = bus
@@ -1384,22 +1388,18 @@ describe('project-module', () => {
         .map(event => event.payload)
         .take(1)
         .toPromise();
-      const params = {
-        name: attributes.name,
-        path: attributes.name,
-        description: attributes.description,
-      };
       const body = {
         id: projectId,
         name: resultingName,
         path: resultingName,
         description: resultingDescription,
+        snippets_enabled: resultingPublicity,
         namespace: {
           id: teamId,
           path: 'foo-path',
         },
       };
-      const projectModule = arrangeProjectModule(200, params, bus, body);
+      const projectModule = arrangeProjectModule(200, bus, body);
 
       // Act
       await projectModule.editProject(projectId, attributes);
@@ -1408,6 +1408,7 @@ describe('project-module', () => {
       // Assert
       expect(fetchMock.called()).to.equal(true);
       expect(payload.description).to.equal(resultingDescription);
+      expect(payload.isPublic).to.equal(resultingPublicity);
       expect(payload.id).to.equal(projectId);
       expect(payload.name).to.equal(resultingName);
       expect(payload.teamId).to.equal(teamId);
@@ -1417,15 +1418,19 @@ describe('project-module', () => {
     }
 
     it('should work when editing all editable fields', async () => {
-      await shouldSucceed({ name, description }, name, description);
+      await shouldSucceed({ name, description, isPublic }, name, description, isPublic);
     });
 
     it('should work when editing only project name', async () => {
-      await shouldSucceed({ name }, name, oldDescription);
+      await shouldSucceed({ name }, name, oldDescription, oldIsPublic);
     });
 
     it('should work when editing only project description', async () => {
-      await shouldSucceed({ description }, oldName, description);
+      await shouldSucceed({ description }, oldName, description, oldIsPublic);
+    });
+
+    it('should work when editing only project publicity', async () => {
+      await shouldSucceed({ isPublic }, oldName, oldDescription, isPublic);
     });
 
     it('should throw correct error when project name already exists', async () => {
@@ -1437,10 +1442,8 @@ describe('project-module', () => {
           limit_reached: [],
         },
       };
-      const params = { name, path, description };
       const projectModule = arrangeProjectModule(
         400,
-        params,
         undefined,
         response,
       );
@@ -1470,8 +1473,7 @@ describe('project-module', () => {
       if (invalidFieldName) {
         response[invalidFieldName] = 'foo-foo-foo';
       }
-      const params = { name, path, description };
-      const projectModule = arrangeProjectModule(status, params, bus, response);
+      const projectModule = arrangeProjectModule(status, bus, response);
       // Act & Assert
       try {
         await projectModule.editProject(projectId, { name, description });

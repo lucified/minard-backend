@@ -32,7 +32,7 @@ import {
   projectDeleted,
   projectEdited,
 } from './types';
-import { setPublicDeployments } from './util';
+import { hasPublicDeployments, setPublicDeployments } from './util';
 
 @injectable()
 export default class ProjectModule {
@@ -685,6 +685,7 @@ export default class ProjectModule {
         description,
         name,
         teamId,
+        isPublic: hasPublicDeployments(project),
       }),
     );
     return project.id;
@@ -702,6 +703,7 @@ export default class ProjectModule {
         name: project.name,
         description: project.description,
         repoUrl: this.getRepoUrl(project),
+        isPublic: hasPublicDeployments(project),
       }),
     );
   }

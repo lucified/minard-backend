@@ -19,7 +19,6 @@ import {
 import {
   adminIdInjectSymbol,
   charlesKnexInjectSymbol,
-  openTeamNamesInjectSymbol,
 } from '../shared/types';
 import {
   accessTokenCookieSettings,
@@ -56,10 +55,6 @@ async function getPlugin(
     .to(AuthenticationHapiPlugin);
   const db = kernel.get<Knex>(charlesKnexInjectSymbol);
   kernel.rebind(charlesKnexInjectSymbol).toConstantValue(db);
-  kernel
-    .rebind(openTeamNamesInjectSymbol)
-    .toConstantValue(['fooopenteam', 'baropenteam']);
-
   await initializeTeamTokenTable(db);
   if (authenticationStubber) {
     const { instance } = stubber(

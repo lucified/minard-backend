@@ -423,19 +423,21 @@ export default class ProjectModule {
     isPublic = false,
   ): Promise<Project> {
     const params = omitBy(
-      {
-        name: path,
-        path,
-        description,
-        // In GitLab, the namespace_id is either an user id or a group id
-        // those id's do not overlap. Here we set it as the teamId, which
-        // corresponds to GitLab teamId:s
-        namespace_id: teamId,
-        import_url: importUrl,
-      },
+      setPublicDeployments(
+        {
+          name: path,
+          path,
+          description,
+          // In GitLab, the namespace_id is either an user id or a group id
+          // those id's do not overlap. Here we set it as the teamId, which
+          // corresponds to GitLab teamId:s
+          namespace_id: teamId,
+          import_url: importUrl,
+        },
+        isPublic,
+      ),
       isNil,
     );
-    setPublicDeployments(params, isPublic);
 
     const res = await this.gitlab.fetchJsonAnyStatus<any>(
       `projects?${stringify(params)}`,
@@ -511,14 +513,17 @@ export default class ProjectModule {
     attributes: { name?: string; description?: string; isPublic?: boolean },
   ): Promise<Project> {
     const { name, description, isPublic } = attributes;
-    const params = {
-      name,
-      path: name,
-      description,
-    };
-    if (isPublic !== undefined) {
-      setPublicDeployments(params, isPublic);
-    }
+    const params = omitBy(
+      setPublicDeployments(
+        {
+          name,
+          path: name,
+          description,
+        },
+        isPublic,
+      ),
+      isNil,
+    );
     const path = `projects/${projectId}?${stringify(params)}`;
     const res = await this.gitlab.fetchJsonAnyStatus<any>(path, {
       method: 'PUT',

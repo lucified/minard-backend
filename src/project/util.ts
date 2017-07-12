@@ -1,6 +1,7 @@
-
 import { Project } from '../shared/gitlab';
-
+type CreateOrEditPayload = Partial<
+  Project & { namespace_id: number; import_url: string }
+>;
 /**
  * Checks if the provided GitLab project has public deployments enabled.
  *
@@ -9,19 +10,24 @@ import { Project } from '../shared/gitlab';
  *
  * @param project Partial<Project>
  */
-export function hasPublicDeployments(project: Partial<Project>) {
+export function hasPublicDeployments(project: CreateOrEditPayload) {
   return project.snippets_enabled === true;
 }
 
 /**
- * Sets the provided GitLab project's public deployments flag.
+ * Clones the provided GitLab project and sets its public deployments flag.
  *
  * NOTE: the 'snippets_enabled' flag is repurposed here for a completely
  * different task.
  *
  * @param project Partial<Project>
  */
-export function setPublicDeployments(project: Partial<Project>, isPublic: boolean) {
-  project.snippets_enabled = isPublic;
-  return project;
+export function setPublicDeployments(
+  project: CreateOrEditPayload,
+  isPublic: boolean | undefined,
+) {
+  return {
+    ...project,
+    snippets_enabled: isPublic,
+  };
 }

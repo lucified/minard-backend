@@ -313,7 +313,12 @@ const OPEN_TEAM_NAMES =
   env.OPEN_TEAM_NAMES && env.OPEN_TEAM_NAMES.toLowerCase().split(',');
 
 // GitHub integration
+// ------------------
+
 const GIT_SYNCER_BASEURL = process.env.GIT_SYNCER_BASEURL;
+
+// format for GITHUB_TOKENS is 1=token-for-first-team,2=token-for-second-team,
+// where teamId are numeric teamId:s, and the tokens are the team's GitHub access tokens
 const GITHUB_TOKENS = process.env.GITHUB_TOKENS;
 
 // Inversify kernel bindings

@@ -729,7 +729,7 @@ describe('authentication-hapi-plugin', () => {
     });
   });
   describe('isOpenDeployment', () => {
-    it('returns true if the project has public visibility', async () => {
+    it('returns true if the deployments have public visibility', async () => {
       // Arrange
       const {
         plugin,
@@ -748,32 +748,14 @@ describe('authentication-hapi-plugin', () => {
       // Assert
       expect(result).to.be.true;
     });
-    it('returns false if the project has private visibility', async () => {
+    it('returns false if the deployments have private visibility', async () => {
       // Arrange
       const {
         plugin,
       } = await getPlugin((p: AuthenticationHapiPlugin, _k: Container) => {
         return [
           stub(p, p._getProject.name).returns(
-            Promise.resolve({ visibility_level: 0 }),
-          ),
-        ];
-      });
-
-      // Act
-      const result = await plugin.isOpenDeployment(1, 1);
-
-      // Assert
-      expect(result).to.be.false;
-    });
-    it('returns false if the project has internal visibility', async () => {
-      // Arrange
-      const {
-        plugin,
-      } = await getPlugin((p: AuthenticationHapiPlugin, _k: Container) => {
-        return [
-          stub(p, p._getProject.name).returns(
-            Promise.resolve({ visibility_level: 10 }),
+            Promise.resolve(setPublicDeployments({}, false)),
           ),
         ];
       });

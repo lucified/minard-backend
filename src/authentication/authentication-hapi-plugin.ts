@@ -12,6 +12,7 @@ import { hapiJwt2Key } from 'jwks-rsa';
 import * as Knex from 'knex';
 
 import { parseApiBranchId } from '../json-api/conversions';
+import { hasPublicDeployments } from '../project/util';
 import * as Hapi from '../server/hapi';
 import { HapiPlugin } from '../server/hapi-register';
 import { IFetch } from '../shared/fetch';
@@ -731,9 +732,8 @@ class AuthenticationHapiPlugin extends HapiPlugin {
 
   public async isOpenProject(projectId: number) {
     const project = await this._getProject(projectId);
-    if (project && project.visibility_level === 20) {
-      // 0 => private, 10 => internal, 20 => public
-      return true;
+    if (project) {
+      return hasPublicDeployments(project);
     }
     return false;
   }

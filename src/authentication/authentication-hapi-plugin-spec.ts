@@ -9,6 +9,7 @@ use(sinonChai);
 
 import { bootstrap } from '../config';
 import { getAccessToken, getSignedAccessToken } from '../config/config-test';
+import { setPublicDeployments } from '../project/util';
 import { getTestServer } from '../server/hapi';
 import {
   makeRequestWithAuthentication,
@@ -741,7 +742,7 @@ describe('authentication-hapi-plugin', () => {
 
         return [
           stub(p, p._getProject.name).returns(
-            Promise.resolve({ visibility_level: 20 }),
+            Promise.resolve(setPublicDeployments({}, true)),
           ),
         ];
       });

@@ -258,6 +258,7 @@ export class JsonApiHapiPlugin extends HapiPlugin {
                     .required(),
                   description: Joi.string().allow('').max(2000),
                   templateProjectId: Joi.number(),
+                  isPublic: Joi.boolean(),
                 }).required(),
                 relationships: Joi.object({
                   team: Joi.object({
@@ -306,6 +307,7 @@ export class JsonApiHapiPlugin extends HapiPlugin {
                 attributes: Joi.object({
                   name: Joi.string().regex(projectNameRegex).max(220),
                   description: Joi.string().allow('').max(2000),
+                  isPublic: Joi.boolean(),
                 }).required(),
               }).required(),
             },
@@ -702,6 +704,7 @@ export class JsonApiHapiPlugin extends HapiPlugin {
       name,
       description,
       templateProjectId,
+      isPublic,
     } = request.payload.data.attributes;
     const teamId = getPre(request).teamId;
     const project = await this.jsonApi.createProject(
@@ -709,6 +712,7 @@ export class JsonApiHapiPlugin extends HapiPlugin {
       name,
       description,
       templateProjectId,
+      isPublic,
     );
     return reply(this.serializeApiEntity('project', project)).created(
       `/api/projects/${project.id}`,
@@ -721,7 +725,7 @@ export class JsonApiHapiPlugin extends HapiPlugin {
   ) {
     const attributes = request.payload.data.attributes;
     const projectId = Number(request.params.projectId);
-    if (!attributes.name && !attributes.description) {
+    if (!attributes.name && !attributes.description && attributes.isPublic === undefined) {
       // Require that at least something is edited
       throw badRequest();
     }

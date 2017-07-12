@@ -959,7 +959,7 @@ describe('project-module', () => {
       logger,
       gitBaseUrl,
     );
-    const mockUrl = `${host}${client.apiPrefix}${url}`;
+    const mockUrl = new RegExp(`^${host}${client.apiPrefix}${url}`);
     fetchMock.restore().mock(
       mockUrl,
       {
@@ -1161,15 +1161,7 @@ describe('project-module', () => {
       body: any,
       eventBus?: EventBus,
     ) {
-      const params = {
-        name,
-        path: name,
-        public: false,
-        description,
-        namespace_id: teamId,
-      };
-      const url = `/projects?${stringify(params)}`;
-      return prepareProjectModule(status, body, url, 'POST', eventBus);
+      return prepareProjectModule(status, body, '/projects', 'POST', eventBus);
     }
 
     it('should work when gitlab project creation is successful', async () => {
@@ -1373,11 +1365,11 @@ describe('project-module', () => {
 
     function arrangeProjectModule(
       status: number,
-      params: any,
+      _params: any,
       eventBus?: EventBus,
       body?: any,
     ) {
-      const url = `/projects/${projectId}?${stringify(params)}`;
+      const url = `/projects/${projectId}`;
       return prepareProjectModule(status, body, url, 'PUT', eventBus);
     }
 

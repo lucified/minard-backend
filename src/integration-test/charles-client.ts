@@ -125,41 +125,21 @@ export default class CharlesClient {
   }
 
   /**
-   * PREVIEW
-   *
-   * All of the project-related functions either perform actions on the project
-   * for the supplied project ID or then on the last project that was created by
-   * CharlesClient.
-   */
-
-  public getPreview(deploymentId?: string, deploymentToken?: string) {
-    const _deploymentId =
-      deploymentId || (this.lastDeployment && this.lastDeployment.id);
-    if (!_deploymentId) {
-      throw new Error('No deploymentId available');
-    }
-    const _deploymentToken =
-      deploymentToken || (this.lastDeployment && this.lastDeployment.token);
-    if (!_deploymentToken) {
-      throw new Error('No deploymentToken available');
-    }
-    return this.fetch<ResponseSingle>(
-      `/api/preview/deployment/${_deploymentId}/${deploymentToken}`,
-    );
-  }
-
-  /**
    * Calling this sets this.lastProject.
    */
   public async createProject(
     name: string,
+    description?: string,
     teamId?: number,
     templateProjectId?: number,
+    isPublic = false,
   ) {
     const request = await this.createProjectRequest(
       name,
+      description,
       teamId,
       templateProjectId,
+      isPublic,
     );
     const response = await this.fetch<ResponseSingle>(
       `/api/projects`,
@@ -176,10 +156,7 @@ export default class CharlesClient {
   }
 
   public editProject(
-    attributes:
-      | { name: string }
-      | { description: string }
-      | { name: string; description: string },
+    attributes: { name?: string; description?: string; isPublic?: boolean },
     projectId?: number,
   ) {
     const _projectId =
@@ -213,6 +190,29 @@ export default class CharlesClient {
     }
     return this.fetch<ResponseMulti>(
       `/api/activity?filter=project[${_projectId}]`,
+    );
+  }
+
+  /**
+   * PREVIEW
+   *
+   * All of the project-related functions either perform actions on the project
+   * for the supplied project ID or then on the last project that was created by
+   * CharlesClient.
+   */
+  public getPreview(deploymentId?: string, deploymentToken?: string) {
+    const _deploymentId =
+      deploymentId || (this.lastDeployment && this.lastDeployment.id);
+    if (!_deploymentId) {
+      throw new Error('No deploymentId available');
+    }
+    const _deploymentToken =
+      deploymentToken || (this.lastDeployment && this.lastDeployment.token);
+    if (!_deploymentToken) {
+      throw new Error('No deploymentToken available');
+    }
+    return this.fetch<ResponseSingle>(
+      `/api/preview/deployment/${_deploymentId}/${deploymentToken}`,
     );
   }
 
@@ -360,8 +360,10 @@ export default class CharlesClient {
 
   public async createProjectRequest(
     name: string,
+    description?: string,
     teamId?: number,
     templateProjectId?: number,
+    isPublic = false,
   ): Promise<RequestInit> {
     const _teamId = teamId || (await this.getTeamId());
     const createProjectPayload = {
@@ -369,8 +371,9 @@ export default class CharlesClient {
         type: 'projects',
         attributes: {
           name,
-          description: 'foo bar',
+          description,
           templateProjectId,
+          isPublic,
         },
         relationships: {
           team: {
@@ -392,13 +395,8 @@ export default class CharlesClient {
     credentials?: { username: string; password: string },
     plainUrl?: string,
   ) {
-    let repoUrl: string | undefined;
-    if (this.lastCreatedProject) {
-      repoUrl = this.lastCreatedProject.repoUrl;
-    }
-    if (plainUrl) {
-      repoUrl = plainUrl;
-    }
+    const repoUrl =
+      plainUrl || (this.lastCreatedProject && this.lastCreatedProject.repoUrl);
     if (!repoUrl) {
       throw new Error('No projects created and plainUrl not provided');
     }

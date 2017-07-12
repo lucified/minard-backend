@@ -69,13 +69,14 @@ describe('system-integration', () => {
   });
 
   describe('inter-team', () => {
-    before(() => {
+    before(async () => {
       if (isDebug()) {
         clients = loadFromCache(cacheDir, cacheFileName);
       }
       if (!hasInterTeamClients(clients)) {
         throw new Error(`All the necessary clients are not defined.`);
       }
+      await clients.open.editProject({ isPublic: true });
     });
     interTeamTests(() =>
       Promise.resolve({

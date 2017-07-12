@@ -725,7 +725,11 @@ export class JsonApiHapiPlugin extends HapiPlugin {
   ) {
     const attributes = request.payload.data.attributes;
     const projectId = Number(request.params.projectId);
-    if (!attributes.name && !attributes.description && attributes.isPublic === undefined) {
+    if (
+      attributes.name === undefined &&
+      attributes.description === undefined &&
+      attributes.isPublic === undefined
+    ) {
       // Require that at least something is edited
       throw badRequest();
     }

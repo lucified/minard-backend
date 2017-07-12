@@ -13,7 +13,7 @@ import {
 import { CommentModule } from '../comment';
 import { CIProxy, DeploymentHapiPlugin, DeploymentModule } from '../deployment';
 import { eventBusInjectSymbol, PersistentEventBus } from '../event-bus';
-import { GitHubSyncHapiPlugin } from '../github-sync';
+import { GitHubSyncHapiPlugin, GitHubSyncModule } from '../github-sync';
 import { JsonApiHapiPlugin, JsonApiModule, ViewEndpoints } from '../json-api';
 import Migrations from '../migrations';
 import {
@@ -63,6 +63,7 @@ export default new ContainerModule((bind, _unbind, _isBound, _rebind) => {
   bind(UserModule.injectSymbol).to(UserModule);
   bind(ViewEndpoints.injectSymbol).to(ViewEndpoints);
   bind(RealtimeModule.injectSymbol).to(RealtimeModule).inSingletonScope();
+  bind(GitHubSyncModule.injectSymbol).to(GitHubSyncModule);
 
   // Bindings for hapi plugins
   bind(DeploymentHapiPlugin.injectSymbol).to(DeploymentHapiPlugin);

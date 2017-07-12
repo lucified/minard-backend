@@ -13,7 +13,7 @@ export function parseGitHubTokens(
       if (splitted.length !== 2) {
         throw Error(`Invalid github tokens configuration`);
       }
-      return [parseInt(splitted[0], 0), splitted[1]];
+      return [parseInt(splitted[0], 10), splitted[1]];
     }),
   );
 }

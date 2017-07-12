@@ -13,6 +13,7 @@ function getMockCommentModule(): CommentModule {
     getCommentCountForDeployment: async (_deploymentId: number) => 2,
   } as CommentModule;
 }
+
 const tokenGenerator = new TokenGenerator('secret');
 
 describe('view-endpoints', () => {
@@ -66,6 +67,7 @@ describe('view-endpoints', () => {
       getMockCommentModule(),
       tokenGenerator,
       '',
+      {} as any,
     );
     return new ViewEndpoints(jsonApiModule, deploymentModule, 'foo-base-url');
   }

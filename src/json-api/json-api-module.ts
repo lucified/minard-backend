@@ -6,7 +6,7 @@ import { Moment } from 'moment';
 import { ActivityModule, MinardActivity } from '../activity';
 import { CommentModule, MinardComment, NewMinardComment } from '../comment';
 import { DeploymentModule, MinardDeployment } from '../deployment/';
-import { webhookUrl } from '../github-sync';
+import { GitHubSyncModule } from '../github-sync';
 import { NotificationConfiguration, NotificationModule } from '../notification';
 import { MinardBranch, MinardProject, ProjectModule } from '../project/';
 import { externalBaseUrlInjectSymbol } from '../server/types';
@@ -46,6 +46,8 @@ export class JsonApiModule {
     private readonly tokenGenerator: TokenGenerator,
     @inject(externalBaseUrlInjectSymbol)
     private readonly externalBaseUrl: string,
+    @inject(GitHubSyncModule.injectSymbol)
+    private readonly githubSyncModule: GitHubSyncModule,
   ) {}
 
   public async getCommit(
@@ -388,6 +390,11 @@ export class JsonApiModule {
     const latestSuccessfullyDeployedCommit = minardDeployment
       ? await this.minardDeploymentToApiCommit(project.id, minardDeployment)
       : undefined;
+    const webhookUrl = await this.githubSyncModule.getWebHookUrl(
+      project.teamId,
+      project.id,
+      this.externalBaseUrl,
+    );
     return {
       type: 'project',
       id: project.id,
@@ -399,11 +406,7 @@ export class JsonApiModule {
       description: project.description,
       repoUrl: project.repoUrl,
       token: this.tokenGenerator.projectToken(project.id),
-      webhookUrl: webhookUrl(
-        project.id,
-        this.tokenGenerator,
-        this.externalBaseUrl,
-      ),
+      webhookUrl,
     };
   }
 

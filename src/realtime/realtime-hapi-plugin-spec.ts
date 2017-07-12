@@ -272,6 +272,7 @@ describe('realtime-hapi-sseModule', () => {
         getMockCommentModule(),
         tokenGenerator,
         '',
+        {} as any,
       );
 
       const eventBus = getEventBus();

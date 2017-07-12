@@ -58,6 +58,7 @@ async function getPlugin(
   kernel
     .rebind(openTeamNamesInjectSymbol)
     .toConstantValue(['fooopenteam', 'baropenteam']);
+
   await initializeTeamTokenTable(db);
   if (authenticationStubber) {
     const { instance } = stubber(

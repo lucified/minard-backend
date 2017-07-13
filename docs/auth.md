@@ -51,9 +51,4 @@ curl -v -H "Accept: text/event-stream" "http://localtest.me:8000/events/187?toke
 
 # Authorization
 
-Team members *always* have full read / write access to the team's projects. In addition,
-they are able to *view* the previews of any of the so called 'open' teams.
-
-An open team is any team listed in the `OPEN_TEAM_NAMES` environment variable
-(multiple team names can be specified with ',' as the separator). An open team's
-previews are accessible without any authentication.
+Team members *always* have full read / write access to the team's projects. In addition, they are able to *view* the previews of any *public* projects.

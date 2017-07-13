@@ -157,7 +157,7 @@ deployments included.
 - URL: `projects/:id`
 
 Projects are edited according to JSON api. The
-attributes `name` and `description` can be edited.
+attributes `name`, `description` and `isPublic` can be edited.
 
 *Example payload:*
 ```json
@@ -167,7 +167,8 @@ attributes `name` and `description` can be edited.
         "id": "57",
         "attributes": {
             "name": "testing-project-foo",
-            "description": "jhjkhlk"
+            "description": "jhjkhlk",
+            "isPublic": false
         }
     }
 }
@@ -183,8 +184,10 @@ edited project resource.
 - Method: `POST`
 - URL: `projects`
 
-Projects are created according to JSON api. The
-attributes `name` and `description` must be provided.
+Projects are created according to JSON api. The `name`
+attribute is required. A `description` attribute can be specified
+as well as the `isPublic` flag, which defaults to `false`. Public projects
+have previews that are accessible without authentication.
 Additionally, a `team` relationship must be provided,
 including the `id` of the relevant team.
 
@@ -195,7 +198,8 @@ including the `id` of the relevant team.
         "type": "projects",
         "attributes": {
             "name": "foo-project",
-            "description": "my description"
+            "description": "my description",
+            "isPublic": true
         },
         "relationships": {
             "team": {

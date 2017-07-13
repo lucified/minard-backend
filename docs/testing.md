@@ -101,7 +101,6 @@ Make sure the following environment variables have been set when starting charle
 
 ```shell
 ADMIN_ID=auth0ClientIdForAdminUser
-OPEN_TEAM_NAMES=integrationtestopenteam
 ```
 
 # Running the tests

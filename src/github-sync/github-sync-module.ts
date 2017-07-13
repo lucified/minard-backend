@@ -70,6 +70,10 @@ export default class GitHubSyncModule {
       throw notFound();
     }
 
+    if (!payload.ref) {
+      return;
+    }
+
     const project = await this.projectModule.getProject(projectId);
     if (!project) {
       this.logger.warn(

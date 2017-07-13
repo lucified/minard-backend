@@ -23,7 +23,7 @@ describe('github-sync-module', () => {
       const cloneUrl = 'http://github.com/foo/bar';
       const signatureToken = 'signature-token';
 
-      const payload = { repository: { clone_url: cloneUrl } };
+      const payload = { repository: { clone_url: cloneUrl }, ref: 'refs/head/master' };
 
       const authModule = {} as AuthenticationModule;
       authModule.getRootPassword = () => 'foobar';
@@ -94,7 +94,7 @@ describe('github-sync-module', () => {
       // Act
       let throwed = false;
       try {
-        await plugin.receiveGitHubHook(2, 'bar', {} as any);
+        await plugin.receiveGitHubHook(2, 'bar', { ref: 'refs/head/master' } as any);
       } catch (error) {
         throwed = true;
       }

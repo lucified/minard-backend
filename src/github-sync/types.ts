@@ -4,6 +4,7 @@ export interface GitHubWebHookPayload {
   repository: {
     clone_url: string;
   };
+  ref?: string;
 }
 
 export const gitSyncerBaseUrlInjectSymbol = Symbol('git-syncer-base-url');

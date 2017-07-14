@@ -86,7 +86,7 @@ export default class GitHubSyncModule {
     const githubToken = parsedTokens[project.teamId];
     if (!githubToken) {
       this.logger.warn(
-        `No token was found for team ${project.teamId} owning project ${projectId} GitHub webhook will be ignored`,
+        `No token was found for team ${project.teamId} owning project ${projectId}. GitHub webhook will be ignored`,
       );
       throw notFound();
     }
@@ -99,7 +99,7 @@ export default class GitHubSyncModule {
       targetPassword: this.authenticationModule.getRootPassword(),
     };
 
-    const url = `${this.gitSyncerBaseUrl}/sync-query?${stringify(params)}`;
+    const url = `${this.gitSyncerBaseUrl}/sync?${stringify(params)}`;
     const response = await this.fetch(url, {
       body: JSON.stringify(payload),
       method: 'POST',

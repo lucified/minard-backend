@@ -46,7 +46,7 @@ describe('github-sync-module', () => {
         targetPassword: 'foobar',
       };
       fetchMock.restore();
-      const url = `http://gitsyncer/sync-query?${stringify(expectedParams)}`;
+      const url = `http://gitsyncer/sync?${stringify(expectedParams)}`;
       fetchMock.mock(
         url,
         { status: 200 },

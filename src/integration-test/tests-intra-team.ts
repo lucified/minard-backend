@@ -17,6 +17,7 @@ export default (
   credentialsFactory: () => Promise<Auth0>,
   notifications: () => Promise<NotificationConfigurations | undefined>,
   projectName = 'regular-project',
+  branchName = 'test-minard-integration',
 ) => {
   const createdNotificationConfigurations: {
     [id: string]: NotificationConfiguration;
@@ -238,7 +239,7 @@ export default (
         'minard',
         repoUrl,
       );
-      await runCommand('git', '-C', repoFolder, 'push', 'minard', 'master');
+      await runCommand('git', '-C', repoFolder, 'push', 'minard', `master:${branchName}`);
 
       const eventStream = await client.teamEvents('DEPLOYMENT_UPDATED');
       const deployment = await withPing(eventStream, 1000, 'Building...')
@@ -287,7 +288,7 @@ export default (
       );
       expect(activities[0].attributes.project.name).to.equal(projectName);
       expect(activities[0].attributes.commit).to.exist;
-      expect(activities[0].attributes.branch.name).to.equal('master');
+      expect(activities[0].attributes.branch.name).to.equal(branchName);
     });
   });
 

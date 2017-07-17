@@ -2,10 +2,7 @@ import { expect } from 'chai';
 import * as debug from 'debug';
 
 import { JsonApiEntity } from '../json-api/types';
-import {
-  NotificationConfiguration,
-  NotificationType,
-} from '../notification/types';
+import { NotificationConfiguration } from '../notification/types';
 import CharlesClient from './charles-client';
 import {
   Auth0,
@@ -147,22 +144,27 @@ export default (
       this.timeout(1000 * 20);
       const projectId = client.lastCreatedProject!.id;
       const teamId = await client.getTeamId();
-      for (const notificationType of Object.keys(notificationConfigurations)) {
+      const notificationTypes = Object.keys(
+        notificationConfigurations,
+      ) as (keyof NotificationConfigurations)[];
+      for (const notificationType of notificationTypes) {
         const notificationConfiguration =
-          notificationConfigurations[notificationType as NotificationType];
+          notificationConfigurations[notificationType];
         if (notificationConfiguration) {
-          const scopes = [
+          const scopes: NotificationConfiguration[] = [
             {
+              ...notificationConfiguration,
               teamId: null,
               projectId,
-              ...notificationConfiguration,
-            },
-            {
-              teamId,
-              projectId: null,
-              ...notificationConfiguration,
             },
           ];
+          if (notificationType !== 'github') {
+            scopes.push({
+              ...notificationConfiguration,
+              teamId,
+              projectId: null,
+            });
+          }
           for (const scopedConfiguration of scopes) {
             const responseJson = await client
               .configureNotification(scopedConfiguration)

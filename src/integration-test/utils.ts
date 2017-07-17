@@ -94,11 +94,18 @@ export function prettyUrl(url: string) {
   return blue.underline(url);
 }
 
-export function assertResponseStatus(response: Response, requiredStatus = 200) {
+export async function assertResponseStatus(
+  response: Response,
+  requiredStatus = 200,
+  req: RequestInit = { method: 'GET', body: '' },
+) {
   if (response.status !== requiredStatus) {
+    const responseBody = await response.text();
     const msgParts = [
       `Got ${response.status} instead of ${requiredStatus}`,
-      response.url,
+      `${req.method} ${response.url}`,
+      req.body,
+      responseBody,
     ];
     const status = response.status >= 400 ? response.status : 500;
     throw create(status, msgParts.join(`\n\n`), {

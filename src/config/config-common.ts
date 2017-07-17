@@ -44,6 +44,7 @@ import { SystemHookModule } from '../system-hook';
 import { UserModule } from '../user';
 
 import { GitProxy } from '../gitproxy/gitproxy-hapi-plugin';
+import { GitHubNotify } from '../notification/github-notify';
 
 export default new ContainerModule((bind, _unbind, _isBound, _rebind) => {
   // Bindings for modules
@@ -87,6 +88,7 @@ export default new ContainerModule((bind, _unbind, _isBound, _rebind) => {
   bind(FlowdockNotify.injectSymbol).to(FlowdockNotify);
   bind(HipchatNotify.injectSymbol).to(HipchatNotify);
   bind(SlackNotify.injectSymbol).to(SlackNotify);
+  bind(GitHubNotify.injectSymbol).to(GitHubNotify);
   bind(MinardServer.injectSymbol).to(MinardServer).inSingletonScope();
   bind(RemoteScreenshotter.injectSymbol)
     .to(RemoteScreenshotter)

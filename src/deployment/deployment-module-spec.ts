@@ -11,9 +11,10 @@ import 'reflect-metadata';
 import { promisify } from 'util';
 
 import Authentication from '../authentication/authentication-module';
-import { Event, LocalEventBus } from '../event-bus';
+import { LocalEventBus } from '../event-bus';
 import { MinardProject, ProjectModule } from '../project';
 import { ScreenshotModule } from '../screenshot';
+import { Event } from '../shared/events';
 import { GitlabClient } from '../shared/gitlab-client';
 import Logger from '../shared/logger';
 import { MinardCommit } from '../shared/minard-commit';

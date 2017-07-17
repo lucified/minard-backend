@@ -10,9 +10,10 @@ import { stringify } from 'querystring';
 import { sprintf } from 'sprintf-js';
 
 import { promisify } from 'util';
-import { Event, EventBus, eventBusInjectSymbol } from '../event-bus';
+import { EventBus, eventBusInjectSymbol } from '../event-bus';
 import { ProjectModule } from '../project';
 import { ScreenshotModule } from '../screenshot';
+import { Event } from '../shared/events';
 import { GitlabClient } from '../shared/gitlab-client';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
 import { MinardCommit } from '../shared/minard-commit';

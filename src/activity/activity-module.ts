@@ -9,7 +9,8 @@ import {
   DeploymentModule,
   MinardDeployment,
 } from '../deployment';
-import { Event, EventBus, eventBusInjectSymbol } from '../event-bus';
+import { EventBus, eventBusInjectSymbol } from '../event-bus';
+import { Event } from '../shared/events';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
 import { charlesKnexInjectSymbol } from '../shared/types';
 import {

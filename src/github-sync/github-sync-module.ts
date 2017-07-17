@@ -6,13 +6,16 @@ import { AuthenticationModule } from '../authentication';
 import { ProjectModule } from '../project';
 import TokenGenerator from '../shared/token-generator';
 
+import { isGitHubConfiguration, NotificationModule } from '../notification';
+import {
+  getGitHubAppInstallationAccessToken,
+  getGitHubAppJWT,
+} from '../notification/github-notify';
 import { IFetch } from '../shared/fetch';
 import { gitlabHostInjectSymbol } from '../shared/gitlab-client';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
 import { fetchInjectSymbol } from '../shared/types';
-import { parseGitHubTokens } from './parse-github-tokens';
 import {
-  githubTokensInjectSymbol,
   GitHubWebHookPayload,
   gitSyncerBaseUrlInjectSymbol,
 } from './types';
@@ -26,9 +29,10 @@ export default class GitHubSyncModule {
     private readonly authenticationModule: AuthenticationModule,
     @inject(ProjectModule.injectSymbol)
     private readonly projectModule: ProjectModule,
+    @inject(NotificationModule.injectSymbol)
+    private readonly notificationModule: NotificationModule,
     @inject(fetchInjectSymbol) private readonly fetch: IFetch,
     @inject(gitlabHostInjectSymbol) private readonly gitlabHost: string,
-    @inject(githubTokensInjectSymbol) private readonly githubTokens: string,
     @inject(gitSyncerBaseUrlInjectSymbol)
     private readonly gitSyncerBaseUrl: string,
     @inject(TokenGenerator.injectSymbol)
@@ -36,12 +40,20 @@ export default class GitHubSyncModule {
     @inject(loggerInjectSymbol) private readonly logger: Logger,
   ) {}
 
-  // the below methods are async because they might have to be async in the future
-  // if we need to fetch this from a database, i.e.
   public async getTeamGitHubToken(teamId: number): Promise<string | undefined> {
-    const parsedTokens = parseGitHubTokens(this.githubTokens);
-    const githubToken = parsedTokens[teamId];
-    return githubToken;
+    const configs = await this.notificationModule.getTeamConfigurations(teamId);
+    const githubConfig = configs.find(c => c.type === 'github');
+    if (isGitHubConfiguration(githubConfig)) {
+      const { githubInstallationId } = githubConfig;
+      const { appId, appPrivateKey } = this.notificationModule.githubNotify;
+      const jwt = await getGitHubAppJWT(appId, appPrivateKey);
+      const token = (await getGitHubAppInstallationAccessToken(
+        githubInstallationId,
+        jwt,
+      )).token;
+      return token;
+    }
+    return undefined;
   }
 
   public async teamHasGitHubToken(teamId: number): Promise<boolean> {
@@ -82,8 +94,7 @@ export default class GitHubSyncModule {
       throw notFound();
     }
 
-    const parsedTokens = parseGitHubTokens(this.githubTokens);
-    const githubToken = parsedTokens[project.teamId];
+    const githubToken = await this.getTeamGitHubToken(project.teamId);
     if (!githubToken) {
       this.logger.warn(
         `No token was found for team ${project.teamId} owning project ${projectId}. GitHub webhook will be ignored`,

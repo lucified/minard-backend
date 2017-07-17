@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import { stringify } from 'querystring';
+import { stub } from 'sinon';
 
 import AuthenticationModule from '../authentication/authentication-module';
 import { ProjectModule } from '../project';
@@ -16,7 +17,6 @@ describe('github-sync-module', () => {
     it('should make correct call to git-syncer', async () => {
       // Arrange
       const gitlabHost = 'http://gitlab';
-      const gitHubTokens = '3=foo-token,5=bar';
       const gitSyncerBaseUrl = 'http://gitsyncer';
       const projectId = 5;
       const teamId = 3;
@@ -29,6 +29,14 @@ describe('github-sync-module', () => {
       authModule.getRootPassword = () => 'foobar';
 
       const projectModule = {} as ProjectModule;
+      projectModule.getProject = async (_projectId: number) => {
+        expect(projectId).to.equal(_projectId);
+        return {
+          namespacePath: 'foo-team',
+          path: 'foo-project',
+          teamId,
+        } as any;
+      };
       projectModule.getProject = async (_projectId: number) => {
         expect(projectId).to.equal(_projectId);
         return {
@@ -61,14 +69,14 @@ describe('github-sync-module', () => {
       const plugin = new GitHubSyncModule(
         authModule,
         projectModule,
+        {} as any,
         fetchMock.fetchMock,
         gitlabHost,
-        gitHubTokens,
         gitSyncerBaseUrl,
         tokenGenerator,
         logger,
       );
-
+      stub(plugin, plugin.getTeamGitHubToken.name).returns(Promise.resolve('foo-token'));
       // Act
       await plugin.receiveGitHubHook(projectId, signatureToken, payload);
 
@@ -82,8 +90,8 @@ describe('github-sync-module', () => {
       const plugin = new GitHubSyncModule(
         {} as any,
         {} as any,
+        {} as any,
         fetchMock.fetchMock,
-        '',
         '',
         '',
         tokenGenerator,

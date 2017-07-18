@@ -382,51 +382,6 @@ export class NotificationModule {
       Object.values(grouped),
       (group) => this.combine(group),
     );
-
-    // if (Number.isNaN(Number(projectId))) {
-    //   throw badRequest('projectId must be a number');
-    // }
-    // if (Number.isNaN(Number(teamId))) {
-    //   throw badRequest('teamId must be a number');
-    // }
-    // const select = this.knex.raw(
-    //   `
-    //   SELECT
-    //     p.type,
-    //     COALESCE(p."flowToken", t."flowToken") AS "flowToken",
-    //     COALESCE(p."hipchatRoomId", t."hipchatRoomId") AS "hipchatRoomId",
-    //     COALESCE(p."hipchatAuthToken", t."hipchatAuthToken") AS "hipchatAuthToken",
-    //     COALESCE(p."hipchatRoomId", t."hipchatRoomId") AS "hipchatRoomId",
-    //     COALESCE(p."slackWebhookUrl", t."slackWebhookUrl") AS "slackWebhookUrl",
-    //     COALESCE(p."githubOwner", t."githubOwner") AS "githubOwner",
-    //     COALESCE(p."githubRepo", t."githubRepo") AS "githubRepo",
-    //     COALESCE(p."githubInstallationId", t."githubInstallationId") AS "githubInstallationId",
-    //     COALESCE(p."githubAppId", t."githubAppId") AS "githubAppId",
-    //     COALESCE(p."githubAppPrivateKey", t."githubAppPrivateKey") AS "githubAppPrivateKey"
-    //   FROM notification_configuration AS p
-    //   INNER JOIN (
-    //     SELECT MAX(id) AS id
-    //     FROM notification_configuration
-    //     WHERE "projectId" = ${projectId} AND "teamId" IS NULL
-    //     GROUP BY type
-    //   ) AS p1 ON p1.id = p.id
-    //   LEFT JOIN (
-    //     SELECT type, MAX(id) AS id
-    //     FROM notification_configuration
-    //     WHERE "teamId" = ${teamId} AND "projectId" IS NULL
-    //     GROUP BY type
-    //   ) AS t1 ON t1.type = p.type
-    //   LEFT JOIN notification_configuration AS t ON t1.id = t.id
-    //   ORDER BY p.type
-    // `,
-    // );
-    // const ret = (await select) as NotificationConfiguration[] | undefined;
-    // if (!ret || !ret.length) {
-    //   return this.getTeamConfigurations(teamId!);
-    // }
-    // return ret.map(c =>
-    //   omitBy<NotificationConfiguration, NotificationConfiguration>(c, isNil),
-    // );
   }
 
   private async handleEvent(

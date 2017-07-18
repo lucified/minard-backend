@@ -534,11 +534,16 @@ export class JsonApiHapiPlugin extends HapiPlugin {
                   }),
                   Joi.object({
                     type: Joi.string().equal('github').required(),
+                    teamId: Joi.number().required(),
+                    githubAppId: Joi.number().required(),
+                    githubAppPrivateKey: Joi.string().required(),
+                    githubInstallationId: Joi.number().required(),
+                  }),
+                  Joi.object({
+                    type: Joi.string().equal('github').required(),
                     projectId: Joi.number().required(),
                     githubOwner: Joi.string().required(),
                     githubRepo: Joi.string().required(),
-                    githubInstallationId: Joi.number().required(),
-                    teamId: Joi.number(),
                   }),
                 ),
               }).required(),

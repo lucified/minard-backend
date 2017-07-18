@@ -12,8 +12,6 @@ import { GitHubNotificationConfiguration } from './types';
 const logger = Logger(undefined, true);
 
 const githubNotify = new GitHubNotify(
-  process.env.GITHUB_APP_ID,
-  process.env.GITHUB_APP_PRIVATE_KEY,
   fetch,
   logger,
 );
@@ -39,6 +37,8 @@ async function test() {
       githubOwner: 'lucified',
       githubRepo: 'lucify-hello-world',
       githubInstallationId: 39422,
+      githubAppId: process.env.GITHUB_APP_ID,
+      githubAppPrivateKey: process.env.GITHUB_APP_PRIVATE_KEY,
     } as GitHubNotificationConfiguration,
   );
   console.log(response);

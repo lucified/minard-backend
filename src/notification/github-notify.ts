@@ -70,8 +70,6 @@ export async function getGitHubAppInstallationAccessToken(
 @injectable()
 export class GitHubNotify {
   public static injectSymbol = Symbol('github-notify');
-  public static appPrivateKeyInjectSymbol = Symbol('github-app-private-key');
-  public static appIdInjectSymbol = Symbol('github-app-id');
   public readonly baseUrl = `https://api.github.com`;
   public readonly defaultOptions: GitHubDeploymentOptions = {
     required_contexts: [],
@@ -85,9 +83,6 @@ export class GitHubNotify {
   };
 
   public constructor(
-    @inject(GitHubNotify.appIdInjectSymbol) public readonly appId: number,
-    @inject(GitHubNotify.appPrivateKeyInjectSymbol)
-    public readonly appPrivateKey: string,
     @inject(fetchInjectSymbol) private readonly fetch: IFetch,
     @inject(loggerInjectSymbol) private readonly logger: Logger,
   ) {}
@@ -98,10 +93,10 @@ export class GitHubNotify {
     config: GitHubNotificationConfiguration,
   ) {
     const { deployment } = event.payload;
-    const { githubRepo, githubOwner } = config;
-    const jwt = await getGitHubAppJWT(this.appId, this.appPrivateKey);
+    const { githubRepo, githubOwner, githubAppId, githubAppPrivateKey } = config;
+    const jwt = await getGitHubAppJWT(githubAppId, githubAppPrivateKey);
     const token = (await getGitHubAppInstallationAccessToken(
-      config.githubInstallationId || 39422,
+      config.githubInstallationId,
       jwt,
       this.baseUrl,
       this.fetch,

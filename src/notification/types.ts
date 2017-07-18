@@ -21,6 +21,8 @@ export interface GitHubNotificationConfiguration extends BaseNotificationConfigu
   githubRepo: string;
   githubOwner: string;
   githubInstallationId: number;
+  githubAppId: number;
+  githubAppPrivateKey: string;
 }
 
 export interface BaseNotificationConfiguration {

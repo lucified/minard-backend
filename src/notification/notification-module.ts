@@ -2,7 +2,7 @@ import { Observable } from '@reactivex/rxjs';
 import { badImplementation, badRequest } from 'boom';
 import { inject, injectable } from 'inversify';
 import * as Knex from 'knex';
-import { isNil, omitBy } from 'lodash';
+import { defaults, flatMap, groupBy, isNil, omitBy } from 'lodash';
 
 import { isCommentActivity, MinardActivity, NEW_ACTIVITY } from '../activity';
 import {
@@ -64,7 +64,7 @@ export class NotificationModule {
   constructor(
     @inject(eventBusInjectSymbol) private readonly eventBus: EventBus,
     @inject(loggerInjectSymbol) private readonly logger: Logger,
-    @inject(charlesKnexInjectSymbol) private readonly knex: Knex,
+    @inject(charlesKnexInjectSymbol) public readonly knex: Knex,
     @inject(minardUiBaseUrlInjectSymbol) private readonly uiBaseUrl: string,
     @inject(FlowdockNotify.injectSymbol)
     public readonly flowdockNotify: FlowdockNotify,
@@ -118,7 +118,7 @@ export class NotificationModule {
   }
 
   public async addConfiguration(
-    config: NotificationConfiguration,
+    config: Partial<NotificationConfiguration>,
   ): Promise<number> {
     try {
       const ids = await this.knex('notification_configuration')
@@ -150,44 +150,6 @@ export class NotificationModule {
         : undefined;
     } catch (error) {
       this.logger.error('Failed to get notification configuration', error);
-      throw badImplementation();
-    }
-  }
-
-  public async getTeamConfigurations(
-    teamId: number,
-  ): Promise<NotificationConfiguration[]> {
-    if (!teamId) {
-      throw badRequest('teamId must be defined');
-    }
-    try {
-      const select = this.knex
-        .select('*')
-        .from('notification_configuration')
-        .where('teamId', teamId);
-      const ret = (await select) as NotificationConfiguration[] | undefined;
-      return ret ? ret.map(c => omitBy(c, isNil)) : [];
-    } catch (error) {
-      this.logger.error('Failed to fetch notification configurations', error);
-      throw badImplementation();
-    }
-  }
-
-  public async getProjectConfigurations(
-    projectId: number,
-  ): Promise<NotificationConfiguration[]> {
-    if (!projectId) {
-      throw badRequest('projectId must be defined');
-    }
-    try {
-      const select = this.knex
-        .select('*')
-        .from('notification_configuration')
-        .where('projectId', projectId);
-      const ret = (await select) as NotificationConfiguration[] | undefined;
-      return ret ? ret.map(c => omitBy(c, isNil)) : [];
-    } catch (error) {
-      this.logger.error('Failed to fetch notification configurations', error);
       throw badImplementation();
     }
   }
@@ -355,13 +317,116 @@ export class NotificationModule {
     await this.githubNotify.notify(previewUrl, event, config);
     return true;
   }
+  public async getTeamConfigurations(
+    teamId: number,
+  ): Promise<NotificationConfiguration[]> {
+    return this.getScopedConfigurations(teamId, 'team');
+  }
 
-  private async getConfigurations(projectId: number, teamId: number) {
-    let configs = await this.getProjectConfigurations(projectId);
-    if (configs.length === 0) {
-      configs = await this.getTeamConfigurations(teamId);
+  public getProjectConfigurations(
+    projectId: number,
+  ): Promise<NotificationConfiguration[]> {
+    return this.getScopedConfigurations(projectId, 'project');
+  }
+  public async getScopedConfigurations(
+    id: number,
+    idType: 'project' | 'team',
+  ): Promise<NotificationConfiguration[]> {
+    const col = `${idType}Id`;
+    const otherCol = idType === 'project' ? 'teamId' : 'projectId';
+    try {
+      const latestIds = this.knex.max('id AS id')
+        .from('notification_configuration')
+        .whereNull(otherCol)
+        .andWhere(col, id)
+        .groupBy('type')
+        .as('p1');
+      const select = this.knex
+        .select('p.*')
+        .from('notification_configuration AS p')
+        .join(latestIds, 'p1.id', 'p.id')
+        .orderBy('p.type');
+
+      const ret = (await select) as NotificationConfiguration[] | undefined;
+      return ret ? ret.map(c => omitBy(c, isNil)) : [];
+    } catch (error) {
+      this.logger.error('Failed to fetch notification configurations', error);
+      throw badImplementation(error.message);
     }
-    return configs;
+  }
+
+  public combine(group: NotificationConfiguration[]) {
+    if (group.length !== 1 && group.length !== 2) {
+      throw new Error('Invalid group');
+    }
+    const p = group.find(g => g.projectId !== undefined) || {};
+    const t = group.find(g => g.teamId !== undefined) || {};
+    defaults(p, t);
+    return [p] as NotificationConfiguration[];
+  }
+
+  public async getConfigurations(projectId?: number, teamId?: number) {
+    if (!projectId && !teamId) {
+      throw badRequest('projectId or teamId must be defined');
+    }
+    if (projectId && !teamId) {
+      return this.getProjectConfigurations(projectId);
+    }
+    if (teamId && !projectId) {
+      return this.getTeamConfigurations(teamId);
+    }
+    const all = (await this.getProjectConfigurations(projectId!))
+      .concat(await this.getTeamConfigurations(teamId!));
+    const grouped = groupBy(all, 'type');
+    return flatMap(
+      Object.values(grouped),
+      (group) => this.combine(group),
+    );
+
+    // if (Number.isNaN(Number(projectId))) {
+    //   throw badRequest('projectId must be a number');
+    // }
+    // if (Number.isNaN(Number(teamId))) {
+    //   throw badRequest('teamId must be a number');
+    // }
+    // const select = this.knex.raw(
+    //   `
+    //   SELECT
+    //     p.type,
+    //     COALESCE(p."flowToken", t."flowToken") AS "flowToken",
+    //     COALESCE(p."hipchatRoomId", t."hipchatRoomId") AS "hipchatRoomId",
+    //     COALESCE(p."hipchatAuthToken", t."hipchatAuthToken") AS "hipchatAuthToken",
+    //     COALESCE(p."hipchatRoomId", t."hipchatRoomId") AS "hipchatRoomId",
+    //     COALESCE(p."slackWebhookUrl", t."slackWebhookUrl") AS "slackWebhookUrl",
+    //     COALESCE(p."githubOwner", t."githubOwner") AS "githubOwner",
+    //     COALESCE(p."githubRepo", t."githubRepo") AS "githubRepo",
+    //     COALESCE(p."githubInstallationId", t."githubInstallationId") AS "githubInstallationId",
+    //     COALESCE(p."githubAppId", t."githubAppId") AS "githubAppId",
+    //     COALESCE(p."githubAppPrivateKey", t."githubAppPrivateKey") AS "githubAppPrivateKey"
+    //   FROM notification_configuration AS p
+    //   INNER JOIN (
+    //     SELECT MAX(id) AS id
+    //     FROM notification_configuration
+    //     WHERE "projectId" = ${projectId} AND "teamId" IS NULL
+    //     GROUP BY type
+    //   ) AS p1 ON p1.id = p.id
+    //   LEFT JOIN (
+    //     SELECT type, MAX(id) AS id
+    //     FROM notification_configuration
+    //     WHERE "teamId" = ${teamId} AND "projectId" IS NULL
+    //     GROUP BY type
+    //   ) AS t1 ON t1.type = p.type
+    //   LEFT JOIN notification_configuration AS t ON t1.id = t.id
+    //   ORDER BY p.type
+    // `,
+    // );
+    // const ret = (await select) as NotificationConfiguration[] | undefined;
+    // if (!ret || !ret.length) {
+    //   return this.getTeamConfigurations(teamId!);
+    // }
+    // return ret.map(c =>
+    //   omitBy<NotificationConfiguration, NotificationConfiguration>(c, isNil),
+    // );
   }
 
   private async handleEvent(

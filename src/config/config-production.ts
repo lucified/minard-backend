@@ -18,7 +18,6 @@ import {
 } from '../deployment';
 import { eventStoreConfigInjectSymbol } from '../event-bus';
 import { gitSyncerBaseUrlInjectSymbol } from '../github-sync/types';
-import { GitHubNotify } from '../notification/github-notify';
 import {
   screenshotFolderInjectSymbol,
   screenshotterBaseurlInjectSymbol,
@@ -305,8 +304,6 @@ const ADMIN_ID = env.ADMIN_ID;
 
 // GitHub integration
 // ------------------
-const GITHUB_APP_ID = env.GITHUB_APP_ID;
-const GITHUB_APP_PRIVATE_KEY = env.GITHUB_APP_PRIVATE_KEY;
 const GIT_SYNCER_BASEURL = env.GIT_SYNCER_BASEURL;
 
 // Inversify kernel bindings
@@ -358,8 +355,4 @@ export default (kernel: Container) => {
     .bind(internalHostSuffixesInjectSymbol)
     .toConstantValue(INTERNAL_HOST_SUFFIXES.split(','));
   kernel.bind(gitSyncerBaseUrlInjectSymbol).toConstantValue(GIT_SYNCER_BASEURL);
-  kernel.bind(GitHubNotify.appIdInjectSymbol).toConstantValue(GITHUB_APP_ID);
-  kernel
-    .bind(GitHubNotify.appPrivateKeyInjectSymbol)
-    .toConstantValue(GITHUB_APP_PRIVATE_KEY);
 };

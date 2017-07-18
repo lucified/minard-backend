@@ -1,5 +1,5 @@
 import { Observable } from '@reactivex/rxjs';
-import { badImplementation, badRequest } from 'boom';
+import { badImplementation } from 'boom';
 import { inject, injectable } from 'inversify';
 import * as Knex from 'knex';
 import { defaults, flatMap, groupBy, isNil, omitBy } from 'lodash';
@@ -365,16 +365,7 @@ export class NotificationModule {
     return [p] as NotificationConfiguration[];
   }
 
-  public async getConfigurations(projectId?: number, teamId?: number) {
-    if (!projectId && !teamId) {
-      throw badRequest('projectId or teamId must be defined');
-    }
-    if (projectId && !teamId) {
-      return this.getProjectConfigurations(projectId);
-    }
-    if (teamId && !projectId) {
-      return this.getTeamConfigurations(teamId);
-    }
+  public async getConfigurations(projectId: number, teamId: number) {
     const all = (await this.getProjectConfigurations(projectId!))
       .concat(await this.getTeamConfigurations(teamId!));
     const grouped = groupBy(all, 'type');

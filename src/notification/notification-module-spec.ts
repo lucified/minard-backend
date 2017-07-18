@@ -237,7 +237,7 @@ describe('notification-module', () => {
         ...configurations.flowdock,
         flowToken: configurations.flowdock.flowToken + '1',
       });
-      const found = await instance.getConfigurations(projectId);
+      const found = await instance.getProjectConfigurations(projectId);
       expect(found.length).to.eq(1);
       expect(found[0].type).to.eq('flowdock');
       expect((found[0] as any).flowToken).to.eq(
@@ -250,7 +250,7 @@ describe('notification-module', () => {
       // Act
       await instance.addConfiguration(configurations.flowdock);
       await instance.addConfiguration(configurations.hipchat);
-      const found = await instance.getConfigurations(projectId);
+      const found = await instance.getProjectConfigurations(projectId);
       expect(found.length).to.eq(2);
       expect(found[0].type).to.eq('flowdock');
       expect(found[1].type).to.eq('hipchat');
@@ -261,7 +261,7 @@ describe('notification-module', () => {
       // Act
       await instance.addConfiguration(configurations.flowdock);
       await instance.addConfiguration(configurations.hipchat);
-      const found = await instance.getConfigurations(undefined, teamId);
+      const found = await instance.getTeamConfigurations(teamId);
       expect(found.length).to.eq(0);
     });
     it(`should be able to fetch project scoped configurations given a projectId and a teamId`, async () => {
@@ -290,7 +290,7 @@ describe('notification-module', () => {
         projectId: null,
         teamId,
       });
-      const found = await instance.getConfigurations(undefined, teamId);
+      const found = await instance.getTeamConfigurations(teamId);
       expect(found.length).to.eq(1);
       expect(found[0].type).to.eq('flowdock');
       expect((found[0] as any).flowToken).to.eq(
@@ -311,7 +311,7 @@ describe('notification-module', () => {
         projectId: null,
         teamId,
       });
-      const found = await instance.getConfigurations(undefined, teamId);
+      const found = await instance.getTeamConfigurations(teamId);
       expect(found.length).to.eq(2);
       expect(found[0].type).to.eq('flowdock');
       expect(found[1].type).to.eq('hipchat');
@@ -330,7 +330,7 @@ describe('notification-module', () => {
         projectId: null,
         teamId,
       });
-      const found = await instance.getConfigurations(projectId);
+      const found = await instance.getProjectConfigurations(projectId);
       expect(found.length).to.eq(0);
     });
     it(`should be able to fetch team scoped configurations given a projectId and a teamId`, async () => {

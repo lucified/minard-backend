@@ -49,7 +49,8 @@ describe('github-sync-module', () => {
       const expectedParams = {
         source: cloneUrl,
         target: `http://gitlab/foo-team/foo-project.git`,
-        sourceUsername: 'foo-token',
+        sourceUsername: 'x-access-token',
+        sourcePassword: 'foo-token',
         targetUsername: 'root',
         targetPassword: 'foobar',
       };

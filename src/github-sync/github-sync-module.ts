@@ -104,7 +104,8 @@ export default class GitHubSyncModule {
     const params = {
       source: payload.repository.clone_url,
       target: `${this.gitlabHost}/${project.namespacePath}/${project.path}.git`,
-      sourceUsername: githubToken,
+      sourceUsername: 'x-access-token',
+      sourcePassword: githubToken,
       targetUsername: 'root',
       targetPassword: this.authenticationModule.getRootPassword(),
     };

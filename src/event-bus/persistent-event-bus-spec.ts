@@ -52,7 +52,7 @@ if (process.env.TEST_USE_REDIS) {
 }
 
 function getEventBus() {
-  return new EventBus(logger(undefined, false, true), persistence);
+  return new EventBus(logger(undefined, true, true), persistence);
 }
 
 async function clearDb() {

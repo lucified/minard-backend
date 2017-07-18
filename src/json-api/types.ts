@@ -32,6 +32,7 @@ export interface ApiProject extends MinardProjectPlain {
   id: number;
   token: string;
   latestSuccessfullyDeployedCommit?: ApiCommit;
+  webhookUrl?: string;
 }
 
 export interface ApiBranch {

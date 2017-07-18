@@ -5,6 +5,7 @@ import 'reflect-metadata';
 import { MinardActivity } from '../activity';
 import { CommentModule } from '../comment';
 import { DeploymentModule, MinardDeployment } from '../deployment';
+import { GitHubSyncModule } from '../github-sync';
 import { MinardProject, ProjectModule } from '../project/';
 import { MinardCommit } from '../shared/minard-commit';
 import { ApiCommit, ApiDeployment, ApiProject, JsonApiModule } from './';
@@ -23,6 +24,12 @@ function getMockCommentModule() {
 }
 
 const tokenGenerator = new TokenGenerator('secret');
+
+function getMockGitHubSyncModule() {
+  const syncModule = {} as GitHubSyncModule;
+  syncModule.getWebHookUrl = async () => undefined;
+  return syncModule;
+}
 
 describe('json-api-module', () => {
   describe('toApiCommit', () => {
@@ -59,6 +66,8 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         {} as any,
+        '',
+        getMockGitHubSyncModule(),
       );
 
       // Act
@@ -94,6 +103,8 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         tokenGenerator,
+        '',
+        getMockGitHubSyncModule(),
       );
 
       jsonApiModule.toApiDeployment = async (
@@ -172,6 +183,8 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         tokenGenerator,
+        '',
+        getMockGitHubSyncModule(),
       );
 
       // Act
@@ -223,6 +236,8 @@ describe('json-api-module', () => {
         {} as any,
         {} as any,
         tokenGenerator,
+        '',
+        getMockGitHubSyncModule(),
       );
 
       // Act
@@ -266,6 +281,8 @@ describe('json-api-module', () => {
         {} as any,
         commentModule,
         tokenGenerator,
+        '',
+        getMockGitHubSyncModule(),
       );
 
       // Act
@@ -340,6 +357,8 @@ describe('json-api-module', () => {
         {} as any,
         getMockCommentModule(),
         tokenGenerator,
+        '',
+        getMockGitHubSyncModule(),
       );
 
       // Act
@@ -418,6 +437,8 @@ describe('json-api-module', () => {
         {} as any,
         getMockCommentModule(),
         tokenGenerator,
+        '',
+        getMockGitHubSyncModule(),
       );
       jsonApiModule.toApiCommit = async (
         _projectId: number,
@@ -485,6 +506,8 @@ describe('json-api-module', () => {
         {} as any,
         getMockCommentModule(),
         tokenGenerator,
+        '',
+        getMockGitHubSyncModule(),
       );
 
       // Act

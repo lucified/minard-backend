@@ -76,7 +76,7 @@ if (process.env.TEST_USE_REDIS) {
 }
 
 function getEventBus() {
-  return new PersistentEventBus(logger(undefined, false, true), persistence);
+  return new PersistentEventBus(logger(undefined, true, true), persistence);
 }
 
 async function clearDb() {
@@ -132,6 +132,7 @@ describe('realtime-hapi-sseModule', () => {
               ],
               repoUrl: 'foo',
               token: 'token',
+              webhookUrl: 'bar',
             }),
           } as JsonApiModule;
           const eventBus = getEventBus();
@@ -270,6 +271,8 @@ describe('realtime-hapi-sseModule', () => {
         {} as any,
         getMockCommentModule(),
         tokenGenerator,
+        '',
+        {} as any,
       );
 
       const eventBus = getEventBus();

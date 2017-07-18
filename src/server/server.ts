@@ -3,6 +3,7 @@ import { inject, injectable, optional } from 'inversify';
 import { AuthenticationHapiPlugin } from '../authentication';
 import { DeploymentHapiPlugin } from '../deployment';
 import { CIProxy } from '../deployment';
+import { GitHubSyncHapiPlugin } from '../github-sync';
 import { GitProxy } from '../gitproxy/gitproxy-hapi-plugin';
 import { JsonApiHapiPlugin } from '../json-api';
 import { OperationsHapiPlugin } from '../operations';
@@ -64,6 +65,8 @@ export default class MinardServer {
     private readonly operationsPlugin: OperationsHapiPlugin,
     @inject(RealtimeHapiPlugin.injectSymbol)
     private readonly realtimePlugin: RealtimeHapiPlugin,
+    @inject(GitHubSyncHapiPlugin.injectSymbol)
+    private readonly gitHubSyncPlugin: GitHubSyncHapiPlugin,
     @inject(sentryDsnInjectSymbol) private readonly sentryDsn: string,
     @inject(exitDelayInjectSymbol) private readonly exitDelay: number,
     @inject(hapiOptionsInjectSymbol)
@@ -216,6 +219,7 @@ export default class MinardServer {
           prefix: '/operations',
         },
       },
+      this.gitHubSyncPlugin.register,
       this.ciProxy.register,
       this.projectPlugin.register,
       this.gitProxy.register,

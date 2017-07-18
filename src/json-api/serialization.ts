@@ -113,6 +113,7 @@ export const projectSerialization = (apiBaseUrl: string) => {
       'latestSuccessfullyDeployedCommit',
       'repoUrl',
       'token',
+      'webhookUrl',
     ],
     branches: {
       ignoreRelationshipData: true,

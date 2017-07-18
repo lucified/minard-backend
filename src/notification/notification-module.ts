@@ -1,6 +1,8 @@
-import { badImplementation, badRequest } from 'boom';
+import { Observable } from '@reactivex/rxjs';
+import { badImplementation } from 'boom';
 import { inject, injectable } from 'inversify';
 import * as Knex from 'knex';
+import { defaults, flatMap, groupBy, isNil, omitBy } from 'lodash';
 
 import { isCommentActivity, MinardActivity, NEW_ACTIVITY } from '../activity';
 import {
@@ -10,25 +12,37 @@ import {
   getUiDeploymentPreviewUrl,
   MinardDeployment,
 } from '../deployment';
-import { Event, EventBus, eventBusInjectSymbol } from '../event-bus';
+import { EventBus, eventBusInjectSymbol } from '../event-bus';
 import { getUiBranchUrl, getUiProjectUrl } from '../project';
 import { ScreenshotModule } from '../screenshot';
 import { minardUiBaseUrlInjectSymbol } from '../server/types';
+import { Event, isEventType } from '../shared/events';
 import { Logger, loggerInjectSymbol } from '../shared/logger';
 import TokenGenerator from '../shared/token-generator';
 import { charlesKnexInjectSymbol } from '../shared/types';
 import { FlowdockNotify } from './flowdock-notify';
+import { GitHubNotify } from './github-notify';
 import { HipchatNotify } from './hipchat-notify';
 import { SlackNotify } from './slack-notify';
 import {
   FlowdockNotificationConfiguration,
+  GitHubNotificationConfiguration,
   HipChatNotificationConfiguration,
   NotificationConfiguration,
+  NotificationType,
   SlackNotificationConfiguration,
 } from './types';
 
 // type for events that trigger notifications
 type NotificationEvent = DeploymentEvent | MinardActivity;
+interface NotificationResult {
+  type: NotificationType;
+  result: boolean;
+}
+interface NotificationResults {
+  event: Event<NotificationEvent>;
+  results: NotificationResult[];
+}
 
 function getComment(event: NotificationEvent) {
   if (isCommentActivity(event)) {
@@ -44,39 +58,51 @@ function getComment(event: NotificationEvent) {
 
 @injectable()
 export class NotificationModule {
+  public readonly handledEvents: Observable<NotificationResults>;
   public static injectSymbol = Symbol('notification-module');
 
   constructor(
     @inject(eventBusInjectSymbol) private readonly eventBus: EventBus,
     @inject(loggerInjectSymbol) private readonly logger: Logger,
-    @inject(charlesKnexInjectSymbol) private readonly knex: Knex,
+    @inject(charlesKnexInjectSymbol) public readonly knex: Knex,
     @inject(minardUiBaseUrlInjectSymbol) private readonly uiBaseUrl: string,
     @inject(FlowdockNotify.injectSymbol)
-    private readonly flowdockNotify: FlowdockNotify,
+    public readonly flowdockNotify: FlowdockNotify,
     @inject(ScreenshotModule.injectSymbol)
     private readonly screenshotModule: ScreenshotModule,
     @inject(HipchatNotify.injectSymbol)
     private readonly hipchatNotify: HipchatNotify,
     @inject(SlackNotify.injectSymbol) private readonly slackNotify: SlackNotify,
+    @inject(GitHubNotify.injectSymbol)
+    public readonly githubNotify: GitHubNotify,
     @inject(TokenGenerator.injectSymbol)
     private readonly tokenGenerator: TokenGenerator,
   ) {
-    this.subscribe();
+    this.handledEvents = this.subscribe();
   }
 
   private subscribe() {
-    this.eventBus
-      .filterEvents<DeploymentEvent>(DEPLOYMENT_EVENT_TYPE)
-      // only post event if status changes
-      .filter(event => event.payload.statusUpdate.status !== undefined)
+    const handledEvents = this.eventBus
+      .getStream()
       .flatMap(event => this.handleEvent(event))
-      .subscribe();
+      .do(r => this.logResults(r))
+      .publish();
 
-    this.eventBus
-      .filterEvents<MinardActivity>(NEW_ACTIVITY)
-      .filter(event => event.payload.activityType === 'comment')
-      .flatMap(event => this.handleEvent(event))
-      .subscribe();
+    handledEvents.connect();
+    return handledEvents;
+  }
+
+  private logResults(r: NotificationResults) {
+    if (!r || !r.results) {
+      return;
+    }
+    const num = r.results.reduce((sum, x) => sum + (x.result ? 1 : 0), 0);
+    if (num) {
+      this.logger.debug(
+        'Notifications: %s',
+        r.results.map(x => `${x.type} = ${x.result}`).join(', '),
+      );
+    }
   }
 
   public async deleteConfiguration(id: number): Promise<void> {
@@ -92,7 +118,7 @@ export class NotificationModule {
   }
 
   public async addConfiguration(
-    config: NotificationConfiguration,
+    config: Partial<NotificationConfiguration>,
   ): Promise<number> {
     try {
       const ids = await this.knex('notification_configuration')
@@ -109,52 +135,21 @@ export class NotificationModule {
     id: number,
   ): Promise<NotificationConfiguration | undefined> {
     try {
-      return this.knex
+      const select = this.knex
         .select('*')
         .from('notification_configuration')
         .where('id', id)
         .limit(1)
         .first();
+      const ret = (await select) as NotificationConfiguration | undefined;
+      return ret
+        ? omitBy<NotificationConfiguration, NotificationConfiguration>(
+            ret,
+            isNil,
+          )
+        : undefined;
     } catch (error) {
       this.logger.error('Failed to get notification configuration', error);
-      throw badImplementation();
-    }
-  }
-
-  public async getTeamConfigurations(
-    teamId: number,
-  ): Promise<NotificationConfiguration[]> {
-    if (!teamId) {
-      throw badRequest('teamId must be defined');
-    }
-    try {
-      const select = this.knex
-        .select('*')
-        .from('notification_configuration')
-        .where('teamId', teamId);
-      const ret = await select;
-      return ret || [];
-    } catch (error) {
-      this.logger.error('Failed to fetch notification configurations', error);
-      throw badImplementation();
-    }
-  }
-
-  public async getProjectConfigurations(
-    projectId: number,
-  ): Promise<NotificationConfiguration[]> {
-    if (!projectId) {
-      throw badRequest('projectId must be defined');
-    }
-    try {
-      const select = this.knex
-        .select('*')
-        .from('notification_configuration')
-        .where('projectId', projectId);
-      const ret = await select;
-      return ret || [];
-    } catch (error) {
-      this.logger.error('Failed to fetch notification configurations', error);
       throw badImplementation();
     }
   }
@@ -162,14 +157,21 @@ export class NotificationModule {
   public async notify(
     event: Event<NotificationEvent>,
     config: NotificationConfiguration,
-  ): Promise<void> {
-    if (config.type === 'flowdock') {
-      return this.notifyFlowdock(event, config);
-    } else if (config.type === 'hipchat') {
-      return this.notifyHipchat(event, config);
-    } else if (config.type === 'slack') {
-      return this.notifySlack(event, config);
+  ): Promise<boolean> {
+    try {
+      if (config.type === 'flowdock') {
+        return this.notifyFlowdock(event, config);
+      } else if (config.type === 'hipchat') {
+        return this.notifyHipchat(event, config);
+      } else if (config.type === 'slack') {
+        return this.notifySlack(event, config);
+      } else if (config.type === 'github') {
+        return this.notifyGitHub(event, config);
+      }
+    } catch (error) {
+      this.logger.error(`Failed to send ${config.type} notification`, error);
     }
+    return false;
   }
 
   public async getScreenshotDataUri(event: Event<NotificationEvent>) {
@@ -216,108 +218,194 @@ export class NotificationModule {
     event: Event<NotificationEvent>,
     config: HipChatNotificationConfiguration,
   ) {
-    try {
-      const {
-        projectUrl,
-        branchUrl,
-        previewUrl,
-        commentUrl,
-        comment,
-        deployment,
-      } = this.getBasicParams(event);
-      await this.hipchatNotify.notify(
-        deployment,
-        config.hipchatRoomId,
-        config.hipchatAuthToken,
-        projectUrl,
-        branchUrl,
-        previewUrl,
-        commentUrl,
-        comment,
-      );
-    } catch (error) {
-      this.logger.error(`Failed to send Hipchat notification`, error);
+    const {
+      projectUrl,
+      branchUrl,
+      previewUrl,
+      commentUrl,
+      comment,
+      deployment,
+    } = this.getBasicParams(event);
+    // do not send notification for failed deployments
+    if (deployment.status !== 'success') {
+      return false;
     }
+    await this.hipchatNotify.notify(
+      deployment,
+      config.hipchatRoomId,
+      config.hipchatAuthToken,
+      projectUrl,
+      branchUrl,
+      previewUrl,
+      commentUrl,
+      comment,
+    );
+    return true;
   }
 
   public async notifyFlowdock(
     event: Event<NotificationEvent>,
     config: FlowdockNotificationConfiguration,
   ) {
-    try {
-      const {
-        projectUrl,
-        branchUrl,
-        previewUrl,
-        commentUrl,
-        comment,
-      } = this.getBasicParams(event);
-      const deployment: MinardDeployment = {
-        ...event.payload.deployment,
-        screenshot: await this.getScreenshotData(event),
-      };
-      await this.flowdockNotify.notify(
-        deployment,
-        config.flowToken,
-        projectUrl,
-        branchUrl,
-        previewUrl,
-        commentUrl,
-        comment,
-      );
-    } catch (error) {
-      this.logger.error(`Failed to send Flowdock notification`, error);
-    }
+    const {
+      projectUrl,
+      branchUrl,
+      previewUrl,
+      commentUrl,
+      comment,
+    } = this.getBasicParams(event);
+    const deployment: MinardDeployment = {
+      ...event.payload.deployment,
+      screenshot: await this.getScreenshotData(event),
+    };
+    await this.flowdockNotify.notify(
+      deployment,
+      config.flowToken,
+      projectUrl,
+      branchUrl,
+      previewUrl,
+      commentUrl,
+      comment,
+    );
+    return true;
   }
 
   public async notifySlack(
     event: Event<NotificationEvent>,
     config: SlackNotificationConfiguration,
   ) {
+    const {
+      projectUrl,
+      branchUrl,
+      previewUrl,
+      commentUrl,
+      comment,
+      deployment,
+    } = this.getBasicParams(event);
+    // TODO: Slack does not support sending image data in the payload.
+    // Figure out a way of getting a public URL for screenshots.
+    // screenshot: await this.getScreenshotData(event),
+    // do not send notification for failed deployments
+    if (deployment.status !== 'success') {
+      return false;
+    }
+
+    await this.slackNotify.notify(
+      deployment,
+      config.slackWebhookUrl,
+      projectUrl,
+      branchUrl,
+      previewUrl,
+      commentUrl,
+      comment,
+    );
+    return true;
+  }
+
+  public async notifyGitHub(
+    event: Event<NotificationEvent>,
+    config: GitHubNotificationConfiguration,
+  ) {
+    if (!isEventType<DeploymentEvent>(event, DEPLOYMENT_EVENT_TYPE)) {
+      return false;
+    }
+    const { statusUpdate } = event.payload;
+    if (statusUpdate.status !== 'success') {
+      return false;
+    }
+    const { previewUrl } = this.getBasicParams(event);
+    await this.githubNotify.notify(previewUrl, event, config);
+    return true;
+  }
+  public async getTeamConfigurations(
+    teamId: number,
+  ): Promise<NotificationConfiguration[]> {
+    return this.getScopedConfigurations(teamId, 'team');
+  }
+
+  public getProjectConfigurations(
+    projectId: number,
+  ): Promise<NotificationConfiguration[]> {
+    return this.getScopedConfigurations(projectId, 'project');
+  }
+  public async getScopedConfigurations(
+    id: number,
+    idType: 'project' | 'team',
+  ): Promise<NotificationConfiguration[]> {
+    const col = `${idType}Id`;
+    const otherCol = idType === 'project' ? 'teamId' : 'projectId';
     try {
-      const {
-        projectUrl,
-        branchUrl,
-        previewUrl,
-        commentUrl,
-        comment,
-      } = this.getBasicParams(event);
-      const deployment: MinardDeployment = {
-        ...event.payload.deployment,
-        // TODO: Slack does not support sending image data in the payload.
-        // Figure out a way of getting a public URL for screenshots.
-        // screenshot: await this.getScreenshotData(event),
-      };
-      await this.slackNotify.notify(
-        deployment,
-        config.slackWebhookUrl,
-        projectUrl,
-        branchUrl,
-        previewUrl,
-        commentUrl,
-        comment,
-      );
+      const latestIds = this.knex.max('id AS id')
+        .from('notification_configuration')
+        .whereNull(otherCol)
+        .andWhere(col, id)
+        .groupBy('type')
+        .as('p1');
+      const select = this.knex
+        .select('p.*')
+        .from('notification_configuration AS p')
+        .join(latestIds, 'p1.id', 'p.id')
+        .orderBy('p.type');
+
+      const ret = (await select) as NotificationConfiguration[] | undefined;
+      return ret ? ret.map(c => omitBy(c, isNil)) : [];
     } catch (error) {
-      this.logger.error(`Failed to send Slack notification`, error);
+      this.logger.error('Failed to fetch notification configurations', error);
+      throw badImplementation(error.message);
     }
   }
 
-  private async getConfigurations(projectId: number, teamId: number) {
-    let configs = await this.getProjectConfigurations(projectId);
-    if (configs.length === 0) {
-      configs = await this.getTeamConfigurations(teamId);
+  public combine(group: NotificationConfiguration[]) {
+    if (group.length !== 1 && group.length !== 2) {
+      throw new Error('Invalid group');
     }
-    return configs;
+    const p = group.find(g => g.projectId !== undefined) || {};
+    const t = group.find(g => g.teamId !== undefined) || {};
+    defaults(p, t);
+    return [p] as NotificationConfiguration[];
   }
 
-  private async handleEvent(event: Event<NotificationEvent>) {
-    const teamId = event.payload.deployment.teamId;
-    const projectId = event.payload.deployment.projectId;
-    try {
-      const configs = await this.getConfigurations(projectId, teamId);
-      await Promise.all(configs.map(item => this.notify(event, item)));
-    } catch (error) {
-      this.logger.error(`Failed to send notifications`, error);
+  public async getConfigurations(projectId: number, teamId: number) {
+    const all = (await this.getProjectConfigurations(projectId!))
+      .concat(await this.getTeamConfigurations(teamId!));
+    const grouped = groupBy(all, 'type');
+    return flatMap(
+      Object.values(grouped),
+      (group) => this.combine(group),
+    );
+  }
+
+  private async handleEvent(
+    event: Event<NotificationEvent>,
+  ): Promise<NotificationResults> {
+    if (
+      (isEventType<DeploymentEvent>(event, DEPLOYMENT_EVENT_TYPE) &&
+        event.payload.statusUpdate.status !== undefined) ||
+      (isEventType<MinardActivity>(event, NEW_ACTIVITY) &&
+        isCommentActivity(event.payload))
+    ) {
+      const { teamId, projectId } = event.payload.deployment;
+      try {
+        const configs = await this.getConfigurations(projectId, teamId);
+        const results = await Promise.all(
+          configs.map(config =>
+            this.notify(event, config).then(r => ({
+              type: config.type,
+              result: r,
+            })),
+          ),
+        );
+        return {
+          event,
+          results,
+        };
+      } catch (error) {
+        this.logger.error(`Failed to send notifications`, error);
+      }
     }
+    return {
+      event,
+      results: [],
+    };
   }
 }

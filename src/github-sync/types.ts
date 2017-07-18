@@ -8,4 +8,3 @@ export interface GitHubWebHookPayload {
 }
 
 export const gitSyncerBaseUrlInjectSymbol = Symbol('git-syncer-base-url');
-export const githubTokensInjectSymbol = Symbol('github-tokens');

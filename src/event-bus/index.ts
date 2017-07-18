@@ -7,9 +7,6 @@ export {
   PersistentEventBus,
   eventStoreConfigInjectSymbol,
 } from './persistent-event-bus';
-
-export type Event<T> = Event<T>;
-
 export const eventBusInjectSymbol = Symbol('event-bus');
 
 export interface EventBus {

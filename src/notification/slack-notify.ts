@@ -65,10 +65,6 @@ export class SlackNotify {
     commentUrl?: string,
     comment?: NotificationComment,
   ): Promise<void> {
-    // do not send notification for failed deployments
-    if (deployment.status !== 'success') {
-      return;
-    }
 
     const fullPreviewUrl = commentUrl || previewUrl;
     const body = getMessage(deployment, fullPreviewUrl, comment);

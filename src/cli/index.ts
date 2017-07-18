@@ -48,9 +48,8 @@ function run() {
         );
         const accessToken = await getAccessToken(config.auth0.admin);
         const client = new CharlesClient(config.charles, accessToken);
-        const response: CharlesResponse<any> = await (client as any)[
-          methodName
-        ](cliArgs);
+        const method = (client as any)[methodName];
+        const response: CharlesResponse<any> = await method.apply(client, cliArgs.map(tryParseJson));
         const json = await response.toJson();
         return console.log(json);
       } catch (error) {
@@ -59,4 +58,15 @@ function run() {
     };
     return fn();
   };
+}
+
+function tryParseJson(json: string) {
+  try {
+    if (json.match(/^[\{\[]/)) {
+      return JSON.parse(json);
+    }
+  } catch (error) {
+    // nothing
+  }
+  return json;
 }

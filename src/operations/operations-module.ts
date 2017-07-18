@@ -225,7 +225,19 @@ export default class OperationsModule {
   }
 
   public async regenerateGitlabPasswords() {
-    const users = await this.gitlab.getUsers();
+    const perPage = 50;
+    let page = 1;
+    let response: { username: string}[];
+    let responses: { username: string}[] = [];
+    do {
+      response = await this.doRegenerateGitlabPasswords(page);
+      responses = responses.concat(response);
+      page++;
+    } while (response.length >= perPage);
+    return responses;
+  }
+  private async doRegenerateGitlabPasswords(page = 1) {
+    const users = await this.gitlab.getUsers(page);
     const responses: { username: string }[] = [];
     for (const user of users) {
       // don't change password for root user

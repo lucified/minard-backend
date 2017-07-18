@@ -212,6 +212,5 @@ services:
       - SENTRY_DSN=$SENTRY_DSN
       - ADMIN_ID=9A0cjUjLPIAIP52xTTWvuakblphA8EYu
       - GIT_SYNCER_BASEURL=http://gitsyncer
-      - GITHUB_TOKENS=${GITHUB_TOKENS}
       - EXIT_DELAY=0
       - DEBUG=1

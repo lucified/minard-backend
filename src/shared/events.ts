@@ -64,6 +64,13 @@ export function isType<T>(
   return event.type === creator.type;
 }
 
+export function isEventType<T>(
+  event: Event<any>,
+  type: string,
+): event is Event<T> {
+  return event.type === type;
+}
+
 export function isSSE<T>(event: Event<T>): event is StreamingEvent<T> {
   return event.type.substr(0, 4) === 'SSE_' && typeof event.teamId === 'number';
 }

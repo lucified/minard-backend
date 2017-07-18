@@ -129,13 +129,7 @@ export class HipchatNotify {
     previewUrl: string,
     commentUrl: string | undefined,
     comment: NotificationComment | undefined,
-  ): Promise<any> {
-    const status = deployment.status;
-
-    // do not send notification for failed deployments
-    if (status !== 'success') {
-      return;
-    }
+  ) {
 
     const url = `https://api.hipchat.com/v2/room/${roomId}/notification?auth_token=${authToken}`;
 

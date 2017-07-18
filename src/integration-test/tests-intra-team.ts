@@ -1,11 +1,9 @@
 import { expect } from 'chai';
 import * as debug from 'debug';
+import { pick } from 'lodash';
 
 import { JsonApiEntity } from '../json-api/types';
-import {
-  NotificationConfiguration,
-  NotificationType,
-} from '../notification/types';
+import { NotificationConfiguration } from '../notification/types';
 import CharlesClient from './charles-client';
 import {
   Auth0,
@@ -20,6 +18,7 @@ export default (
   credentialsFactory: () => Promise<Auth0>,
   notifications: () => Promise<NotificationConfigurations | undefined>,
   projectName = 'regular-project',
+  branchName = 'test-minard-integration',
 ) => {
   const createdNotificationConfigurations: {
     [id: string]: NotificationConfiguration;
@@ -133,6 +132,20 @@ export default (
             configuration.slackWebhookUrl,
           );
           break;
+        case 'github':
+          if (configuration.teamId) {
+            expect(attributes['github-app-id']).to.eq(
+              configuration.githubAppId,
+            );
+            expect(attributes['github-installation-id']).to.eq(
+              configuration.githubInstallationId,
+            );
+          }
+          if (configuration.projectId) {
+            expect(attributes['github-owner']).to.eq(configuration.githubOwner);
+            expect(attributes['github-repo']).to.eq(configuration.githubRepo);
+          }
+          break;
       }
       return id;
     }
@@ -147,22 +160,46 @@ export default (
       this.timeout(1000 * 20);
       const projectId = client.lastCreatedProject!.id;
       const teamId = await client.getTeamId();
-      for (const notificationType of Object.keys(notificationConfigurations)) {
+      const notificationTypes = Object.keys(
+        notificationConfigurations,
+      ) as (keyof NotificationConfigurations)[];
+      for (const notificationType of notificationTypes) {
         const notificationConfiguration =
-          notificationConfigurations[notificationType as NotificationType];
+          notificationConfigurations[notificationType];
         if (notificationConfiguration) {
-          const scopes = [
-            {
-              teamId: null,
-              projectId,
-              ...notificationConfiguration,
-            },
-            {
+          const scopes: NotificationConfiguration[] = [];
+          if (notificationConfiguration.type === 'github') {
+            scopes.push({
+              ...pick(notificationConfiguration, [
+                'type',
+                'githubAppId',
+                'githubAppPrivateKey',
+                'githubInstallationId',
+              ]),
               teamId,
               projectId: null,
+            });
+            scopes.push({
+              ...pick(notificationConfiguration, [
+                'type',
+                'githubOwner',
+                'githubRepo',
+              ]),
+              teamId: null,
+              projectId,
+            });
+          } else {
+            scopes.push({
               ...notificationConfiguration,
-            },
-          ];
+              teamId: null,
+              projectId,
+            });
+            scopes.push({
+              ...notificationConfiguration,
+              teamId,
+              projectId: null,
+            });
+          }
           for (const scopedConfiguration of scopes) {
             const responseJson = await client
               .configureNotification(scopedConfiguration)
@@ -236,7 +273,14 @@ export default (
         'minard',
         repoUrl,
       );
-      await runCommand('git', '-C', repoFolder, 'push', 'minard', 'master');
+      await runCommand(
+        'git',
+        '-C',
+        repoFolder,
+        'push',
+        'minard',
+        `master:${branchName}`,
+      );
 
       const eventStream = await client.teamEvents('DEPLOYMENT_UPDATED');
       const deployment = await withPing(eventStream, 1000, 'Building...')
@@ -285,7 +329,7 @@ export default (
       );
       expect(activities[0].attributes.project.name).to.equal(projectName);
       expect(activities[0].attributes.commit).to.exist;
-      expect(activities[0].attributes.branch.name).to.equal('master');
+      expect(activities[0].attributes.branch.name).to.equal(branchName);
     });
   });
 

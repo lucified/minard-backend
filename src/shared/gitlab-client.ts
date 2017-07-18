@@ -170,17 +170,14 @@ export class GitlabClient {
     };
   }
 
-  public async getUsers() {
-    // to get all users, we put a per_page param equal to the largest
-    // signed 32-bit integer, which gitlab should be able to handle fine
-    const largestSignedInteger = 2147483646;
+  public async getUsers(page = 1, perPage = 100) {
     const users = await this.fetchJson<User[]>(
-      `users?per_page=${largestSignedInteger}`,
+      `users?page=${page}&per_page=${perPage}`,
       undefined,
       true,
     );
     if (!users || !users.length) {
-      throw badRequest(`Can\'t find users`);
+      return [];
     }
     return users;
   }

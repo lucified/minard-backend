@@ -6,8 +6,9 @@ import * as moment from 'moment';
 import { promisify } from 'util';
 
 import { AuthenticationModule } from '../authentication';
-import { Event, EventBus, eventBusInjectSymbol } from '../event-bus';
+import { EventBus, eventBusInjectSymbol } from '../event-bus';
 import { Screenshotter, screenshotterInjectSymbol } from '../screenshot/types';
+import { Event } from '../shared/events';
 import { IFetch } from '../shared/fetch';
 import { GitlabClient } from '../shared/gitlab-client';
 import { fetchInjectSymbol } from '../shared/types';

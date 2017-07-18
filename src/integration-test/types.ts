@@ -24,6 +24,7 @@ export interface NotificationConfigurations {
   flowdock?: FlowdockNotificationConfiguration;
   hipchat?: HipChatNotificationConfiguration;
   slack?: SlackNotificationConfiguration;
+  github?: GitHubNotificationConfiguration;
 }
 interface HipChatNotificationConfiguration {
   type: 'hipchat';
@@ -40,7 +41,14 @@ interface SlackNotificationConfiguration {
   type: 'slack';
   slackWebhookUrl: string;
 }
-
+export interface GitHubNotificationConfiguration {
+  type: 'github';
+  githubRepo: string;
+  githubOwner: string;
+  githubInstallationId: number;
+  githubAppId: number;
+  githubAppPrivateKey: string;
+}
 export interface SSE {
   type: string;
   lastEventId: string;

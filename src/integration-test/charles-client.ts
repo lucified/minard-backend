@@ -459,7 +459,7 @@ export default class CharlesClient {
     }
 
     if (this.throwOnUnsuccessful) {
-      assertResponseStatus(response, requiredStatus);
+      await assertResponseStatus(response, requiredStatus, options);
     }
     return response;
   }

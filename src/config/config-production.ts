@@ -17,10 +17,7 @@ import {
   deploymentUrlPatternInjectSymbol,
 } from '../deployment';
 import { eventStoreConfigInjectSymbol } from '../event-bus';
-import {
-  githubTokensInjectSymbol,
-  gitSyncerBaseUrlInjectSymbol,
-} from '../github-sync/types';
+import { gitSyncerBaseUrlInjectSymbol } from '../github-sync/types';
 import {
   screenshotFolderInjectSymbol,
   screenshotterBaseurlInjectSymbol,
@@ -307,12 +304,7 @@ const ADMIN_ID = env.ADMIN_ID;
 
 // GitHub integration
 // ------------------
-
-const GIT_SYNCER_BASEURL = process.env.GIT_SYNCER_BASEURL;
-
-// format for GITHUB_TOKENS is 1=token-for-first-team,2=token-for-second-team,
-// where teamId are numeric teamId:s, and the tokens are the team's GitHub access tokens
-const GITHUB_TOKENS = process.env.GITHUB_TOKENS;
+const GIT_SYNCER_BASEURL = env.GIT_SYNCER_BASEURL;
 
 // Inversify kernel bindings
 // -------------------------
@@ -362,6 +354,5 @@ export default (kernel: Container) => {
   kernel
     .bind(internalHostSuffixesInjectSymbol)
     .toConstantValue(INTERNAL_HOST_SUFFIXES.split(','));
-  kernel.bind(githubTokensInjectSymbol).toConstantValue(GITHUB_TOKENS);
   kernel.bind(gitSyncerBaseUrlInjectSymbol).toConstantValue(GIT_SYNCER_BASEURL);
 };

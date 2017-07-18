@@ -10,7 +10,8 @@ import {
   DeploymentModule,
   MinardDeployment,
 } from '../deployment';
-import { Event, LocalEventBus } from '../event-bus';
+import { LocalEventBus } from '../event-bus';
+import { Event } from '../shared/events';
 import Logger from '../shared/logger';
 import { MinardCommit } from '../shared/minard-commit';
 import ActivityModule, { toDbActivity } from './activity-module';

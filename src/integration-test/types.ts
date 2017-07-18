@@ -46,6 +46,8 @@ export interface GitHubNotificationConfiguration {
   githubRepo: string;
   githubOwner: string;
   githubInstallationId: number;
+  githubAppId: number;
+  githubAppPrivateKey: string;
 }
 export interface SSE {
   type: string;

@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import * as debug from 'debug';
+import { pick } from 'lodash';
 
 import { JsonApiEntity } from '../json-api/types';
 import { NotificationConfiguration } from '../notification/types';
@@ -131,6 +132,20 @@ export default (
             configuration.slackWebhookUrl,
           );
           break;
+        case 'github':
+          if (configuration.teamId) {
+            expect(attributes['github-app-id']).to.eq(
+              configuration.githubAppId,
+            );
+            expect(attributes['github-installation-id']).to.eq(
+              configuration.githubInstallationId,
+            );
+          }
+          if (configuration.projectId) {
+            expect(attributes['github-owner']).to.eq(configuration.githubOwner);
+            expect(attributes['github-repo']).to.eq(configuration.githubRepo);
+          }
+          break;
       }
       return id;
     }
@@ -152,14 +167,33 @@ export default (
         const notificationConfiguration =
           notificationConfigurations[notificationType];
         if (notificationConfiguration) {
-          const scopes: NotificationConfiguration[] = [
-            {
+          const scopes: NotificationConfiguration[] = [];
+          if (notificationConfiguration.type === 'github') {
+            scopes.push({
+              ...pick(notificationConfiguration, [
+                'type',
+                'githubAppId',
+                'githubAppPrivateKey',
+                'githubInstallationId',
+              ]),
+              teamId,
+              projectId: null,
+            });
+            scopes.push({
+              ...pick(notificationConfiguration, [
+                'type',
+                'githubOwner',
+                'githubRepo',
+              ]),
+              teamId: null,
+              projectId,
+            });
+          } else {
+            scopes.push({
               ...notificationConfiguration,
               teamId: null,
               projectId,
-            },
-          ];
-          if (notificationType !== 'github') {
+            });
             scopes.push({
               ...notificationConfiguration,
               teamId,
@@ -239,7 +273,14 @@ export default (
         'minard',
         repoUrl,
       );
-      await runCommand('git', '-C', repoFolder, 'push', 'minard', `master:${branchName}`);
+      await runCommand(
+        'git',
+        '-C',
+        repoFolder,
+        'push',
+        'minard',
+        `master:${branchName}`,
+      );
 
       const eventStream = await client.teamEvents('DEPLOYMENT_UPDATED');
       const deployment = await withPing(eventStream, 1000, 'Building...')

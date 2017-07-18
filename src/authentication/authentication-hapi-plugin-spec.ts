@@ -9,6 +9,7 @@ use(sinonChai);
 
 import { bootstrap } from '../config';
 import { getAccessToken, getSignedAccessToken } from '../config/config-test';
+import { setPublicDeployments } from '../project/util';
 import { getTestServer } from '../server/hapi';
 import {
   makeRequestWithAuthentication,
@@ -18,7 +19,6 @@ import {
 import {
   adminIdInjectSymbol,
   charlesKnexInjectSymbol,
-  openTeamNamesInjectSymbol,
 } from '../shared/types';
 import {
   accessTokenCookieSettings,
@@ -55,10 +55,6 @@ async function getPlugin(
     .to(AuthenticationHapiPlugin);
   const db = kernel.get<Knex>(charlesKnexInjectSymbol);
   kernel.rebind(charlesKnexInjectSymbol).toConstantValue(db);
-  kernel
-    .rebind(openTeamNamesInjectSymbol)
-    .toConstantValue(['fooopenteam', 'baropenteam']);
-
   await initializeTeamTokenTable(db);
   if (authenticationStubber) {
     const { instance } = stubber(
@@ -733,56 +729,33 @@ describe('authentication-hapi-plugin', () => {
     });
   });
   describe('isOpenDeployment', () => {
-    it("returns true if the project belongs to an 'open' team", async () => {
-      // Arrange
-      const {
-        plugin,
-      } = await getPlugin((p: AuthenticationHapiPlugin, k: Container) => {
-        const openTeamName = k.get<string[]>(openTeamNamesInjectSymbol)[0];
-
-        return [
-          stub(p, p.getProjectTeam.name).returns(
-            Promise.resolve({ name: openTeamName, id: 1 }),
-          ),
-        ];
-      });
-
-      // Act
-      const result = await plugin.isOpenDeployment(1, 1);
-
-      // Assert
-      expect(result).to.be.true;
-    });
-    it("returns true if the project belongs to the second 'open' team", async () => {
-      // Arrange
-      const {
-        plugin,
-      } = await getPlugin((p: AuthenticationHapiPlugin, k: Container) => {
-        const openTeamName = k.get<string[]>(openTeamNamesInjectSymbol)[1];
-
-        return [
-          stub(p, p.getProjectTeam.name).returns(
-            Promise.resolve({ name: openTeamName, id: 1 }),
-          ),
-        ];
-      });
-
-      // Act
-      const result = await plugin.isOpenDeployment(1, 1);
-
-      // Assert
-      expect(result).to.be.true;
-    });
-    it("returns false if the project doesn't belong to an 'open' team", async () => {
+    it('returns true if the deployments have public visibility', async () => {
       // Arrange
       const {
         plugin,
       } = await getPlugin((p: AuthenticationHapiPlugin, _k: Container) => {
-        const notOpenTeamName = 'notopenteamname';
 
         return [
-          stub(p, p.getProjectTeam.name).returns(
-            Promise.resolve({ name: notOpenTeamName, id: 1 }),
+          stub(p, p._getProject.name).returns(
+            Promise.resolve(setPublicDeployments({}, true)),
+          ),
+        ];
+      });
+
+      // Act
+      const result = await plugin.isOpenDeployment(1, 1);
+
+      // Assert
+      expect(result).to.be.true;
+    });
+    it('returns false if the deployments have private visibility', async () => {
+      // Arrange
+      const {
+        plugin,
+      } = await getPlugin((p: AuthenticationHapiPlugin, _k: Container) => {
+        return [
+          stub(p, p._getProject.name).returns(
+            Promise.resolve(setPublicDeployments({}, false)),
           ),
         ];
       });
@@ -796,7 +769,7 @@ describe('authentication-hapi-plugin', () => {
     it('throws if something unexpected happens', async () => {
       // Arrange
       const { plugin } = await getPlugin((p: AuthenticationHapiPlugin) => [
-        stub(p, p.getProjectTeam.name).returns(Promise.reject(badGateway())),
+        stub(p, p._getProject.name).returns(Promise.reject(badGateway())),
       ]);
 
       // Act

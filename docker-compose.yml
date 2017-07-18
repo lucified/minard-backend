@@ -211,7 +211,6 @@ services:
       - GITLAB_ROOT_PASSWORD=12345678
       - SENTRY_DSN=$SENTRY_DSN
       - ADMIN_ID=9A0cjUjLPIAIP52xTTWvuakblphA8EYu
-      - OPEN_TEAM_NAMES=integrationtestopenteam
       - GIT_SYNCER_BASEURL=http://gitsyncer
       - GITHUB_TOKENS=${GITHUB_TOKENS}
       - EXIT_DELAY=0

@@ -12,6 +12,7 @@ import { hapiJwt2Key } from 'jwks-rsa';
 import * as Knex from 'knex';
 
 import { parseApiBranchId } from '../json-api/conversions';
+import { hasPublicDeployments } from '../project/util';
 import * as Hapi from '../server/hapi';
 import { HapiPlugin } from '../server/hapi-register';
 import { IFetch } from '../shared/fetch';
@@ -22,7 +23,6 @@ import {
   adminIdInjectSymbol,
   charlesKnexInjectSymbol,
   fetchInjectSymbol,
-  openTeamNamesInjectSymbol,
 } from '../shared/types';
 import { GitAuthScheme } from './git-auth-scheme';
 import {
@@ -68,7 +68,6 @@ class AuthenticationHapiPlugin extends HapiPlugin {
     @inject(charlesKnexInjectSymbol) private readonly db: Knex,
     @inject(loggerInjectSymbol) private readonly logger: Logger,
     @inject(adminIdInjectSymbol) private readonly adminId: string,
-    @inject(openTeamNamesInjectSymbol) private readonly openTeamNames: string[],
     @inject(fetchInjectSymbol) private readonly fetch: IFetch,
     @inject(internalHostSuffixesInjectSymbol)
     private readonly internalHostSuffixes: string[],
@@ -732,13 +731,9 @@ class AuthenticationHapiPlugin extends HapiPlugin {
   }
 
   public async isOpenProject(projectId: number) {
-    const team = await this.getProjectTeam(projectId);
-    if (
-      team &&
-      this.openTeamNames &&
-      this.openTeamNames.indexOf(team.name.toLowerCase()) > -1
-    ) {
-      return true;
+    const project = await this._getProject(projectId);
+    if (project) {
+      return hasPublicDeployments(project);
     }
     return false;
   }

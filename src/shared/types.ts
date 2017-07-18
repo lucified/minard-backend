@@ -6,4 +6,3 @@ export const charlesDbNameInjectSymbol = Symbol('charles-db-name');
 export const gitlabKnexInjectSymbol = Symbol('gitlab-knex');
 export const postgresKnexInjectSymbol = Symbol('postgres-knex');
 export const adminIdInjectSymbol = Symbol('admin-team-name');
-export const openTeamNamesInjectSymbol = Symbol('open-team-names');

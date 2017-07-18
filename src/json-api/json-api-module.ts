@@ -71,12 +71,14 @@ export class JsonApiModule {
     name: string,
     description?: string,
     templateProjectId?: number,
+    isPublic = false,
   ): Promise<ApiProject> {
     const id = await this.projectModule.createProject(
       teamId,
       name,
       description,
       templateProjectId,
+      isPublic,
     );
     const project = await this.getProject(id);
     if (!project) {
@@ -94,7 +96,7 @@ export class JsonApiModule {
 
   public async editProject(
     projectId: number,
-    attributes: { name?: string; description?: string },
+    attributes: { name?: string; description?: string; isPublic?: boolean },
   ): Promise<ApiProject> {
     await this.projectModule.editProject(projectId, attributes);
     const project = await this.getProject(projectId);

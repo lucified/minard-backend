@@ -48,7 +48,6 @@ import {
   charlesDbNameInjectSymbol,
   charlesKnexInjectSymbol,
   gitlabKnexInjectSymbol,
-  openTeamNamesInjectSymbol,
   postgresKnexInjectSymbol,
 } from '../shared/types';
 import { sentryDsnInjectSymbol } from '../shared/types';
@@ -306,12 +305,6 @@ const EXIT_DELAY = env.EXIT_DELAY ? parseInt(env.EXIT_DELAY, 10) : 15000;
 
 const ADMIN_ID = env.ADMIN_ID;
 
-// The names of teams that should have open (= no auth required) deployments
-// --------------
-
-const OPEN_TEAM_NAMES =
-  env.OPEN_TEAM_NAMES && env.OPEN_TEAM_NAMES.toLowerCase().split(',');
-
 // GitHub integration
 // ------------------
 
@@ -366,7 +359,6 @@ export default (kernel: Container) => {
   kernel.bind(auth0AudienceInjectSymbol).toConstantValue(AUTH0_AUDIENCE);
   kernel.bind(authCookieDomainInjectSymbol).toConstantValue(AUTH_COOKIE_DOMAIN);
   kernel.bind(adminIdInjectSymbol).toConstantValue(ADMIN_ID);
-  kernel.bind(openTeamNamesInjectSymbol).toConstantValue(OPEN_TEAM_NAMES);
   kernel
     .bind(internalHostSuffixesInjectSymbol)
     .toConstantValue(INTERNAL_HOST_SUFFIXES.split(','));

@@ -74,7 +74,7 @@ export default (
       this.retries(50);
       const client = await clientFactory();
       const project = await client
-        .createProject(projectName)
+        .createProject(projectName, 'fooo')
         .then(x => x.getEntity());
       expect(project.id).to.exist;
       const repoUrl = project.attributes['repo-url'];
@@ -89,7 +89,7 @@ export default (
       expect(Number(projects[0].id)).to.eq(client.lastCreatedProject!.id);
     });
 
-    it('should be able to edit a project', async function() {
+    it('should be able to edit the description', async function() {
       const client = await clientFactory();
       this.timeout(1000 * 30);
       const newDescription = 'fooo fooofoofoo';

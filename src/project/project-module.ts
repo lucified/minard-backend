@@ -32,6 +32,7 @@ import {
   projectDeleted,
   projectEdited,
 } from './types';
+import { hasPublicDeployments, setPublicDeployments } from './util';
 
 @injectable()
 export default class ProjectModule {
@@ -419,25 +420,30 @@ export default class ProjectModule {
     path: string,
     description?: string,
     importUrl?: string,
+    isPublic = false,
   ): Promise<Project> {
     const params = omitBy(
-      {
-        name: path,
-        path,
-        public: false,
-        description,
-        // In GitLab, the namespace_id is either an user id or a group id
-        // those id's do not overlap. Here we set it as the teamId, which
-        // corresponds to GitLab teamId:s
-        namespace_id: teamId,
-        import_url: importUrl,
-      },
+      setPublicDeployments(
+        {
+          name: path,
+          path,
+          description,
+          // In GitLab, the namespace_id is either an user id or a group id
+          // those id's do not overlap. Here we set it as the teamId, which
+          // corresponds to GitLab teamId:s
+          namespace_id: teamId,
+          import_url: importUrl,
+        },
+        isPublic,
+      ),
       isNil,
     );
 
     const res = await this.gitlab.fetchJsonAnyStatus<any>(
       `projects?${stringify(params)}`,
-      { method: 'POST' },
+      {
+        method: 'POST',
+      },
     );
     if (
       res.json &&
@@ -504,16 +510,25 @@ export default class ProjectModule {
 
   public async editGitLabProject(
     projectId: number,
-    attributes: { name?: string; description?: string },
+    attributes: { name?: string; description?: string; isPublic?: boolean },
   ): Promise<Project> {
-    const params = {
-      name: attributes.name,
-      path: attributes.name,
-      description: attributes.description,
-    };
-    const res = await this.gitlab.fetchJsonAnyStatus<
-      any
-    >(`projects/${projectId}?${stringify(params)}`, { method: 'PUT' });
+    const { name, description, isPublic } = attributes;
+    const params = omitBy(
+      setPublicDeployments(
+        {
+          name,
+          path: name,
+          description,
+        },
+        isPublic,
+      ),
+      isNil,
+    );
+    const path = `projects/${projectId}?${stringify(params)}`;
+    const res = await this.gitlab.fetchJsonAnyStatus<any>(path, {
+      method: 'PUT',
+    });
+
     if (res.status === 404) {
       this.logger.warn(
         `Attempted to edit project ${projectId} which does not exists (according to GitLab)`,
@@ -566,9 +581,10 @@ export default class ProjectModule {
     name: string,
     description?: string,
     templateProjectId?: number,
+    isPublic = false,
   ): Promise<number> {
     if (!templateProjectId) {
-      return this.doCreateProject(teamId, name, description);
+      return this.doCreateProject(teamId, name, description, isPublic);
     }
     return this.doCreateProjectFromTemplate(
       templateProjectId,
@@ -654,14 +670,22 @@ export default class ProjectModule {
     teamId: number,
     name: string,
     description?: string,
+    isPublic = false,
   ): Promise<number> {
-    const project = await this.createGitlabProject(teamId, name, description);
+    const project = await this.createGitlabProject(
+      teamId,
+      name,
+      description,
+      undefined,
+      isPublic,
+    );
     this.eventBus.post(
       projectCreated({
         id: project.id,
         description,
         name,
         teamId,
+        isPublic: hasPublicDeployments(project),
       }),
     );
     return project.id;
@@ -669,7 +693,7 @@ export default class ProjectModule {
 
   public async editProject(
     id: number,
-    attributes: { name?: string; description?: string },
+    attributes: { name?: string; description?: string; isPublic?: boolean },
   ) {
     const project = await this.editGitLabProject(id, attributes);
     this.eventBus.post(
@@ -679,6 +703,7 @@ export default class ProjectModule {
         name: project.name,
         description: project.description,
         repoUrl: this.getRepoUrl(project),
+        isPublic: hasPublicDeployments(project),
       }),
     );
   }

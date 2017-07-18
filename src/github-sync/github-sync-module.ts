@@ -40,13 +40,12 @@ export default class GitHubSyncModule {
     @inject(loggerInjectSymbol) private readonly logger: Logger,
   ) {}
 
-  public async getTeamGitHubToken(teamId: number): Promise<string | undefined> {
-    const configs = await this.notificationModule.getTeamConfigurations(teamId);
+  public async getGitHubToken(projectId: number, teamId: number): Promise<string | undefined> {
+    const configs = await this.notificationModule.getConfigurations(projectId, teamId);
     const githubConfig = configs.find(c => c.type === 'github');
     if (isGitHubConfiguration(githubConfig)) {
-      const { githubInstallationId } = githubConfig;
-      const { appId, appPrivateKey } = this.notificationModule.githubNotify;
-      const jwt = await getGitHubAppJWT(appId, appPrivateKey);
+      const { githubInstallationId, githubAppId, githubAppPrivateKey } = githubConfig;
+      const jwt = await getGitHubAppJWT(githubAppId, githubAppPrivateKey);
       const token = (await getGitHubAppInstallationAccessToken(
         githubInstallationId,
         jwt,
@@ -56,8 +55,8 @@ export default class GitHubSyncModule {
     return undefined;
   }
 
-  public async teamHasGitHubToken(teamId: number): Promise<boolean> {
-    return !!await this.getTeamGitHubToken(teamId);
+  public async hasGitHubToken(projectId: number, teamId: number): Promise<boolean> {
+    return !!await this.getGitHubToken(projectId, teamId);
   }
 
   public async getWebHookUrl(
@@ -65,7 +64,7 @@ export default class GitHubSyncModule {
     projectId: number,
     externalBaseUrl: string,
   ) {
-    return this.teamHasGitHubToken(teamId)
+    return this.hasGitHubToken(projectId, teamId)
       ? webhookUrl(projectId, this.tokenGenerator, externalBaseUrl)
       : undefined;
   }
@@ -94,7 +93,7 @@ export default class GitHubSyncModule {
       throw notFound();
     }
 
-    const githubToken = await this.getTeamGitHubToken(project.teamId);
+    const githubToken = await this.getGitHubToken(projectId, project.teamId);
     if (!githubToken) {
       this.logger.warn(
         `No token was found for team ${project.teamId} owning project ${projectId}. GitHub webhook will be ignored`,

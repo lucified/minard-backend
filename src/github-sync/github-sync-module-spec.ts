@@ -76,7 +76,7 @@ describe('github-sync-module', () => {
         tokenGenerator,
         logger,
       );
-      stub(plugin, plugin.getTeamGitHubToken.name).returns(Promise.resolve('foo-token'));
+      stub(plugin, plugin.getGitHubToken.name).returns(Promise.resolve('foo-token'));
       // Act
       await plugin.receiveGitHubHook(projectId, signatureToken, payload);
 

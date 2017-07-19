@@ -287,7 +287,7 @@ export default class CharlesClient {
     );
   }
 
-  public configureNotification(attributes: NotificationConfiguration) {
+  public configureNotification(attributes: Partial<NotificationConfiguration>) {
     if (attributes.teamId === null) {
       delete attributes.teamId;
     }

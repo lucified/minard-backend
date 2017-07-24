@@ -100,7 +100,7 @@ const goodOptions = {
       },
       {
         module: 'good-console',
-        args: [{ format: 'DD.MM HH:mm:ss', utc: false, color: true }],
+        args: [{ format: 'DD.MM HH:mm:ss', utc: false, color: false }],
       },
       'stdout',
     ],

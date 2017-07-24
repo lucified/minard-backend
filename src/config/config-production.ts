@@ -111,7 +111,7 @@ const winstonOptions = {
   transports: [
     new transports.Console({
       level: 'info',
-      colorize: true,
+      colorize: false,
       timestamp: true,
       prettyPrint: true,
       silent: false,

@@ -100,7 +100,7 @@ const goodOptions = {
       },
       {
         module: 'good-console',
-        args: [{ format: 'DD.MM HH:mm:ss', utc: false, color: true }],
+        args: [{ format: 'DD.MM HH:mm:ss', utc: false, color: false }],
       },
       'stdout',
     ],
@@ -111,7 +111,7 @@ const winstonOptions = {
   transports: [
     new transports.Console({
       level: 'info',
-      colorize: true,
+      colorize: false,
       timestamp: true,
       prettyPrint: true,
       silent: false,

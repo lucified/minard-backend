@@ -98,7 +98,7 @@ export class NotificationModule {
     }
     const num = r.results.reduce((sum, x) => sum + (x.result ? 1 : 0), 0);
     if (num) {
-      this.logger.debug(
+      this.logger.info(
         'Notifications: %s',
         r.results.map(x => `${x.type} = ${x.result}`).join(', '),
       );

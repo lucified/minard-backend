@@ -108,7 +108,7 @@
     "watch": "tsc -w",
     "lint": "tslint -t verbose 'src/**/*.ts'",
     "deploy": "lucify-notifier ecs-updater",
-    "deploy-chatops": "[ \"$AWS_TEMPORARY\" ] && npm run deploy || echo 'Skipping deployment'",
+    "deploy-chatops": "[ -z \"$AWS_TEMPORARY\" ] || yarn run deploy",
     "prettify": "prettier --parser typescript --single-quote --trailing-comma all --write \"src/**/*.ts?(x)\" \"typings/**/*.ts?(x)\"",
     "charles-client": "ts-node src/cli/index.ts"
   },

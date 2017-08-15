@@ -13,9 +13,11 @@ Name|Type|Description
 ----|----|-----------
 `name`|string|Project name (max. 220 characters)
 `description`|string|Project description (max. 2000 characters)
-`activeCommitters`|Array[{name: string, email: string}]| List of active committers
+`active-committers`|Array[{name: string, email: string}]| List of active committers
 `repo-url`|string|URL to repository for use with git
 `latest-activity-timestamp`|date|Timestamp of latest repo activity
+`token`|string|The secret token used in the "latest preview for project" URL
+`webhook-url`|string|Webhook URL that GitHub push events should be sent to
 
 *Relationships*:
 
@@ -117,7 +119,9 @@ and its related deployment included.
                 }
             ],
             "latest-activity-timestamp": "2016-12-19T16:20:59.635+02:00",
-            "repo-url": "https://foo.minard.io/lucify/minard-marketing.git"
+            "repo-url": "https://foo.minard.io/lucify/minard-marketing.git",
+            "webhook-url": "https://foo.minard.io/lucify/webhook/minard-marketing",
+            "token": "abcdef12345967",
         },
         "relationships": {
             "branches": {

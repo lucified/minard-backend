@@ -18,6 +18,7 @@ Name|Type|Description
 `latest-activity-timestamp`|date|Timestamp of latest repo activity
 `token`|string|The secret token used in the "latest preview for project" URL
 `webhook-url`|string|Webhook URL that GitHub push events should be sent to
+`is-public`|boolean|Whether previews/deployments are publicly accessible for unauthenticated users
 
 *Relationships*:
 
@@ -122,6 +123,7 @@ and its related deployment included.
             "repo-url": "https://foo.minard.io/lucify/minard-marketing.git",
             "webhook-url": "https://foo.minard.io/lucify/webhook/minard-marketing",
             "token": "abcdef12345967",
+            "is-public": false,
         },
         "relationships": {
             "branches": {

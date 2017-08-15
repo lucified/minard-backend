@@ -118,6 +118,7 @@ export const projectSerialization = (apiBaseUrl: string) => {
       'repoUrl',
       'token',
       'webhookUrl',
+      'isPublic',
     ],
     branches: {
       ignoreRelationshipData: true,

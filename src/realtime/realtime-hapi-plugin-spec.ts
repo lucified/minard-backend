@@ -133,6 +133,7 @@ describe('realtime-hapi-sseModule', () => {
               repoUrl: 'foo',
               token: 'token',
               webhookUrl: 'bar',
+              isPublic: true,
             }),
           } as JsonApiModule;
           const eventBus = getEventBus();

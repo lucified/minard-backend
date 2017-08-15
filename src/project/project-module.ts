@@ -299,6 +299,7 @@ export default class ProjectModule {
       repoUrl,
       namespacePath: project.namespace.path,
       defaultBranch: project.default_branch,
+      isPublic: hasPublicDeployments(project),
     };
   }
 

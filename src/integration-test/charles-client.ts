@@ -376,7 +376,7 @@ export default class CharlesClient {
         attributes: {
           name,
           description,
-          templateProjectId,
+          'template-project-id': templateProjectId,
           'is-public': isPublic,
         },
         relationships: {

@@ -257,7 +257,7 @@ export class JsonApiHapiPlugin extends HapiPlugin {
                     .max(220)
                     .required(),
                   description: Joi.string().allow('').max(2000),
-                  templateProjectId: Joi.number(),
+                  'template-project-id': Joi.number(),
                   'is-public': Joi.boolean(),
                 }).required(),
                 relationships: Joi.object({
@@ -716,7 +716,7 @@ export class JsonApiHapiPlugin extends HapiPlugin {
     const {
       name,
       description,
-      templateProjectId,
+      'template-project-id': templateProjectId,
       'is-public': isPublic,
     } = request.payload.data.attributes;
     const teamId = getPre(request).teamId;

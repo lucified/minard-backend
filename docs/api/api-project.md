@@ -219,6 +219,10 @@ including the `id` of the relevant team.
 }
 ```
 
+The attributes object may also contain a `template-project-id` string field. If
+this field is included and refers to a valid project, the new project will clone
+this existing project's repository as the basis for the new project.
+
 ## Response
 
 Responds with status code `201` with

@@ -168,7 +168,11 @@ export default class CharlesClient {
       data: {
         type: 'projects',
         id: _projectId,
-        attributes,
+        attributes: {
+          name: attributes.name,
+          description: attributes.description,
+          'is-public': attributes.isPublic,
+        },
       },
     };
     return this.fetch<ResponseSingle>(
@@ -373,7 +377,7 @@ export default class CharlesClient {
           name,
           description,
           templateProjectId,
-          isPublic,
+          'is-public': isPublic,
         },
         relationships: {
           team: {

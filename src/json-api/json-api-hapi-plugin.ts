@@ -258,7 +258,7 @@ export class JsonApiHapiPlugin extends HapiPlugin {
                     .required(),
                   description: Joi.string().allow('').max(2000),
                   templateProjectId: Joi.number(),
-                  isPublic: Joi.boolean(),
+                  'is-public': Joi.boolean(),
                 }).required(),
                 relationships: Joi.object({
                   team: Joi.object({
@@ -307,7 +307,7 @@ export class JsonApiHapiPlugin extends HapiPlugin {
                 attributes: Joi.object({
                   name: Joi.string().regex(projectNameRegex).max(220),
                   description: Joi.string().allow('').max(2000),
-                  isPublic: Joi.boolean(),
+                  'is-public': Joi.boolean(),
                 }).required(),
               }).required(),
             },
@@ -717,7 +717,7 @@ export class JsonApiHapiPlugin extends HapiPlugin {
       name,
       description,
       templateProjectId,
-      isPublic,
+      'is-public': isPublic,
     } = request.payload.data.attributes;
     const teamId = getPre(request).teamId;
     const project = await this.jsonApi.createProject(
@@ -736,17 +736,25 @@ export class JsonApiHapiPlugin extends HapiPlugin {
     request: Hapi.Request,
     reply: Hapi.ReplyNoContinue,
   ) {
-    const attributes = request.payload.data.attributes;
+    const {
+      name,
+      description,
+      'is-public': isPublic,
+    } = request.payload.data.attributes;
     const projectId = Number(request.params.projectId);
     if (
-      attributes.name === undefined &&
-      attributes.description === undefined &&
-      attributes.isPublic === undefined
+      name === undefined &&
+      description === undefined &&
+      isPublic === undefined
     ) {
       // Require that at least something is edited
       throw badRequest();
     }
-    const project = await this.jsonApi.editProject(projectId, attributes);
+    const project = await this.jsonApi.editProject(projectId, {
+      name,
+      description,
+      isPublic,
+    });
     return reply(this.serializeApiEntity('project', project));
   }
 

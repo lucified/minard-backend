@@ -409,6 +409,7 @@ export class JsonApiModule {
       repoUrl: project.repoUrl,
       token: this.tokenGenerator.projectToken(project.id),
       webhookUrl,
+      isPublic: project.isPublic,
     };
   }
 

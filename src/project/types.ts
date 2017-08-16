@@ -58,6 +58,7 @@ export interface MinardProjectPlain {
   description: string;
   latestActivityTimestamp: string;
   activeCommitters: MinardProjectContributor[];
+  isPublic: boolean;
 }
 
 export interface MinardProject extends MinardProjectPlain {

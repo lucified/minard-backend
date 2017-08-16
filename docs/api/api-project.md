@@ -13,9 +13,12 @@ Name|Type|Description
 ----|----|-----------
 `name`|string|Project name (max. 220 characters)
 `description`|string|Project description (max. 2000 characters)
-`activeCommitters`|Array[{name: string, email: string}]| List of active committers
+`active-committers`|Array[{name: string, email: string}]| List of active committers
 `repo-url`|string|URL to repository for use with git
 `latest-activity-timestamp`|date|Timestamp of latest repo activity
+`token`|string|The secret token used in the "latest preview for project" URL
+`webhook-url`|string|Webhook URL that GitHub push events should be sent to
+`is-public`|boolean|Whether previews/deployments are publicly accessible for unauthenticated users
 
 *Relationships*:
 
@@ -117,7 +120,10 @@ and its related deployment included.
                 }
             ],
             "latest-activity-timestamp": "2016-12-19T16:20:59.635+02:00",
-            "repo-url": "https://foo.minard.io/lucify/minard-marketing.git"
+            "repo-url": "https://foo.minard.io/lucify/minard-marketing.git",
+            "webhook-url": "https://foo.minard.io/lucify/webhook/minard-marketing",
+            "token": "abcdef12345967",
+            "is-public": false,
         },
         "relationships": {
             "branches": {
@@ -157,7 +163,7 @@ deployments included.
 - URL: `projects/:id`
 
 Projects are edited according to JSON api. The
-attributes `name`, `description` and `isPublic` can be edited.
+attributes `name`, `description` and `is-public` can be edited.
 
 *Example payload:*
 ```json
@@ -168,7 +174,7 @@ attributes `name`, `description` and `isPublic` can be edited.
         "attributes": {
             "name": "testing-project-foo",
             "description": "jhjkhlk",
-            "isPublic": false
+            "is-public": false
         }
     }
 }
@@ -186,7 +192,7 @@ edited project resource.
 
 Projects are created according to JSON api. The `name`
 attribute is required. A `description` attribute can be specified
-as well as the `isPublic` flag, which defaults to `false`. Public projects
+as well as the `is-public` flag, which defaults to `false`. Public projects
 have previews that are accessible without authentication.
 Additionally, a `team` relationship must be provided,
 including the `id` of the relevant team.
@@ -199,7 +205,7 @@ including the `id` of the relevant team.
         "attributes": {
             "name": "foo-project",
             "description": "my description",
-            "isPublic": true
+            "is-public": true
         },
         "relationships": {
             "team": {
@@ -212,6 +218,10 @@ including the `id` of the relevant team.
     }
 }
 ```
+
+The attributes object may also contain a `template-project-id` string field. If
+this field is included and refers to a valid project, the new project will clone
+this existing project's repository as the basis for the new project.
 
 ## Response
 

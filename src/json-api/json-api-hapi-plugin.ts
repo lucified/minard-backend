@@ -964,6 +964,7 @@ export class JsonApiHapiPlugin extends HapiPlugin {
   ) {
     try {
       const attributes = convertKeysToCamelCase(request.payload.data.attributes);
+      attributes.projectId = parseInt(attributes.projectId, 10);
       reply(attributes);
     } catch (error) {
       reply(badRequest());

@@ -65,6 +65,10 @@ export const notificationSerialization = {
     'githubOwner',
     'githubRepo',
   ],
+  transform: (record: any) => {
+    record.projectId = String(record.projectId);
+    return record;
+  },
   ref: standardIdRef,
   included: false,
 };

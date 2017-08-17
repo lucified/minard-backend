@@ -557,7 +557,9 @@ describe('json-api serialization', () => {
 
       // attributes
       expect(data.attributes['flow-token']).to.equal(notification.flowToken);
-      expect(data.attributes['project-id']).to.equal(notification.projectId);
+      expect(data.attributes['project-id']).to.equal(
+        String(notification.projectId),
+      );
       expect(data.attributes.type).to.equal(notification.type);
     });
 

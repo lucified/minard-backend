@@ -45,9 +45,9 @@ Returns a JSON API response object, where the `data` key is an array of JSON API
         "type": "notifications",
         "attributes": {
           "type": "hipchat",
-          "team-id": 12345,
+          "team-id": [YOUR_TEAM_ID],
           "hipchat-auth-token": "[YOUR_HIP_CHAT_AUTH_TOKEN]",
-          "hipchat-room-id": "[YOUR_HIP_CHAT_ROOM_ID]"
+          "hipchat-room-id": [YOUR_HIP_CHAT_ROOM_ID]
         }
       }
     }
@@ -120,7 +120,7 @@ Payload for project-scoped HipChat notifications:
       "type": "hipchat",
       "project-id": "[YOUR_PROJECT_ID]",
       "hipchat-auth-token": "[YOUR_HIP_CHAT_AUTH_TOKEN]",
-      "hipchat-room-id": "[YOUR_HIP_CHAT_ROOM_ID]"
+      "hipchat-room-id": [YOUR_HIP_CHAT_ROOM_ID]
     }
   }
 }
@@ -135,7 +135,7 @@ Payload for team-scoped HipChat notifications:
       "type": "hipchat",
       "team-id": [YOUR_TEAM_ID],
       "hipchat-auth-token": "[YOUR_HIP_CHAT_AUTH_TOKEN]",
-      "hipchat-room-id": "[YOUR_HIP_CHAT_ROOM_ID]"
+      "hipchat-room-id": [YOUR_HIP_CHAT_ROOM_ID]
     }
   }
 }
@@ -171,7 +171,7 @@ Response code is `201`.
       "type": "hipchat",
       "team-id": [YOUR_TEAM_ID],
       "hipchat-auth-token": "[YOUR_HIP_CHAT_AUTH_TOKEN]",
-      "hipchat-room-id": "[YOUR_HIP_CHAT_ROOM_ID]"
+      "hipchat-room-id": [YOUR_HIP_CHAT_ROOM_ID]
     }
   }
 }

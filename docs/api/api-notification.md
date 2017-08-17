@@ -20,9 +20,9 @@ Name|Type|Description
 `slack-webhook-url`|string|Slack webhook URL (only for `slack`)
 `github-owner`|string|GitHub organization that owns the repo (only for project-level `github`)
 `github-repo`|string|Name of the GitHub repo (only for project-level `github`)
-`github-app-id`|number()|The GitHub app ID (only for team-level `github`)
-`github-app-private-key`|string()|The GitHub app private key (only for team-level `github`)
-`github-installation-id`|number()|The GitHub app installation id (only for team-level `github`)
+`github-app-id`|number|The GitHub app ID (only for team-level `github`)
+`github-app-private-key`|string|The GitHub app private key (only for team-level `github`)
+`github-installation-id`|number|The GitHub app installation id (only for team-level `github`)
 
 ## Get team-scoped notification configurations
 

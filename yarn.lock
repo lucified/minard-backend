@@ -24,6 +24,10 @@
   version "1.2.4"
   resolved "https://registry.yarnpkg.com/@types/cache-manager/-/cache-manager-1.2.4.tgz#d89abb39508e0813e6f5f9da754fb6ef760e23fa"
 
+"@types/camelcase@^4.1.0":
+  version "4.1.0"
+  resolved "https://registry.yarnpkg.com/@types/camelcase/-/camelcase-4.1.0.tgz#e054f7986f31658d49936261b5cd4588ef29d1ee"
+
 "@types/catbox@*":
   version "7.1.1"
   resolved "https://registry.yarnpkg.com/@types/catbox/-/catbox-7.1.1.tgz#170e50c35f047163e709c43e8bab551548a7d429"
@@ -459,6 +463,10 @@ call@4.x.x:
 camelcase@^3.0.0:
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/camelcase/-/camelcase-3.0.0.tgz#32fc4b9fcdaf845fcdf7e73bb97cac2261f0ab0a"
+
+camelcase@^4.1.0:
+  version "4.1.0"
+  resolved "https://registry.yarnpkg.com/camelcase/-/camelcase-4.1.0.tgz#d545635be1e33c542649c69173e5de6acfae34dd"
 
 caseless@~0.12.0:
   version "0.12.0"

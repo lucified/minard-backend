@@ -11,13 +11,18 @@ Notification resources have the following attributes:
 
 Name|Type|Description
 ----|----|-----------
-`type`|"flowdock"&#124;"hipchat"&#124;"slack"|Type of activity
-`team-id`|string|Project id (only for team-scoped notifications)
+`type`|"flowdock"&#124;"hipchat"&#124;"slack"&#124;"github"|Type of activity
+`team-id`|number|Project id (only for team-scoped notifications)
 `project-id`|string|Project id (only for project-scoped notifications)
 `flow-token`|string|Flow token (only for `flowdock`)
 `hipchat-auth-token`|string|Hipchat authorization token (only for `hipchat`)
-`hipchat-room-id`|string|Hipchat room id (only for `hipchat`)
+`hipchat-room-id`|number|Hipchat room id (only for `hipchat`)
 `slack-webhook-url`|string|Slack webhook URL (only for `slack`)
+`github-owner`|string|GitHub organization that owns the repo (only for project-level `github`)
+`github-repo`|string|Name of the GitHub repo (only for project-level `github`)
+`github-app-id`|number()|The GitHub app ID (only for team-level `github`)
+`github-app-private-key`|string()|The GitHub app private key (only for team-level `github`)
+`github-installation-id`|number()|The GitHub app installation id (only for team-level `github`)
 
 ## Get team-scoped notification configurations
 
@@ -40,9 +45,9 @@ Returns a JSON API response object, where the `data` key is an array of JSON API
         "type": "notifications",
         "attributes": {
           "type": "hipchat",
-          "teamId": ":teamId",
-          "hipchatAuthToken": "[YOUR_HIP_CHAT_AUTH_TOKEN]",
-          "hipchatRoomId": "[YOUR_HIP_CHAT_ROOM_ID]"
+          "team-id": 12345,
+          "hipchat-auth-token": "[YOUR_HIP_CHAT_AUTH_TOKEN]",
+          "hipchat-room-id": "[YOUR_HIP_CHAT_ROOM_ID]"
         }
       }
     }
@@ -73,8 +78,8 @@ Returns a JSON API response object, where the `data` key is an array of JSON API
         "type": "notifications",
         "attributes": {
           "type": "flowdock",
-          "projectId": ":projectId",
-          "flowToken": "[FLOW_TOKEN]"
+          "project-id": "[PROJECT_ID]",
+          "flow-token": "[FLOW_TOKEN]"
         }
       }
     }
@@ -99,8 +104,8 @@ Payload for project-scoped Flowdock notifications:
     "type": "notifications",
     "attributes": {
       "type": "flowdock",
-      "projectId": "[PROJECT_ID]",
-      "flowToken": "[FLOW_TOKEN]"
+      "project-id": "[PROJECT_ID]",
+      "flow-token": "[FLOW_TOKEN]"
     }
   }
 }
@@ -113,9 +118,9 @@ Payload for project-scoped HipChat notifications:
     "type": "notifications",
     "attributes": {
       "type": "hipchat",
-      "projectId": "[YOUR_PROJECT_ID]",
-      "hipchatAuthToken": "[YOUR_HIP_CHAT_AUTH_TOKEN]",
-      "hipchatRoomId": "[YOUR_HIP_CHAT_ROOM_ID]"
+      "project-id": "[YOUR_PROJECT_ID]",
+      "hipchat-auth-token": "[YOUR_HIP_CHAT_AUTH_TOKEN]",
+      "hipchat-room-id": "[YOUR_HIP_CHAT_ROOM_ID]"
     }
   }
 }
@@ -128,9 +133,9 @@ Payload for team-scoped HipChat notifications:
     "type": "notifications",
     "attributes": {
       "type": "hipchat",
-      "teamId": "[YOUR_TEAM_ID]",
-      "hipchatAuthToken": "[YOUR_HIP_CHAT_AUTH_TOKEN]",
-      "hipchatRoomId": "[YOUR_HIP_CHAT_ROOM_ID]"
+      "team-id": [YOUR_TEAM_ID],
+      "hipchat-auth-token": "[YOUR_HIP_CHAT_AUTH_TOKEN]",
+      "hipchat-room-id": "[YOUR_HIP_CHAT_ROOM_ID]"
     }
   }
 }
@@ -143,8 +148,8 @@ Payload for project-scoped Slack notifications:
     "type": "notifications",
     "attributes": {
       "type": "slack",
-      "projectId": "[YOUR_PROJECT_ID]",
-      "slackWebhookUrl": "[YOUR_SLACK_WEBHOOK_URL]"
+      "project-id": "[YOUR_PROJECT_ID]",
+      "slack-webhook-url": "[YOUR_SLACK_WEBHOOK_URL]"
     }
   }
 }
@@ -164,9 +169,9 @@ Response code is `201`.
     "type": "notifications",
     "attributes": {
       "type": "hipchat",
-      "teamId": "[YOUR_TEAM_ID]",
-      "hipchatAuthToken": "[YOUR_HIP_CHAT_AUTH_TOKEN]",
-      "hipchatRoomId": "[YOUR_HIP_CHAT_ROOM_ID]"
+      "team-id": [YOUR_TEAM_ID],
+      "hipchat-auth-token": "[YOUR_HIP_CHAT_AUTH_TOKEN]",
+      "hipchat-room-id": "[YOUR_HIP_CHAT_ROOM_ID]"
     }
   }
 }

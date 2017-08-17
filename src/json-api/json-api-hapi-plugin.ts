@@ -1,6 +1,8 @@
 import { badRequest, forbidden, notFound, unauthorized, wrap } from 'boom';
+import * as camelcase from 'camelcase';
 import { inject, injectable } from 'inversify';
 import * as Joi from 'joi';
+import { mapKeys } from 'lodash';
 import * as moment from 'moment';
 
 import {
@@ -72,6 +74,10 @@ export function parseActivityFilter(filter: string | null) {
     ret.teamId = Number(teamIdMatches[1]);
   }
   return ret;
+}
+
+function convertKeysToCamelCase(obj: { [key: string]: any }) {
+  return mapKeys(obj, (_value, key: string) => camelcase(key));
 }
 
 type apiReturn = Promise<ApiEntity | ApiEntities | null>;
@@ -515,35 +521,35 @@ export class JsonApiHapiPlugin extends HapiPlugin {
                 attributes: Joi.alternatives(
                   Joi.object({
                     type: Joi.string().equal('flowdock').required(),
-                    teamId: Joi.number(),
-                    projectId: Joi.number(),
-                    flowToken: Joi.string().alphanum().required(),
+                    'team-id': Joi.number(),
+                    'project-id': Joi.number(),
+                    'flow-token': Joi.string().alphanum().required(),
                   }),
                   Joi.object({
                     type: Joi.string().equal('hipchat').required(),
-                    projectId: Joi.number(),
-                    teamId: Joi.number(),
-                    hipchatRoomId: Joi.number().required(),
-                    hipchatAuthToken: Joi.string().required(),
+                    'project-id': Joi.number(),
+                    'team-id': Joi.number(),
+                    'hipchat-room-id': Joi.number().required(),
+                    'hipchat-auth-token': Joi.string().required(),
                   }),
                   Joi.object({
                     type: Joi.string().equal('slack').required(),
-                    teamId: Joi.number(),
-                    projectId: Joi.number(),
-                    slackWebhookUrl: Joi.string().required(),
+                    'team-id': Joi.number(),
+                    'project-id': Joi.number(),
+                    'slack-webhook-url': Joi.string().required(),
                   }),
                   Joi.object({
                     type: Joi.string().equal('github').required(),
-                    teamId: Joi.number().required(),
-                    githubAppId: Joi.number().required(),
-                    githubAppPrivateKey: Joi.string().required(),
-                    githubInstallationId: Joi.number().required(),
+                    'team-id': Joi.number().required(),
+                    'github-app-id': Joi.number().required(),
+                    'github-app-private-key': Joi.string().required(),
+                    'github-installation-id': Joi.number().required(),
                   }),
                   Joi.object({
                     type: Joi.string().equal('github').required(),
-                    projectId: Joi.number().required(),
-                    githubOwner: Joi.string().required(),
-                    githubRepo: Joi.string().required(),
+                    'project-id': Joi.number().required(),
+                    'github-owner': Joi.string().required(),
+                    'github-repo': Joi.string().required(),
                   }),
                 ),
               }).required(),
@@ -716,9 +722,9 @@ export class JsonApiHapiPlugin extends HapiPlugin {
     const {
       name,
       description,
-      'template-project-id': templateProjectId,
-      'is-public': isPublic,
-    } = request.payload.data.attributes;
+      templateProjectId,
+      isPublic,
+    } = convertKeysToCamelCase(request.payload.data.attributes);
     const teamId = getPre(request).teamId;
     const project = await this.jsonApi.createProject(
       teamId,
@@ -736,25 +742,22 @@ export class JsonApiHapiPlugin extends HapiPlugin {
     request: Hapi.Request,
     reply: Hapi.ReplyNoContinue,
   ) {
-    const {
-      name,
-      description,
-      'is-public': isPublic,
-    } = request.payload.data.attributes;
+    const camelcaseAttributes = convertKeysToCamelCase(
+      request.payload.data.attributes,
+    );
     const projectId = Number(request.params.projectId);
     if (
-      name === undefined &&
-      description === undefined &&
-      isPublic === undefined
+      camelcaseAttributes.name === undefined &&
+      camelcaseAttributes.description === undefined &&
+      camelcaseAttributes.isPublic === undefined
     ) {
       // Require that at least something is edited
       throw badRequest();
     }
-    const project = await this.jsonApi.editProject(projectId, {
-      name,
-      description,
-      isPublic,
-    });
+    const project = await this.jsonApi.editProject(
+      projectId,
+      camelcaseAttributes,
+    );
     return reply(this.serializeApiEntity('project', project));
   }
 
@@ -960,7 +963,8 @@ export class JsonApiHapiPlugin extends HapiPlugin {
     reply: Hapi.ReplyNoContinue,
   ) {
     try {
-      reply(request.payload.data.attributes);
+      const attributes = convertKeysToCamelCase(request.payload.data.attributes);
+      reply(attributes);
     } catch (error) {
       reply(badRequest());
     }

@@ -66,7 +66,9 @@ export const notificationSerialization = {
     'githubRepo',
   ],
   transform: (record: any) => {
-    record.projectId = String(record.projectId);
+    if (record.projectId != null) {
+      record.projectId = String(record.projectId);
+    }
     return record;
   },
   ref: standardIdRef,

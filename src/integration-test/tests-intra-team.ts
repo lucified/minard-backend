@@ -110,10 +110,10 @@ export default (
       // Ensure that one or the other is defined
       expect(!!(configuration.projectId || configuration.teamId)).to.be.true;
       if (configuration.teamId) {
-        expect(Number(attributes['team-id'])).to.eq(configuration.teamId);
+        expect(attributes['team-id']).to.eq(configuration.teamId);
       }
       if (configuration.projectId) {
-        expect(Number(attributes['project-id'])).to.eq(configuration.projectId);
+        expect(attributes['project-id']).to.eq(String(configuration.projectId));
       }
       switch (configuration.type) {
         case 'flowdock':

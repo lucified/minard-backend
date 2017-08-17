@@ -522,12 +522,12 @@ export class JsonApiHapiPlugin extends HapiPlugin {
                   Joi.object({
                     type: Joi.string().equal('flowdock').required(),
                     'team-id': Joi.number(),
-                    'project-id': Joi.number(),
+                    'project-id': Joi.string(),
                     'flow-token': Joi.string().alphanum().required(),
                   }),
                   Joi.object({
                     type: Joi.string().equal('hipchat').required(),
-                    'project-id': Joi.number(),
+                    'project-id': Joi.string(),
                     'team-id': Joi.number(),
                     'hipchat-room-id': Joi.number().required(),
                     'hipchat-auth-token': Joi.string().required(),
@@ -535,7 +535,7 @@ export class JsonApiHapiPlugin extends HapiPlugin {
                   Joi.object({
                     type: Joi.string().equal('slack').required(),
                     'team-id': Joi.number(),
-                    'project-id': Joi.number(),
+                    'project-id': Joi.string(),
                     'slack-webhook-url': Joi.string().required(),
                   }),
                   Joi.object({
@@ -547,7 +547,7 @@ export class JsonApiHapiPlugin extends HapiPlugin {
                   }),
                   Joi.object({
                     type: Joi.string().equal('github').required(),
-                    'project-id': Joi.number().required(),
+                    'project-id': Joi.string().required(),
                     'github-owner': Joi.string().required(),
                     'github-repo': Joi.string().required(),
                   }),
@@ -964,7 +964,9 @@ export class JsonApiHapiPlugin extends HapiPlugin {
   ) {
     try {
       const attributes = convertKeysToCamelCase(request.payload.data.attributes);
-      attributes.projectId = parseInt(attributes.projectId, 10);
+      if (attributes.projectId) {
+        attributes.projectId = Number(attributes.projectId);
+      }
       reply(attributes);
     } catch (error) {
       reply(badRequest());

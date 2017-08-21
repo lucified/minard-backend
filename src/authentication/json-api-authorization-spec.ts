@@ -407,9 +407,9 @@ describe('authorization for api routes', () => {
           type: 'notifications',
           attributes: {
             type: 'flowdock',
-            teamId,
-            projectId,
-            flowToken: 'foo',
+            'team-id': teamId,
+            'project-id': projectId !== undefined ? String(projectId) : undefined,
+            'flow-token': 'foo',
           },
         },
       });

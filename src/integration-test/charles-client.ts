@@ -10,7 +10,13 @@ import {
   OperationsResponse,
   SSE,
 } from './types';
-import { assertResponseStatus, log, prettyUrl, wrapResponse } from './utils';
+import {
+  assertResponseStatus,
+  convertKeysToKebabCase,
+  log,
+  prettyUrl,
+  wrapResponse,
+} from './utils';
 
 const EventSource = require('eventsource');
 
@@ -292,18 +298,24 @@ export default class CharlesClient {
   }
 
   public configureNotification(attributes: Partial<NotificationConfiguration>) {
-    if (attributes.teamId === null) {
-      delete attributes.teamId;
+    const payloadAttributes: any = attributes;
+    if (payloadAttributes.teamId === null) {
+      delete payloadAttributes.teamId;
     }
-    if (attributes.projectId === null) {
-      delete attributes.projectId;
+
+    if (payloadAttributes.projectId === null) {
+      delete payloadAttributes.projectId;
+    } else {
+      payloadAttributes.projectId = String(payloadAttributes.projectId);
     }
+
     const createNotificationPayload = {
       data: {
         type: 'notifications',
-        attributes,
+        attributes: convertKeysToKebabCase(payloadAttributes),
       },
     };
+
     return this.fetch<ResponseSingle>(
       `/api/notifications`,
       { method: 'POST', body: JSON.stringify(createNotificationPayload) },

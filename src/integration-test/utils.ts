@@ -4,8 +4,9 @@ import { create } from 'boom';
 import { blue, cyan, magenta } from 'chalk';
 import { spawn } from 'child_process';
 import * as _debug from 'debug';
+import * as decamelize from 'decamelize';
 import { readFileSync, writeFileSync } from 'fs';
-import { mapValues } from 'lodash';
+import { mapKeys, mapValues } from 'lodash';
 import fetch, { Response } from 'node-fetch';
 import { join } from 'path';
 
@@ -15,6 +16,10 @@ import { Auth0, CharlesClients, CharlesResponse, Config } from './types';
 
 const debug = _debug('system-integration-tests');
 const mkpath = require('mkpath');
+
+export function convertKeysToKebabCase(obj: { [key: string]: any }) {
+  return mapKeys(obj, (_value, key: string) => decamelize(key, '-'));
+}
 
 export function sleep(ms = 0) {
   return new Promise(resolve => setTimeout(resolve, ms));

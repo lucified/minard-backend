@@ -80,7 +80,7 @@ section, make sure that the clients are authorized to access charles.
 Copy the `clientId` and `clientSecret` together with the `domain` (Auth0 API endpoint) and the `audience` (charles)
 to the integration test configuration file described above.
 
-## GitLab configuration
+### GitLab configuration
 
 Create two new groups, 'integrationtest' and 'integrationtestopenteam'.
 Add a user to each of these and set the username to `clients-{clientId}` where clientId
@@ -94,16 +94,15 @@ by running:
 charles-client regenerateGitlabPasswords
 ```
 
-## Charles's configuration
+### Charles's configuration
 
-# Prerequisites
 Make sure the following environment variables have been set when starting charles:
 
 ```shell
 ADMIN_ID=auth0ClientIdForAdminUser
 ```
 
-# Running the tests
+### Running the tests
 
 If running against a local backend, start it with
 ```shell

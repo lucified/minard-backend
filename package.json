@@ -5,7 +5,7 @@
   "main": "server.js",
   "dependencies": {
     "@reactivex/rxjs": "^5.4.1",
-    "auth0-js": "^8.7.0",
+    "auth0-js": "^9.3.0",
     "aws-sdk": "^2.71.0",
     "boom": "^5.1.0",
     "cache-manager": "^2.4.0",

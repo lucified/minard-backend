@@ -84,7 +84,7 @@
     "@types/winston": "^2.3.1",
     "@types/yamljs": "^0.2.30",
     "chai": "^4.0.2",
-    "debug": "^2.6.8",
+    "debug": "^2.6.9",
     "decamelize": "^1.2.0",
     "ecs-updater": "^0.3.4",
     "eventsource": "^1.0.1",
